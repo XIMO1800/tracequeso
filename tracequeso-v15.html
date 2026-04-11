@@ -254,11 +254,20 @@ textarea.finput{resize:vertical;min-height:60px;}
     <div class="sbox"><div class="sval a" id="st-p">—</div><div class="slbl">Palés activos</div></div>
     <div class="sbox"><div class="sval r" id="st-a">—</div><div class="slbl">Alarmas</div></div>
   </div>
-  <div style="padding:8px 14px 10px;">
-    <button onclick="cargarDatos()" style="width:100%;padding:12px;background:var(--bg2);border:2px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;box-shadow:var(--shadow);">
+  <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    <button onclick="cargarDatos()" style="padding:12px;background:var(--bg2);border:2px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:var(--shadow);">
       <span style="font-size:1.1rem;">🔄</span>
-      <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text);">Actualizar datos</span>
-      <span style="font-family:'Inconsolata',monospace;font-size:0.72rem;color:var(--text3);" id="sync-time">—</span>
+      <div style="text-align:left;">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;color:var(--text);">Actualizar</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:0.65rem;color:var(--text3);" id="sync-time">—</div>
+      </div>
+    </button>
+    <button onclick="irBuscarPale()" style="padding:12px;background:var(--bg2);border:2px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:var(--shadow);">
+      <span style="font-size:1.1rem;">🔍</span>
+      <div style="text-align:left;">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;color:var(--text);">Buscar palé</div>
+        <div style="font-size:0.65rem;color:var(--text3);">Escanea o escribe</div>
+      </div>
     </button>
   </div>
   <div class="mbtns">
@@ -282,7 +291,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="mbtn-icon">🏭</div>
       <div><div class="mbtn-title">Control de stock</div><div class="mbtn-desc">Palés por sala, tipos y formatos en tiempo real</div></div>
     </button>
-    <button class="mbtn" id="btn-trazabilidad" onclick="toast('Próximamente','err')" style="display:none;border-left:4px solid #8b1a1a;">
+    <button class="mbtn" id="btn-trazabilidad" onclick="irTraz()" style="display:none;border-left:4px solid #8b1a1a;">
       <div class="mbtn-icon">🔍</div>
       <div><div class="mbtn-title">Trazabilidad</div><div class="mbtn-desc">Buscar por lote, historial de palés</div></div>
     </button>
@@ -326,7 +335,7 @@ textarea.finput{resize:vertical;min-height:60px;}
         </div>
         <div class="fg full" id="c1-nuevo-lote-wrap" style="display:none;">
           <div class="flabel">Nuevo lote (transición 2 palés)</div>
-          <input class="finput" type="text" id="c1-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLoteC1(this.value)" autocomplete="off">
+          <input class="finput" type="text" id="c1-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLoteC1(this.value)" autocomplete="off" inputmode="none">
           <button onclick="abrirScanner('c1-lote')" style="margin-top:6px;width:100%;padding:10px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;font-size:0.85rem;cursor:pointer;">📷 Escanear lote</button>
         </div>
         <div class="fg">
@@ -403,7 +412,7 @@ textarea.finput{resize:vertical;min-height:60px;}
         </div>
         <div class="fg full" id="c2-nuevo-lote-wrap" style="display:none;">
           <div class="flabel">Nuevo lote (transición 2 palés)</div>
-          <input class="finput" type="text" id="c2-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLoteC2(this.value)" autocomplete="off">
+          <input class="finput" type="text" id="c2-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLoteC2(this.value)" autocomplete="off" inputmode="none">
           <button onclick="abrirScanner('c2-lote')" style="margin-top:6px;width:100%;padding:10px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;font-size:0.85rem;cursor:pointer;">📷 Escanear lote</button>
         </div>
         <div class="fg full">
@@ -482,7 +491,7 @@ textarea.finput{resize:vertical;min-height:60px;}
         </div>
         <div class="fg full" id="pint-nuevo-lote-wrap" style="display:none;">
           <div class="flabel">Nuevo lote (transición 2 palés)</div>
-          <input class="finput" type="text" id="pint-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLotePint(this.value)" autocomplete="off">
+          <input class="finput" type="text" id="pint-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLotePint(this.value)" autocomplete="off" inputmode="none">
           <button onclick="abrirScanner('pint-lote')" style="margin-top:6px;width:100%;padding:10px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;font-size:0.85rem;cursor:pointer;">📷 Escanear lote</button>
         </div>
         <div class="fg full">
@@ -565,6 +574,74 @@ textarea.finput{resize:vertical;min-height:60px;}
   </div>
   <div class="scrl">
     <div id="plan-sala-content"></div>
+  </div>
+</div>
+
+<!-- BUSCAR PALÉ -->
+<div class="scr" id="s-buscar-pale">
+  <div class="topbar">
+    <button class="tbback" onclick="ir('s-main')">←</button>
+    <div class="tbtitle">🔍 Buscar palé</div>
+  </div>
+  <div class="scrl">
+    <div style="padding:14px;">
+      <input class="finput" type="text" id="buscar-pale-input" placeholder="ID del palé o escanea QR..." inputmode="none" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="onBuscarPaleInput(this.value)" style="font-family:'Inconsolata',monospace;font-size:1rem;">
+      <button onclick="abrirScanner('buscar-pale')" style="width:100%;margin-top:8px;padding:12px;background:var(--bg3);border:2px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;">
+        <span>📷</span><span style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;">Abrir cámara</span>
+      </button>
+    </div>
+    <div id="buscar-pale-result" style="padding:0 14px 14px;"></div>
+  </div>
+</div>
+
+<!-- TRAZABILIDAD — NIVEL 1: BUSCAR LOTE -->
+<div class="scr" id="s-traz">
+  <div class="topbar">
+    <button class="tbback" onclick="ir('s-main')">←</button>
+    <div class="tbtitle">🔍 Trazabilidad</div>
+  </div>
+  <div class="scrl">
+    <div style="padding:14px;">
+      <div style="font-size:0.82rem;color:var(--text3);margin-bottom:10px;">Introduce el número de lote (7 dígitos) para ver todos los palés y su historial completo.</div>
+      <input class="finput" type="text" id="traz-lote-input" placeholder="Lote (ej: 1261561)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="font-family:'Inconsolata',monospace;font-size:1.1rem;letter-spacing:2px;" onkeydown="if(event.key==='Enter')buscarLote(this.value.trim())">
+      <button onclick="buscarLote(document.getElementById('traz-lote-input').value.trim())" style="width:100%;margin-top:8px;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">🔎 Buscar lote</button>
+    </div>
+    <div id="traz-resultado" style="padding:0 14px 14px;"></div>
+  </div>
+</div>
+
+<!-- TRAZABILIDAD — NIVEL 2: PALÉS DEL LOTE -->
+<div class="scr" id="s-traz-pales">
+  <div class="topbar">
+    <button class="tbback" onclick="ir('s-traz')">←</button>
+    <div class="tbtitle" id="traz-pales-title">Palés del lote</div>
+  </div>
+  <div class="scrl">
+    <div id="traz-pales-header" style="padding:12px 14px 0;"></div>
+    <div id="traz-pales-content" style="padding:8px 14px 14px;"></div>
+  </div>
+</div>
+
+<!-- TRAZABILIDAD — NIVEL 3: HISTORIAL DEL PALÉ -->
+<div class="scr" id="s-traz-historial">
+  <div class="topbar">
+    <button class="tbback" onclick="ir('s-traz-pales')">←</button>
+    <div class="tbtitle" id="traz-hist-title">Historial palé</div>
+  </div>
+  <div class="scrl">
+    <div id="traz-hist-header" style="padding:12px 14px 0;"></div>
+    <div id="traz-hist-ops" style="padding:8px 14px 14px;"></div>
+  </div>
+</div>
+
+<!-- TRAZABILIDAD — NIVEL 4: DETALLE OPERACIÓN -->
+<div class="scr" id="s-traz-op">
+  <div class="topbar">
+    <button class="tbback" onclick="ir('s-traz-historial')">←</button>
+    <div class="tbtitle" id="traz-op-title">Detalle operación</div>
+  </div>
+  <div class="scrl">
+    <div id="traz-op-content" style="padding:14px;"></div>
   </div>
 </div>
 
@@ -702,8 +779,8 @@ function pv(){
   document.getElementById('btn-stock').style.display=u.stock?'':'none';
   document.getElementById('btn-scan').style.display=u.scan?'':'none';
   document.getElementById('stats-block').style.display=u.stock?'':'none';
-  document.getElementById('btn-trazabilidad').style.display=u.rol==='CALIDAD'?'':'none';
-  document.getElementById('btn-materiales').style.display=u.rol==='CALIDAD'?'':'none';
+  document.getElementById('btn-trazabilidad').style.display=(u.rol==='CALIDAD'||u.rol==='ADMIN')?'':'none';
+  document.getElementById('btn-materiales').style.display=(u.rol==='CALIDAD'||u.rol==='ADMIN')?'':'none';
   ir('s-main');cargarDatos();
 }
 function cerrarSesion(){CU=null;cpin='';resetPin();document.getElementById('l-nombre').value='';ir('s-login');}
@@ -1105,7 +1182,7 @@ function renderRegs(){
       if(tipoVar!==lastTipoVar){
         html+='<div style="background:'+bgColor+';padding:8px 14px;border-top:2px solid '+fgColor+';display:flex;align-items:center;gap:8px;">'
           +'<div style="width:4px;height:20px;background:'+fgColor+';border-radius:2px;"></div>'
-          +'<span style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:1.05rem;color:'+fgColor+';">'+tipoVar+' · '+g.fmt+'</span>'
+          +'<span style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:0.95rem;color:'+fgColor+';">'+tipoVar+' · '+g.fmt+'</span>'
           +'</div>';
         lastTipoVar=tipoVar;
       }
@@ -1115,14 +1192,14 @@ function renderRegs(){
         ?{label:'Lote corto',valor:g.agrupador}
         :{label:'Fab.',valor:fechaFabDesdeId(g.pales[0].pale)};
       html+='<div style="background:'+bgColor+';padding:8px 14px 6px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,0,0,0.08);">'
-        +'<span style="font-family:\'Inconsolata\',monospace;font-size:1.1rem;color:'+fgColor+';font-weight:700;">'+ag.valor+'</span>'
-        +'<span style="font-family:\'Inconsolata\',monospace;font-size:0.75rem;color:'+fgColor+';opacity:0.7;">'+g.pales.length+' palés</span>'
+        +'<span style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:1.3rem;color:'+fgColor+';">'+ag.valor+'</span>'
+        +'<span style="font-family:\'Inconsolata\',monospace;font-size:0.7rem;color:'+fgColor+';opacity:0.6;">'+g.pales.length+' palés</span>'
         +'</div>';
       // Palés del lote
       g.pales.forEach(function(r){
         html+='<div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);">'
           +'<div>'
-          +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:0.85rem;color:var(--text);">'+r.piezas+' pzas</span>'
+          +'<span style="font-family:\'Karla\',sans-serif;font-weight:600;font-size:0.8rem;color:var(--text2);">'+r.piezas+' pzas</span>'
           +(r.destino?'<span style="font-size:0.75rem;color:var(--text3);margin-left:8px;">→ '+sl(r.destino)+'</span>':'')
           +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.65rem;color:var(--text3);margin-top:1px;">'+r.pale+'</div>'
           +'</div>'
@@ -1272,11 +1349,18 @@ function abrirPlanSala(accion,sala){
 }
 
 function renderPlanGrupos(palesList,badgeFn){
-  // Agrupar por tipo → variedad → formato
+  // Agrupar por tipo→variedad→formato→lote(corto para D.O., 6 dígitos para resto)
   var grupos={};
   palesList.forEach(function(p){
-    var key=(p.tipo||'?')+'|||'+(p.variedad&&p.variedad!=='—'?p.variedad:'')+'|||'+(p.formato||'—');
-    if(!grupos[key])grupos[key]={tipo:p.tipo||'?',variedad:p.variedad||'',fmt:p.formato||'—',pales:[]};
+    var t=p.tipo||'?';
+    var v=p.variedad&&p.variedad!=='—'?p.variedad:'';
+    var f=p.formato||'—';
+    var info=parsearId(p.id||p.pale||'');
+    var loteGrupo=(t==='D.O. PAST.'||t==='D.O. CRUDA')
+      ?(info.loteCorto||p.lote||'—')
+      :(p.id||p.pale||'').replace(/\s/g,'').substring(0,6);
+    var key=t+'|||'+v+'|||'+f+'|||'+loteGrupo;
+    if(!grupos[key])grupos[key]={tipo:t,variedad:v,fmt:f,loteGrupo:loteGrupo,isDO:(t==='D.O. PAST.'||t==='D.O. CRUDA'),pales:[]};
     grupos[key].pales.push(p);
   });
   var fmtOrder={'3 KG':0,'2 KG':1,'1 KG':2,'BARRA':3,'SUPERMINIS':4};
@@ -1284,28 +1368,43 @@ function renderPlanGrupos(palesList,badgeFn){
     var ga=grupos[a],gb=grupos[b];
     if(ga.tipo!==gb.tipo)return ga.tipo.localeCompare(gb.tipo);
     if(ga.variedad!==gb.variedad)return ga.variedad.localeCompare(gb.variedad);
-    return (fmtOrder[ga.fmt]||9)-(fmtOrder[gb.fmt]||9);
+    return(fmtOrder[ga.fmt]||9)-(fmtOrder[gb.fmt]||9);
   });
   var html='';
+  var lastTipoVar='';
   keys.forEach(function(key){
     var g=grupos[key];
-    html+='<div style="margin-bottom:12px;">';
-    html+='<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1rem;color:var(--text);padding:8px 4px 4px;border-bottom:2px solid var(--border);margin-bottom:6px;">'
-      +g.tipo+(g.variedad?' · '+g.variedad:'')+(g.fmt?' · '+g.fmt:'')
-      +'<span style="float:right;font-family:\'Inconsolata\',monospace;font-size:0.75rem;color:var(--text3);font-weight:400;">'+g.pales.length+' palés</span>'
+    var fgColor=tipoColor(g.tipo,'bg');
+    var bgColor=tipoColor(g.tipo,'light');
+    var tipoVar=g.tipo+(g.variedad?' · '+g.variedad:'');
+    // Cabecera tipo+variedad+formato
+    if(tipoVar!==lastTipoVar){
+      html+='<div style="background:'+bgColor+';padding:8px 14px;border-top:2px solid '+fgColor+';display:flex;align-items:center;gap:8px;margin-top:8px;">'
+        +'<div style="width:4px;height:18px;background:'+fgColor+';border-radius:2px;"></div>'
+        +'<span style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:0.95rem;color:'+fgColor+';">'+tipoVar+' · '+g.fmt+'</span>'
+        +'</div>';
+      lastTipoVar=tipoVar;
+    }
+    // Cabecera lote/fecha
+    var agVal=g.isDO?g.loteGrupo:fechaFabDesdeId(g.pales[0].id||g.pales[0].pale||'');
+    html+='<div style="background:'+bgColor+';padding:6px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,0,0,0.06);">'
+      +'<span style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:1.3rem;color:'+fgColor+';">'+agVal+'</span>'
+      +'<span style="font-family:\'Inconsolata\',monospace;font-size:0.7rem;color:'+fgColor+';opacity:0.6;">'+g.pales.length+' palés</span>'
       +'</div>';
+    // Palés individuales
     g.pales.forEach(function(p){
       var b=badgeFn(p);
       html+='<div class="acard '+(b.crit?'crit':'warn')+'">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-        +'<div><div style="font-family:\'Inconsolata\',monospace;font-size:0.8rem;color:var(--text2);">'+p.id+'</div>'
-        +'<div style="font-size:0.75rem;color:var(--text3);margin-top:2px;">'+p.piezas+' pzas'+(p.fechaFab?' · fab '+p.fechaFab.split('T')[0].split('-').reverse().join('/'):'')+'</div></div>'
+        +'<div>'
+        +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.75rem;color:var(--text2);">'+( p.id||p.pale)+'</div>'
+        +'<div style="font-size:0.72rem;color:var(--text3);margin-top:1px;">'+(p.piezas||'')+' pzas'+(p.fechaFab?' · fab '+p.fechaFab.split('T')[0].split('-').reverse().join('/'):'')+'</div>'
+        +'</div>'
         +'<span class="pill '+(b.crit?'pillr':'pilly')+'">'+b.badge+'</span>'
         +'</div></div>';
     });
-    html+='</div>';
   });
-  return html;
+  return html||'<div class="nodata">✅ Sin pendientes</div>';
 }
 
 // ═══════ CONTROL STOCK ═══════
@@ -1691,7 +1790,444 @@ function tickQR(){
   qrRaf=requestAnimationFrame(tickQR);
 }
 
-// ═══════ PARSEO ID PALÉ ═══════
+// ═══════ TRAZABILIDAD ═══════
+var trazLoteActual='';
+var trazPaleActual='';
+
+function irTraz(){
+  document.getElementById('traz-lote-input').value='';
+  document.getElementById('traz-resultado').innerHTML='';
+  ir('s-traz');
+}
+
+function onTrazLoteInput(v){
+  if(v.trim().length>=7)buscarLote(v.trim());
+}
+
+function buscarLote(lote){
+  if(!lote||lote.length<4){toast('Introduce al menos 4 dígitos','err');return;}
+  trazLoteActual=lote;
+  var loteClean=lote.replace(/\s/g,'');
+
+  // Buscar todos los palés cuyo ID empieza por el lote
+  var palesDelLote=rawRows.filter(function(r){
+    var pid=(r['ID PALET']||'').toString().replace(/\s/g,'');
+    return pid.startsWith(loteClean)||pid.substring(0,7)===loteClean;
+  });
+
+  // Obtener IDs únicos de palé
+  var palesUnicos={};
+  palesDelLote.forEach(function(r){
+    var pid=(r['ID PALET']||'').toString().trim();
+    if(!palesUnicos[pid])palesUnicos[pid]={id:pid,ops:[]};
+    palesUnicos[pid].ops.push(r);
+  });
+
+  var palesArr=Object.values(palesUnicos);
+  var el=document.getElementById('traz-resultado');
+
+  if(!palesArr.length){
+    el.innerHTML='<div style="color:var(--text3);text-align:center;padding:30px 0;">No se encontraron palés para el lote <strong>'+lote+'</strong>.</div>';
+    return;
+  }
+
+  // Mostrar resumen
+  var info=parsearId(palesArr[0].id);
+  var fgColor=tipoColor(info.tipo,'bg');
+  var bgColor=tipoColor(info.tipo,'light');
+
+  var html='<div style="background:'+bgColor+';border:2px solid '+fgColor+';border-radius:12px;padding:12px 14px;margin-bottom:14px;">'
+    +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:1.1rem;color:'+fgColor+';">'+info.tipo+(info.variedad&&info.variedad!=='—'?' · '+info.variedad:'')+(info.fmt?' · '+info.fmt:'')+'</div>'
+    +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.85rem;color:var(--text2);margin-top:3px;">Lote: <strong>'+lote+'</strong></div>'
+    +'<div style="font-size:0.8rem;color:var(--text3);margin-top:2px;">'+palesArr.length+' palés encontrados</div>'
+    +'</div>';
+
+  html+='<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:0.82rem;color:var(--text3);margin-bottom:8px;">PALÉS DEL LOTE — pulsa para ver historial</div>';
+
+  palesArr.forEach(function(p){
+    var lastOp=p.ops[p.ops.length-1];
+    var lastSec=(lastOp['SECCIÓN']||'').toUpperCase();
+    var lastSala=lastOp['SALA DESTINO']||lastOp['SALA ORIGEN']||'';
+    var infoP=parsearId(p.id);
+    html+='<button onclick="verHistorialPale(\''+p.id.replace(/'/g,"\\'")+'\')" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;text-align:left;">'
+      +'<div>'
+      +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.8rem;color:var(--text2);">'+p.id+'</div>'
+      +'<div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">'+(infoP.piezas||'—')+' pzas · '+p.ops.length+' ops</div>'
+      +'</div>'
+      +'<div style="text-align:right;">'
+      +'<div style="font-size:0.72rem;color:var(--text3);">'+sl(lastSala)+'</div>'
+      +'<div style="font-size:0.68rem;color:var(--text3);margin-top:1px;">'+lastSec+'</div>'
+      +'</div>'
+      +'</button>';
+  });
+
+  el.innerHTML=html;
+}
+
+var trazPalesData={};
+
+function verHistorialPale(paleId){
+  trazPaleActual=paleId;
+  var regs=rawRows.filter(function(r){
+    return (r['ID PALET']||'').toString().trim()===paleId;
+  });
+  regs.sort(function(a,b){
+    var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);
+    return (fa||0)-(fb||0);
+  });
+  trazPalesData[paleId]=regs;
+
+  var info=parsearId(paleId);
+  var fgColor=tipoColor(info.tipo,'bg');
+  var bgColor=tipoColor(info.tipo,'light');
+
+  document.getElementById('traz-hist-title').textContent='Historial palé';
+
+  // Cabecera palé
+  document.getElementById('traz-hist-header').innerHTML=
+    '<div style="background:'+bgColor+';border:2px solid '+fgColor+';border-radius:12px;padding:12px 14px;margin-bottom:4px;">'
+    +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:1rem;color:'+fgColor+';">'+info.tipo+(info.variedad&&info.variedad!=='—'?' · '+info.variedad:'')+(info.fmt?' · '+info.fmt:'')+'</div>'
+    +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.78rem;color:var(--text2);margin-top:3px;">'+paleId+'</div>'
+    +(info.piezas?'<div style="font-size:0.78rem;color:var(--text3);margin-top:1px;">'+info.piezas+' pzas</div>':'')
+    +'</div>';
+
+  var SICON={'1ª CAPA':'🧴','2ª CAPA':'🧴','PINTURA':'🎨','VOLTEO':'🔄','MOVIMIENTO':'🚚','ENVASADO':'📦'};
+  var SCOLOR={'1ª CAPA':'#8b1a1a','VOLTEO':'#2d5a2d','2ª CAPA':'#1a3a6a','MOVIMIENTO':'#c8780a','PINTURA':'#5a1a6a','ENVASADO':'#3a5a1a'};
+
+  var html='<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:0.82rem;color:var(--text3);margin-bottom:8px;">HISTORIAL CRONOLÓGICO — pulsa para ver detalle</div>';
+
+  regs.forEach(function(r,i){
+    var sec=(r['SECCIÓN']||'').toUpperCase();
+    var col=SCOLOR[sec]||'#5a5a5a';
+    var f=parseFecha(r['FECHA']);
+    var fStr=f?f.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+f.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'—';
+    html+='<button onclick="verDetalleOp(\''+paleId.replace(/'/g,"\\'")+'\','+i+')" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;">'
+      +'<div style="width:6px;min-height:44px;background:'+col+';border-radius:3px;flex-shrink:0;"></div>'
+      +'<div style="flex:1;">'
+      +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;color:var(--text);">'+(SICON[sec]||'📝')+' '+sec+'</div>'
+      +'<div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">'+fStr+' · '+(r['OPERARIO']||'—')+'</div>'
+      +(r['SALA DESTINO']?'<div style="font-size:0.7rem;color:var(--text3);">→ '+sl(r['SALA DESTINO'])+'</div>':'')
+      +'</div>'
+      +'<span style="font-size:1rem;color:var(--text3);">›</span>'
+      +'</button>';
+  });
+
+  document.getElementById('traz-hist-ops').innerHTML=html;
+  ir('s-traz-historial');
+}
+
+function verDetalleOp(paleId,idx){
+  var regs=trazPalesData[paleId];
+  if(!regs||!regs[idx])return;
+  var r=regs[idx];
+  var sec=(r['SECCIÓN']||'').toUpperCase();
+  var f=parseFecha(r['FECHA']);
+  var fStr=f?f.toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})+' '+f.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'—';
+  var SCOLOR={'1ª CAPA':'#8b1a1a','VOLTEO':'#2d5a2d','2ª CAPA':'#1a3a6a','MOVIMIENTO':'#c8780a','PINTURA':'#5a1a6a','ENVASADO':'#3a5a1a'};
+  var col=SCOLOR[sec]||'#5a5a5a';
+
+  document.getElementById('traz-op-title').textContent=sec;
+
+  // Campos a mostrar en orden
+  var campos=[
+    {k:'SECCIÓN',l:'Sección'},
+    {k:'FECHA',l:'Fecha y hora',v:fStr},
+    {k:'OPERARIO',l:'Operario'},
+    {k:'ID PALET',l:'ID Palé'},
+    {k:'TIPO DE QUESO',l:'Tipo de queso'},
+    {k:'VARIEDAD',l:'Variedad'},
+    {k:'FORMATO/PESO',l:'Formato'},
+    {k:'Nº DE PIEZAS',l:'Nº piezas'},
+    {k:'LOTE QUESO',l:'Lote queso'},
+    {k:'PRODUCTO',l:'Producto'},
+    {k:'LOTE PRODUCTO',l:'Lote producto'},
+    {k:'PESO PALET',l:'Peso palé (kg)'},
+    {k:'PESO MEDIO',l:'Peso medio (kg)'},
+    {k:'SALA ORIGEN',l:'Sala origen'},
+    {k:'SALA DESTINO',l:'Sala destino'},
+    {k:'Nº PIEZAS NO APTAS',l:'Piezas no aptas'},
+    {k:'OBSERVACIONES',l:'Observaciones'},
+  ];
+
+  var html='<div style="border-left:4px solid '+col+';padding-left:12px;margin-bottom:16px;">'
+    +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:1.1rem;color:'+col+';">'+sec+'</div>'
+    +'<div style="font-size:0.78rem;color:var(--text3);">'+fStr+'</div>'
+    +'</div>';
+
+  campos.forEach(function(c){
+    var val=c.v||r[c.k];
+    if(!val||val.toString().trim()==='')return;
+    html+='<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'
+      +'<span style="font-size:0.75rem;color:var(--text3);flex-shrink:0;">'+c.l+'</span>'
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:600;font-size:0.88rem;color:var(--text);text-align:right;">'+val+'</span>'
+      +'</div>';
+  });
+
+  document.getElementById('traz-op-content').innerHTML=html;
+  ir('s-traz-op');
+}
+
+function irBuscarPale(){
+  document.getElementById('buscar-pale-input').value='';
+  document.getElementById('buscar-pale-result').innerHTML='';
+  ir('s-buscar-pale');
+}
+function onBuscarPaleInput(v){
+  if(v.trim().length>=6)buscarPale(v.trim());
+}
+function buscarPale(id){
+  var paleId=id.split('*')[0].trim();
+  var info=parsearId(paleId);
+  // Buscar en rawRows
+  var regs=rawRows.filter(function(r){
+    var rid=(r['ID PALET']||'').toString().replace(/\s/g,'');
+    var bid=paleId.replace(/\s/g,'');
+    return rid===bid||rid.startsWith(bid.substring(0,9));
+  });
+  var el=document.getElementById('buscar-pale-result');
+  if(!regs.length){
+    el.innerHTML='<div style="color:var(--text3);text-align:center;padding:30px 0;">No se encontraron registros para este palé.</div>';
+    return;
+  }
+  var color=tipoColor(info.tipo,'bg');
+  var light=tipoColor(info.tipo,'light');
+  var html='<div style="background:'+light+';border:2px solid '+color+';border-radius:12px;padding:12px 14px;margin-bottom:14px;">'
+    +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:1.1rem;color:'+color+';">'+info.tipo+(info.variedad&&info.variedad!=='—'?' · '+info.variedad:'')+(info.fmt?' · '+info.fmt:'')+'</div>'
+    +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.75rem;color:var(--text3);margin-top:2px;">'+paleId+'</div>'
+    +(info.piezas?'<div style="font-size:0.85rem;color:var(--text2);margin-top:4px;">'+info.piezas+' pzas</div>':'')
+    +'</div>';
+  html+='<div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:0.85rem;color:var(--text3);margin-bottom:8px;">HISTORIAL ('+regs.length+' operaciones)</div>';
+  var SICON={'1ª CAPA':'🧴','2ª CAPA':'🧴','PINTURA':'🎨','VOLTEO':'🔄','MOVIMIENTO':'🚚','ENVASADO':'📦'};
+  var SCOLOR={'1ª CAPA':'#8b1a1a','VOLTEO':'#2d5a2d','2ª CAPA':'#1a3a6a','MOVIMIENTO':'#c8780a','PINTURA':'#5a1a6a','ENVASADO':'#3a5a1a'};
+  regs.forEach(function(r){
+    var sec=(r['SECCIÓN']||'').toUpperCase();
+    var col=SCOLOR[sec]||'#5a5a5a';
+    var f=parseFecha(r['FECHA']);
+    var fStr=f?f.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+f.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'—';
+    html+='<div style="border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:6px;background:var(--bg2);display:flex;justify-content:space-between;align-items:center;">'
+      +'<div style="display:flex;align-items:center;gap:10px;">'
+      +'<div style="width:8px;height:36px;background:'+col+';border-radius:4px;flex-shrink:0;"></div>'
+      +'<div>'
+      +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text);">'+(SICON[sec]||'📝')+' '+sec+'</div>'
+      +'<div style="font-size:0.72rem;color:var(--text3);">'+(r['OPERARIO']||'')+'</div>'
+      +'</div></div>'
+      +'<div style="text-align:right;">'
+      +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.72rem;color:var(--text2);">'+fStr+'</div>'
+      +(r['SALA DESTINO']?'<div style="font-size:0.68rem;color:var(--text3);">→ '+sl(r['SALA DESTINO'])+'</div>':'')
+      +'</div></div>';
+  });
+  el.innerHTML=html;
+}
+
+// Añadir target buscar-pale al scanner
+
+// ═══════ TRAZABILIDAD ═══════
+var trazPaleActual=null;
+
+function irTraz(){
+  document.getElementById('traz-lote-input').value='';
+  document.getElementById('traz-resultado').innerHTML='';
+  ir('s-traz');
+}
+
+function onTrazLoteInput(v){
+  if(v.trim().length>=5)buscarLote(v.trim());
+}
+
+function buscarLote(lote){
+  lote=lote.trim();
+  if(!lote){return;}
+  var el=document.getElementById('traz-resultado');
+  if(!rawRows.length){
+    el.innerHTML='<div style="color:var(--text3);text-align:center;padding:20px;">Sin datos — actualiza primero.</div>';
+    return;
+  }
+  // Buscar palés que coincidan con el lote
+  // Para D.O.: buscar por lote corto (tras !) o por primeros 6 dígitos
+  // Para resto: buscar por primeros 7 dígitos del ID PALET
+  var paleIds={};
+  rawRows.forEach(function(r){
+    var paleId=(r['ID PALET']||'').toString().trim();
+    if(!paleId)return;
+    var digitos=paleId.replace(/\s/g,'');
+    // Comprobar si coincide con lote corto (tras !)
+    var mL=paleId.match(/!(.+)/);
+    var loteCorto=mL?mL[1].trim():'';
+    // Primeros 7 dígitos y primeros 6
+    var p7=digitos.substring(0,7);
+    var p6=digitos.substring(0,6);
+    if(loteCorto===lote||p7===lote||p6===lote||digitos.startsWith(lote)){
+      if(!paleIds[paleId])paleIds[paleId]={paleId:paleId,ops:[]};
+    }
+  });
+  var palesEncontrados=Object.keys(paleIds);
+  if(!palesEncontrados.length){
+    el.innerHTML='<div style="color:var(--text3);text-align:center;padding:20px;">No se encontraron palés para el lote <strong>'+lote+'</strong>.</div>';
+    return;
+  }
+  // Mostrar resumen en nivel 1 y navegar al nivel 2
+  mostrarPalesLote(lote,palesEncontrados);
+}
+
+function mostrarPalesLote(lote,palesEncontrados){
+  document.getElementById('traz-pales-title').textContent='Lote '+lote;
+  // Agrupar palés por tipo/variedad/formato
+  var paleMeta={};
+  palesEncontrados.forEach(function(paleId){
+    var info=parsearId(paleId);
+    paleMeta[paleId]={info:info,paleId:paleId};
+  });
+  // Ordenar por tipo luego por ID
+  palesEncontrados.sort(function(a,b){
+    var ta=parsearId(a).tipo,tb=parsearId(b).tipo;
+    if(ta!==tb)return ta.localeCompare(tb);
+    return a.localeCompare(b);
+  });
+  // Cabecera resumen
+  var tipos={};
+  palesEncontrados.forEach(function(pid){
+    var t=parsearId(pid).tipo||'?';
+    tipos[t]=(tipos[t]||0)+1;
+  });
+  var resumen=Object.keys(tipos).map(function(t){return tipos[t]+' '+t;}).join(' · ');
+  var headerHtml='<div style="background:var(--bg3);border-radius:12px;padding:12px 14px;margin-bottom:12px;">'
+    +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:1.1rem;color:var(--text);">Lote '+lote+'</div>'
+    +'<div style="font-size:0.8rem;color:var(--text3);margin-top:4px;">'+palesEncontrados.length+' palés · '+resumen+'</div>'
+    +'</div>';
+  // Lista de palés
+  var html='';
+  var lastTipo='';
+  palesEncontrados.forEach(function(paleId){
+    var info=parsearId(paleId);
+    var t=info.tipo||'?';
+    var fg=tipoColor(t,'bg');
+    var bg=tipoColor(t,'light');
+    if(t!==lastTipo){
+      html+='<div style="background:'+bg+';border-left:4px solid '+fg+';padding:8px 14px;font-family:\'Syne\',sans-serif;font-weight:800;font-size:0.9rem;color:'+fg+';margin-bottom:4px;">'
+        +t+(info.variedad&&info.variedad!=='—'?' · '+info.variedad:'')+(info.fmt?' · '+info.fmt:'')
+        +'</div>';
+      lastTipo=t;
+    }
+    html+='<button onclick="mostrarHistorialPale(\''+paleId.replace(/'/g,"\\'")+'\')" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;margin-bottom:6px;text-align:left;">'
+      +'<div>'
+      +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.82rem;color:var(--text2);">'+paleId+'</div>'
+      +(info.piezas?'<div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">'+info.piezas+' pzas</div>':'')
+      +'</div>'
+      +'<span style="color:var(--text3);font-size:1.2rem;">›</span>'
+      +'</button>';
+  });
+  document.getElementById('traz-pales-header').innerHTML=headerHtml;
+  document.getElementById('traz-pales-content').innerHTML=html;
+  ir('s-traz-pales');
+}
+
+function mostrarHistorialPale(paleId){
+  trazPaleActual=paleId;
+  var info=parsearId(paleId);
+  var fg=tipoColor(info.tipo,'bg');
+  var bg=tipoColor(info.tipo,'light');
+  document.getElementById('traz-hist-title').textContent=info.tipo+(info.variedad&&info.variedad!=='—'?' · '+info.variedad:'');
+  // Cabecera del palé
+  var header='<div style="background:'+bg+';border-left:4px solid '+fg+';border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
+    +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.85rem;color:'+fg+';font-weight:700;">'+paleId+'</div>'
+    +'<div style="font-size:0.8rem;color:var(--text2);margin-top:4px;">'
+    +info.tipo+(info.variedad&&info.variedad!=='—'?' · '+info.variedad:'')+(info.fmt?' · '+info.fmt:'')
+    +(info.piezas?' · '+info.piezas+' pzas':'')
+    +'</div>'
+    +'<div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">Fab. '+fechaFabDesdeId(paleId)+'</div>'
+    +'</div>';
+  document.getElementById('traz-hist-header').innerHTML=header;
+  // Operaciones ordenadas cronológicamente
+  var ops=rawRows.filter(function(r){
+    var rid=(r['ID PALET']||'').toString().trim();
+    return rid===paleId||rid.replace(/\s/g,'')===paleId.replace(/\s/g,'');
+  });
+  ops.sort(function(a,b){
+    var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);
+    if(!fa&&!fb)return 0;if(!fa)return 1;if(!fb)return -1;
+    return fa-fb;
+  });
+  var SICON={'1ª CAPA':'🧴','2ª CAPA':'🧴','PINTURA':'🎨','VOLTEO':'🔄','MOVIMIENTO':'🚚','ENVASADO':'📦'};
+  var SCOLOR={'1ª CAPA':'#8b1a1a','VOLTEO':'#2d5a2d','2ª CAPA':'#1a3a6a','MOVIMIENTO':'#c8780a','PINTURA':'#5a1a6a','ENVASADO':'#3a5a1a'};
+  if(!ops.length){
+    document.getElementById('traz-hist-ops').innerHTML='<div style="color:var(--text3);text-align:center;padding:20px;">Sin operaciones registradas.</div>';
+    ir('s-traz-historial');
+    return;
+  }
+  var html='<div style="font-size:0.75rem;color:var(--text3);margin-bottom:10px;">'+ops.length+' operaciones registradas</div>';
+  // Línea de tiempo
+  ops.forEach(function(r,i){
+    var sec=(r['SECCIÓN']||'').toUpperCase();
+    var col=SCOLOR[sec]||'#5a5a5a';
+    var f=parseFecha(r['FECHA']);
+    var fStr=f?f.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+f.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'—';
+    var rowId=r['ID']||i;
+    html+='<div style="display:flex;gap:10px;margin-bottom:8px;">'
+      // Línea de tiempo
+      +'<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">'
+      +'<div style="width:12px;height:12px;background:'+col+';border-radius:50%;margin-top:4px;"></div>'
+      +(i<ops.length-1?'<div style="width:2px;flex:1;background:var(--border);margin-top:2px;"></div>':'')
+      +'</div>'
+      // Tarjeta operación
+      +'<button onclick="mostrarDetalleOp(\''+rowId+'\')" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:left;cursor:pointer;margin-bottom:0;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:'+col+';">'+(SICON[sec]||'📝')+' '+sec+'</span>'
+      +'<span style="font-size:0.7rem;color:var(--text3);">'+fStr+'</span>'
+      +'</div>'
+      +'<div style="font-size:0.75rem;color:var(--text3);margin-top:3px;">'+(r['OPERARIO']||'')+(r['SALA DESTINO']?' → '+sl(r['SALA DESTINO']):'')+'</div>'
+      +'</button>'
+      +'</div>';
+  });
+  document.getElementById('traz-hist-ops').innerHTML=html;
+  ir('s-traz-historial');
+}
+
+function mostrarDetalleOp(rowId){
+  var r=rawRows.find(function(x){return (x['ID']||'').toString()===rowId.toString();});
+  if(!r){toast('Registro no encontrado','err');return;}
+  var sec=(r['SECCIÓN']||'').toUpperCase();
+  var SCOLOR={'1ª CAPA':'#8b1a1a','VOLTEO':'#2d5a2d','2ª CAPA':'#1a3a6a','MOVIMIENTO':'#c8780a','PINTURA':'#5a1a6a','ENVASADO':'#3a5a1a'};
+  var col=SCOLOR[sec]||'#5a5a5a';
+  var f=parseFecha(r['FECHA']);
+  var fStr=f?f.toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})+' '+f.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'—';
+  document.getElementById('traz-op-title').textContent=sec;
+  // Campos a mostrar
+  var campos=[
+    {l:'Sección',v:r['SECCIÓN']},
+    {l:'Fecha y hora',v:fStr},
+    {l:'Operario',v:r['OPERARIO']},
+    {l:'ID Palé',v:r['ID PALET']},
+    {l:'Tipo de queso',v:r['TIPO DE QUESO']},
+    {l:'Variedad',v:r['VARIEDAD']},
+    {l:'Formato / Peso',v:r['FORMATO/PESO']},
+    {l:'Nº de piezas',v:r['Nº DE PIEZAS']},
+    {l:'Lote queso',v:r['LOTE QUESO']},
+    {l:'Producto',v:r['PRODUCTO']},
+    {l:'Lote producto',v:r['LOTE PRODUCTO']},
+    {l:'Sala origen',v:r['SALA ORIGEN']},
+    {l:'Sala destino',v:r['SALA DESTINO']},
+    {l:'Peso palé',v:r['PESO PALET']},
+    {l:'Peso medio',v:r['PESO MEDIO']},
+    {l:'Piezas no aptas',v:r['Nº PIEZAS NO APTAS']},
+    {l:'Observaciones',v:r['OBSERVACIONES']},
+  ];
+  var html='<div style="border-left:4px solid '+col+';padding-left:12px;margin-bottom:16px;">'
+    +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:1rem;color:'+col+';">'+sec+'</div>'
+    +'<div style="font-size:0.78rem;color:var(--text3);">'+fStr+'</div>'
+    +'</div>';
+  campos.forEach(function(c){
+    if(!c.v&&c.v!==0)return;
+    var val=c.v.toString().trim();
+    if(!val||val==='0'&&c.l==='Piezas no aptas')return;
+    html+='<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">'
+      +'<span style="font-size:0.75rem;color:var(--text3);flex-shrink:0;">'+c.l+'</span>'
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:600;font-size:0.88rem;color:var(--text);text-align:right;">'+val+'</span>'
+      +'</div>';
+  });
+  document.getElementById('traz-op-content').innerHTML=html;
+  ir('s-traz-op');
+}
+
 function parsearId(id){
   var base=id.split('*')[0];
   // Eliminar espacios para procesar los dígitos
@@ -1745,9 +2281,9 @@ function entregarQR(val){
   } else if(qrTarget==='c2-lote'){
     document.getElementById('c2-nuevo-lote').value=val;
     onNuevoLoteC2(val);
-  } else if(qrTarget==='pint-lote'){
-    document.getElementById('pint-nuevo-lote').value=val;
-    onNuevoLotePint(val);
+  } else if(qrTarget==='buscar-pale'){
+    document.getElementById('buscar-pale-input').value=val;
+    buscarPale(val);
   }
 }
 
