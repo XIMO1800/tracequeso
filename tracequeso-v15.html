@@ -585,7 +585,7 @@ textarea.finput{resize:vertical;min-height:60px;}
   </div>
   <div class="scrl">
     <div style="padding:14px;">
-      <input class="finput" type="text" id="buscar-pale-input" placeholder="ID del palé o escanea QR..." inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="onBuscarPaleInput(this.value)" style="font-family:'Inconsolata',monospace;font-size:1rem;">
+      <input class="finput" type="text" id="buscar-pale-input" placeholder="ID del palé o escanea QR..." inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="onBuscarPaleInput(this.value)" onclick="this.focus()" style="font-family:'Inconsolata',monospace;font-size:1rem;cursor:text;">
       <button onclick="abrirScanner('buscar-pale')" style="width:100%;margin-top:8px;padding:12px;background:var(--bg3);border:2px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;">
         <span>📷</span><span style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;">Abrir cámara</span>
       </button>
@@ -603,7 +603,7 @@ textarea.finput{resize:vertical;min-height:60px;}
   <div class="scrl">
     <div style="padding:14px;">
       <div style="font-size:0.82rem;color:var(--text3);margin-bottom:10px;">Introduce el número de lote (7 dígitos) para ver todos los palés y su historial completo.</div>
-      <input class="finput" type="text" id="traz-lote-input" placeholder="Lote (ej: 1261561)" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="font-family:'Inconsolata',monospace;font-size:1.1rem;letter-spacing:2px;" onkeydown="if(event.key==='Enter')buscarLote(this.value.trim())">
+      <input class="finput" type="text" id="traz-lote-input" placeholder="Lote (ej: 1261561)" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="font-family:'Inconsolata',monospace;font-size:1.1rem;letter-spacing:2px;cursor:text;" onclick="this.focus()" onkeydown="if(event.key==='Enter')buscarLote(this.value.trim())">
       <button onclick="buscarLote(document.getElementById('traz-lote-input').value.trim())" style="width:100%;margin-top:8px;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">🔎 Buscar lote</button>
     </div>
     <div id="traz-resultado" style="padding:0 14px 14px;"></div>
@@ -1182,7 +1182,7 @@ function renderRegs(){
       if(tipoVar!==lastTipoVar){
         html+='<div style="background:'+bgColor+';padding:8px 14px;border-top:2px solid '+fgColor+';display:flex;align-items:center;gap:8px;">'
           +'<div style="width:4px;height:20px;background:'+fgColor+';border-radius:2px;"></div>'
-          +'<span style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:0.95rem;color:'+fgColor+';">'+tipoVar+' · '+g.fmt+'</span>'
+          +'<span style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:1.25rem;color:'+fgColor+';">'+tipoVar+' · '+g.fmt+'</span>'
           +'</div>';
         lastTipoVar=tipoVar;
       }
@@ -1192,8 +1192,8 @@ function renderRegs(){
         ?{label:'Lote corto',valor:g.agrupador}
         :{label:'Fab.',valor:fechaFabDesdeId(g.pales[0].pale)};
       html+='<div style="background:'+bgColor+';padding:8px 14px 6px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,0,0,0.08);">'
-        +'<span style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:1.3rem;color:'+fgColor+';">'+ag.valor+'</span>'
-        +'<span style="font-family:\'Inconsolata\',monospace;font-size:0.7rem;color:'+fgColor+';opacity:0.6;">'+g.pales.length+' palés</span>'
+        +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:1.0rem;color:'+fgColor+';">'+ag.valor+'</span>'
+        +'<span style="font-family:\'Inconsolata\',monospace;font-size:0.72rem;color:'+fgColor+';opacity:0.6;">'+g.pales.length+' palés</span>'
         +'</div>';
       // Palés del lote
       g.pales.forEach(function(r){
