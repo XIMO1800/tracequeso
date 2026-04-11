@@ -585,7 +585,7 @@ textarea.finput{resize:vertical;min-height:60px;}
   </div>
   <div class="scrl">
     <div style="padding:14px;">
-      <input class="finput" type="text" id="buscar-pale-input" placeholder="ID del palé o escanea QR..." inputmode="none" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="onBuscarPaleInput(this.value)" style="font-family:'Inconsolata',monospace;font-size:1rem;">
+      <input class="finput" type="text" id="buscar-pale-input" placeholder="ID del palé o escanea QR..." inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="onBuscarPaleInput(this.value)" style="font-family:'Inconsolata',monospace;font-size:1rem;">
       <button onclick="abrirScanner('buscar-pale')" style="width:100%;margin-top:8px;padding:12px;background:var(--bg3);border:2px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;">
         <span>📷</span><span style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;">Abrir cámara</span>
       </button>
@@ -603,7 +603,7 @@ textarea.finput{resize:vertical;min-height:60px;}
   <div class="scrl">
     <div style="padding:14px;">
       <div style="font-size:0.82rem;color:var(--text3);margin-bottom:10px;">Introduce el número de lote (7 dígitos) para ver todos los palés y su historial completo.</div>
-      <input class="finput" type="text" id="traz-lote-input" placeholder="Lote (ej: 1261561)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="font-family:'Inconsolata',monospace;font-size:1.1rem;letter-spacing:2px;" onkeydown="if(event.key==='Enter')buscarLote(this.value.trim())">
+      <input class="finput" type="text" id="traz-lote-input" placeholder="Lote (ej: 1261561)" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="font-family:'Inconsolata',monospace;font-size:1.1rem;letter-spacing:2px;" onkeydown="if(event.key==='Enter')buscarLote(this.value.trim())">
       <button onclick="buscarLote(document.getElementById('traz-lote-input').value.trim())" style="width:100%;margin-top:8px;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">🔎 Buscar lote</button>
     </div>
     <div id="traz-resultado" style="padding:0 14px 14px;"></div>
@@ -1437,18 +1437,17 @@ function tipoColor(tipo,part){
   return c[part]||c.bg;
 }
 function fechaFabDesdeId(id){
-  // Extraer dígitos del lote (posiciones 1-6 del ID sin el tipo)
   var dig=id.replace(/\s/g,'').replace(/[^0-9]/g,'');
   if(dig.length<6)return'—';
   var anyo=parseInt('20'+dig.substring(1,3));
   var semana=parseInt(dig.substring(3,5));
   var dia=parseInt(dig.charAt(5)); // 1=Lun...7=Dom
   if(!anyo||!semana||!dia)return'—';
-  // Calcular fecha: primer lunes del año + semanas + días
+  // Primer lunes del año = lunes de la semana que contiene el 1 de enero
   var ene1=new Date(anyo,0,1);
   var primerLunes=new Date(ene1);
-  var dow=ene1.getDay()||7; // 0=Dom→7
-  primerLunes.setDate(ene1.getDate()+(dow<=4?2-dow:9-dow));
+  var dow=ene1.getDay()||7; // 1=Lun...7=Dom
+  primerLunes.setDate(ene1.getDate()-(dow-1)); // retroceder al lunes de esa semana
   var fecha=new Date(primerLunes);
   fecha.setDate(primerLunes.getDate()+(semana-1)*7+(dia-1));
   return fecha.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'});
@@ -2089,10 +2088,12 @@ function mostrarPalesLote(lote,palesEncontrados){
     var t=parsearId(pid).tipo||'?';
     tipos[t]=(tipos[t]||0)+1;
   });
+  var totalPiezas=0;
+  palesEncontrados.forEach(function(pid){totalPiezas+=parsearId(pid).piezas||0;});
   var resumen=Object.keys(tipos).map(function(t){return tipos[t]+' '+t;}).join(' · ');
   var headerHtml='<div style="background:var(--bg3);border-radius:12px;padding:12px 14px;margin-bottom:12px;">'
     +'<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:1.1rem;color:var(--text);">Lote '+lote+'</div>'
-    +'<div style="font-size:0.8rem;color:var(--text3);margin-top:4px;">'+palesEncontrados.length+' palés · '+resumen+'</div>'
+    +'<div style="font-size:0.8rem;color:var(--text3);margin-top:4px;">'+palesEncontrados.length+' palés · '+(totalPiezas?totalPiezas+' pzas · ':'')+resumen+'</div>'
     +'</div>';
   // Lista de palés
   var html='';
@@ -2103,7 +2104,7 @@ function mostrarPalesLote(lote,palesEncontrados){
     var fg=tipoColor(t,'bg');
     var bg=tipoColor(t,'light');
     if(t!==lastTipo){
-      html+='<div style="background:'+bg+';border-left:4px solid '+fg+';padding:8px 14px;font-family:\'Syne\',sans-serif;font-weight:800;font-size:0.9rem;color:'+fg+';margin-bottom:4px;">'
+      html+='<div style="background:'+bg+';border-left:4px solid '+fg+';padding:7px 14px;font-family:\'Syne\',sans-serif;font-weight:800;font-size:0.85rem;color:'+fg+';margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
         +t+(info.variedad&&info.variedad!=='—'?' · '+info.variedad:'')+(info.fmt?' · '+info.fmt:'')
         +'</div>';
       lastTipo=t;
@@ -2121,13 +2122,14 @@ function mostrarPalesLote(lote,palesEncontrados){
   ir('s-traz-pales');
 }
 
+var trazOpsActuales=[];
+
 function mostrarHistorialPale(paleId){
   trazPaleActual=paleId;
   var info=parsearId(paleId);
   var fg=tipoColor(info.tipo,'bg');
   var bg=tipoColor(info.tipo,'light');
   document.getElementById('traz-hist-title').textContent=info.tipo+(info.variedad&&info.variedad!=='—'?' · '+info.variedad:'');
-  // Cabecera del palé
   var header='<div style="background:'+bg+';border-left:4px solid '+fg+';border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
     +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.85rem;color:'+fg+';font-weight:700;">'+paleId+'</div>'
     +'<div style="font-size:0.8rem;color:var(--text2);margin-top:4px;">'
@@ -2137,39 +2139,35 @@ function mostrarHistorialPale(paleId){
     +'<div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">Fab. '+fechaFabDesdeId(paleId)+'</div>'
     +'</div>';
   document.getElementById('traz-hist-header').innerHTML=header;
-  // Operaciones ordenadas cronológicamente
-  var ops=rawRows.filter(function(r){
+  // Buscar operaciones
+  trazOpsActuales=rawRows.filter(function(r){
     var rid=(r['ID PALET']||'').toString().trim();
     return rid===paleId||rid.replace(/\s/g,'')===paleId.replace(/\s/g,'');
   });
-  ops.sort(function(a,b){
+  trazOpsActuales.sort(function(a,b){
     var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);
     if(!fa&&!fb)return 0;if(!fa)return 1;if(!fb)return -1;
     return fa-fb;
   });
   var SICON={'1ª CAPA':'🧴','2ª CAPA':'🧴','PINTURA':'🎨','VOLTEO':'🔄','MOVIMIENTO':'🚚','ENVASADO':'📦'};
   var SCOLOR={'1ª CAPA':'#8b1a1a','VOLTEO':'#2d5a2d','2ª CAPA':'#1a3a6a','MOVIMIENTO':'#c8780a','PINTURA':'#5a1a6a','ENVASADO':'#3a5a1a'};
-  if(!ops.length){
+  if(!trazOpsActuales.length){
     document.getElementById('traz-hist-ops').innerHTML='<div style="color:var(--text3);text-align:center;padding:20px;">Sin operaciones registradas.</div>';
     ir('s-traz-historial');
     return;
   }
-  var html='<div style="font-size:0.75rem;color:var(--text3);margin-bottom:10px;">'+ops.length+' operaciones registradas</div>';
-  // Línea de tiempo
-  ops.forEach(function(r,i){
+  var html='<div style="font-size:0.75rem;color:var(--text3);margin-bottom:10px;">'+trazOpsActuales.length+' operaciones registradas</div>';
+  trazOpsActuales.forEach(function(r,i){
     var sec=(r['SECCIÓN']||'').toUpperCase();
     var col=SCOLOR[sec]||'#5a5a5a';
     var f=parseFecha(r['FECHA']);
     var fStr=f?f.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+f.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'—';
-    var rowId=r['ID']||i;
     html+='<div style="display:flex;gap:10px;margin-bottom:8px;">'
-      // Línea de tiempo
       +'<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">'
       +'<div style="width:12px;height:12px;background:'+col+';border-radius:50%;margin-top:4px;"></div>'
-      +(i<ops.length-1?'<div style="width:2px;flex:1;background:var(--border);margin-top:2px;"></div>':'')
+      +(i<trazOpsActuales.length-1?'<div style="width:2px;flex:1;background:var(--border);margin-top:2px;"></div>':'')
       +'</div>'
-      // Tarjeta operación
-      +'<button onclick="mostrarDetalleOp(\''+rowId+'\')" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:left;cursor:pointer;margin-bottom:0;">'
+      +'<button onclick="mostrarDetalleOp('+i+')" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:left;cursor:pointer;margin-bottom:0;">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;">'
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:'+col+';">'+(SICON[sec]||'📝')+' '+sec+'</span>'
       +'<span style="font-size:0.7rem;color:var(--text3);">'+fStr+'</span>'
@@ -2182,8 +2180,8 @@ function mostrarHistorialPale(paleId){
   ir('s-traz-historial');
 }
 
-function mostrarDetalleOp(rowId){
-  var r=rawRows.find(function(x){return (x['ID']||'').toString()===rowId.toString();});
+function mostrarDetalleOp(idx){
+  var r=trazOpsActuales[idx];
   if(!r){toast('Registro no encontrado','err');return;}
   var sec=(r['SECCIÓN']||'').toUpperCase();
   var SCOLOR={'1ª CAPA':'#8b1a1a','VOLTEO':'#2d5a2d','2ª CAPA':'#1a3a6a','MOVIMIENTO':'#c8780a','PINTURA':'#5a1a6a','ENVASADO':'#3a5a1a'};
