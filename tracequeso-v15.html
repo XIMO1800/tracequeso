@@ -347,7 +347,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="scan-mode-icon">📷</div>
       <div class="scan-mode-title">Escanea el QR del palé</div>
       <div class="scan-mode-sub">El registro se guarda automáticamente al escanear</div>
-      <input class="scan-mode-input" type="text" id="c1-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onC1Key(event)" autocomplete="off" autofocus>
+      <input class="scan-mode-input" type="text" inputmode="none" id="c1-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onC1Key(event)" autocomplete="off">
       <button onclick="abrirScanner('c1')" style="width:100%;margin-top:10px;padding:14px;background:var(--text);color:#fff;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">📷 Abrir cámara</button>
       <div class="errbanner" id="c1-err"></div>
       <div class="scan-counter" id="c1-cnt">0</div>
@@ -374,7 +374,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="scan-mode-icon">🔄</div>
       <div class="scan-mode-title">Escanea el QR del palé</div>
       <div class="scan-mode-sub">Registro automático · Se verifica que el palé esté en esta sala</div>
-      <input class="scan-mode-input" type="text" id="v-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onVolteoKey(event)" autocomplete="off">
+      <input class="scan-mode-input" type="text" inputmode="none" id="v-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onVolteoKey(event)" autocomplete="off">
       <button onclick="abrirScanner('v')" style="width:100%;margin-top:10px;padding:14px;background:var(--text);color:#fff;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">📷 Abrir cámara</button>
       <div class="errbanner" id="v-err"></div>
       <div class="scan-counter" id="v-cnt">0</div>
@@ -416,7 +416,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="scan-mode-icon">📷</div>
       <div class="scan-mode-title">Escanea el QR del palé</div>
       <div class="scan-mode-sub">El registro se guarda automáticamente al escanear</div>
-      <input class="scan-mode-input" type="text" id="c2-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onC2Key(event)" autocomplete="off">
+      <input class="scan-mode-input" type="text" inputmode="none" id="c2-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onC2Key(event)" autocomplete="off">
       <button onclick="abrirScanner('c2')" style="width:100%;margin-top:10px;padding:14px;background:var(--text);color:#fff;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">📷 Abrir cámara</button>
       <div class="errbanner" id="c2-err"></div>
       <div class="scan-counter" id="c2-cnt">0</div>
@@ -449,7 +449,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="scan-mode-icon">🚚</div>
       <div class="scan-mode-title">Escanea el QR del palé</div>
       <div class="scan-mode-sub">Se verifica que el palé esté en la sala origen</div>
-      <input class="scan-mode-input" type="text" id="mov-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onMovKey(event)" autocomplete="off">
+      <input class="scan-mode-input" type="text" inputmode="none" id="mov-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onMovKey(event)" autocomplete="off">
       <button onclick="abrirScanner('mov')" style="width:100%;margin-top:10px;padding:14px;background:var(--text);color:#fff;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">📷 Abrir cámara</button>
       <div class="errbanner" id="mov-err"></div>
       <div class="scan-counter" id="mov-cnt">0</div>
@@ -495,7 +495,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="scan-mode-icon">📷</div>
       <div class="scan-mode-title">Escanea el QR del palé</div>
       <div class="scan-mode-sub">El registro se guarda automáticamente al escanear</div>
-      <input class="scan-mode-input" type="text" id="pint-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onPintKey(event)" autocomplete="off">
+      <input class="scan-mode-input" type="text" inputmode="none" id="pint-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onPintKey(event)" autocomplete="off">
       <button onclick="abrirScanner('pint')" style="width:100%;margin-top:10px;padding:14px;background:var(--text);color:#fff;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">📷 Abrir cámara</button>
       <div class="errbanner" id="pint-err"></div>
       <div class="scan-counter" id="pint-cnt">0</div>
@@ -1105,7 +1105,7 @@ function renderRegs(){
       if(tipoVar!==lastTipoVar){
         html+='<div style="background:'+bgColor+';padding:8px 14px;border-top:2px solid '+fgColor+';display:flex;align-items:center;gap:8px;">'
           +'<div style="width:4px;height:20px;background:'+fgColor+';border-radius:2px;"></div>'
-          +'<span style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:1.4rem;color:'+fgColor+';">'+tipoVar+' · '+g.fmt+'</span>'
+          +'<span style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:1.05rem;color:'+fgColor+';">'+tipoVar+' · '+g.fmt+'</span>'
           +'</div>';
         lastTipoVar=tipoVar;
       }
@@ -1115,14 +1115,14 @@ function renderRegs(){
         ?{label:'Lote corto',valor:g.agrupador}
         :{label:'Fab.',valor:fechaFabDesdeId(g.pales[0].pale)};
       html+='<div style="background:'+bgColor+';padding:8px 14px 6px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,0,0,0.08);">'
-        +'<span style="font-family:\'Inconsolata\',monospace;font-size:0.95rem;color:'+fgColor+';opacity:0.9;font-weight:700;">'+ag.label+' <strong>'+ag.valor+'</strong></span>'
+        +'<span style="font-family:\'Inconsolata\',monospace;font-size:1.1rem;color:'+fgColor+';font-weight:700;">'+ag.valor+'</span>'
         +'<span style="font-family:\'Inconsolata\',monospace;font-size:0.75rem;color:'+fgColor+';opacity:0.7;">'+g.pales.length+' palés</span>'
         +'</div>';
       // Palés del lote
       g.pales.forEach(function(r){
         html+='<div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);">'
           +'<div>'
-          +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:0.95rem;color:var(--text);">'+r.piezas+' pzas</span>'
+          +'<span style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:0.85rem;color:var(--text);">'+r.piezas+' pzas</span>'
           +(r.destino?'<span style="font-size:0.75rem;color:var(--text3);margin-left:8px;">→ '+sl(r.destino)+'</span>':'')
           +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.65rem;color:var(--text3);margin-top:1px;">'+r.pale+'</div>'
           +'</div>'
@@ -1326,9 +1326,9 @@ function getVariedad(id){
 var TIPO_COLORS={
   'MEZCLA':     {bg:'#2d5a2d',light:'#e8f4e8'},
   'OVEJA':      {bg:'#1a3a6a',light:'#e0e8f4'},
-  'D.O. PAST.': {bg:'#c8780a',light:'#fdf0e0'},
-  'D.O. CRUDA': {bg:'#a85a08',light:'#fde8d0'},
-  'CABRA':      {bg:'#7a6a4a',light:'#f5f0e8'},
+  'D.O. PAST.': {bg:'#e07010',light:'#fef0e0'},
+  'D.O. CRUDA': {bg:'#c85a08',light:'#fde8d0'},
+  'CABRA':      {bg:'#8b7355',light:'#f5f0e8'},
   'MESNERA':    {bg:'#5a3a6a',light:'#ede8f4'},
   'OVEJA CRUDA':{bg:'#2a4a7a',light:'#e0ecf8'},
   'FINOS':      {bg:'#3a6a5a',light:'#e0f4ee'}
