@@ -2413,8 +2413,12 @@ function verDetalleOp(paleId,idx){
   // Mostrar botón editar solo para CALIDAD/JOAQUIN — desde trazabilidad
   var esAdmin=CU&&(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
   document.getElementById('traz-op-edit-wrap').style.display=esAdmin?'':'none';
-  // Guardar referencia al registro actual con índice en rawRows
-  var rawIdx=rawRows.indexOf(r);
+  // Buscar índice en rawRows por ID PALET + FECHA (más fiable que indexOf)
+  var paleIdR=r['ID PALET']||'';
+  var fechaR=r['FECHA']||'';
+  var rawIdx=rawRows.findIndex(function(x){
+    return (x['ID PALET']||'')==paleIdR&&(x['FECHA']||'')==fechaR&&(x['SECCIÓN']||'')==(r['SECCIÓN']||'');
+  });
   window._trazOpActual={r:r,sec:sec,rawIdx:rawIdx,rowId:r['ID']||''};
   document.getElementById('traz-op-back').setAttribute('onclick',"ir('s-traz-historial')");
   ir('s-traz-op');
