@@ -2695,10 +2695,17 @@ function mostrarDetalleOp(idx){
       +'</div>';
   });
   document.getElementById('traz-op-content').innerHTML=html;
-  // Desde buscar palé: siempre solo lectura
-  document.getElementById('traz-op-edit-wrap').style.display='none';
+  // Mostrar editar para CALIDAD/JOAQUIN, ocultar para el resto
+  var esAdmin=CU&&(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
+  document.getElementById('traz-op-edit-wrap').style.display=esAdmin?'':'none';
   document.getElementById('traz-op-back').setAttribute('onclick',"ir('s-traz-historial')");
-  window._trazOpActual={r:r,sec:sec};
+  // Guardar referencia para edición
+  var paleIdR2=r['ID PALET']||'';
+  var fechaR2=r['FECHA']||'';
+  var rawIdx2=rawRows.findIndex(function(x){
+    return (x['ID PALET']||'')==paleIdR2&&(x['FECHA']||'')==fechaR2&&(x['SECCIÓN']||'')==(r['SECCIÓN']||'');
+  });
+  window._trazOpActual={r:r,sec:sec,rawIdx:rawIdx2,rowId:r['ID']||''};
   ir('s-traz-op');
 }function parsearId(id){
   var base=id.split('*')[0];
