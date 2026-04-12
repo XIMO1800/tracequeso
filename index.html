@@ -1378,7 +1378,7 @@ function renderPlanMenu(){
   // Calcular totales para cada acción
   var gfCount=pales.filter(function(p){return p.sala==='2.GOLPE FRIO'&&diasDesde(p.fechaFab)>=2;}).length;
   var volteoCount=0;pales.filter(function(p){return enSec(p);}).forEach(function(p){var u=getLastOp(p,'VOLTEO');var uc2=getLastOp(p,'2ª CAPA');var refDate=u?u.fecha:null;if(uc2&&(!refDate||new Date(uc2.fecha)>new Date(refDate)))refDate=uc2.fecha;var d=refDate?diasDesde(refDate):diasDesde(p.fechaFab);if(d>=CFG.volteoW)volteoCount++;});
-  var c2Count=0;pales.filter(function(p){return enSec(p);}).forEach(function(p){var a1=getLastOp(p,'1ª CAPA'),a2op=getLastOp(p,'2ª CAPA');if(a1&&!a2op&&diasDesde(a1.fecha)>=CFG.anti2W)c2Count++;});
+  var c2Count=0;pales.filter(function(p){return enSec(p)&&aptoC2(p);}).forEach(function(p){var a1=getLastOp(p,'1ª CAPA'),a2op=getLastOp(p,'2ª CAPA');if(a1&&!a2op&&diasDesde(a1.fecha)>=CFG.anti2W)c2Count++;});
   var salCount=0;pales.filter(function(p){return enSec(p);}).forEach(function(p){if(diasDesde(p.fechaFab)>=CFG.secW)salCount++;});
 
   function btnPlan(ico,titulo,sub,count,crit,accion){
@@ -1436,6 +1436,10 @@ function abrirPlanAccion(accion){
   ir('s-plan-detalle');
 }
 
+function esTierno(p){return (p.variedad||'').toUpperCase().includes('TIERNO');}
+function aptoC2(p){return p.formato!=='1 KG'&&!esTierno(p);}
+function aptoC1(p){return !esTierno(p);}
+
 function getPlanItems(accion,sala){
   var items=[];
   if(accion==='volteo'){
@@ -1447,7 +1451,7 @@ function getPlanItems(accion,sala){
       if(d>=CFG.volteoW)items.push({p:p,d:d,c:d>=CFG.volteoC});
     });
   } else if(accion==='anti2'){
-    pales.filter(function(p){return p.sala===sala;}).forEach(function(p){
+    pales.filter(function(p){return p.sala===sala&&aptoC2(p);}).forEach(function(p){
       var a1=getLastOp(p,'1ª CAPA'),a2op=getLastOp(p,'2ª CAPA');
       if(a1&&!a2op){var d=diasDesde(a1.fecha);if(d>=CFG.anti2W)items.push({p:p,d:d,c:d>=CFG.anti2C});}
     });
@@ -1524,20 +1528,20 @@ function renderPlanGrupos(palesList,badgeFn){
     var agVal=g.isDO?g.loteGrupo:fechaFabDesdeId(g.pales[0].id||g.pales[0].pale||'');
     html+='<div style="background:'+bgColor+';padding:4px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,0,0,0.06);">'
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;color:'+fgColor+';">'+agVal+'</span>'
-      +'<span style="font-size:0.68rem;color:'+fgColor+';opacity:0.7;">'+g.pales.length+' palés</span>'
+      +'<span style="font-size:0.65rem;color:'+fgColor+';opacity:0.8;text-align:right;line-height:1.4;">'+(g.variedad&&g.variedad!=='—'?g.variedad+'<br>':'')+(g.fmt||'')+'</span>'
       +'</div>';
     // Palés individuales
     g.pales.forEach(function(p){
       var b=badgeFn(p);
-      var critColor=b.crit?'#8b1a1a':'#8b6a0a';
-      var critBg=b.crit?'rgba(139,26,26,0.08)':'rgba(139,106,10,0.08)';
+      var badgeBg=b.crit?'#8b1a1a':fgColor;
+      var badgeColor='#fff';
       html+='<div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);">'
         +'<div>'
         +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.85rem;color:var(--text);">'+(p.piezas||'—')+' pzas</div>'
         +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.62rem;color:var(--text3);margin-top:1px;">'+(p.id||p.pale)+'</div>'
         +(p.fechaFab?'<div style="font-size:0.65rem;color:var(--text3);">fab '+p.fechaFab.split('T')[0].split('-').reverse().join('/')+'</div>':'')
         +'</div>'
-        +'<span style="background:var(--bg3);color:'+critColor+';border:1px solid '+critColor+';border-radius:8px;padding:3px 8px;font-family:\'Karla\',sans-serif;font-size:0.72rem;font-weight:700;white-space:nowrap;">'+b.badge+'</span>'
+        +'<span style="background:'+badgeBg+';color:'+badgeColor+';border-radius:8px;padding:4px 10px;font-family:\'Karla\',sans-serif;font-size:0.75rem;font-weight:700;white-space:nowrap;">'+b.badge+'</span>'
         +'</div>';
     });
   });
@@ -1651,29 +1655,41 @@ function abrirDrill(sala,tipo){
   pp.forEach(function(p){
     var v=p.variedad||'—';
     var fmt=p.formato||'—';
-    var lote=p.lote||'Sin lote';
-    var key=v+'|||'+fmt+'|||'+lote;
-    if(!grupos[key])grupos[key]={v:v,fmt:fmt,lote:lote,pales:[]};
+    var isDO=(tipo==='D.O. PAST.'||tipo==='D.O. CRUDA');
+    var agrupador=isDO?(p.loteCorto||p.lote||'—'):fechaFabDesdeId(p.id||'');
+    var key=v+'|||'+fmt+'|||'+agrupador;
+    if(!grupos[key])grupos[key]={v:v,fmt:fmt,lote:agrupador,isDO:isDO,pales:[]};
     grupos[key].pales.push(p);
   });
-  var keys=Object.keys(grupos).sort();
+  var keys=Object.keys(grupos).sort(function(a,b){
+    var ga=grupos[a],gb=grupos[b];
+    if(ga.v!==gb.v)return (ga.v||'').localeCompare(gb.v||'');
+    var fmtOrder={'3 KG':0,'2 KG':1,'1 KG':2,'BARRA':3,'SUPERMINIS':4};
+    return(fmtOrder[ga.fmt]||9)-(fmtOrder[gb.fmt]||9);
+  });
   var html='';var lastV=null;var lastFmt=null;
   keys.forEach(function(key){
     var g=grupos[key];
+    var refCompleta=tipo+(g.v&&g.v!=='—'?' · '+g.v:'')+(g.fmt&&g.fmt!=='—'?' · '+g.fmt:'');
     if(g.v!==lastV){
-      html+='<div class="drill-var-title">🏷️ '+g.v+'</div>';
+      html+='<div style="padding:6px 14px;background:var(--bg3);border-top:2px solid var(--border);display:flex;align-items:center;gap:6px;">'
+        +'<span style="font-size:0.72rem;">🏷️</span>'
+        +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.82rem;color:var(--text2);">'+(g.v&&g.v!=='—'?g.v:'Sin variedad')+'</span>'
+        +'</div>';
       lastV=g.v;lastFmt=null;
     }
     if(g.fmt!==lastFmt){
-      html+='<div class="drill-fmt-title">📦 '+g.fmt+'</div>';
+      html+='<div style="padding:4px 14px 4px 28px;background:var(--bg3);border-top:1px solid var(--border);">'
+        +'<span style="font-family:\'Karla\',sans-serif;font-weight:600;font-size:0.75rem;color:var(--text3);">📦 '+g.fmt+'</span>'
+        +'</div>';
       lastFmt=g.fmt;
     }
     var lotePiezas=g.pales.reduce(function(s,p){return s+p.piezas;},0);
     html+='<div class="drill-lote-block">';
     html+='<div class="drill-lote-head">'
          +'<div><span class="drill-lote-name">'+g.lote+'</span>'
-         +'<div style="font-size:0.68rem;color:var(--text3);margin-top:2px;">'+lotePiezas.toLocaleString()+' piezas</div></div>'
-         +'<span class="drill-lote-cnt">'+g.pales.length+' palés</span></div>';
+         +'<div style="font-size:0.78rem;font-weight:600;color:var(--text2);margin-top:2px;">'+lotePiezas.toLocaleString()+' piezas</div></div>'
+         +'<span style="font-size:0.65rem;color:var(--text3);text-align:right;line-height:1.5;">'+refCompleta+'</span></div>';
     g.pales.forEach(function(p){
       var dias=p.fechaFab?diasDesde(p.fechaFab)+'d':'—';
       var fechaTxt=p.fechaFab?p.fechaFab.substring(0,10).split('-').reverse().join('/'):'—';
