@@ -1188,6 +1188,7 @@ function renderRegs(){
       lote:r['LOTE QUESO']||info.lote||'',
       loteCorto:info.loteCorto||'',
       hora:parseFecha(r['FECHA'])?parseFecha(r['FECHA']).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'—',
+      origen:r['SALA ORIGEN']||'',
       destino:r['SALA DESTINO']||'',
       operario:r['OPERARIO']||'',
       fromSheets:true
@@ -1203,7 +1204,7 @@ function renderRegs(){
       var ya=porSec[sec].find(function(x){return x.pale===r.pale;});
       if(!ya){
         var info=parsearId(r.pale);
-        porSec[sec].push({rowId:r.id,pale:r.pale,tipo:r.tipo||info.tipo,variedad:info.variedad,fmt:r.fmt||info.fmt,piezas:info.piezas,lote:info.lote,loteCorto:info.loteCorto,hora:r.hora,destino:r.datos?r.datos['SALA DESTINO']||'':'',operario:CU.n,fromSheets:false,sesionId:r.id});
+        porSec[sec].push({rowId:r.id,pale:r.pale,tipo:r.tipo||info.tipo,variedad:info.variedad,fmt:r.fmt||info.fmt,piezas:info.piezas,lote:info.lote,loteCorto:info.loteCorto,hora:r.hora,origen:r.datos?r.datos['SALA ORIGEN']||'':'',destino:r.datos?r.datos['SALA DESTINO']||'':'',operario:CU.n,fromSheets:false,sesionId:r.id});
       }
     });
   }
@@ -1227,7 +1228,7 @@ function renderRegs(){
       // Agrupación especial: Nivel 1 = origen→destino, Nivel 2 = tipo·variedad·formato
       var rutas={};
       regs.forEach(function(r){
-        var orig=sl(r.datos&&r.datos['SALA ORIGEN']?r.datos['SALA ORIGEN']:r.origen||'');
+        var orig=sl(r.origen||'');
         var dest=sl(r.destino||'');
         var rutaKey=(orig||'—')+' → '+(dest||'—');
         if(!rutas[rutaKey])rutas[rutaKey]={label:rutaKey,grupos:{},total:0};
@@ -1258,15 +1259,17 @@ function renderRegs(){
             +'</div>';
           g.pales.sort(function(a,b){return parseInt(parsearId(a.pale||'').nPale||0)-parseInt(parsearId(b.pale||'').nPale||0);});
           g.pales.forEach(function(r){
-            html+='<div style="padding:7px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);">'
+            html+='<div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);">'
               +'<div>'
-              +(esAdmin&&r.operario?'<div style="font-size:0.65rem;color:var(--accent);font-weight:700;font-family:\'Karla\',sans-serif;text-transform:uppercase;">'+r.operario+'</div>':'')
-              +'<div style="font-family:\'Karla\',sans-serif;font-weight:600;font-size:0.8rem;color:var(--text2);">'+r.piezas+' pzas</div>'
+              +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.88rem;color:var(--text);">'+r.piezas+' pzas</div>'
+              +'<div style="font-size:0.68rem;color:var(--text3);margin-top:1px;">'
+              +(r.origen?sl(r.origen)+' → ':'')+(r.destino?sl(r.destino):'')
+              +'</div>'
               +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.6rem;color:var(--text3);">'+r.pale+'</div>'
               +'</div>'
-              +'<div style="display:flex;align-items:center;gap:6px;">'
-              +'<span style="font-family:\'Karla\',sans-serif;font-size:0.78rem;font-weight:600;color:var(--text2);">'+r.hora+'</span>'
-              +(!r.fromSheets?'<button onclick="elimReg(\''+r.sesionId+'\')" style="background:var(--red-bg);color:var(--red);border:1px solid rgba(139,26,26,0.2);border-radius:6px;padding:4px 8px;font-size:0.75rem;cursor:pointer;">🗑</button>':'')
+              +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">'
+              +(esAdmin&&r.operario?'<span style="font-size:0.68rem;color:var(--accent);font-weight:700;font-family:\'Karla\',sans-serif;text-transform:uppercase;">'+r.operario+'</span>':'')
+              +(!r.fromSheets?'<button onclick="elimReg(\''+r.sesionId+'\')" style="background:var(--red-bg);color:var(--red);border:1px solid rgba(139,26,26,0.2);border-radius:6px;padding:3px 7px;font-size:0.72rem;cursor:pointer;">🗑</button>':'')
               +'</div></div>';
           });
         });
@@ -1325,7 +1328,7 @@ function renderRegs(){
           +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.62rem;color:var(--text3);margin-top:1px;">'+r.pale+'</div>'
           +'</div>'
           +'<div style="display:flex;align-items:center;gap:8px;">'
-          +'<span style="font-family:\'Karla\',sans-serif;font-size:0.78rem;font-weight:600;color:var(--text2);">'+r.hora+'</span>'
+          +''
           +(!r.fromSheets?'<button onclick="elimReg(\''+r.sesionId+'\')" style="background:var(--red-bg);color:var(--red);border:1px solid rgba(139,26,26,0.2);border-radius:6px;padding:4px 8px;font-size:0.75rem;cursor:pointer;">🗑</button>':'')
           +'</div>'
           +'</div>';
@@ -1494,6 +1497,7 @@ function renderPlanGrupos(palesList,badgeFn){
   });
   var html='';
   var lastTipoVar='';
+  var grupoAbierto=false;
   keys.forEach(function(key){
     var g=grupos[key];
     var fgColor=tipoColor(g.tipo,'bg');
@@ -1507,31 +1511,37 @@ function renderPlanGrupos(palesList,badgeFn){
     });
     // Cabecera tipo+variedad+formato
     if(tipoVar!==lastTipoVar){
-      html+='<div style="background:'+bgColor+';padding:7px 14px;border-top:2px solid '+fgColor+';display:flex;align-items:center;gap:8px;margin-top:8px;">'
-        +'<div style="width:4px;height:16px;background:'+fgColor+';border-radius:2px;"></div>'
-        +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.82rem;letter-spacing:0.04em;text-transform:uppercase;color:'+fgColor+';">'+tipoVar+' · '+g.fmt+'</span>'
+      if(grupoAbierto)html+='</div>';
+      html+='<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">';
+      grupoAbierto=true;
+      html+='<div style="background:'+bgColor+';padding:7px 14px;border-bottom:2px solid '+fgColor+';display:flex;align-items:center;gap:8px;">'
+        +'<div style="width:4px;height:18px;background:'+fgColor+';border-radius:2px;"></div>'
+        +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1rem;letter-spacing:0.02em;color:'+fgColor+';">'+tipoVar+' · '+g.fmt+'</span>'
         +'</div>';
       lastTipoVar=tipoVar;
     }
-    // Cabecera lote/fecha
+    // Cabecera lote/fecha — más pequeño que la cabecera tipo
     var agVal=g.isDO?g.loteGrupo:fechaFabDesdeId(g.pales[0].id||g.pales[0].pale||'');
-    html+='<div style="background:'+bgColor+';padding:5px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,0,0,0.06);">'
-      +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.15rem;color:'+fgColor+';">'+agVal+'</span>'
-      +'<span style="font-family:\'Inconsolata\',monospace;font-size:0.68rem;color:'+fgColor+';opacity:0.6;">'+g.pales.length+' palés</span>'
+    html+='<div style="background:'+bgColor+';padding:4px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,0,0,0.06);">'
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;color:'+fgColor+';">'+agVal+'</span>'
+      +'<span style="font-size:0.68rem;color:'+fgColor+';opacity:0.7;">'+g.pales.length+' palés</span>'
       +'</div>';
     // Palés individuales
     g.pales.forEach(function(p){
       var b=badgeFn(p);
-      html+='<div class="acard '+(b.crit?'crit':'warn')+'">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+      var critColor=b.crit?'#8b1a1a':'#8b6a0a';
+      var critBg=b.crit?'rgba(139,26,26,0.08)':'rgba(139,106,10,0.08)';
+      html+='<div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);">'
         +'<div>'
-        +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.75rem;color:var(--text2);">'+( p.id||p.pale)+'</div>'
-        +'<div style="font-size:0.72rem;color:var(--text3);margin-top:1px;">'+(p.piezas||'')+' pzas'+(p.fechaFab?' · fab '+p.fechaFab.split('T')[0].split('-').reverse().join('/'):'')+'</div>'
+        +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.85rem;color:var(--text);">'+(p.piezas||'—')+' pzas</div>'
+        +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.62rem;color:var(--text3);margin-top:1px;">'+(p.id||p.pale)+'</div>'
+        +(p.fechaFab?'<div style="font-size:0.65rem;color:var(--text3);">fab '+p.fechaFab.split('T')[0].split('-').reverse().join('/')+'</div>':'')
         +'</div>'
-        +'<span class="pill '+(b.crit?'pillr':'pilly')+'">'+b.badge+'</span>'
-        +'</div></div>';
+        +'<span style="background:var(--bg3);color:'+critColor+';border:1px solid '+critColor+';border-radius:8px;padding:3px 8px;font-family:\'Karla\',sans-serif;font-size:0.72rem;font-weight:700;white-space:nowrap;">'+b.badge+'</span>'
+        +'</div>';
     });
   });
+  if(grupoAbierto)html+='</div>';
   return html||'<div class="nodata">✅ Sin pendientes</div>';
 }
 
@@ -1700,7 +1710,7 @@ function abrirHistorial(paleId){
   p.ops.forEach(function(o,i){
     var col=SECCOLOR[o.sec]||'#8890b0';
     var ico=SECICON[o.sec]||'📝';
-    var fecha=o.fecha?new Date(o.fecha).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+    var fecha=o.fecha?new Date(o.fecha).toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
     html+='<div class="hist-op" style="border-left:4px solid '+col+';">';
     html+='<div class="hist-op-head">'
          +'<span class="hist-op-sec">'+ico+' '+o.sec+'</span>'
@@ -2028,13 +2038,15 @@ function verHistorialPale(paleId){
     var sec=(r['SECCIÓN']||'').toUpperCase();
     var col=SCOLOR[sec]||'#5a5a5a';
     var f=parseFecha(r['FECHA']);
-    var fStr=f?f.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+f.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'—';
+    var fStr=f?f.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
     html+='<button onclick="verDetalleOp(\''+paleId.replace(/'/g,"\\'")+'\','+i+')" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;">'
       +'<div style="width:6px;min-height:44px;background:'+col+';border-radius:3px;flex-shrink:0;"></div>'
       +'<div style="flex:1;">'
-      +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;color:var(--text);">'+(SICON[sec]||'📝')+' '+sec+'</div>'
-      +'<div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">'+fStr+' · '+(r['OPERARIO']||'—')+'</div>'
-      +(r['SALA DESTINO']?'<div style="font-size:0.7rem;color:var(--text3);">→ '+sl(r['SALA DESTINO'])+'</div>':'')
+      +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.95rem;color:var(--text2);">'+fStr+'</span>'
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;color:'+col+';">'+(SICON[sec]||'📝')+' '+sec+'</span>'
+      +'</div>'
+      +'<div style="font-size:0.72rem;color:var(--text3);margin-top:3px;">'+(r['OPERARIO']||'—')+(r['SALA DESTINO']?' → '+sl(r['SALA DESTINO']):'')+'</div>'
       +'</div>'
       +'<span style="font-size:1rem;color:var(--text3);">›</span>'
       +'</button>';
@@ -2056,16 +2068,23 @@ function verDetalleOp(paleId,idx){
 
   document.getElementById('traz-op-title').textContent=sec;
 
+  // Fallbacks desde ID del palé
+  var infoId=parsearId(r['ID PALET']||'');
+  var variedadVal=r['VARIEDAD']||(infoId.variedad&&infoId.variedad!=='—'?infoId.variedad:'');
+  var formatoVal=r['FORMATO/PESO']||(infoId.fmt&&infoId.fmt!=='—'?infoId.fmt:'');
+  var tipoVal=r['TIPO DE QUESO']||infoId.tipo||'';
+  var piezasVal=r['Nº DE PIEZAS']||(infoId.piezas?infoId.piezas.toString():'');
+
   // Campos a mostrar en orden
   var campos=[
     {k:'SECCIÓN',l:'Sección'},
     {k:'FECHA',l:'Fecha y hora',v:fStr},
     {k:'OPERARIO',l:'Operario'},
     {k:'ID PALET',l:'ID Palé'},
-    {k:'TIPO DE QUESO',l:'Tipo de queso'},
-    {k:'VARIEDAD',l:'Variedad'},
-    {k:'FORMATO/PESO',l:'Formato'},
-    {k:'Nº DE PIEZAS',l:'Nº piezas'},
+    {k:'TIPO DE QUESO',l:'Tipo de queso',v:tipoVal},
+    {k:'VARIEDAD',l:'Variedad',v:variedadVal},
+    {k:'FORMATO/PESO',l:'Formato / Peso',v:formatoVal},
+    {k:'Nº DE PIEZAS',l:'Nº piezas',v:piezasVal},
     {k:'LOTE QUESO',l:'Lote queso'},
     {k:'PRODUCTO',l:'Producto'},
     {k:'LOTE PRODUCTO',l:'Lote producto'},
@@ -2084,6 +2103,8 @@ function verDetalleOp(paleId,idx){
 
   campos.forEach(function(c){
     var val=c.v||r[c.k];
+    // Fallback INMERSIÓN para 1ª y 2ª CAPA si no hay producto guardado
+    if(c.k==='PRODUCTO'&&(!val||val.toString().trim()==='')&&(sec==='1ª CAPA'||sec==='2ª CAPA'))val='INMERSIÓN';
     if(!val||val.toString().trim()==='')return;
     html+='<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'
       +'<span style="font-size:0.75rem;color:var(--text3);flex-shrink:0;">'+c.l+'</span>'
@@ -2131,18 +2152,17 @@ function buscarPale(id){
     var sec=(r['SECCIÓN']||'').toUpperCase();
     var col=SCOLOR[sec]||'#5a5a5a';
     var f=parseFecha(r['FECHA']);
-    var fStr=f?f.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+f.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'—';
-    html+='<div style="border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:6px;background:var(--bg2);display:flex;justify-content:space-between;align-items:center;">'
-      +'<div style="display:flex;align-items:center;gap:10px;">'
-      +'<div style="width:8px;height:36px;background:'+col+';border-radius:4px;flex-shrink:0;"></div>'
-      +'<div>'
-      +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text);">'+(SICON[sec]||'📝')+' '+sec+'</div>'
-      +'<div style="font-size:0.72rem;color:var(--text3);">'+(r['OPERARIO']||'')+'</div>'
-      +'</div></div>'
-      +'<div style="text-align:right;">'
-      +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.72rem;color:var(--text2);">'+fStr+'</div>'
-      +(r['SALA DESTINO']?'<div style="font-size:0.68rem;color:var(--text3);">→ '+sl(r['SALA DESTINO'])+'</div>':'')
-      +'</div></div>';
+    var fStr=f?f.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
+    html+='<div style="border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:6px;background:var(--bg2);">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+      +'<div style="width:6px;height:32px;background:'+col+';border-radius:3px;flex-shrink:0;"></div>'
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.92rem;color:var(--text2);">'+fStr+'</span>'
+      +'</div>'
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.92rem;color:'+col+';">'+(SICON[sec]||'📝')+' '+sec+'</span>'
+      +'</div>'
+      +'<div style="font-size:0.7rem;color:var(--text3);margin-top:3px;padding-left:14px;">'+(r['OPERARIO']||'')+(r['SALA DESTINO']?' → '+sl(r['SALA DESTINO']):'')+'</div>'
+      +'</div>';
   });
   el.innerHTML=html;
 }
@@ -2299,7 +2319,7 @@ function mostrarHistorialPale(paleId){
     var sec=(r['SECCIÓN']||'').toUpperCase();
     var col=SCOLOR[sec]||'#5a5a5a';
     var f=parseFecha(r['FECHA']);
-    var fStr=f?f.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+f.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'—';
+    var fStr=f?f.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
     html+='<div style="display:flex;gap:10px;margin-bottom:8px;">'
       +'<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">'
       +'<div style="width:12px;height:12px;background:'+col+';border-radius:50%;margin-top:4px;"></div>'
@@ -2307,8 +2327,8 @@ function mostrarHistorialPale(paleId){
       +'</div>'
       +'<button onclick="mostrarDetalleOp('+i+')" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:left;cursor:pointer;margin-bottom:0;">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
-      +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:'+col+';">'+(SICON[sec]||'📝')+' '+sec+'</span>'
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text2);">'+fStr+'</span>'
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:'+col+';">'+(SICON[sec]||'📝')+' '+sec+'</span>'
       +'</div>'
       +'<div style="font-size:0.72rem;color:var(--text3);margin-top:3px;">'+(r['OPERARIO']||'')+(r['SALA DESTINO']?' → '+sl(r['SALA DESTINO']):'')+'</div>'
       +'</button>'
@@ -2328,17 +2348,23 @@ function mostrarDetalleOp(idx){
   var fStr=f?f.toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})+' '+f.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'—';
   document.getElementById('traz-op-title').textContent=sec;
   // Campos a mostrar
+  var prodVal=r['PRODUCTO']||(sec==='1ª CAPA'||sec==='2ª CAPA'?'INMERSIÓN':'');
+  var infoId2=parsearId(r['ID PALET']||'');
+  var varVal=r['VARIEDAD']||(infoId2.variedad&&infoId2.variedad!=='—'?infoId2.variedad:'');
+  var fmtVal=r['FORMATO/PESO']||(infoId2.fmt&&infoId2.fmt!=='—'?infoId2.fmt:'');
+  var tipoVal2=r['TIPO DE QUESO']||infoId2.tipo||'';
+  var pzVal=r['Nº DE PIEZAS']||(infoId2.piezas?infoId2.piezas.toString():'');
   var campos=[
     {l:'Sección',v:r['SECCIÓN']},
     {l:'Fecha y hora',v:fStr},
     {l:'Operario',v:r['OPERARIO']},
     {l:'ID Palé',v:r['ID PALET']},
-    {l:'Tipo de queso',v:r['TIPO DE QUESO']},
-    {l:'Variedad',v:r['VARIEDAD']},
-    {l:'Formato / Peso',v:r['FORMATO/PESO']},
-    {l:'Nº de piezas',v:r['Nº DE PIEZAS']},
+    {l:'Tipo de queso',v:tipoVal2},
+    {l:'Variedad',v:varVal},
+    {l:'Formato / Peso',v:fmtVal},
+    {l:'Nº de piezas',v:pzVal},
     {l:'Lote queso',v:r['LOTE QUESO']},
-    {l:'Producto',v:r['PRODUCTO']},
+    {l:'Producto',v:prodVal},
     {l:'Lote producto',v:r['LOTE PRODUCTO']},
     {l:'Sala origen',v:r['SALA ORIGEN']},
     {l:'Sala destino',v:r['SALA DESTINO']},
