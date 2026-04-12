@@ -1230,8 +1230,10 @@ function renderRegs(){
     var sec=(r['SECCIÓN']||'').toUpperCase();if(!sec)return;
     if(!porSec[sec])porSec[sec]=[];
     var info=parsearId(r['ID PALET']||'');
+    var rawIdx=rawRows.indexOf(r);
     porSec[sec].push({
       rowId:r['ID']||'',
+      rawIdx:rawIdx,
       pale:r['ID PALET']||'',
       tipo:normTipo(r['TIPO DE QUESO']||'')||info.tipo||'?',
       variedad:r['VARIEDAD']||info.variedad||'—',
@@ -1376,11 +1378,12 @@ function renderRegs(){
         var puedeEditar=esAdmin||(r.op===CU.n||r.operario===CU.n);
         var rowId=r.rowId||'';
         var sesionId=r.sesionId||'';
-        html+='<div onclick="abrirRegFicha(\''+rowId+'\',\''+sesionId+'\')" style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);cursor:pointer;">'
+        var rawIdx=r.rawIdx!==undefined?r.rawIdx:-1;
+        html+='<div onclick="abrirRegFicha(\''+rowId+'\',\''+sesionId+'\','+rawIdx+')" style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);cursor:pointer;">'
           +'<div>'
-          +(esAdmin&&r.operario?'<div style="font-size:0.68rem;color:var(--accent);font-weight:700;font-family:\'Karla\',sans-serif;text-transform:uppercase;letter-spacing:0.04em;">'+r.operario+'</div>':'')
-          +'<div style="font-family:\'Karla\',sans-serif;font-weight:600;font-size:0.82rem;color:var(--text2);">'+r.piezas+' pzas'+(r.destino?' <span style="color:var(--text3);">→ '+sl(r.destino)+'</span>':'')+'</div>'
+          +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.88rem;color:var(--text);">'+r.piezas+' pzas'+(r.destino?' <span style="font-weight:400;color:var(--text3);">→ '+sl(r.destino)+'</span>':'')+'</div>'
           +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.62rem;color:var(--text3);margin-top:1px;">'+r.pale+'</div>'
+          +(esAdmin&&r.operario?'<div style="font-size:0.62rem;color:var(--text3);margin-top:1px;">'+r.operario+'</div>':'')
           +'</div>'
           +'<span style="color:var(--text3);font-size:1rem;">›</span>'
           +'</div>';
@@ -1427,29 +1430,41 @@ function renderPlanMenu(){
     document.getElementById('plan-menu-content').innerHTML='<div style="color:var(--text3);text-align:center;padding:30px 0;">Sin datos — pulsa 🔄</div>';
     return;
   }
-  // Calcular totales para cada acción
   var gfCount=pales.filter(function(p){return p.sala==='2.GOLPE FRIO'&&diasDesde(p.fechaFab)>=2;}).length;
-  var volteoCount=0;pales.filter(function(p){return enSec(p);}).forEach(function(p){var u=getLastOp(p,'VOLTEO');var uc2=getLastOp(p,'2ª CAPA');var refDate=u?u.fecha:null;if(uc2&&(!refDate||new Date(uc2.fecha)>new Date(refDate)))refDate=uc2.fecha;var d=refDate?diasDesde(refDate):diasDesde(p.fechaFab);if(d>=CFG.volteoW)volteoCount++;});
-  var c2Count=0;pales.filter(function(p){return enSec(p)&&aptoC2(p);}).forEach(function(p){var a1=getLastOp(p,'1ª CAPA'),a2op=getLastOp(p,'2ª CAPA');if(a1&&!a2op&&diasDesde(a1.fecha)>=CFG.anti2W)c2Count++;});
-  var salCount=0;pales.filter(function(p){return enSec(p);}).forEach(function(p){if(diasDesde(p.fechaFab)>=CFG.secW)salCount++;});
+  var gfMaxD=0;pales.filter(function(p){return p.sala==='2.GOLPE FRIO'&&diasDesde(p.fechaFab)>=2;}).forEach(function(p){var d=diasDesde(p.fechaFab);if(d>gfMaxD)gfMaxD=d;});
 
-  function btnPlan(ico,titulo,sub,count,crit,accion){
-    var color=crit&&count>0?'var(--red)':'var(--accent)';
+  var volteoItems=[];pales.filter(function(p){return enSec(p);}).forEach(function(p){var u=getLastOp(p,'VOLTEO');var uc2=getLastOp(p,'2ª CAPA');var refDate=u?u.fecha:null;if(uc2&&(!refDate||new Date(uc2.fecha)>new Date(refDate)))refDate=uc2.fecha;var d=refDate?diasDesde(refDate):diasDesde(p.fechaFab);if(d>=CFG.volteoW)volteoItems.push(d);});
+  var volteoMaxD=volteoItems.length?Math.max.apply(null,volteoItems):0;
+  var volteoCount=volteoItems.length;
+
+  var c2Items=[];pales.filter(function(p){return enSec(p)&&aptoC2(p);}).forEach(function(p){var a1=getLastOp(p,'1ª CAPA'),a2op=getLastOp(p,'2ª CAPA');if(a1&&!a2op){var d=diasDesde(a1.fecha);if(d>=CFG.anti2W)c2Items.push(d);}});
+  var c2MaxD=c2Items.length?Math.max.apply(null,c2Items):0;
+  var c2Count=c2Items.length;
+
+  var salItems=[];pales.filter(function(p){return enSec(p);}).forEach(function(p){var d=diasDesde(p.fechaFab);if(d>=CFG.secW)salItems.push(d);});
+  var salMaxD=salItems.length?Math.max.apply(null,salItems):0;
+  var salCount=salItems.length;
+
+  function btnPlan(ico,titulo,maxD,count,crit,accion){
+    var hasPending=count>0;
+    var color=crit&&hasPending?'var(--red)':'var(--accent)';
+    var rightContent=hasPending
+      ?'<div style="text-align:right;"><div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.5rem;color:'+color+';">'+maxD+' d</div><div style="font-size:0.68rem;color:var(--text3);">'+count+' palés</div></div>'
+      :'<div style="font-size:1.3rem;">✅</div>';
     return '<button onclick="abrirPlanAccion(\''+accion+'\')" style="width:100%;background:var(--bg2);border:2px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:var(--shadow);margin-bottom:10px;text-align:left;">'
       +'<div style="font-size:2rem;width:44px;text-align:center;">'+ico+'</div>'
       +'<div style="flex:1;">'
       +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:1rem;color:var(--text);">'+titulo+'</div>'
-      +'<div style="font-size:0.75rem;color:var(--text3);margin-top:2px;">'+sub+'</div>'
       +'</div>'
-      +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.3rem;color:'+color+';">'+count+'</div>'
+      +rightContent
       +'</button>';
   }
   document.getElementById('plan-menu-content').innerHTML=
     '<div style="padding:4px 0 8px;font-size:0.78rem;color:var(--text3);">Selecciona una acción</div>'
-    +btnPlan('❄️','Salida Golpe de Frío','2+ días → mover a secadero',gfCount,true,'golpe')
-    +btnPlan('🔄','Volteo','aviso +4d · crítico +7d desde último volteo',volteoCount,true,'volteo')
-    +btnPlan('🧴','2ª Capa antifúngico','aviso +18d · crítico +25d desde 1ª capa',c2Count,true,'anti2')
-    +btnPlan('🚪','Salida Secaderos','aviso +50d · crítico +60d desde fabricación',salCount,true,'salida');
+    +btnPlan('❄️','Salida Golpe de Frío',gfMaxD,gfCount,true,'golpe')
+    +btnPlan('🔄','Volteo',volteoMaxD,volteoCount,true,'volteo')
+    +btnPlan('🧴','2ª Capa antifúngico',c2MaxD,c2Count,true,'anti2')
+    +btnPlan('🚪','Salida Secaderos',salMaxD,salCount,true,'salida');
 }
 
 function abrirPlanAccion(accion){
@@ -1458,16 +1473,16 @@ function abrirPlanAccion(accion){
   document.getElementById('plan-detalle-title').textContent=titulos[accion]||accion;
 
   if(accion==='golpe'){
-    // Directo sin selector de sala
+    // Agrupado por fecha de fabricación, de más antigua a más reciente
     var gf=pales.filter(function(p){return p.sala==='2.GOLPE FRIO'&&diasDesde(p.fechaFab)>=2;});
     gf.sort(function(a,b){return new Date(a.fechaFab)-new Date(b.fechaFab);});
     if(!gf.length){document.getElementById('plan-detalle-content').innerHTML='<div class="nodata">✅ Ningún palé pendiente de salir</div>';ir('s-plan-detalle');return;}
-    document.getElementById('plan-detalle-content').innerHTML=renderPlanGrupos(gf,function(p){var d=diasDesde(p.fechaFab);return{badge:d+'d en GF',crit:d>=3};});
+    document.getElementById('plan-detalle-content').innerHTML=renderPlanGrupos(gf,function(p){var d=diasDesde(p.fechaFab);return{badge:d+' d',crit:d>=3};});
     ir('s-plan-detalle');
     return;
   }
 
-  // Para volteo, anti2, salida: mostrar resumen por secadero
+  // Para volteo, anti2, salida: resumen por secadero con días máx en grande
   var SECS=['3.SECADERO 1','4.SECADERO 2','5.SECADERO 3'];
   var html='<div style="padding:4px 0 8px;font-size:0.78rem;color:var(--text3);">Selecciona un secadero</div>';
   SECS.forEach(function(sala){
@@ -1475,13 +1490,16 @@ function abrirPlanAccion(accion){
     var maxD=items.length?Math.max.apply(null,items.map(function(i){return i.d;})):0;
     var hayCrit=items.some(function(i){return i.c;});
     var color=SALA_COLORS[sala]||'#5a5a5a';
+    var rightContent=items.length
+      ?'<div style="text-align:right;"><div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.5rem;color:'+(hayCrit?'var(--red)':'var(--accent)')+';">'+maxD+' d</div><div style="font-size:0.68rem;color:var(--text3);">'+items.length+' palés</div></div>'
+      :'<div style="font-size:1.1rem;color:var(--green);">✅</div>';
     html+='<button onclick="abrirPlanSala(\''+accion+'\',\''+sala+'\')" style="width:100%;background:var(--bg2);border:2px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:var(--shadow);margin-bottom:10px;text-align:left;">'
       +'<div style="width:10px;height:44px;background:'+color+';border-radius:5px;flex-shrink:0;"></div>'
       +'<div style="flex:1;">'
       +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:1rem;color:var(--text);">'+salaIcon(sala)+' '+SLBL[sala]+'</div>'
-      +(items.length?'<div style="font-size:0.75rem;color:var(--text3);margin-top:2px;">Máx. '+maxD+'d · '+items.length+' palés</div>':'<div style="font-size:0.75rem;color:var(--green);margin-top:2px;">✅ Sin pendientes</div>')
+      +(items.length?'':'<div style="font-size:0.75rem;color:var(--green);margin-top:2px;">Sin pendientes</div>')
       +'</div>'
-      +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.3rem;color:'+(hayCrit?'var(--red)':'var(--accent)')+';">'+items.length+'</div>'
+      +rightContent
       +'</button>';
   });
   document.getElementById('plan-detalle-content').innerHTML=html;
@@ -1779,7 +1797,15 @@ function abrirDrill2(sala,tipo,variedad,fmt){
     if(!grupos[agrupador])grupos[agrupador]={lote:agrupador,pales:[]};
     grupos[agrupador].pales.push(p);
   });
-  var gkeys=Object.keys(grupos).sort();
+  // Añadir días máx por grupo para ordenar
+  Object.keys(grupos).forEach(function(k){
+    var g=grupos[k];
+    g.maxDias=g.pales.reduce(function(mx,p){return Math.max(mx,p.fechaFab?diasDesde(p.fechaFab):0);},0);
+  });
+  // Ordenar de más antiguo (más días) a más reciente
+  var gkeys=Object.keys(grupos).sort(function(a,b){
+    return grupos[b].maxDias-grupos[a].maxDias;
+  });
   var html='';
   gkeys.forEach(function(lote){
     var g=grupos[lote];
@@ -2000,16 +2026,21 @@ var CAMPOS_EDITABLES=[
   {k:'OBSERVACIONES',l:'Observaciones',type:'textarea'},
 ];
 
-function abrirRegFicha(rowId,sesionId){
-  // Buscar el registro en rawRows o misRegs
+function abrirRegFicha(rowId,sesionId,rawIdx){
   var r=null;
-  if(rowId){r=rawRows.find(function(x){return(x['ID']||'')==rowId;});}
+  // Buscar por índice directo (más fiable)
+  if(rawIdx!==undefined&&rawIdx>=0&&rawIdx<rawRows.length){
+    r=rawRows[rawIdx];
+  }
+  // Fallback por ID
+  if(!r&&rowId){r=rawRows.find(function(x){return(x['ID']||'')==rowId;});}
+  // Fallback por sesión
   if(!r&&sesionId){
     var sr=misRegs.find(function(x){return x.id==sesionId;});
     if(sr)r=sr.datos;
   }
   if(!r){toast('Registro no encontrado','err');return;}
-  regFichaActual={rowId:rowId,sesionId:sesionId,datos:r};
+  regFichaActual={rowId:rowId,sesionId:sesionId,rawIdx:rawIdx,datos:r};
   regFichaEditMode=false;
   renderRegFicha(r,false);
   document.getElementById('reg-ficha-back').setAttribute('onclick',"ir('s-regs')");
@@ -2092,10 +2123,11 @@ function guardarEditReg(){
   fetch(API_URL,{method:'POST',mode:'no-cors',body:JSON.stringify(r),headers:{'Content-Type':'application/json'}})
     .catch(function(){});
   // Actualizar en rawRows local
-  if(regFichaActual.rowId){
-    var idx=rawRows.findIndex(function(x){return(x['ID']||'')==regFichaActual.rowId;});
-    if(idx>=0)rawRows[idx]=Object.assign(rawRows[idx],r);
+  var idx=regFichaActual.rawIdx>=0?regFichaActual.rawIdx:-1;
+  if(idx<0&&regFichaActual.rowId){
+    idx=rawRows.findIndex(function(x){return(x['ID']||'')==regFichaActual.rowId;});
   }
+  if(idx>=0)rawRows[idx]=Object.assign(rawRows[idx],r);
   toast('✅ Cambios guardados');
   regFichaActual.datos=r;
   regFichaEditMode=false;
@@ -2122,8 +2154,9 @@ function eliminarRegFicha(){
 function abrirEditTrazOp(){
   if(!window._trazOpActual)return;
   var r=window._trazOpActual.r;
-  // Reutilizar la ficha editable
-  regFichaActual={rowId:r['ID']||'',sesionId:'',datos:r};
+  var rawIdx=window._trazOpActual.rawIdx!=null?window._trazOpActual.rawIdx:-1;
+  var rowId=window._trazOpActual.rowId||'';
+  regFichaActual={rowId:rowId,sesionId:'',rawIdx:rawIdx,datos:r};
   regFichaEditMode=false;
   renderRegFicha(r,false);
   document.getElementById('reg-ficha-back').setAttribute('onclick',"ir('s-traz-op')");
@@ -2380,8 +2413,9 @@ function verDetalleOp(paleId,idx){
   // Mostrar botón editar solo para CALIDAD/JOAQUIN — desde trazabilidad
   var esAdmin=CU&&(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
   document.getElementById('traz-op-edit-wrap').style.display=esAdmin?'':'none';
-  // Guardar referencia al registro actual para edición
-  window._trazOpActual={r:r,sec:sec};
+  // Guardar referencia al registro actual con índice en rawRows
+  var rawIdx=rawRows.indexOf(r);
+  window._trazOpActual={r:r,sec:sec,rawIdx:rawIdx,rowId:r['ID']||''};
   document.getElementById('traz-op-back').setAttribute('onclick',"ir('s-traz-historial')");
   ir('s-traz-op');
 }
