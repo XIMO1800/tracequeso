@@ -9,138 +9,68 @@
 <meta name="apple-mobile-web-app-title" content="El Hidalgo">
 <meta name="theme-color" content="#6a1010">
 <title>El Hidalgo — Trazabilidad</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Karla:wght@400;500;600;700&family=Inconsolata:wght@400;600&display=swap" rel="stylesheet">
-<script>
-// PWA Manifest
-var ml=document.createElement('link');
-ml.rel='manifest';
-ml.href='/tracequeso/manifest.json';
-document.head.appendChild(ml);
-</script>
+<link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;600;700;800&family=Inconsolata:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#f5f0e8;
-  --bg2:#ffffff;
-  --bg3:#ede7da;
-  --border:#d4c9b5;
-  --text:#2a1505;
-  --text2:#5a3a20;
-  --text3:#9a7a5a;
-  --accent:#8b1a1a;
-  --accent2:#a82020;
-  --gold:#c8780a;
-  --gold-bg:rgba(200,120,10,0.1);
-  --green:#3a6a2a;
-  --green-bg:rgba(58,106,42,0.1);
-  --red:#8b1a1a;
-  --red-bg:rgba(139,26,26,0.1);
-  --blue:#1a3a6a;
-  --blue-bg:rgba(26,58,106,0.1);
-  --yellow:#8b5a0a;
-  --yellow-bg:rgba(139,90,10,0.1);
-  --shadow:0 2px 8px rgba(42,21,5,0.1);
+  --bg:#f5f0e8; --bg2:#ffffff; --bg3:#ede7da; --border:#d4c9b5;
+  --text:#2a1505; --text2:#5a3a20; --text3:#9a7a5a;
+  --accent:#8b1a1a; --accent2:#a82020; --gold:#c8780a;
+  --gold-bg:rgba(200,120,10,0.1); --green:#3a6a2a; --green-bg:rgba(58,106,42,0.1);
+  --red:#8b1a1a; --red-bg:rgba(139,26,26,0.1); --blue:#1a3a6a;
+  --blue-bg:rgba(26,58,106,0.1); --shadow:0 2px 8px rgba(42,21,5,0.1);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;font-family:'Karla',sans-serif;background:var(--bg);color:var(--text);}
 .scr{display:none;position:fixed;inset:0;flex-direction:column;background:var(--bg);}
 .scr.on{display:flex;}
 
-/* LOGIN */
-#s-login{background:linear-gradient(160deg,#2a0a05,#6a1010);align-items:center;justify-content:center;padding:20px;}
-.lcard{background:#fff;border-radius:22px;padding:28px 22px;width:100%;max-width:340px;box-shadow:0 24px 60px rgba(0,0,0,0.35);}
-.llogo{font-family:'Karla',sans-serif;font-size:1.7rem;font-weight:800;color:var(--accent);text-align:center;margin-bottom:4px;}
-.lsub{font-size:0.8rem;color:var(--text3);text-align:center;margin-bottom:20px;}.lsel{width:100%;background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;font-family:'Karla',sans-serif;font-size:0.95rem;color:var(--text);outline:none;margin-bottom:14px;}
-.pindisp{background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:14px;text-align:center;font-family:'Inconsolata',monospace;font-size:2rem;letter-spacing:0.4em;color:var(--text);margin-bottom:14px;min-height:56px;}
-.npad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:10px;}
-.npad button{padding:17px 8px;font-size:1.15rem;font-family:'Karla',sans-serif;font-weight:700;background:var(--bg3);border:1.5px solid var(--border);border-radius:11px;cursor:pointer;color:var(--text);}
-.npad button:active{background:var(--border);}
-.ndel{background:#fff0f0!important;border-color:#fcc!important;color:var(--red)!important;font-size:1rem!important;}
-.nok{background:var(--gold)!important;border-color:var(--gold)!important;color:#fff!important;}
-.lerr{display:none;background:#fff0f0;border:1px solid #fcc;border-radius:8px;padding:8px 12px;font-size:0.8rem;color:var(--red);text-align:center;margin-top:6px;}
-
 /* TOPBAR */
 .topbar{background:var(--bg2);border-bottom:2px solid var(--border);height:52px;display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;box-shadow:var(--shadow);}
 .tbback{background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text2);padding:2px 8px 2px 0;line-height:1;}
-.tblogo{font-family:'Karla',sans-serif;font-weight:700;font-size:0.88rem;color:var(--accent);}
 .tbtitle{font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;color:var(--text);}
 .tbright{margin-left:auto;display:flex;align-items:center;gap:8px;}
 .tbuser{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:0.75rem;font-weight:600;color:var(--text2);cursor:pointer;}
 .tbsync{font-family:'Inconsolata',monospace;font-size:0.66rem;padding:3px 7px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);}
 .tbsync.ok{color:var(--green);border-color:rgba(26,138,74,0.3);}
 .tbsync.err{color:var(--red);border-color:rgba(192,40,40,0.3);}
-.tbsync.loading{color:var(--yellow);border-color:rgba(184,112,0,0.3);}
-.live{width:6px;height:6px;background:var(--green);border-radius:50%;animation:blink 2s infinite;}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.2;}}
+.tbsync.loading{color:var(--yellow, #c8780a);border-color:rgba(184,112,0,0.3);}
 
-/* CONTENT */
+/* LOGIN & CARDS */
+#s-login{background:linear-gradient(160deg,#2a0a05,#6a1010);align-items:center;justify-content:center;padding:20px;}
+.lcard{background:#fff;border-radius:22px;padding:28px 22px;width:100%;max-width:340px;box-shadow:0 24px 60px rgba(0,0,0,0.35);}
+.lsub{font-size:0.8rem;color:var(--text3);text-align:center;margin-bottom:20px;}
+.lsel{width:100%;background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;font-family:'Karla',sans-serif;font-size:0.95rem;margin-bottom:14px;}
+.pindisp{background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:14px;text-align:center;font-family:'Inconsolata',monospace;font-size:2rem;letter-spacing:0.4em;margin-bottom:14px;min-height:56px;}
+.npad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+.npad button{padding:17px 8px;font-size:1.15rem;font-weight:700;background:var(--bg3);border:1.5px solid var(--border);border-radius:11px;cursor:pointer;}
+.nok{background:var(--gold)!important;color:#fff!important;border-color:var(--gold)!important;}
+.ndel{background:#fff0f0!important;color:var(--red)!important;border-color:#fcc!important;}
+
+/* BUTTONS & FORMS */
 .scrl{flex:1;overflow-y:auto;padding:14px;}
-
-/* MAIN */
-.greet{padding:14px 14px 8px;}
-.greet-name{font-family:'Karla',sans-serif;font-size:1.25rem;font-weight:800;color:var(--text);}
-.greet-sub{font-size:0.78rem;color:var(--text3);margin-top:2px;}
-.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 14px 12px;}
-.sbox{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:11px 8px;text-align:center;box-shadow:var(--shadow);}
-.sval{font-family:'Karla',sans-serif;font-size:1.35rem;font-weight:800;}
-.sval.a{color:var(--gold);}.sval.r{color:var(--red);}.sval.g{color:var(--green);}
-.slbl{font-size:0.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;font-family:'Inconsolata',monospace;margin-top:2px;}
-.mbtns{display:flex;flex-direction:column;gap:11px;padding:0 14px 14px;}
-.mbtn{background:var(--bg2);border:2px solid var(--border);border-radius:15px;padding:18px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:var(--shadow);width:100%;text-align:left;}
-.mbtn:active{transform:scale(0.97);}
-.mbtn-icon{font-size:1.9rem;width:46px;text-align:center;flex-shrink:0;}
-.mbtn-title{font-family:'Karla',sans-serif;font-weight:700;font-size:1.15rem;color:var(--text);margin-bottom:4px;}
-.mbtn-desc{font-size:0.85rem;color:var(--text3);line-height:1.35;}
-.mbtn.m1{border-left:4px solid var(--gold);}
-.mbtn.m2{border-left:4px solid var(--accent);}
-.mbtn.m3{border-left:4px solid var(--green);}
-.mbtn.m4{border-left:4px solid #6a1a6a;}
-.mbtn.m5{border-left:4px solid var(--blue);}
-
-/* SECCIÓN LISTA */
-.seclist{display:flex;flex-direction:column;gap:10px;}
-.secbtn{background:var(--bg2);border:2px solid var(--border);border-radius:14px;padding:18px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:var(--shadow);width:100%;text-align:left;}
-.secbtn:active{transform:scale(0.97);}
-.secbtn.locked{opacity:0.45;}
-.secbtn-icon{font-size:1.6rem;width:40px;text-align:center;flex-shrink:0;}
-.secbtn-name{font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;color:var(--text);}
-.locktag{margin-left:auto;background:var(--red-bg);color:var(--red);border:1px solid rgba(192,40,40,0.2);border-radius:6px;padding:3px 8px;font-size:0.65rem;font-family:'Inconsolata',monospace;font-weight:700;flex-shrink:0;}
-.oktag{margin-left:auto;background:var(--green-bg);color:var(--green);border:1px solid rgba(26,138,74,0.2);border-radius:6px;padding:3px 8px;font-size:0.65rem;font-family:'Inconsolata',monospace;font-weight:700;flex-shrink:0;}
-.s1{border-left:4px solid #2196F3;}.s2{border-left:4px solid #4CAF50;}.s3{border-left:4px solid #FF9800;}
-.s4{border-left:4px solid #9C27B0;}.s5{border-left:4px solid #F44336;}.s6{border-left:4px solid #009688;}
-
-/* FORMS */
-.fcard{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow);margin-bottom:12px;}
-.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.fg{display:flex;flex-direction:column;gap:4px;}.fg.full{grid-column:1/-1;}
-.flabel{font-size:0.67rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;font-family:'Inconsolata',monospace;font-weight:600;}
-.finput{background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;padding:10px 11px;color:var(--text);font-family:'Karla',sans-serif;font-size:0.9rem;outline:none;width:100%;}
-.finput:focus{border-color:var(--gold);}
-textarea.finput{resize:vertical;min-height:60px;}
-.finput[readonly]{color:var(--text3);background:var(--bg3);}
-
-/* VOLTEO / MOVIMIENTO scan mode */
-.scan-mode{background:var(--bg2);border:2px solid var(--gold);border-radius:16px;padding:20px;text-align:center;margin-bottom:12px;box-shadow:var(--shadow);}
-.scan-mode-icon{font-size:3rem;margin-bottom:8px;}
-.scan-mode-title{font-family:'Karla',sans-serif;font-weight:700;font-size:1.1rem;color:var(--text);margin-bottom:4px;}
-.scan-mode-sub{font-size:0.8rem;color:var(--text3);margin-bottom:14px;}
-.scan-mode-input{width:100%;background:var(--bg3);border:2px solid var(--gold);border-radius:10px;padding:14px;font-family:'Inconsolata',monospace;font-size:1.1rem;color:var(--text);outline:none;text-align:center;}
-.scan-counter{font-family:'Karla',sans-serif;font-size:2.5rem;font-weight:800;color:var(--gold);margin:10px 0 2px;}
-.scan-counter-lbl{font-size:0.75rem;color:var(--text3);}
-
-/* TOAST */
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--text);color:#fff;padding:10px 20px;border-radius:10px;font-size:0.85rem;z-index:9999;opacity:0;transition:all 0.25s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;}
+.mbtns{display:flex;flex-direction:column;gap:11px;}
+.mbtn{background:var(--bg2);border:2px solid var(--border);border-radius:15px;padding:18px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:var(--shadow);text-align:left;}
+.mbtn-title{font-weight:700;font-size:1.1rem;color:var(--text);}
+.mbtn-desc{font-size:0.85rem;color:var(--text3);}
+.mbtn.m1{border-left:5px solid var(--gold);}
+.scan-mode{background:var(--bg2);border:2px solid var(--gold);border-radius:16px;padding:20px;text-align:center;margin-bottom:12px;}
+.scan-mode-input{width:100%;background:var(--bg3);border:2px solid var(--gold);border-radius:10px;padding:14px;font-family:'Inconsolata',monospace;font-size:1.2rem;text-align:center;outline:none;}
+.scan-counter{font-size:2.5rem;font-weight:800;color:var(--gold);margin-top:10px;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--text);color:#fff;padding:10px 20px;border-radius:10px;font-size:0.85rem;z-index:9999;opacity:0;transition:0.25s;pointer-events:none;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
-.toast.ok{background:var(--green);}.toast.err{background:var(--red);}
+#v-offline-msg{background:var(--red-bg); color:var(--red); padding:10px; border-radius:10px; margin-bottom:10px; font-size:0.85rem; font-weight:700; border:1px solid var(--red); display:none;}
 </style>
 </head>
 <body>
 
 <div class="scr on" id="s-login">
   <div class="lcard">
-    <div class="llogo">El Hidalgo</div>
+    <div style="text-align:center;margin-bottom:10px;">
+        <span style="font-size:1.5rem;font-weight:800;color:var(--accent)">EL HIDALGO</span>
+    </div>
     <div class="lsub">Trazabilidad · Lácteos Cuquerella</div>
     <select class="lsel" id="l-nombre" onchange="resetPin()">
-      <option value="">— ¿Quién eres? —</option>
+      <option value="">— Selecciona tu nombre —</option>
     </select>
     <div class="pindisp" id="l-pin">— — — —</div>
     <div class="npad">
@@ -151,75 +81,62 @@ textarea.finput{resize:vertical;min-height:60px;}
       <button onclick="pd('0')">0</button>
       <button class="nok" onclick="pv()">✓</button>
     </div>
-    <div class="lerr" id="l-err">PIN incorrecto.</div>
   </div>
 </div>
 
 <div class="scr" id="s-main">
   <div class="topbar">
-    <div class="live"></div>
     <div class="tbtitle">EL HIDALGO</div>
     <div class="tbright">
-      <div class="tbsync loading" id="sync-badge">⟳</div>
+      <div class="tbsync ok" id="sync-badge">✅</div>
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div></div>
   <div class="scrl">
     <div class="mbtns">
-      <button class="mbtn m1" onclick="irF()">
-        <div class="mbtn-icon">✏️</div>
-        <div><div class="mbtn-title">Registrar operación</div><div class="mbtn-desc">1ª capa, volteo, movimiento, etc.</div></div>
+      <button class="mbtn m1" onclick="ir('s-volteo')">
+        <div style="font-size:2rem">🔄</div>
+        <div><div class="mbtn-title">Volteo de quesos</div><div class="mbtn-desc">Registrar volteos en secadero</div></div>
       </button>
-      <button class="mbtn m2" onclick="irR()">
-        <div class="mbtn-icon">📋</div>
-        <div><div class="mbtn-title">Registros del día</div><div class="mbtn-desc">Revisa lo que has hecho hoy</div></div>
+      <button class="mbtn m1" style="border-left-color:var(--blue)" onclick="toast('Próximamente','ok')">
+        <div style="font-size:2rem">🚚</div>
+        <div><div class="mbtn-title">Movimiento</div><div class="mbtn-desc">Cambiar palés de sala</div></div>
       </button>
     </div>
-  </div>
-</div>
-
-<div class="scr" id="s-secs">
-  <div class="topbar">
-    <button class="tbback" onclick="ir('s-main')">←</button>
-    <div class="tbtitle">Operaciones</div>
-  </div>
-  <div class="scrl">
-    <div class="seclist" id="sec-list"></div>
   </div>
 </div>
 
 <div class="scr" id="s-volteo">
   <div class="topbar">
-    <button class="tbback" onclick="ir('s-secs')">←</button>
-    <div class="tbtitle">🔄 Volteo</div>
+    <button class="tbback" onclick="ir('s-main')">←</button>
+    <div class="tbtitle">🔄 Registrar Volteo</div>
   </div>
   <div class="scrl">
+    <div id="v-offline-msg">⚠️ Tienes registros pendientes de enviar (sin cobertura).</div>
     <div class="scan-mode">
-      <div class="scan-mode-icon">🔄</div>
-      <div class="scan-mode-title">Escanea el QR</div>
+      <div style="font-size:3rem">🔄</div>
+      <div style="font-weight:700;margin-bottom:10px">Escanea el QR del palé</div>
       <input class="scan-mode-input" type="text" inputmode="none" id="v-qr" placeholder="QR del palé..." onkeydown="onVolteoKey(event)">
       <div class="scan-counter" id="v-cnt">0</div>
-      <div class="scan-counter-lbl">palés registrados ahora</div>
+      <div style="font-size:0.8rem;color:var(--text3)">palés volteados en esta sesión</div>
     </div>
-    <div id="v-offline-msg" style="display:none; color:var(--gold); text-align:center; font-size:0.8rem; font-weight:700;">⚠️ Tienes palés guardados en el móvil (sin internet).</div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ═══════ CONFIG ═══════
-var API_URL='https://script.google.com/macros/s/AKfycbzRpl0519TiKvlfVZqEK12oZDfUCn9bNrJVT4kRDyni3pCxLg7FTMKmssgeKGJMWEP0/exec';
-var USUARIOS=[
-  {n:'JOAQUIN', pin:'2205', p:{capa1:1,volteo:1,movimiento:1}},
-  {n:'ALFONSO', pin:'3663', p:{capa1:0,volteo:1,movimiento:1}}
+// ═══════ CONFIGURACIÓN ═══════
+var API_URL = 'https://script.google.com/macros/s/AKfycbzRpl0519TiKvlfVZqEK12oZDfUCn9bNrJVT4kRDyni3pCxLg7FTMKmssgeKGJMWEP0/exec';
+var USUARIOS = [
+  {n:'JOAQUIN', pin:'2205'},
+  {n:'ALFONSO', pin:'3663'}
 ];
-var CU=null, cpin='', pales=[], misRegs=[];
+var CU = null, cpin = '';
+var sincronizando = false; // El Semáforo 🚦
 
-// ═══════ SISTEMA OFFLINE INFALIBLE ═══════
+// ═══════ SISTEMA DE SEGURIDAD (LIBRETA + SEMÁFORO) ═══════
 
-// Esta función es la "Libreta" de notas. Guarda en el disco del móvil.
 function guardarEnLibretaLocal(registro) {
     let libreta = JSON.parse(localStorage.getItem('libreta_el_hidalgo') || '[]');
     libreta.push(registro);
@@ -227,41 +144,43 @@ function guardarEnLibretaLocal(registro) {
     actualizarAvisoPendientes();
 }
 
-// El "Cobrador" que intenta enviar las notas pendientes cuando hay internet.
 async function sincronizarLibreta() {
-    if (!navigator.onLine) return; // Si no hay internet, no hace nada
+    if (!navigator.onLine || sincronizando) return; 
     
     let libreta = JSON.parse(localStorage.getItem('libreta_el_hidalgo') || '[]');
-    if (libreta.length === 0) {
-        setSB('ok', '✅');
-        return;
-    }
+    if (libreta.length === 0) return;
 
+    sincronizando = true; 
     setSB('loading', '⟳ ' + libreta.length);
-    
-    let nuevosPendientes = [];
-    for (let reg of libreta) {
-        try {
-            await fetch(API_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: JSON.stringify(reg),
-                headers: {'Content-Type': 'application/json'}
-            });
-            // Si el fetch no da error, se considera enviado (aunque sea no-cors)
-        } catch (e) {
-            nuevosPendientes.push(reg); // Si falla, vuelve a la lista
-        }
-    }
 
-    localStorage.setItem('libreta_el_hidalgo', JSON.stringify(nuevosPendientes));
-    actualizarAvisoPendientes();
-    
-    if (nuevosPendientes.length === 0) {
-        toast('✅ Todo sincronizado');
-        setSB('ok', '✅');
-    } else {
-        setSB('err', '⚠️ ' + nuevosPendientes.length);
+    try {
+        while (true) {
+            let actual = JSON.parse(localStorage.getItem('libreta_el_hidalgo') || '[]');
+            if (actual.length === 0) break;
+
+            let reg = actual[0]; 
+
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(reg),
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                // Borramos solo el que acabamos de enviar con éxito
+                let despues = JSON.parse(localStorage.getItem('libreta_el_hidalgo') || '[]');
+                despues = despues.filter(item => item.ID !== reg.ID);
+                localStorage.setItem('libreta_el_hidalgo', JSON.stringify(despues));
+                setSB('loading', '⟳ ' + despues.length);
+                
+            } catch (e) {
+                break; // Si hay error de red, paramos y esperamos a la siguiente conexión
+            }
+        }
+    } finally {
+        sincronizando = false;
+        actualizarAvisoPendientes();
     }
 }
 
@@ -274,101 +193,88 @@ function actualizarAvisoPendientes() {
     if (libreta.length > 0) {
         badge.textContent = '☁️ ' + libreta.length;
         badge.className = 'tbsync err';
+    } else {
+        badge.textContent = '✅';
+        badge.className = 'tbsync ok';
     }
 }
 
-// ═══════ MODIFICACIÓN DE LA FUNCIÓN DE GUARDADO ═══════
-
-function guardarRegistro(datos, sec, paleId) {
-    // 1. Añadimos metadatos únicos
-    datos['ID'] = Math.random().toString(36).substring(2, 10) + Date.now();
-    datos['ID_DISPOSITIVO'] = navigator.userAgent.substring(0, 36);
-    datos['FECHA'] = datos['FECHA'] || new Date().toLocaleString('es-ES');
-
-    // 2. GUARDAMOS EN LA LIBRETA LOCAL (Pase lo que pase)
+function guardarRegistro(datos) {
+    // Generamos un ID único para que no se pisen
+    datos['ID'] = 'REG-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+    datos['FECHA'] = new Date().toLocaleString('es-ES');
+    
+    // Guardamos siempre en el móvil primero (Libreta)
     guardarEnLibretaLocal(datos);
-
-    // 3. Lo añadimos a la lista visual de la sesión actual
-    misRegs.push({
-        id: datos['ID'], 
-        datos: datos, 
-        sec: sec, 
-        pale: paleId, 
-        op: CU.n,
-        hora: new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})
-    });
-
-    toast('💾 Guardado en móvil');
-
-    // 4. Intentamos sincronizar inmediatamente
+    
+    toast('💾 Registrado en el móvil');
+    
+    // Intentamos enviar lo que haya en la cola
     sincronizarLibreta();
 }
 
-// ═══════ LÓGICA DE INTERFAZ Y LOGIN ═══════
-
-(function(){
-  var s=document.getElementById('l-nombre');
-  USUARIOS.forEach(u=>{var o=document.createElement('option');o.value=u.n;o.textContent=u.n;s.appendChild(o);});
-  actualizarAvisoPendientes();
-  
-  // Si vuelve el internet, sincroniza solo
-  window.addEventListener('online', sincronizarLibreta);
-  // Cada 2 minutos intenta sincronizar por si acaso
-  setInterval(sincronizarLibreta, 120000);
-})();
+// ═══════ LÓGICA DE INTERFAZ ═══════
 
 function pd(d){if(cpin.length>=4)return; cpin+=d; updPin(); if(cpin.length===4)setTimeout(pv,150);}
 function pb(){cpin=cpin.slice(0,-1); updPin();}
 function resetPin(){cpin=''; updPin();}
-function updPin(){var s=''; for(var i=0;i<4;i++)s+=(i<cpin.length?'●':'—')+' '; document.getElementById('l-pin').textContent=s;}
+function updPin(){
+    var s=''; for(var i=0;i<4;i++) s+=(i<cpin.length?'●':'—')+' '; 
+    document.getElementById('l-pin').textContent=s;
+}
 
 function pv(){
-  var nom=document.getElementById('l-nombre').value;
-  var u=USUARIOS.find(x=>x.n===nom);
-  if(!u || u.pin!==cpin){document.getElementById('l-err').style.display='block'; resetPin(); return;}
-  CU=u;
-  document.getElementById('tb-user').textContent=u.n;
-  document.getElementById('g-name').textContent=u.n;
+  var nom = document.getElementById('l-nombre').value;
+  var u = USUARIOS.find(x => x.n === nom);
+  if(!u || u.pin !== cpin){ toast('PIN Incorrecto','err'); resetPin(); return; }
+  CU = u;
+  document.getElementById('tb-user').textContent = u.n;
   ir('s-main');
   sincronizarLibreta();
 }
 
 function ir(id){
-  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.scr').forEach(s => s.classList.remove('on'));
   document.getElementById(id).classList.add('on');
 }
 
-function irF(){
-  var html = '';
-  if(CU.p.volteo) html += '<button class="secbtn s2" onclick="ir(\'s-volteo\')">🔄 Volteo</button>';
-  document.getElementById('sec-list').innerHTML = html || 'Sin permisos';
-  ir('s-secs');
-}
-
 function onVolteoKey(e){
-  if(e.key==='Enter'){
-    var v=e.target.value.trim();
-    if(v){
-      var datos = {
-          'ID PALET': v,
+  if(e.key === 'Enter'){
+    var val = e.target.value.trim();
+    if(val){
+      guardarRegistro({
+          'ID PALET': val,
           'SECCIÓN': 'VOLTEO',
           'OPERARIO': CU.n,
-          'SALA DESTINO': 'SECADERO 1' // Ejemplo
-      };
-      guardarRegistro(datos, 'VOLTEO', v);
+          'SALA DESTINO': 'SECADERO'
+      });
       e.target.value = '';
-      document.getElementById('v-cnt').textContent = parseInt(document.getElementById('v-cnt').textContent)+1;
+      let cnt = document.getElementById('v-cnt');
+      cnt.textContent = parseInt(cnt.textContent) + 1;
     }
   }
 }
 
-function setSB(cls,txt){var el=document.getElementById('sync-badge');el.className='tbsync '+cls;el.textContent=txt;}
-function toast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'ok')+' show';setTimeout(()=>t.className='toast',3000);}
-function cerrarSesion(){CU=null; ir('s-login');}
+function setSB(cls,txt){ var el=document.getElementById('sync-badge'); el.className='tbsync '+cls; el.textContent=txt; }
+function toast(msg,type){
+    var t=document.getElementById('toast'); t.textContent=msg; 
+    t.className='toast '+(type==='err'?'err':'ok')+' show';
+    setTimeout(()=>t.className='toast',3000);
+}
+function cerrarSesion(){ CU=null; resetPin(); ir('s-login'); }
 
-// SERVICE WORKER
+// Al arrancar
+(function(){
+    let sel = document.getElementById('l-nombre');
+    USUARIOS.forEach(u => { let o = document.createElement('option'); o.value=u.n; o.textContent=u.n; sel.appendChild(o); });
+    actualizarAvisoPendientes();
+    window.addEventListener('online', sincronizarLibreta);
+    setInterval(sincronizarLibreta, 60000); // Intenta sincronizar cada minuto por si acaso
+})();
+
+// Service Worker para offline
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').then(reg => console.log('SW OK'));
+  navigator.serviceWorker.register('./sw.js').then(() => console.log("PWA lista"));
 }
 </script>
 </body>
