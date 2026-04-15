@@ -2774,5 +2774,17 @@ function cerrarScanner(){
   document.getElementById('qr-video').srcObject=null;
 }
 </script>
+  <script>
+// INSTALACIÓN DEL SERVICE WORKER (Para funcionar sin cobertura)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').then(function(registration) {
+      console.log('¡Service Worker activado! La app puede cargar sin internet. Scope:', registration.scope);
+    }, function(err) {
+      console.log('Error al cargar el Service Worker:', err);
+    });
+  });
+}
+</script>
 </body>
 </html>
