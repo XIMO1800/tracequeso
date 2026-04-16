@@ -11,6 +11,88 @@
 <title>El Hidalgo — Trazabilidad</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Karla:wght@400;500;600;700&family=Inconsolata:wght@400;600&display=swap" rel="stylesheet">
 <script>
+  // ═══════ NUEVO SISTEMA DE SEGURIDAD Y GUARDADO ═══════
+
+function guardarEnLibretaLocal(registro) {
+    let libreta = JSON.parse(localStorage.getItem('libreta_hidalgo') || '[]');
+    libreta.push(registro);
+    localStorage.setItem('libreta_hidalgo', JSON.stringify(libreta));
+    actualizarAvisoPendientes();
+}
+
+let sincronizando = false;
+async function sincronizarLibreta() {
+    if (!navigator.onLine || sincronizando) return; 
+    let libreta = JSON.parse(localStorage.getItem('libreta_hidalgo') || '[]');
+    if (libreta.length === 0) return;
+
+    sincronizando = true; 
+    try {
+        while (true) {
+            let actual = JSON.parse(localStorage.getItem('libreta_hidalgo') || '[]');
+            if (actual.length === 0) break;
+            let reg = actual[0];
+            
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(reg),
+                    headers: {'Content-Type': 'application/json'}
+                });
+                let despues = JSON.parse(localStorage.getItem('libreta_hidalgo') || '[]');
+                despues = despues.filter(item => item.ID !== reg.ID);
+                localStorage.setItem('libreta_hidalgo', JSON.stringify(despues));
+            } catch (e) {
+                break; // Error de red, paramos y reintentaremos luego
+            }
+        }
+    } finally {
+        sincronizando = false; 
+        actualizarAvisoPendientes();
+    }
+}
+
+function actualizarAvisoPendientes() {
+    let libreta = JSON.parse(localStorage.getItem('libreta_hidalgo') || '[]');
+    let badge = document.getElementById('sync-badge');
+    if (badge) {
+        if (libreta.length > 0) {
+            badge.textContent = '☁️ ' + libreta.length;
+            badge.className = 'tbsync err';
+        } else {
+            badge.textContent = '✅';
+            badge.className = 'tbsync ok';
+        }
+    }
+}
+
+function guardarRegistro(datos, sec, paleId) {
+    var p = pales.find(function(x) { return x.id === paleId; });
+    
+    // Generar IDs únicos para asegurar la trazabilidad
+    datos['ID'] = 'ID-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+    datos['ID_DISPOSITIVO'] = navigator.userAgent.substring(0, 30);
+    if(!datos['FECHA']) datos['FECHA'] = new Date().toLocaleString('es-ES');
+
+    // 1. Guardar en la libreta del móvil siempre
+    guardarEnLibretaLocal(datos);
+
+    // 2. Mostrarlo en la pantalla de "Mis registros de hoy"
+    misRegs.push({
+        id: datos['ID'], 
+        datos: datos, 
+        sec: sec, 
+        pale: paleId, 
+        op: CU.n,
+        hora: new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})
+    });
+
+    toast('💾 Guardado en el móvil');
+    
+    // 3. Intentar enviar a Google en segundo plano
+    sincronizarLibreta();
+}
 // PWA Manifest
 var ml=document.createElement('link');
 ml.rel='manifest';
