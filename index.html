@@ -19,35 +19,57 @@ function guardarEnLibretaLocal(registro) {
     localStorage.setItem('libreta_hidalgo', JSON.stringify(libreta));
     actualizarAvisoPendientes();
 }
-
-
 async function sincronizarLibreta() {
-  // 1. Comprobamos el freno: si ya está funcionando, paramos aquí
-  if (sincronizando === true) {
-    console.log("Freno activado: Ya hay un envío en marcha.");
-    return;
-  }
+    // 1. Comprobamos si hay internet o si el freno ya está puesto
+    if (!navigator.onLine || typeof bloqueado !== 'undefined' && bloqueado) return;
 
-  // 2. Arrancamos el motor y ponemos el seguro
-  sincronizando = true;
+    let libreta = JSON.parse(localStorage.getItem('libreta_hidalgo') || '[]');
+    if (libreta.length === 0) return;
 
-  try {
-    console.log("Iniciando la sincronización con Google...");
-    
-    // Aquí es donde tu aplicación recoge los datos y hace el "fetch" a Google.
-    // (Asegúrate de incluir aquí dentro tu código exacto de envío si tenías una URL específica)
-    
-    // Ejemplo de donde iría tu código:
-    // const respuesta = await fetch("TU_URL_DE_GOOGLE", { ... });
-    
-    console.log("Sincronización completada con éxito.");
+    // 2. Ponemos el freno
+    bloqueado = true; 
+    console.log("Sincronizando registros pendientes...");
 
-  } catch (error) {
-    console.error("Hemos pinchado una rueda en el envío:", error);
-  } finally {
-    // 3. Muy importante: quitamos el freno siempre al terminar, vaya bien o mal
-    sincronizando = false;
-  }
+    try {
+        // 3. Tu motor original: va enviando uno a uno
+        while (true) {
+            let actual = JSON.parse(localStorage.getItem('libreta_hidalgo') || '[]');
+            if (actual.length === 0) break;
+            
+            let reg = actual[0];
+            
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(reg),
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                // Si se envía bien, lo borramos de la libreta
+                let despues = JSON.parse(localStorage.getItem('libreta_hidalgo') || '[]');
+                despues = despues.filter(item => item.ID !== reg.ID);
+                localStorage.setItem('libreta_hidalgo', JSON.stringify(despues));
+                
+            } catch (e) {
+                console.warn("Error de red, paramos y reintentaremos luego.");
+                break; // Error de red, salimos del bucle
+            }
+        }
+
+        // 4. Comprobamos si ha terminado limpio
+        let comprobacion = JSON.parse(localStorage.getItem('libreta_hidalgo') || '[]');
+        if (comprobacion.length === 0) {
+            if (typeof actualizarAvisoPendientes === 'function') actualizarAvisoPendientes();
+            alert("¡Registros pendientes enviados con éxito!");
+        }
+
+    } catch (error) {
+        console.error("Error al sincronizar:", error);
+    } finally {
+        // 5. Quitamos el freno pase lo que pase
+        bloqueado = false; 
+    }
 }
 // Activa el motor automáticamente cuando vuelve el internet
 window.addEventListener('online', sincronizarLibreta);
