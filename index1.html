@@ -1267,20 +1267,7 @@ function renderLogPint(){
   document.getElementById('pint-log').innerHTML=propios.map(function(r){return '<div class="scan-item ok"><div><div class="scan-id">'+r.pale+'</div><div style="font-size:0.7rem;color:var(--text3);">'+r.datos['PRODUCTO']+'</div></div><div class="scan-time">'+r.hora+'</div></div>';}).join('');
 }
 
-// ═══════ GUARDAR REGISTRO ═══════
-function guardarRegistro(datos,sec,paleId){
-  var p=pales.find(function(x){return x.id===paleId;});
-  misRegs.push({id:Date.now(),datos:datos,sec:sec,pale:paleId,op:CU.n,tipo:p?p.tipo:'',fmt:p?p.formato:'',hora:new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})});
-  // Añadir ID único y dispositivo
-  datos['ID']=Math.random().toString(36).substring(2,10);
-  datos['ID_DISPOSITIVO']=navigator.userAgent.substring(0,36);
-  fetch(API_URL,{
-    method:'POST',
-    mode:'no-cors',
-    body:JSON.stringify(datos),
-    headers:{'Content-Type':'application/json'}
-  }).catch(function(){toast('⚠️ Sin conexión — guardado local','err');});
-}
+
 
 // ═══════ REGISTROS DEL DÍA ═══════
 function renderRegs(){
