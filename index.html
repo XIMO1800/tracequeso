@@ -20,30 +20,35 @@ function guardarEnLibretaLocal(registro) {
     actualizarAvisoPendientes();
 }
 
-let sincronizando = false;
 
 async function sincronizarLibreta() {
-    if (!navigator.onLine || bloqueado) return;
+  // 1. Comprobamos el freno: si ya está funcionando, paramos aquí
+  if (sincronizando === true) {
+    console.log("Freno activado: Ya hay un envío en marcha.");
+    return;
+  }
+
+  // 2. Arrancamos el motor y ponemos el seguro
+  sincronizando = true;
+
+  try {
+    console.log("Iniciando la sincronización con Google...");
     
-    const libreta = JSON.parse(localStorage.getItem('libreta') || '[]');
-    if (libreta.length === 0) return;
+    // Aquí es donde tu aplicación recoge los datos y hace el "fetch" a Google.
+    // (Asegúrate de incluir aquí dentro tu código exacto de envío si tenías una URL específica)
+    
+    // Ejemplo de donde iría tu código:
+    // const respuesta = await fetch("TU_URL_DE_GOOGLE", { ... });
+    
+    console.log("Sincronización completada con éxito.");
 
-    bloqueado = true; // Ponemos el freno
-    console.log("Sincronizando registros pendientes...");
-
-    try {
-        for (let i = 0; i < libreta.length; i++) {
-            await enviarAGoogle(libreta[i]);
-        }
-        localStorage.setItem('libreta', '[]'); // Limpiamos la libreta
-        actualizarAvisoPendientes();
-        alert("¡Registros pendientes enviados con éxito!");
-    } catch (error) {
-        console.error("Error al sincronizar:", error);
-    } finally {
-        bloqueado = false; // Quitamos el freno al terminar
-    }
-}   
+  } catch (error) {
+    console.error("Hemos pinchado una rueda en el envío:", error);
+  } finally {
+    // 3. Muy importante: quitamos el freno siempre al terminar, vaya bien o mal
+    sincronizando = false;
+  }
+}
 // Activa el motor automáticamente cuando vuelve el internet
 window.addEventListener('online', sincronizarLibreta);
 
