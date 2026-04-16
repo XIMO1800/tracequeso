@@ -52,7 +52,11 @@ async function sincronizarLibreta() {
         actualizarAvisoPendientes();
     }
 }
+// Activa el motor automáticamente cuando vuelve el internet
+window.addEventListener('online', sincronizarLibreta);
 
+// Revisa si hay algo pendiente nada más abrir la aplicación
+window.addEventListener('load', sincronizarLibreta);
 function actualizarAvisoPendientes() {
     let libreta = JSON.parse(localStorage.getItem('libreta_hidalgo') || '[]');
     let badge = document.getElementById('sync-badge');
