@@ -21,17 +21,17 @@ function guardarEnLibretaLocal(registro) {
 }
 async function sincronizarLibreta() {
     // 1. Comprobamos si hay internet o si el freno ya está puesto
-    if (!navigator.onLine || typeof bloqueado !== 'undefined' && bloqueado) return;
+    if (!navigator.onLine || window.bloqueado) return;
 
     let libreta = JSON.parse(localStorage.getItem('libreta_hidalgo') || '[]');
     if (libreta.length === 0) return;
 
-    // 2. Ponemos el freno
-    bloqueado = true; 
+    // 2. Ponemos el freno global
+    window.bloqueado = true; 
     console.log("Sincronizando registros pendientes...");
 
     try {
-        // 3. Tu motor original: va enviando uno a uno
+        // 3. Tu motor original mejorado: va enviando uno a uno
         while (true) {
             let actual = JSON.parse(localStorage.getItem('libreta_hidalgo') || '[]');
             if (actual.length === 0) break;
@@ -39,25 +39,35 @@ async function sincronizarLibreta() {
             let reg = actual[0];
             
             try {
+                // Envío directo a Google sin restricciones
                 await fetch(API_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify(reg),
-                    headers: {'Content-Type': 'application/json'}
+                    body: JSON.stringify(reg)
                 });
                 
-                // Si se envía bien, lo borramos de la libreta
+                // 4. Si se envía bien, lo sacamos de la libreta
                 let despues = JSON.parse(localStorage.getItem('libreta_hidalgo') || '[]');
-                despues = despues.filter(item => item.ID !== reg.ID);
+                
+                if (reg.ID) {
+                    // Si es un registro nuevo con ID, lo borramos por su ID
+                    despues = despues.filter(item => item.ID !== reg.ID);
+                } else {
+                    // Si es un registro antiguo sin ID (los 4 que tienes atascados), quitamos el primero
+                    despues.shift(); 
+                }
+                
                 localStorage.setItem('libreta_hidalgo', JSON.stringify(despues));
                 
+                // Actualizamos el icono de la nube en tiempo real para ver cómo baja
+                if (typeof actualizarAvisoPendientes === 'function') actualizarAvisoPendientes();
+                
             } catch (e) {
-                console.warn("Error de red, paramos y reintentaremos luego.");
+                console.warn("Error de red o conexión bloqueada, paramos y reintentaremos.");
                 break; // Error de red, salimos del bucle
             }
         }
 
-        // 4. Comprobamos si ha terminado limpio
+        // 5. Comprobamos si ha terminado limpio
         let comprobacion = JSON.parse(localStorage.getItem('libreta_hidalgo') || '[]');
         if (comprobacion.length === 0) {
             if (typeof actualizarAvisoPendientes === 'function') actualizarAvisoPendientes();
@@ -67,8 +77,8 @@ async function sincronizarLibreta() {
     } catch (error) {
         console.error("Error al sincronizar:", error);
     } finally {
-        // 5. Quitamos el freno pase lo que pase
-        bloqueado = false; 
+        // 6. Quitamos el freno pase lo que pase
+        window.bloqueado = false; 
     }
 }
 // Activa el motor automáticamente cuando vuelve el internet
