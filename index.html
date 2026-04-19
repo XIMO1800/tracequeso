@@ -1095,8 +1095,9 @@ function registrarC1(codigo){
   var paleId=codigo.trim();
   // Validar fecha del ID
   var val=validarFechaId(paleId);
-  if(val.ok===false){toast(val.msg,'err');return;}
-  if(val.ok==='aviso'){if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}
+  if(val.ok===false){mostrarErrFecha('c1-err',val.msg);return;}
+  if(val.ok==='aviso'){mostrarErrFecha('c1-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}
+  else{ocultarErrFecha('c1-err');}
   // Prevenir doble escaneo
   var yaReg=misRegs.find(function(r){return r.pale===paleId&&r.sec==='1ª CAPA'&&r.op===CU.n;});
   if(yaReg){toast('⚠️ '+paleId+' ya registrado hoy en 1ª Capa','err');return;}
@@ -1172,9 +1173,7 @@ function onVolteoKey(e){
 }
 function registrarVolteo(codigo){
   var paleId=codigo.split('*')[0];
-  var val=validarFechaId(paleId);if(val.ok===false){toast(val.msg,'err');return;}if(val.ok==='aviso'){if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}
-  var p=pales.find(function(x){return x.id===paleId;});
-  var errEl=document.getElementById('v-err');
+  var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('v-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('v-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('v-err');}
   if(p && p.sala !== salaVolteoActual){
     errEl.textContent='⚠️ El palé '+paleId+' no está en '+SLBL[salaVolteoActual]+' — está en '+sl(p.sala);
     errEl.style.display='';
@@ -1208,6 +1207,7 @@ function onNuevoLoteC2(v){nuevoLoteC2=v.trim();transC2=v.trim()?2:0;}
 function onC2Key(e){if(e.key==='Enter'){var v=document.getElementById('c2-qr').value.trim();if(v){registrarC2(v);document.getElementById('c2-qr').value='';}}}
 function registrarC2(codigo){
   var paleId=codigo.split('*')[0];
+  var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('c2-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('c2-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('c2-err');}
   var p=pales.find(function(x){return x.id===paleId;});
   var salaActual=p?p.sala:'';
   var loteUsado=loteC2;
@@ -1241,6 +1241,7 @@ function initMov(){
 function onMovKey(e){if(e.key==='Enter'){var v=document.getElementById('mov-qr').value.trim();if(v){registrarMov(v);document.getElementById('mov-qr').value='';}}}
 function registrarMov(codigo){
   var paleId=codigo.split('*')[0];
+  var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('mov-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('mov-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('mov-err');}
   var orig=document.getElementById('mov-orig').value;
   var dest=document.getElementById('mov-dest').value;
   var p=pales.find(function(x){return x.id===paleId;});
@@ -1294,6 +1295,7 @@ function onNuevoLotePint(v){nuevoLotePint=v.trim();transPint=v.trim()?2:0;}
 function onPintKey(e){if(e.key==='Enter'){var v=document.getElementById('pint-qr').value.trim();if(v){registrarPint(v);document.getElementById('pint-qr').value='';}}}
 function registrarPint(codigo){
   var paleId=codigo.split('*')[0];
+  var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('pint-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('pint-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('pint-err');}
   var loteActual=lotePinturaPorProducto[pintProdActual]||'';
   var loteUsado=loteActual;
   if(transPint>0){
@@ -1553,8 +1555,6 @@ setInterval(function(){if(document.getElementById('s-scan').classList.contains('
 // ═══════ PLAN DE TRABAJO ═══════
 var planAccionActual='';
 var planSalaActual='';
-
-function irPlan(){renderPlanMenu();ir('s-plan');}
 
 function renderPlanMenu(){
   if(!pales.length){
@@ -1834,6 +1834,15 @@ function validarFechaId(paleId){
     return{ok:'aviso',tipo:'antiguo',msg:'⚠️ El ID '+paleId+' tiene más de 18 meses ('+fechaFab.toLocaleDateString('es-ES')+'). ¿Es correcto?'};
   }
   return{ok:true};
+}
+function mostrarErrFecha(errId,msg){
+  var el=document.getElementById(errId);
+  if(el){el.textContent=msg;el.style.display='block';}
+  else{toast(msg,'err');}
+}
+function ocultarErrFecha(errId){
+  var el=document.getElementById(errId);
+  if(el){el.textContent='';el.style.display='none';}
 }
 function getAgrupador(p){
   if(p.tipo==='D.O. PAST.'||p.tipo==='D.O. CRUDA'){
