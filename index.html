@@ -1093,6 +1093,10 @@ function onC1Key(e){
 }
 function registrarC1(codigo){
   var paleId=codigo.trim();
+  // Validar fecha del ID
+  var val=validarFechaId(paleId);
+  if(val.ok===false){toast(val.msg,'err');return;}
+  if(val.ok==='aviso'){if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}
   // Prevenir doble escaneo
   var yaReg=misRegs.find(function(r){return r.pale===paleId&&r.sec==='1ª CAPA'&&r.op===CU.n;});
   if(yaReg){toast('⚠️ '+paleId+' ya registrado hoy en 1ª Capa','err');return;}
@@ -1168,6 +1172,7 @@ function onVolteoKey(e){
 }
 function registrarVolteo(codigo){
   var paleId=codigo.split('*')[0];
+  var val=validarFechaId(paleId);if(val.ok===false){toast(val.msg,'err');return;}if(val.ok==='aviso'){if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}
   var p=pales.find(function(x){return x.id===paleId;});
   var errEl=document.getElementById('v-err');
   if(p && p.sala !== salaVolteoActual){
@@ -1805,6 +1810,31 @@ function fechaFabDesdeId(id){
   fecha.setDate(primerLunes.getDate()+(semana-1)*7+(dia-1));
   return fecha.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'});
 }
+
+function validarFechaId(paleId){
+  // Extraer fecha de fabricación del ID y validar que no sea futura
+  var dig=paleId.replace(/\s/g,'').replace(/[^0-9]/g,'');
+  if(dig.length<6)return{ok:true}; // sin datos suficientes, no validar
+  var anyo=parseInt('20'+dig.substring(1,3));
+  var semana=parseInt(dig.substring(3,5));
+  var dia=parseInt(dig.charAt(5));
+  if(!anyo||!semana||!dia)return{ok:true};
+  var ene1=new Date(anyo,0,1);
+  var primerLunes=new Date(ene1);
+  var dow=ene1.getDay()||7;
+  primerLunes.setDate(ene1.getDate()-(dow-1));
+  var fechaFab=new Date(primerLunes);
+  fechaFab.setDate(primerLunes.getDate()+(semana-1)*7+(dia-1));
+  var hoy=new Date();hoy.setHours(23,59,59,0);
+  var hace18meses=new Date();hace18meses.setMonth(hace18meses.getMonth()-18);
+  if(fechaFab>hoy){
+    return{ok:false,tipo:'futuro',msg:'⚠️ El ID '+paleId+' tiene fecha futura ('+fechaFab.toLocaleDateString('es-ES')+'). Revisa el ID.'};
+  }
+  if(fechaFab<hace18meses){
+    return{ok:'aviso',tipo:'antiguo',msg:'⚠️ El ID '+paleId+' tiene más de 18 meses ('+fechaFab.toLocaleDateString('es-ES')+'). ¿Es correcto?'};
+  }
+  return{ok:true};
+}
 function getAgrupador(p){
   if(p.tipo==='D.O. PAST.'||p.tipo==='D.O. CRUDA'){
     return{label:'Lote corto',valor:p.loteCorto||p.lote||'—'};
@@ -2151,15 +2181,16 @@ var regFichaActual=null;
 var regFichaEditMode=false;
 
 var CAMPOS_EDITABLES=[
-  {k:'OPERARIO',l:'Operario',type:'text'},
-  {k:'FECHA',l:'Fecha y hora',type:'datetime-local'},
-  {k:'LOTE QUESO',l:'Lote queso',type:'text'},
-  {k:'PRODUCTO',l:'Producto',type:'text'},
+  {k:'OPERARIO',l:'Operario',type:'text',soloCalidad:true},
+  {k:'FECHA',l:'Fecha y hora',type:'datetime-local',soloCalidad:true},
+  {k:'LOTE QUESO',l:'Lote queso',type:'text',soloCalidad:true},
+  {k:'PRODUCTO',l:'Producto',type:'text',soloCalidad:true},
   {k:'LOTE PRODUCTO',l:'Lote producto',type:'text'},
-  {k:'Nº DE PIEZAS',l:'Nº piezas',type:'number'},
+  {k:'Nº DE PIEZAS',l:'Nº piezas',type:'number',soloCalidad:true},
   {k:'PESO PALET',l:'Peso palé (kg)',type:'number'},
-  {k:'SALA ORIGEN',l:'Sala origen',type:'text'},
-  {k:'SALA DESTINO',l:'Sala destino',type:'text'},
+  {k:'SALA ORIGEN',l:'Sala origen',type:'text',soloCalidad:true},
+  {k:'SALA DESTINO',l:'Sala destino',type:'text',soloCalidad:true},
+  {k:'Nº PIEZAS NO APTAS',l:'Piezas no aptas',type:'number'},
   {k:'OBSERVACIONES',l:'Observaciones',type:'textarea'},
 ];
 
@@ -2188,6 +2219,12 @@ function abrirRegFicha(rowId,sesionId,rawIdx){
   regFichaEditMode=false;
   renderRegFicha(r,false);
   document.getElementById('reg-ficha-back').setAttribute('onclick',"ir('s-regs')");
+  // Controlar botón Editar según rol y fecha
+  var esCalidad=(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
+  var fechaReg=parseFecha(r['FECHA']);
+  var esHoy=fechaReg&&fechaReg.toLocaleDateString('es-ES')===new Date().toLocaleDateString('es-ES');
+  var puedeEditar=esCalidad||(esHoy&&(r['OPERARIO']||'').toUpperCase()===CU.n);
+  document.getElementById('reg-ficha-edit-btn').style.display=puedeEditar?'':'none';
   ir('s-reg-ficha');
 }
 
@@ -2229,7 +2266,10 @@ function renderRegFicha(r,editMode){
     // Vista edición
     document.getElementById('reg-ficha-content').innerHTML='';
     var fhtml='<div style="font-size:0.78rem;color:var(--text3);margin-bottom:12px;padding:8px 12px;background:var(--gold-bg);border-radius:8px;border:1px solid rgba(200,120,10,0.2);">✏️ Modo edición — modifica los campos y pulsa Guardar</div>';
+    var esCalidad=(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
     CAMPOS_EDITABLES.forEach(function(c){
+      // Operarios no pueden editar fecha
+      if(c.soloCalidad&&!esCalidad)return;
       var val=(r[c.k]||'').toString();
       if(c.k==='PRODUCTO'&&!val&&(sec==='1ª CAPA'||sec==='2ª CAPA'))val='INMERSIÓN';
       // Convertir fecha al formato datetime-local (YYYY-MM-DDTHH:MM)
