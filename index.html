@@ -713,6 +713,17 @@ textarea.finput{resize:vertical;min-height:60px;}
   </div>
 </div>
 
+<!-- PLAN DE TRABAJO — GOLPE FRÍO POR FECHA -->
+<div class="scr" id="s-plan-golpe-fecha">
+  <div class="topbar">
+    <button class="tbback" onclick="ir('s-plan-detalle')">←</button>
+    <div class="tbtitle" id="plan-golpe-fecha-title">Fab. —</div>
+  </div>
+  <div class="scrl">
+    <div id="plan-golpe-fecha-content"></div>
+  </div>
+</div>
+
 <!-- PLAN DE TRABAJO — DETALLE SALA -->
 <div class="scr" id="s-plan-sala">
   <div class="topbar">
@@ -1556,6 +1567,7 @@ setInterval(function(){if(document.getElementById('s-scan').classList.contains('
 // ═══════ PLAN DE TRABAJO ═══════
 var planAccionActual='';
 var planSalaActual='';
+var planGolfeFechaActual='';
 
 function renderPlanMenu(){
   if(!pales.length){
@@ -1605,11 +1617,47 @@ function abrirPlanAccion(accion){
   document.getElementById('plan-detalle-title').textContent=titulos[accion]||accion;
 
   if(accion==='golpe'){
-    // Agrupado por fecha de fabricación, de más antigua a más reciente
     var gf=pales.filter(function(p){return p.sala==='2.GOLPE FRIO'&&diasDesde(p.fechaFab)>=2;});
-    gf.sort(function(a,b){return new Date(a.fechaFab)-new Date(b.fechaFab);});
-    if(!gf.length){document.getElementById('plan-detalle-content').innerHTML='<div class="nodata">✅ Ningún palé pendiente de salir</div>';ir('s-plan-detalle');return;}
-    document.getElementById('plan-detalle-content').innerHTML=renderPlanGrupos(gf,function(p){var d=diasDesde(p.fechaFab);return{badge:d+' d',crit:d>=3};});
+    if(!gf.length){
+      document.getElementById('plan-detalle-content').innerHTML='<div class="nodata" style="padding:20px;text-align:center;">✅ Ningún palé pendiente de salir</div>';
+      ir('s-plan-detalle');return;
+    }
+    // Agrupar por fecha de fabricación
+    var porFecha={};
+    gf.forEach(function(p){
+      var fab=p.fechaFab?p.fechaFab.substring(0,10):'0000-00-00';
+      if(!porFecha[fab])porFecha[fab]={fab:fab,pales:[],maxD:0,totalPiezas:0};
+      var d=diasDesde(p.fechaFab);
+      porFecha[fab].pales.push(p);
+      if(d>porFecha[fab].maxD)porFecha[fab].maxD=d;
+      porFecha[fab].totalPiezas+=(p.piezas||0);
+    });
+    // Ordenar de más antigua a más reciente
+    var fechasOrdenadas=Object.keys(porFecha).sort(function(a,b){return a.localeCompare(b);});
+    var html='<div style="font-size:0.78rem;color:var(--text3);padding:0 0 10px;">Selecciona una fecha de fabricación</div>';
+    fechasOrdenadas.forEach(function(fab){
+      var g=porFecha[fab];
+      var hayCrit=g.maxD>=3;
+      var color=hayCrit?'var(--red)':'var(--accent)';
+      var fabLabel=fab==='0000-00-00'?'Sin fecha':fab.split('-').reverse().join('/');
+      var tipos={};
+      g.pales.forEach(function(p){tipos[p.tipo||'?']=(tipos[p.tipo||'?']||0)+1;});
+      var tiposStr=Object.keys(tipos).sort().map(function(t){return tipos[t]+' '+t;}).join(' · ');
+      html+='<button onclick="abrirGolpeFecha(\''+fab+'\')" style="width:100%;background:var(--bg2);border:2px solid '+(hayCrit?'rgba(139,26,26,0.3)':'var(--border)')+';border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:var(--shadow);margin-bottom:10px;text-align:left;">'
+        +'<div style="width:10px;min-height:50px;background:'+(hayCrit?'var(--red)':'#1a3a6a')+';border-radius:5px;flex-shrink:0;"></div>'
+        +'<div style="flex:1;">'
+        +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.05rem;color:var(--text);">fab. '+fabLabel+'</div>'
+        +'<div style="font-size:0.72rem;color:var(--text3);margin-top:3px;">'+tiposStr+'</div>'
+        +'<div style="font-size:0.7rem;color:var(--text3);margin-top:1px;">'+g.totalPiezas.toLocaleString()+' piezas</div>'
+        +'</div>'
+        +'<div style="text-align:right;flex-shrink:0;">'
+        +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.5rem;color:'+color+';">'+g.maxD+' d</div>'
+        +'<div style="font-size:0.68rem;color:var(--text3);">'+g.pales.length+' palés</div>'
+        +'</div>'
+        +'<span style="color:var(--text3);font-size:1.2rem;">›</span>'
+        +'</button>';
+    });
+    document.getElementById('plan-detalle-content').innerHTML=html;
     ir('s-plan-detalle');
     return;
   }
@@ -1636,6 +1684,39 @@ function abrirPlanAccion(accion){
   });
   document.getElementById('plan-detalle-content').innerHTML=html;
   ir('s-plan-detalle');
+}
+
+function abrirGolpeFecha(fab){
+  planGolfeFechaActual=fab;
+  var fabLabel=fab==='0000-00-00'?'Sin fecha':fab.split('-').reverse().join('/');
+  document.getElementById('plan-golpe-fecha-title').textContent='❄️ fab. '+fabLabel;
+  var palesDelDia=pales.filter(function(p){
+    var pFab=p.fechaFab?p.fechaFab.substring(0,10):'0000-00-00';
+    return p.sala==='2.GOLPE FRIO'&&pFab===fab&&diasDesde(p.fechaFab)>=2;
+  });
+  if(!palesDelDia.length){
+    document.getElementById('plan-golpe-fecha-content').innerHTML='<div class="nodata" style="padding:20px;text-align:center;">✅ Sin palés</div>';
+    ir('s-plan-golpe-fecha');return;
+  }
+  var totalPiezas=palesDelDia.reduce(function(s,p){return s+(p.piezas||0);},0);
+  var maxD=palesDelDia.reduce(function(mx,p){return Math.max(mx,diasDesde(p.fechaFab));},0);
+  var hayCrit=maxD>=3;
+  var headerHtml='<div style="background:'+(hayCrit?'var(--red-bg)':'var(--blue-bg)')+';border:2px solid '+(hayCrit?'var(--red)':'var(--blue)')+';border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">'
+    +'<div>'
+    +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1rem;color:'+(hayCrit?'var(--red)':'var(--blue)')+';">fab. '+fabLabel+'</div>'
+    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:3px;">'+palesDelDia.length+' palés · '+totalPiezas.toLocaleString()+' piezas</div>'
+    +'</div>'
+    +'<div style="text-align:right;">'
+    +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.8rem;color:'+(hayCrit?'var(--red)':'var(--blue)')+';">'+maxD+' d</div>'
+    +'<div style="font-size:0.65rem;color:var(--text3);">máx. días</div>'
+    +'</div>'
+    +'</div>';
+  var content=renderPlanGrupos(palesDelDia,function(p){
+    var d=diasDesde(p.fechaFab);return{badge:d+' d',crit:d>=3};
+  });
+  document.getElementById('plan-golpe-fecha-content').innerHTML=headerHtml+content;
+  document.querySelector('#s-historial .tbback').setAttribute('onclick',"ir('s-plan-golpe-fecha')");
+  ir('s-plan-golpe-fecha');
 }
 
 function esTierno(p){return (p.variedad||'').toUpperCase().includes('TIERNO');}
