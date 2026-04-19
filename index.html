@@ -1347,6 +1347,7 @@ function renderRegs(){
   var SCOLOR={'1ª CAPA':'#8b1a1a','VOLTEO':'#2d5a2d','2ª CAPA':'#1a3a6a','MOVIMIENTO':'#c8780a','PINTURA':'#5a1a6a','ENVASADO':'#3a5a1a'};
   var SICON={'1ª CAPA':'🧴','VOLTEO':'🔄','2ª CAPA':'🧴','MOVIMIENTO':'🚚','PINTURA':'🎨','ENVASADO':'📦'};
   regsSheets.forEach(function(r){
+    try{
     var sec=(r['SECCIÓN']||'').toUpperCase();if(!sec)return;
     if(!porSec[sec])porSec[sec]=[];
     var info=parsearId(r['ID PALET']||'');
@@ -1367,6 +1368,7 @@ function renderRegs(){
       operario:r['OPERARIO']||'',
       fromSheets:true
     });
+    }catch(e){console.warn('Fila ignorada:',e);}
   });
   // Añadir sesión si es el propio usuario y es hoy
   var hoy=new Date().toLocaleDateString('es-ES');
@@ -2016,16 +2018,7 @@ function cargarDatos(){
   window.__tqcb=function(json){
     try{
       if(!json.ok)throw new Error();
-      var datos=json.data;
-      // Deduplicar: si hay filas con mismo ID PALET + FECHA + SECCIÓN, quedarse con la última
-      var vistos={};
-      var dedup=[];
-      for(var i=datos.length-1;i>=0;i--){
-        var r=datos[i];
-        var key=(r['ID PALET']||'')+'|'+(r['FECHA']||'')+'|'+(r['SECCIÓN']||'');
-        if(!vistos[key]){vistos[key]=true;dedup.unshift(r);}
-      }
-      rawRows=dedup;
+      rawRows=json.data;
       procesarDatos(rawRows);setSB('ok','✅ '+rawRows.length);actualizarStats();
     }catch(e){onErrS();}
   };
@@ -2268,14 +2261,29 @@ function guardarEditReg(){
   r['_ROW_ID']=regFichaActual.rowId||'';
   fetch(API_URL,{method:'POST',mode:'no-cors',body:JSON.stringify(r),headers:{'Content-Type':'application/json'}})
     .catch(function(){});
-  // Actualizar en rawRows local
+  // Actualizar en rawRows local — buscar por múltiples criterios
   var idx=regFichaActual.rawIdx>=0?regFichaActual.rawIdx:-1;
   if(idx<0&&regFichaActual.rowId){
     idx=rawRows.findIndex(function(x){return(x['ID']||'')==regFichaActual.rowId;});
   }
-  if(idx>=0)rawRows[idx]=Object.assign(rawRows[idx],r);
+  // Fallback: buscar por ID PALET + FECHA + SECCIÓN
+  if(idx<0){
+    var paleId=regFichaActual.datos['ID PALET']||'';
+    var fecha=regFichaActual.datos['FECHA']||'';
+    var sec=regFichaActual.datos['SECCIÓN']||'';
+    idx=rawRows.findIndex(function(x){
+      return(x['ID PALET']||'')==paleId&&(x['FECHA']||'')==fecha&&(x['SECCIÓN']||'')==sec;
+    });
+  }
+  // Actualizar el objeto en rawRows con todos los campos modificados
+  if(idx>=0){
+    CAMPOS_EDITABLES.forEach(function(c){
+      rawRows[idx][c.k]=r[c.k];
+    });
+  }
   toast('✅ Cambios guardados');
   regFichaActual.datos=r;
+  regFichaActual.rawIdx=idx;
   regFichaEditMode=false;
   renderRegFicha(r,false);
 }
