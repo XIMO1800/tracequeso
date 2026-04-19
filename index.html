@@ -943,27 +943,44 @@ var salaVolteoActual='2.GOLPE FRIO';
 
 function toggleManualQR(inputId){
   var el=document.getElementById(inputId);
-  var isManual=el.getAttribute('inputmode')==='text';
+  var isManual=el.getAttribute('data-manual')==='1';
+  // Mapear inputId a función de registro
+  var fnMap={'c1-qr':'registrarC1','v-qr':'registrarVolteo','c2-qr':'registrarC2','mov-qr':'registrarMov','pint-qr':'registrarPint'};
+  var fnName=fnMap[inputId]||'';
   if(!isManual){
-    // Activar modo manual — quitar inputmode=none y forzar teclado numérico
+    el.setAttribute('data-manual','1');
     el.removeAttribute('inputmode');
     el.setAttribute('inputmode','decimal');
-    el.setAttribute('type','text');
     el.style.background='#fff8e1';
     el.style.border='2px solid var(--gold)';
-    // Forzar foco con pequeño delay para que el DOM procese el cambio
-    setTimeout(function(){el.focus();el.click();},50);
-    // Cambiar texto del botón
+    setTimeout(function(){el.focus();},50);
     var btn=el.nextElementSibling;
     if(btn)btn.textContent='✕ Cancelar manual';
+    // Añadir botón Registrar si no existe
+    var regBtn=document.getElementById(inputId+'-regbtn');
+    if(!regBtn&&fnName){
+      regBtn=document.createElement('button');
+      regBtn.id=inputId+'-regbtn';
+      regBtn.textContent='✅ Registrar';
+      regBtn.style.cssText='width:100%;margin-top:6px;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;cursor:pointer;';
+      regBtn.onclick=function(){
+        var v=el.value.trim();
+        if(!v){toast('Introduce el ID del palé','err');return;}
+        window[fnName](v);
+        el.value='';
+      };
+      btn.parentNode.insertBefore(regBtn,btn.nextSibling);
+    }
   } else {
-    // Volver a modo escáner
+    el.setAttribute('data-manual','0');
     el.setAttribute('inputmode','none');
     el.style.background='';
     el.style.border='';
     el.blur();
     var btn=el.nextElementSibling;
     if(btn)btn.textContent='✏️ Manual';
+    var regBtn=document.getElementById(inputId+'-regbtn');
+    if(regBtn)regBtn.remove();
   }
 }
 function pd(d){if(cpin.length>=4)return;cpin+=d;updPin();if(cpin.length===4)setTimeout(pv,150);}
