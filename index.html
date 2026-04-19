@@ -1574,8 +1574,8 @@ function renderPlanMenu(){
     document.getElementById('plan-menu-content').innerHTML='<div style="color:var(--text3);text-align:center;padding:30px 0;">Sin datos — pulsa 🔄</div>';
     return;
   }
-  var gfCount=pales.filter(function(p){return p.sala==='2.GOLPE FRIO'&&diasDesde(p.fechaFab)>=2;}).length;
-  var gfMaxD=0;pales.filter(function(p){return p.sala==='2.GOLPE FRIO'&&diasDesde(p.fechaFab)>=2;}).forEach(function(p){var d=diasDesde(p.fechaFab);if(d>gfMaxD)gfMaxD=d;});
+  var gfCount=pales.filter(function(p){return estaEnGolfeFrio(p);}).length;
+  var gfMaxD=0;pales.filter(function(p){return estaEnGolfeFrio(p);}).forEach(function(p){var d=diasDesde(p.fechaFab);if(d>gfMaxD)gfMaxD=d;});
 
   var volteoItems=[];pales.filter(function(p){return enSec(p);}).forEach(function(p){var u=getLastOp(p,'VOLTEO');var uc2=getLastOp(p,'2ª CAPA');var refDate=u?u.fecha:null;if(uc2&&(!refDate||new Date(uc2.fecha)>new Date(refDate)))refDate=uc2.fecha;var d=refDate?diasDesde(refDate):diasDesde(p.fechaFab);if(d>=CFG.volteoW)volteoItems.push(d);});
   var volteoMaxD=volteoItems.length?Math.max.apply(null,volteoItems):0;
@@ -1617,7 +1617,7 @@ function abrirPlanAccion(accion){
   document.getElementById('plan-detalle-title').textContent=titulos[accion]||accion;
 
   if(accion==='golpe'){
-    var gf=pales.filter(function(p){return p.sala==='2.GOLPE FRIO'&&diasDesde(p.fechaFab)>=2;});
+    var gf=pales.filter(function(p){return estaEnGolfeFrio(p);});
     if(!gf.length){
       document.getElementById('plan-detalle-content').innerHTML='<div class="nodata" style="padding:20px;text-align:center;">✅ Ningún palé pendiente de salir</div>';
       ir('s-plan-detalle');return;
@@ -1692,7 +1692,7 @@ function abrirGolpeFecha(fab){
   document.getElementById('plan-golpe-fecha-title').textContent='❄️ fab. '+fabLabel;
   var palesDelDia=pales.filter(function(p){
     var pFab=p.fechaFab?p.fechaFab.substring(0,10):'0000-00-00';
-    return p.sala==='2.GOLPE FRIO'&&pFab===fab&&diasDesde(p.fechaFab)>=2;
+    return estaEnGolfeFrio(p)&&(p.fechaFab?p.fechaFab.substring(0,10):'0000-00-00')===fab;
   });
   if(!palesDelDia.length){
     document.getElementById('plan-golpe-fecha-content').innerHTML='<div class="nodata" style="padding:20px;text-align:center;">✅ Sin palés</div>';
@@ -2183,14 +2183,22 @@ function procesarDatos(rows){
   });
   Object.values(map).forEach(function(p){
     p.ops.sort(function(a,b){return new Date(a.fecha)-new Date(b.fecha);});
-    // Sala: usar destino cronológicamente (excepto 2ª CAPA y PINTURA)
+    // Sala: usar destino cronológicamente
+    // 2ª CAPA no mueve sala nunca
+    // PINTURA hereda la última sala conocida (no la modifica si ya tiene una sala asignada)
     var lm=null;
     p.ops.forEach(function(o){
-      if(o.sec==='2ª CAPA'||o.sec==='PINTURA')return;
+      if(o.sec==="2ª CAPA"||o.sec==="PINTURA")return;
       if(o.destino)lm=o.destino;
       else if(o.salaVolteo)lm=o.salaVolteo;
     });
+    // Si el último registro es PINTURA y no hay sala posterior, mantenemos lm (sala anterior)
     if(lm)p.sala=lm;
+    else if(p.ops.length>0){
+      // Buscar la última sala conocida antes de la PINTURA
+      var opsConSala=p.ops.filter(function(o){return o.sec!=="2ª CAPA"&&o.sec!=="PINTURA"&&(o.destino||o.salaVolteo);});
+      if(opsConSala.length)p.sala=opsConSala[opsConSala.length-1].destino||opsConSala[opsConSala.length-1].salaVolteo;
+    }
     // FechaFab: fecha del primer registro relevante - 1 día
     var primeraOp=p.ops.find(function(o){
       return o.sec==='1ª CAPA'||(o.sec==='MOVIMIENTO'&&o.origen==='1.SALADERO');
@@ -2239,6 +2247,22 @@ setInterval(function(){
 
 // ═══════ UTILS ═══════
 function diasDesde(f){if(!f)return 9999;return Math.floor((new Date()-new Date(f))/86400000);}
+function estaEnGolfeFrio(p){
+  // Replica la condición de AppSite:
+  // 1. El palé tiene registro de 1ª CAPA desde saladero
+  // 2. Han pasado al menos 2 días desde ese registro
+  // 3. El ÚLTIMO registro del palé en rawRows tiene SALA DESTINO = "2.GOLPE FRIO"
+  var primeraC1=p.ops.find(function(o){return o.sec==="1ª CAPA";});
+  if(!primeraC1||!primeraC1.fecha)return false;
+  if(diasDesde(primeraC1.fecha)<2)return false;
+  // Buscar el último registro en rawRows para este palé
+  var regsP=rawRows.filter(function(r){return(r["ID PALET"]||"").toString().trim()===p.id;});
+  if(!regsP.length)return false;
+  regsP.sort(function(a,b){var fa=parseFecha(a["FECHA"]),fb=parseFecha(b["FECHA"]);return (fb||0)-(fa||0);});
+  var ultimoReg=regsP[0];
+  var ultimaSalaDestino=normSala(ultimoReg["SALA DESTINO"]||"");
+  return ultimaSalaDestino==="2.GOLPE FRIO";
+}
 function horasDesde(f){if(!f)return 9999;return Math.floor((new Date()-new Date(f))/3600000);}
 function enSec(p){return['3.SECADERO 1','4.SECADERO 2','5.SECADERO 3'].indexOf(p.sala)>=0;}
 function getLastOp(p,sec){var ops=p.ops.filter(function(o){return o.sec===sec;});return ops.length?ops[ops.length-1]:null;}
