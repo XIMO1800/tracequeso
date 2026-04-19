@@ -2248,20 +2248,22 @@ setInterval(function(){
 // ═══════ UTILS ═══════
 function diasDesde(f){if(!f)return 9999;return Math.floor((new Date()-new Date(f))/86400000);}
 function estaEnGolfeFrio(p){
-  // Replica la condición de AppSite:
-  // 1. El palé tiene registro de 1ª CAPA desde saladero
-  // 2. Han pasado al menos 2 días desde ese registro
-  // 3. El ÚLTIMO registro del palé en rawRows tiene SALA DESTINO = "2.GOLPE FRIO"
-  var primeraC1=p.ops.find(function(o){return o.sec==="1ª CAPA";});
-  if(!primeraC1||!primeraC1.fecha)return false;
-  if(diasDesde(primeraC1.fecha)<2)return false;
-  // Buscar el último registro en rawRows para este palé
-  var regsP=rawRows.filter(function(r){return(r["ID PALET"]||"").toString().trim()===p.id;});
+  // Un palé está en Golpe de Frío SOLO si su último registro tiene SALA DESTINO = "2.GOLPE FRIO"
+  // Buscar todos los registros del palé en rawRows
+  var regsP=rawRows.filter(function(r){
+    return (r["ID PALET"]||"").toString().trim()===p.id;
+  });
   if(!regsP.length)return false;
-  regsP.sort(function(a,b){var fa=parseFecha(a["FECHA"]),fb=parseFecha(b["FECHA"]);return (fb||0)-(fa||0);});
+  // Ordenar por fecha — usar el string de fecha directamente para evitar problemas de parseo
+  regsP.sort(function(a,b){
+    var fa=parseFecha(a["FECHA"]),fb=parseFecha(b["FECHA"]);
+    if(!fa&&!fb)return 0;if(!fa)return 1;if(!fb)return -1;
+    return fb-fa;
+  });
   var ultimoReg=regsP[0];
-  var ultimaSalaDestino=normSala(ultimoReg["SALA DESTINO"]||"");
-  return ultimaSalaDestino==="2.GOLPE FRIO";
+  var sd=(ultimoReg["SALA DESTINO"]||"").toString().trim();
+  // Comparar tanto con el valor normalizado como con el raw por si acaso
+  return normSala(sd)==="2.GOLPE FRIO"||sd==="2.GOLPE FRIO"||sd==="GOLPE FRIO"||sd==="2.GOLPE FRIO";
 }
 function horasDesde(f){if(!f)return 9999;return Math.floor((new Date()-new Date(f))/3600000);}
 function enSec(p){return['3.SECADERO 1','4.SECADERO 2','5.SECADERO 3'].indexOf(p.sala)>=0;}
