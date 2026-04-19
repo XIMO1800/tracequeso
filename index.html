@@ -2257,9 +2257,10 @@ function guardarEditReg(){
     var el=document.getElementById('edit_'+c.k.replace(/[^a-zA-Z0-9]/g,'_'));
     if(el)r[c.k]=el.value;
   });
-  r['_UPDATE']=true;
-  r['_ROW_ID']=regFichaActual.rowId||'';
-  fetch(API_URL,{method:'POST',mode:'no-cors',body:JSON.stringify(r),headers:{'Content-Type':'application/json'}})
+  var rEnvio=Object.assign({},r);
+  rEnvio['_UPDATE']=true;
+  rEnvio['_ROW_ID']=regFichaActual.rowId||'';
+  fetch(API_URL,{method:'POST',mode:'no-cors',body:JSON.stringify(rEnvio),headers:{'Content-Type':'application/json'}})
     .catch(function(){});
   // Actualizar en rawRows local — buscar por múltiples criterios
   var idx=regFichaActual.rawIdx>=0?regFichaActual.rawIdx:-1;
@@ -2275,7 +2276,7 @@ function guardarEditReg(){
       return(x['ID PALET']||'')==paleId&&(x['FECHA']||'')==fecha&&(x['SECCIÓN']||'')==sec;
     });
   }
-  // Actualizar el objeto en rawRows con todos los campos modificados
+  // Actualizar el objeto en rawRows con todos los campos modificados (sin _UPDATE/_ROW_ID)
   if(idx>=0){
     CAMPOS_EDITABLES.forEach(function(c){
       rawRows[idx][c.k]=r[c.k];
