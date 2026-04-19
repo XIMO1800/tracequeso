@@ -1304,6 +1304,7 @@ function renderLogPint(){
 
 // ═══════ REGISTROS DEL DÍA ═══════
 function renderRegs(){
+  try{
   var esAdmin=(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
   var filtroOp=esAdmin?(document.getElementById('filtro-operario')?document.getElementById('filtro-operario').value:''):'';
   var filtroSec=esAdmin?(document.getElementById('filtro-seccion')?document.getElementById('filtro-seccion').value:''):'';
@@ -1495,6 +1496,10 @@ function renderRegs(){
     html+='</div>';
   });
   document.getElementById('reg-lista').innerHTML=html;
+  }catch(e){
+    console.error('renderRegs error:',e);
+    document.getElementById('reg-lista').innerHTML='<div style="padding:20px;color:var(--text3);text-align:center;">Error al cargar registros. Actualiza los datos (🔄) e inténtalo de nuevo.</div>';
+  }
 }
 function elimReg(id){
   // Eliminar de misRegs (sesión)
