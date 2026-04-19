@@ -6,8 +6,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="El Hidalgo">
+<meta name="apple-mobile-web-app-title" content="TraceQueso">
 <meta name="theme-color" content="#6a1010">
+<link rel="manifest" href="manifest.json">
 <title>El Hidalgo — Trazabilidad</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Karla:wght@400;500;600;700&family=Inconsolata:wght@400;600&display=swap" rel="stylesheet">
 <script>
@@ -2999,6 +3000,15 @@ function cerrarScanner(){
   if(qrStream){qrStream.getTracks().forEach(function(t){t.stop();});qrStream=null;}
   document.getElementById('s-qrscanner').classList.remove('on');
   document.getElementById('qr-video').srcObject=null;
+}
+
+// ═══════ PWA SERVICE WORKER ═══════
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('/tracequeso/sw.js')
+      .then(function(reg){ console.log('SW registrado:', reg.scope); })
+      .catch(function(err){ console.log('SW error:', err); });
+  });
 }
 </script>
 </body>
