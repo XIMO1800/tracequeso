@@ -401,7 +401,7 @@ textarea.finput{resize:vertical;min-height:60px;}
     </button>
     <button class="mbtn m4" id="btn-plan" onclick="irPlan()" style="display:none;">
       <div class="mbtn-icon">📊</div>
-      <div><div class="mbtn-title">Plan de trabajo</div><div class="mbtn-desc">Salidas, volteos pendientes, 2ª capa, secaderos</div></div>
+      <div><div class="mbtn-title">Plan de trabajo</div><div class="mbtn-desc">Salidas, volteos, pesaje minis, 2ª capa, secaderos</div></div>
     </button>
     <button class="mbtn m5" id="btn-stock" onclick="irStock()" style="display:none;">
       <div class="mbtn-icon">🏭</div>
@@ -2441,19 +2441,46 @@ function parseFecha(f){
 var regFichaActual=null;
 var regFichaEditMode=false;
 
-var CAMPOS_EDITABLES=[
+// Campos editables según sección
+var CAMPOS_POR_SECCION={
+  '1ª CAPA':[
+    {k:'LOTE PRODUCTO',l:'Lote antifúngico',type:'text'},
+    {k:'PESO PALET',l:'Peso palé (kg)',type:'number'},
+    {k:'Nº PIEZAS NO APTAS',l:'Piezas no aptas',type:'number'},
+    {k:'SALA ORIGEN',l:'Sala origen',type:'select-sala',soloCalidad:true},
+    {k:'SALA DESTINO',l:'Sala destino',type:'select-sala',soloCalidad:true},
+    {k:'OBSERVACIONES',l:'Observaciones',type:'textarea'},
+  ],
+  '2ª CAPA':[
+    {k:'LOTE PRODUCTO',l:'Lote antifúngico',type:'text'},
+    {k:'OBSERVACIONES',l:'Observaciones',type:'textarea'},
+  ],
+  'VOLTEO':[
+    {k:'SALA DESTINO',l:'Sala volteo',type:'select-sala',soloCalidad:true},
+    {k:'OBSERVACIONES',l:'Observaciones',type:'textarea'},
+  ],
+  'MOVIMIENTO':[
+    {k:'SALA ORIGEN',l:'Sala origen',type:'select-sala',soloCalidad:true},
+    {k:'SALA DESTINO',l:'Sala destino',type:'select-sala',soloCalidad:true},
+    {k:'OBSERVACIONES',l:'Observaciones',type:'textarea'},
+  ],
+  'PINTURA':[
+    {k:'PRODUCTO',l:'Producto',type:'select-producto'},
+    {k:'LOTE PRODUCTO',l:'Lote pintura',type:'text'},
+    {k:'SALA ORIGEN',l:'Sala origen',type:'select-sala',soloCalidad:true},
+    {k:'SALA DESTINO',l:'Sala destino',type:'select-sala',soloCalidad:true},
+    {k:'OBSERVACIONES',l:'Observaciones',type:'textarea'},
+  ],
+  'ENVASADO':[
+    {k:'OBSERVACIONES',l:'Observaciones',type:'textarea'},
+  ],
+};
+// Campos comunes editables por calidad (siempre disponibles para admin/calidad)
+var CAMPOS_COMUNES_CALIDAD=[
   {k:'OPERARIO',l:'Operario',type:'text',soloCalidad:true},
   {k:'FECHA',l:'Fecha y hora',type:'datetime-local',soloCalidad:true},
-  // LOTE QUESO: no editable (es intrínseco al ID del palé)
-  {k:'PRODUCTO',l:'Producto',type:'select-producto',soloCalidad:true},
-  {k:'LOTE PRODUCTO',l:'Lote producto',type:'text'},
-  {k:'Nº DE PIEZAS',l:'Nº piezas',type:'number',soloCalidad:true},
-  {k:'PESO PALET',l:'Peso palé (kg)',type:'number'},
-  {k:'SALA ORIGEN',l:'Sala origen',type:'select-sala',soloCalidad:true},
-  {k:'SALA DESTINO',l:'Sala destino',type:'select-sala',soloCalidad:true},
-  {k:'Nº PIEZAS NO APTAS',l:'Piezas no aptas',type:'number'},
-  {k:'OBSERVACIONES',l:'Observaciones',type:'textarea'},
 ];
+var CAMPOS_EDITABLES=CAMPOS_COMUNES_CALIDAD; // compatibilidad — se usa CAMPOS_POR_SECCION en edición
 
 function abrirRegFicha(rowId,sesionId,rawIdx){
   var r=null;
@@ -2524,24 +2551,22 @@ function renderRegFicha(r,editMode){
     document.getElementById('reg-ficha-edit-btn').style.background='var(--blue-bg)';
     document.getElementById('reg-ficha-edit-btn').style.color='var(--blue)';
   } else {
-    // Vista edición
+    // Vista edición — campos según sección
     document.getElementById('reg-ficha-content').innerHTML='';
     var fhtml='<div style="font-size:0.78rem;color:var(--text3);margin-bottom:12px;padding:8px 12px;background:var(--gold-bg);border-radius:8px;border:1px solid rgba(200,120,10,0.2);">✏️ Modo edición — modifica los campos y pulsa Guardar</div>';
     var esCalidad=(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
-    CAMPOS_EDITABLES.forEach(function(c){
+    // Campos comunes (operario y fecha) solo para calidad
+    var camposEditar=[];
+    if(esCalidad){
+      camposEditar=camposEditar.concat(CAMPOS_COMUNES_CALIDAD);
+    }
+    // Campos específicos de la sección
+    var camposSec=CAMPOS_POR_SECCION[sec]||[{k:'OBSERVACIONES',l:'Observaciones',type:'textarea'}];
+    camposEditar=camposEditar.concat(camposSec);
+    var inputStyle='width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-family:\'Karla\',sans-serif;font-size:0.9rem;background:var(--bg3);';
+    camposEditar.forEach(function(c){
       if(c.soloCalidad&&!esCalidad)return;
       var val=(r[c.k]||'').toString();
-      // PRODUCTO: en 1ª CAPA y 2ª CAPA siempre es INMERSIÓN, no editable
-      if(c.k==='PRODUCTO'){
-        if(sec==='1ª CAPA'||sec==='2ª CAPA'){
-          fhtml+='<div style="margin-bottom:12px;">'
-            +'<div style="font-size:0.72rem;color:var(--text3);margin-bottom:4px;">'+c.l+'</div>'
-            +'<div style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9rem;background:var(--bg3);color:var(--text3);">INMERSIÓN</div>'
-            +'</div>';
-          return;
-        }
-      }
-      // Convertir fecha al formato datetime-local
       if(c.type==='datetime-local'){
         var fd=parseFecha(val);
         if(fd){
@@ -2550,7 +2575,6 @@ function renderRegFicha(r,editMode){
         } else val='';
       }
       var inputId='edit_'+c.k.replace(/[^a-zA-Z0-9]/g,'_');
-      var inputStyle='width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-family:\'Karla\',sans-serif;font-size:0.9rem;background:var(--bg3);';
       fhtml+='<div style="margin-bottom:12px;">'
         +'<div style="font-size:0.72rem;color:var(--text3);margin-bottom:4px;">'+c.l+'</div>';
       if(c.type==='textarea'){
@@ -2583,7 +2607,12 @@ function toggleEditReg(){
 function guardarEditReg(){
   if(!regFichaActual)return;
   var r=Object.assign({},regFichaActual.datos);
-  CAMPOS_EDITABLES.forEach(function(c){
+  var sec=(r['SECCIÓN']||'').toUpperCase();
+  var esCalidad=(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
+  var camposGuardar=[];
+  if(esCalidad)camposGuardar=camposGuardar.concat(CAMPOS_COMUNES_CALIDAD);
+  camposGuardar=camposGuardar.concat(CAMPOS_POR_SECCION[sec]||[{k:'OBSERVACIONES',l:'Observaciones',type:'textarea'}]);
+  camposGuardar.forEach(function(c){
     var el=document.getElementById('edit_'+c.k.replace(/[^a-zA-Z0-9]/g,'_'));
     if(el){
       if(c.type==='datetime-local'&&el.value){
@@ -3201,6 +3230,8 @@ function mostrarDetalleOp(idx){
   var rawIdx2=rawRows.findIndex(function(x){
     return (x['ID PALET']||'')==paleIdR2&&(x['FECHA']||'')==fechaR2&&(x['SECCIÓN']||'')==(r['SECCIÓN']||'');
   });
+  trazOpBackScreen='s-historial';
+  document.getElementById('traz-op-back').setAttribute('onclick',"ir('"+trazOpBackScreen+"')");
   window._trazOpActual={r:r,sec:sec,rawIdx:rawIdx2,rowId:r['ID']||''};
   ir('s-traz-op');
 }function parsearId(id){
