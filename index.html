@@ -1610,14 +1610,14 @@ function renderPlanMenu(){
     '<div style="padding:4px 0 8px;font-size:0.78rem;color:var(--text3);">Selecciona una acción</div>'
     +btnPlan('❄️','Salida Golpe de Frío',gfMaxD,gfCount,true,'golpe')
     +btnPlan('🔄','Volteo',volteoMaxD,volteoCount,true,'volteo')
+    +btnPlan('⚖️','Pesaje de Minis',selMaxD,selCount,true,'seleccion')
     +btnPlan('🧴','2ª Capa antifúngico',c2MaxD,c2Count,true,'anti2')
-    +btnPlan('🚪','Salida Secaderos',salMaxD,salCount,true,'salida')
-    +btnPlan('⚖️','Selección D.O. 1 KG',selMaxD,selCount,false,'seleccion');
+    +btnPlan('🚪','Salida Secaderos',salMaxD,salCount,true,'salida');
 }
 
 function abrirPlanAccion(accion){
   planAccionActual=accion;
-  var titulos={golpe:'❄️ Salida Golpe de Frío',volteo:'🔄 Volteo pendiente',anti2:'🧴 2ª Capa antifúngico',salida:'🚪 Salida Secaderos',seleccion:'⚖️ Selección D.O. 1 KG'};
+  var titulos={golpe:'❄️ Salida Golpe de Frío',volteo:'🔄 Volteo pendiente',anti2:'🧴 2ª Capa antifúngico',salida:'🚪 Salida Secaderos',seleccion:'⚖️ Pesaje de Minis'};
   document.getElementById('plan-detalle-title').textContent=titulos[accion]||accion;
 
   if(accion==='golpe'){
@@ -2196,53 +2196,48 @@ function abrirDrill2(sala,tipo,variedad,fmt){
 function abrirHistorial(paleId){
   var p=pales.find(function(x){return x.id===paleId;});
   if(!p){toast('Palé no encontrado','err');return;}
-  // Header
+  var fgColor=tipoColor(p.tipo,'bg');
+  var bgColor=tipoColor(p.tipo,'light');
+  // Header estilo trazabilidad
   document.getElementById('hist-header').innerHTML=
-    '<div class="hist-pale-id">'+p.id+'</div>'
-    +'<div class="hist-pale-meta">'
-    +'<strong>'+p.tipo+'</strong> · '+p.variedad+' · '+p.formato+' · '+p.piezas+' pzas'
-    +'</div>'
-    +'<div class="hist-pale-meta" style="margin-top:4px;">Sala actual: <strong>'+SLBL[p.sala]+'</strong> · Fab: '+(p.fechaFab?p.fechaFab.substring(0,10).split('-').reverse().join('/'):'—')+'</div>';
-  // Operaciones en orden cronológico
-  var SECCOLOR={
-    '1ª CAPA':'#2196F3','VOLTEO':'#4CAF50','2ª CAPA':'#00897B',
-    'MOVIMIENTO':'#FF9800','PINTURA':'#9C27B0','ENVASADO':'#F44336'
-  };
-  var SECICON={
-    '1ª CAPA':'🧴','VOLTEO':'🔄','2ª CAPA':'🧴','MOVIMIENTO':'🚚','PINTURA':'🎨','ENVASADO':'📦'
-  };
-  var html='';
-  if(!p.ops.length){html='<div style="color:var(--text3);text-align:center;padding:20px;">Sin operaciones registradas</div>';}
-  p.ops.forEach(function(o,i){
-    var col=SECCOLOR[o.sec]||'#8890b0';
-    var ico=SECICON[o.sec]||'📝';
-    var fecha=o.fecha?new Date(o.fecha).toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
-    html+='<div class="hist-op" style="border-left:4px solid '+col+';">';
-    html+='<div class="hist-op-head">'
-         +'<span class="hist-op-sec">'+ico+' '+o.sec+'</span>'
-         +'<span class="hist-op-fecha">'+fecha+'</span>'
-         +'</div>';
-    html+='<div class="hist-op-body">';
-    if(o.origen||o.destino){
-      html+='<div><div class="hist-op-lbl">Origen</div><div class="hist-op-val">'+(SLBL[o.origen]||o.origen||'—')+'</div></div>';
-      html+='<div><div class="hist-op-lbl">Destino</div><div class="hist-op-val" style="color:'+col+';">'+(SLBL[o.destino]||o.destino||'—')+'</div></div>';
-    }else if(o.destino){
-      html+='<div style="grid-column:1/-1;"><div class="hist-op-lbl">Destino</div><div class="hist-op-val" style="color:'+col+';">'+(SLBL[o.destino]||o.destino||'—')+'</div></div>';
-    }
-    if(o.salaVolteo){
-      html+='<div style="grid-column:1/-1;"><div class="hist-op-lbl">Sala volteo</div><div class="hist-op-val">'+(SLBL[o.salaVolteo]||o.salaVolteo)+'</div></div>';
-    }
-    if(o.loteAnti){
-      html+='<div style="grid-column:1/-1;"><div class="hist-op-lbl">Lote antifúngico</div><div class="hist-op-val">'+o.loteAnti+'</div></div>';
-    }
-    if(o.lotePintura){
-      html+='<div style="grid-column:1/-1;"><div class="hist-op-lbl">Lote pintura</div><div class="hist-op-val">'+o.lotePintura+'</div></div>';
-    }
-    html+='<div><div class="hist-op-lbl">Operario</div><div class="hist-op-val">'+o.op+'</div></div>';
-    html+='<div><div class="hist-op-lbl">Op #</div><div class="hist-op-val">'+(i+1)+' de '+p.ops.length+'</div></div>';
-    html+='</div></div>';
+    '<div style="background:'+bgColor+';border-left:4px solid '+fgColor+';border-radius:10px;padding:12px 14px;">'
+    +'<div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;color:'+fgColor+';">'+p.tipo+(p.variedad&&p.variedad!=='—'?' · '+p.variedad:'')+(p.formato?' · '+p.formato:'')+'</div>'
+    +'<div style="font-family:'Inconsolata',monospace;font-size:0.75rem;color:var(--text3);margin-top:3px;">'+p.id+'</div>'
+    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:4px;">'+p.piezas+' pzas · '+salaIcon(p.sala)+' '+(SLBL[p.sala]||p.sala||'—')+' · Fab. '+(p.fechaFab?p.fechaFab.substring(0,10).split('-').reverse().join('/'):'—')+'</div>'
+    +'</div>';
+  // Buscar operaciones en rawRows para poder abrir detalle al pulsar
+  var regsP=rawRows.filter(function(r){return matchPaleId(r['ID PALET'],p.id);});
+  regsP.sort(function(a,b){var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);if(!fa&&!fb)return 0;if(!fa)return 1;if(!fb)return -1;return fa-fb;});
+  // Guardar para uso en detalle
+  trazOpsActuales=regsP;
+  var SICON={'1ª CAPA':'🧴','2ª CAPA':'🧴','PINTURA':'🎨','VOLTEO':'🔄','MOVIMIENTO':'🚚','ENVASADO':'📦'};
+  var SCOLOR={'1ª CAPA':'#8b1a1a','VOLTEO':'#2d5a2d','2ª CAPA':'#1a3a6a','MOVIMIENTO':'#c8780a','PINTURA':'#5a1a6a','ENVASADO':'#3a5a1a'};
+  var html='<div style="font-size:0.75rem;color:var(--text3);margin-bottom:10px;">'+regsP.length+' operaciones registradas</div>';
+  if(!regsP.length){html='<div style="color:var(--text3);text-align:center;padding:20px;">Sin operaciones registradas</div>';}
+  regsP.forEach(function(r,i){
+    var sec=(r['SECCIÓN']||'').toUpperCase();
+    var col=SCOLOR[sec]||'#5a5a5a';
+    var f=parseFecha(r['FECHA']);
+    var fStr=f?f.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
+    var destino=sl(r['SALA DESTINO']||r['SALA VOLTEO']||'');
+    var operario=r['OPERARIO']||'';
+    html+='<div style="display:flex;gap:10px;margin-bottom:8px;">'
+      +'<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">'
+      +'<div style="width:12px;height:12px;background:'+col+';border-radius:50%;margin-top:4px;"></div>'
+      +(i<regsP.length-1?'<div style="width:2px;flex:1;background:var(--border);margin-top:2px;"></div>':'')
+      +'</div>'
+      +'<button onclick="mostrarDetalleOp('+i+')" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:left;cursor:pointer;margin-bottom:0;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+      +'<span style="font-family:'Karla',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text2);">'+fStr+'</span>'
+      +'<span style="font-family:'Karla',sans-serif;font-weight:700;font-size:0.9rem;color:'+col+';">'+(SICON[sec]||'📝')+' '+sec+'</span>'
+      +'</div>'
+      +'<div style="font-size:0.72rem;color:var(--text3);margin-top:3px;">'+operario+(destino?' → '+destino:'')+'</div>'
+      +'</button>'
+      +'</div>';
   });
   document.getElementById('hist-content').innerHTML=html;
+  // Al pulsar detalle, volver al historial
+  document.getElementById('traz-op-back').setAttribute('onclick',"ir('s-historial')");
   ir('s-historial');
 }
 function salaIcon(s){var m={'1.SALADERO':'🧂','2.GOLPE FRIO':'❄️','3.SECADERO 1':'🌡️','4.SECADERO 2':'🌡️','5.SECADERO 3':'🌡️','6.CAMARA FRIO':'🧊','7.CAMARA MADURACION':'🏺','8.CAMARA FABRICA':'🏭','9.VENTA':'🏷️'};return m[s]||'📦';}
