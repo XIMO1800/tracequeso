@@ -2247,39 +2247,35 @@ setInterval(function(){
 
 // ═══════ UTILS ═══════
 function diasDesde(f){if(!f)return 9999;return Math.floor((new Date()-new Date(f))/86400000);}
+function matchPaleId(rowId, paleId){
+  // Comparar IDs ignorando sufijos *variedad!loteCorto
+  var r1=(rowId||'').toString().trim().replace(/\s/g,'').split('*')[0].split('!')[0];
+  var r2=(paleId||'').toString().trim().replace(/\s/g,'').split('*')[0].split('!')[0];
+  return r1===r2;
+}
 function estaEnGolfeFrio(p){
-  // Condición exacta de AppSite:
-  // 1. Buscar el registro de 1ª CAPA de este palé
-  // 2. Han pasado >= 2 días desde ESE registro (no desde fechaFab)
-  // 3. El último registro del palé tiene SALA DESTINO = "2.GOLPE FRIO"
+  // Un palé aparece en Golpe de Frío si:
+  // 1. Su último registro en Sheets tiene SALA DESTINO = "2.GOLPE FRIO"
+  // 2. Han pasado >= 2 días desde la fecha de fabricación
   var regsP=rawRows.filter(function(r){
-    return (r['ID PALET']||'').toString().trim()===p.id;
+    return matchPaleId(r['ID PALET'], p.id);
   });
   if(!regsP.length)return false;
-  // Ordenar cronológicamente
+  // Condición de días: >= 2 días desde fechaFab
+  if(diasDesde(p.fechaFab)<2)return false;
+  // Ordenar cronológicamente para encontrar el último
   regsP.sort(function(a,b){
     var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);
     if(!fa&&!fb)return 0;if(!fa)return 1;if(!fb)return -1;
     return fa-fb;
   });
-  // Buscar el registro de 1ª CAPA
-  var regC1=regsP.find(function(r){return (r['SECCIÓN']||'').toUpperCase()==='1ª CAPA';});
-  if(!regC1)return false;
-  var fechaC1=parseFecha(regC1['FECHA']);
-  if(!fechaC1)return false;
-  // Condición de días: >= 2 días desde la 1ª CAPA
-  if(diasDesde(fechaC1.toISOString())<2)return false;
   // Último registro debe tener SALA DESTINO = "2.GOLPE FRIO"
   var ultimoReg=regsP[regsP.length-1];
   var sd=(ultimoReg['SALA DESTINO']||'').toString().trim();
   return normSala(sd)==='2.GOLPE FRIO';
 }
 function diasDesdeC1(p){
-  var regC1=rawRows.filter(function(r){return (r['ID PALET']||'').toString().trim()===p.id&&(r['SECCIÓN']||'').toUpperCase()==='1ª CAPA';});
-  if(!regC1.length)return diasDesde(p.fechaFab);
-  regC1.sort(function(a,b){var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);if(!fa)return 1;if(!fb)return -1;return fa-fb;});
-  var f=parseFecha(regC1[0]['FECHA']);
-  return f?diasDesde(f.toISOString()):diasDesde(p.fechaFab);
+  return diasDesde(p.fechaFab);
 }
 function horasDesde(f){if(!f)return 9999;return Math.floor((new Date()-new Date(f))/3600000);}
 function enSec(p){return['3.SECADERO 1','4.SECADERO 2','5.SECADERO 3'].indexOf(p.sala)>=0;}
