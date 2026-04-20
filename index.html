@@ -2183,21 +2183,28 @@ function procesarDatos(rows){
   });
   Object.values(map).forEach(function(p){
     p.ops.sort(function(a,b){return new Date(a.fecha)-new Date(b.fecha);});
-    // Sala: usar destino cronológicamente
-    // 2ª CAPA no mueve sala nunca
-    // PINTURA hereda la última sala conocida (no la modifica si ya tiene una sala asignada)
-    var lm=null;
-    p.ops.forEach(function(o){
-      if(o.sec==="2ª CAPA"||o.sec==="PINTURA")return;
-      if(o.destino)lm=o.destino;
-      else if(o.salaVolteo)lm=o.salaVolteo;
+    // Sala: replica exactamente la condición de AppSite
+    // La sala actual es la SALA DESTINO del ÚLTIMO registro del palé
+    // siempre que SALA DESTINO no esté vacía y no sea VENTA/SELECCION
+    // Si el último registro tiene SALA DESTINO vacía → palé sin sala definida (no aparece)
+    var regsRaw=rawRows.filter(function(r){
+      return matchPaleId(r['ID PALET'],p.id);
     });
-    // Si el último registro es PINTURA y no hay sala posterior, mantenemos lm (sala anterior)
-    if(lm)p.sala=lm;
-    else if(p.ops.length>0){
-      // Buscar la última sala conocida antes de la PINTURA
-      var opsConSala=p.ops.filter(function(o){return o.sec!=="2ª CAPA"&&o.sec!=="PINTURA"&&(o.destino||o.salaVolteo);});
-      if(opsConSala.length)p.sala=opsConSala[opsConSala.length-1].destino||opsConSala[opsConSala.length-1].salaVolteo;
+    if(regsRaw.length){
+      regsRaw.sort(function(a,b){
+        var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);
+        if(!fa&&!fb)return 0;if(!fa)return 1;if(!fb)return -1;
+        return fb-fa; // descendente: el primero es el más reciente
+      });
+      var ultimoRaw=regsRaw[0];
+      var sdRaw=normSala((ultimoRaw['SALA DESTINO']||'').toString().trim());
+      var EXCLUIDAS=['9.VENTA',''];
+      if(sdRaw&&EXCLUIDAS.indexOf(sdRaw)<0){
+        p.sala=sdRaw;
+      } else {
+        // Último registro sin sala válida — palé fuera de flujo
+        p.sala='';
+      }
     }
     // FechaFab: fecha del primer registro relevante - 1 día
     var primeraOp=p.ops.find(function(o){
