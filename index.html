@@ -1939,7 +1939,7 @@ function renderPlanGrupos(palesList,badgeFn){
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.78rem;color:'+fgColor+';">'+g.pales.length+'</span>'
       +'<span style="font-size:0.6rem;color:'+fgColor+';opacity:0.45;letter-spacing:0.02em;">palés</span>'
       +'</div>'
-      +'<span style="font-size:0.62rem;color:'+fgColor+';opacity:0.5;text-align:right;max-width:110px;line-height:1.4;">'+refRight+'</span>'
+      +'<span style="font-size:0.6rem;color:'+fgColor+';opacity:0.5;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">'+refRight+'</span>'
       +'</div>';
     // Palés individuales — pulsables para ver historial
     g.pales.forEach(function(p){
@@ -2237,6 +2237,7 @@ function abrirHistorial(paleId){
   });
   document.getElementById('hist-content').innerHTML=html;
   // Al pulsar detalle, volver al historial
+  trazOpBackScreen='s-historial';
   document.getElementById('traz-op-back').setAttribute('onclick',"ir('s-historial')");
   ir('s-historial');
 }
@@ -2443,13 +2444,13 @@ var regFichaEditMode=false;
 var CAMPOS_EDITABLES=[
   {k:'OPERARIO',l:'Operario',type:'text',soloCalidad:true},
   {k:'FECHA',l:'Fecha y hora',type:'datetime-local',soloCalidad:true},
-  {k:'LOTE QUESO',l:'Lote queso',type:'text',soloCalidad:true},
-  {k:'PRODUCTO',l:'Producto',type:'text',soloCalidad:true},
+  // LOTE QUESO: no editable (es intrínseco al ID del palé)
+  {k:'PRODUCTO',l:'Producto',type:'select-producto',soloCalidad:true},
   {k:'LOTE PRODUCTO',l:'Lote producto',type:'text'},
   {k:'Nº DE PIEZAS',l:'Nº piezas',type:'number',soloCalidad:true},
   {k:'PESO PALET',l:'Peso palé (kg)',type:'number'},
-  {k:'SALA ORIGEN',l:'Sala origen',type:'text',soloCalidad:true},
-  {k:'SALA DESTINO',l:'Sala destino',type:'text',soloCalidad:true},
+  {k:'SALA ORIGEN',l:'Sala origen',type:'select-sala',soloCalidad:true},
+  {k:'SALA DESTINO',l:'Sala destino',type:'select-sala',soloCalidad:true},
   {k:'Nº PIEZAS NO APTAS',l:'Piezas no aptas',type:'number'},
   {k:'OBSERVACIONES',l:'Observaciones',type:'textarea'},
 ];
@@ -2528,11 +2529,19 @@ function renderRegFicha(r,editMode){
     var fhtml='<div style="font-size:0.78rem;color:var(--text3);margin-bottom:12px;padding:8px 12px;background:var(--gold-bg);border-radius:8px;border:1px solid rgba(200,120,10,0.2);">✏️ Modo edición — modifica los campos y pulsa Guardar</div>';
     var esCalidad=(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
     CAMPOS_EDITABLES.forEach(function(c){
-      // Operarios no pueden editar fecha
       if(c.soloCalidad&&!esCalidad)return;
       var val=(r[c.k]||'').toString();
-      if(c.k==='PRODUCTO'&&!val&&(sec==='1ª CAPA'||sec==='2ª CAPA'))val='INMERSIÓN';
-      // Convertir fecha al formato datetime-local (YYYY-MM-DDTHH:MM)
+      // PRODUCTO: en 1ª CAPA y 2ª CAPA siempre es INMERSIÓN, no editable
+      if(c.k==='PRODUCTO'){
+        if(sec==='1ª CAPA'||sec==='2ª CAPA'){
+          fhtml+='<div style="margin-bottom:12px;">'
+            +'<div style="font-size:0.72rem;color:var(--text3);margin-bottom:4px;">'+c.l+'</div>'
+            +'<div style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9rem;background:var(--bg3);color:var(--text3);">INMERSIÓN</div>'
+            +'</div>';
+          return;
+        }
+      }
+      // Convertir fecha al formato datetime-local
       if(c.type==='datetime-local'){
         var fd=parseFecha(val);
         if(fd){
@@ -2540,12 +2549,20 @@ function renderRegFicha(r,editMode){
           val=fd.getFullYear()+'-'+pad(fd.getMonth()+1)+'-'+pad(fd.getDate())+'T'+pad(fd.getHours())+':'+pad(fd.getMinutes());
         } else val='';
       }
+      var inputId='edit_'+c.k.replace(/[^a-zA-Z0-9]/g,'_');
+      var inputStyle='width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-family:\'Karla\',sans-serif;font-size:0.9rem;background:var(--bg3);';
       fhtml+='<div style="margin-bottom:12px;">'
         +'<div style="font-size:0.72rem;color:var(--text3);margin-bottom:4px;">'+c.l+'</div>';
       if(c.type==='textarea'){
-        fhtml+='<textarea id="edit_'+c.k.replace(/[^a-zA-Z0-9]/g,'_')+'" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-family:\'Karla\',sans-serif;font-size:0.9rem;background:var(--bg3);min-height:60px;">'+val+'</textarea>';
+        fhtml+='<textarea id="'+inputId+'" style="'+inputStyle+'min-height:60px;">'+val+'</textarea>';
+      } else if(c.type==='select-sala'){
+        var opsSala=SALAS.map(function(s){return '<option value="'+s+'"'+(normSala(val)===s?' selected':'')+'>'+SLBL[s]+'</option>';}).join('');
+        fhtml+='<select id="'+inputId+'" style="'+inputStyle+'"><option value="">— Sin sala —</option>'+opsSala+'</select>';
+      } else if(c.type==='select-producto'){
+        var opsP=PRODUCTOS_PINTURA.map(function(p){return '<option value="'+p+'"'+(val===p?' selected':'')+'>'+p+'</option>';}).join('');
+        fhtml+='<select id="'+inputId+'" style="'+inputStyle+'"><option value="">— Selecciona producto —</option>'+opsP+'</select>';
       } else {
-        fhtml+='<input type="'+c.type+'" id="edit_'+c.k.replace(/[^a-zA-Z0-9]/g,'_')+'" value="'+val.replace(/"/g,'&quot;')+'" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-family:\'Karla\',sans-serif;font-size:0.9rem;background:var(--bg3);">';
+        fhtml+='<input type="'+c.type+'" id="'+inputId+'" value="'+val.replace(/"/g,'&quot;')+'" style="'+inputStyle+'">';
       }
       fhtml+='</div>';
     });
@@ -2706,6 +2723,7 @@ function tickQR(){
 // ═══════ TRAZABILIDAD ═══════
 var trazLoteActual='';
 var trazPaleActual='';
+var trazOpBackScreen='s-traz-historial'; // pantalla a la que vuelve el detalle de operación
 
 function irTraz(){
   document.getElementById('traz-lote-input').value='';
