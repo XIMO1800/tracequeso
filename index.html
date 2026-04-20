@@ -2256,26 +2256,38 @@ function matchPaleId(rowId, paleId){
 function estaEnGolfeFrio(p){
   // Un palé aparece en Golpe de Frío si:
   // 1. Su último registro en Sheets tiene SALA DESTINO = "2.GOLPE FRIO"
-  // 2. Han pasado >= 2 días desde la fecha de fabricación
+  // 2. Han pasado >= 2 días desde el registro de 1ª CAPA (cuando entró en Golpe de Frío)
   var regsP=rawRows.filter(function(r){
     return matchPaleId(r['ID PALET'], p.id);
   });
   if(!regsP.length)return false;
-  // Condición de días: >= 2 días desde fechaFab
-  if(diasDesde(p.fechaFab)<2)return false;
-  // Ordenar cronológicamente para encontrar el último
+  // Ordenar cronológicamente
   regsP.sort(function(a,b){
     var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);
     if(!fa&&!fb)return 0;if(!fa)return 1;if(!fb)return -1;
     return fa-fb;
   });
+  // Buscar registro de 1ª CAPA para calcular días en Golpe de Frío
+  var regC1=regsP.find(function(r){var s=(r['SECCIÓN']||'').toString().trim().toUpperCase();return s==='1ª CAPA'||s==='1A CAPA'||s==='1ª CAPA'||s.replace(/[^A-Z0-9]/g,'')==='1ACAPA';});
+  if(!regC1)return false;
+  var fechaC1=parseFecha(regC1['FECHA']);
+  if(!fechaC1)return false;
+  // Condición: >= 2 días desde la 1ª CAPA
+  if(diasDesde(fechaC1.toISOString())<=1)return false;
   // Último registro debe tener SALA DESTINO = "2.GOLPE FRIO"
   var ultimoReg=regsP[regsP.length-1];
   var sd=(ultimoReg['SALA DESTINO']||'').toString().trim();
   return normSala(sd)==='2.GOLPE FRIO';
 }
 function diasDesdeC1(p){
-  return diasDesde(p.fechaFab);
+  // Días desde el registro de 1ª CAPA (cuando entró en Golpe de Frío)
+  var regsC1=rawRows.filter(function(r){
+    var s=(r['SECCIÓN']||'').toString().trim().toUpperCase();return matchPaleId(r['ID PALET'],p.id)&&(s==='1ª CAPA'||s==='1A CAPA'||s.replace(/[^A-Z0-9]/g,'')==='1ACAPA');
+  });
+  if(!regsC1.length)return diasDesde(p.fechaFab);
+  regsC1.sort(function(a,b){var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);if(!fa)return 1;if(!fb)return -1;return fa-fb;});
+  var f=parseFecha(regsC1[0]['FECHA']);
+  return f?diasDesde(f.toISOString()):diasDesde(p.fechaFab);
 }
 function horasDesde(f){if(!f)return 9999;return Math.floor((new Date()-new Date(f))/3600000);}
 function enSec(p){return['3.SECADERO 1','4.SECADERO 2','5.SECADERO 3'].indexOf(p.sala)>=0;}
