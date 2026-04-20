@@ -1577,15 +1577,18 @@ function renderPlanMenu(){
   var gfCount=pales.filter(function(p){return estaEnGolfeFrio(p);}).length;
   var gfMaxD=0;pales.filter(function(p){return estaEnGolfeFrio(p);}).forEach(function(p){var d=diasDesdeC1(p);if(d>gfMaxD)gfMaxD=d;});
 
-  var volteoItems=[];pales.filter(function(p){return enSec(p);}).forEach(function(p){var u=getLastOp(p,'VOLTEO');var uc2=getLastOp(p,'2ª CAPA');var refDate=u?u.fecha:null;if(uc2&&(!refDate||new Date(uc2.fecha)>new Date(refDate)))refDate=uc2.fecha;var d=refDate?diasDesde(refDate):diasDesde(p.fechaFab);if(d>=CFG.volteoW)volteoItems.push(d);});
+  var volteoItems=[];pales.filter(function(p){return aptoVolteoAppSite(p);}).forEach(function(p){volteoItems.push(diasVolteoAppSite(p));});
   var volteoMaxD=volteoItems.length?Math.max.apply(null,volteoItems):0;
   var volteoCount=volteoItems.length;
 
-  var c2Items=[];pales.filter(function(p){return enSec(p)&&aptoC2(p);}).forEach(function(p){var a1=getLastOp(p,'1ª CAPA'),a2op=getLastOp(p,'2ª CAPA');if(a1&&!a2op){var d=diasDesde(a1.fecha);if(d>=CFG.anti2W)c2Items.push(d);}});
+  var c2Items=[];pales.filter(function(p){return aptoC2AppSite(p);}).forEach(function(p){c2Items.push(diasDesde(p.fechaFab));});
   var c2MaxD=c2Items.length?Math.max.apply(null,c2Items):0;
   var c2Count=c2Items.length;
 
-  var salItems=[];pales.filter(function(p){return enSec(p);}).forEach(function(p){var d=diasDesde(p.fechaFab);if(d>=CFG.secW)salItems.push(d);});
+  var salItems=[];pales.filter(function(p){return aptoSalidaAppSite(p);}).forEach(function(p){salItems.push(diasDesde(p.fechaFab));});
+  var selItems=[];pales.filter(function(p){return aptoSeleccionAppSite(p);}).forEach(function(p){selItems.push(diasDesde(p.fechaFab));});
+  var selMaxD=selItems.length?Math.max.apply(null,selItems):0;
+  var selCount=selItems.length;
   var salMaxD=salItems.length?Math.max.apply(null,salItems):0;
   var salCount=salItems.length;
 
@@ -1608,12 +1611,13 @@ function renderPlanMenu(){
     +btnPlan('❄️','Salida Golpe de Frío',gfMaxD,gfCount,true,'golpe')
     +btnPlan('🔄','Volteo',volteoMaxD,volteoCount,true,'volteo')
     +btnPlan('🧴','2ª Capa antifúngico',c2MaxD,c2Count,true,'anti2')
-    +btnPlan('🚪','Salida Secaderos',salMaxD,salCount,true,'salida');
+    +btnPlan('🚪','Salida Secaderos',salMaxD,salCount,true,'salida')
+    +btnPlan('⚖️','Selección D.O. 1 KG',selMaxD,selCount,false,'seleccion');
 }
 
 function abrirPlanAccion(accion){
   planAccionActual=accion;
-  var titulos={golpe:'❄️ Salida Golpe de Frío',volteo:'🔄 Volteo pendiente',anti2:'🧴 2ª Capa antifúngico',salida:'🚪 Salida Secaderos'};
+  var titulos={golpe:'❄️ Salida Golpe de Frío',volteo:'🔄 Volteo pendiente',anti2:'🧴 2ª Capa antifúngico',salida:'🚪 Salida Secaderos',seleccion:'⚖️ Selección D.O. 1 KG'};
   document.getElementById('plan-detalle-title').textContent=titulos[accion]||accion;
 
   if(accion==='golpe'){
@@ -1662,6 +1666,18 @@ function abrirPlanAccion(accion){
     return;
   }
 
+  if(accion==='seleccion'){
+    var sel=pales.filter(function(p){return aptoSeleccionAppSite(p);});
+    if(!sel.length){
+      document.getElementById('plan-detalle-content').innerHTML='<div class="nodata" style="padding:20px;text-align:center;">✅ Sin palés pendientes</div>';
+      ir('s-plan-detalle');return;
+    }
+    document.getElementById('plan-detalle-content').innerHTML=renderPlanGrupos(sel,function(p){
+      var d=diasDesde(p.fechaFab);return{badge:d+' d',crit:d>=60};
+    });
+    ir('s-plan-detalle');
+    return;
+  }
   // Para volteo, anti2, salida: resumen por secadero con días máx en grande
   var SECS=['3.SECADERO 1','4.SECADERO 2','5.SECADERO 3'];
   var html='<div style="padding:4px 0 8px;font-size:0.78rem;color:var(--text3);">Selecciona un secadero</div>';
@@ -1721,6 +1737,107 @@ function abrirGolpeFecha(fab){
 
 function esTierno(p){return (p.variedad||'').toUpperCase().includes('TIERNO');}
 function aptoC2(p){return p.formato!=='1 KG'&&!esTierno(p);}
+function aptoVolteoAppSite(p){
+  // Condición AppSite Volteo:
+  // 1. Último registro del palé tiene sala destino = secadero
+  // 2. >= 4 días desde el más reciente entre: fecha último registro y fecha 2ª CAPA
+  if(!enSec(p))return false;
+  return diasVolteoAppSite(p)>=CFG.volteoW;
+}
+function diasVolteoAppSite(p){
+  // Fecha de referencia = la más reciente entre el último registro y la 2ª CAPA
+  var regsP=rawRows.filter(function(r){return matchPaleId(r['ID PALET'],p.id);});
+  if(!regsP.length)return diasDesde(p.fechaFab);
+  regsP.sort(function(a,b){
+    var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);
+    if(!fa&&!fb)return 0;if(!fa)return 1;if(!fb)return -1;
+    return fb-fa;
+  });
+  // Fecha del último registro
+  var fechaUltimo=parseFecha(regsP[0]['FECHA']);
+  // Fecha de 2ª CAPA si existe
+  var regC2=regsP.find(function(r){return (r['SECCIÓN']||'').toUpperCase()==='2ª CAPA';});
+  var fechaC2=regC2?parseFecha(regC2['FECHA']):null;
+  // Usar la más reciente
+  var refDate=fechaUltimo;
+  if(fechaC2&&fechaC2>fechaUltimo)refDate=fechaC2;
+  return refDate?diasDesde(refDate.toISOString()):diasDesde(p.fechaFab);
+}
+function aptoC2AppSite(p){
+  // Condición exacta de AppSite para 2ª Capa:
+  // 1. Formato 3 KG o 2 KG
+  // 2. >= 17 días desde fabricación
+  // 3. No tiene registro de 2ª CAPA
+  // 4. No tiene registro de PINTURA
+  // 5. No tiene registro de VENTA (sala destino)
+  // 6. Sala actual es un secadero
+  // 7. Es el último registro del palé (ya garantizado por p.sala)
+  if(p.formato==='1 KG'||p.formato==='BARRA'||p.formato==='SUPERMINIS')return false;
+  if(diasDesde(p.fechaFab)<17)return false;
+  if(!enSec(p))return false;
+  // Buscar en rawRows si tiene 2ª CAPA, PINTURA o sala VENTA
+  var regsP=rawRows.filter(function(r){return matchPaleId(r['ID PALET'],p.id);});
+  var tiene2C=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='2ª CAPA';});
+  if(tiene2C)return false;
+  var tienePint=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='PINTURA';});
+  if(tienePint)return false;
+  var tieneVenta=regsP.some(function(r){return normSala(r['SALA DESTINO']||'')==='9.VENTA';});
+  if(tieneVenta)return false;
+  return true;
+}
+function diasSeleccionSegunPeso(pesoMedio){
+  // Tabla de días desde fabricación según peso medio pieza (D.O. PAST. 1 KG)
+  var pm=parseFloat(pesoMedio)||0;
+  if(pm<=0)return 9999; // Sin peso medio, no mostrar
+  if(pm<1.02)return 22;
+  if(pm<1.03)return 23;
+  if(pm<1.04)return 24;
+  if(pm<1.05)return 26;
+  if(pm<1.06)return 28;
+  if(pm<1.07)return 30;
+  if(pm<1.08)return 32;
+  if(pm<1.09)return 34;
+  return 35;
+}
+function aptoSeleccionAppSite(p){
+  // Condición AppSite D.O. PAST. 1 KG para selección:
+  // 1. Tipo D.O. PAST. y formato 1 KG
+  // 2. Último registro con SALA DESTINO no vacía
+  // 3. Sin VENTA, SELECCION, 2ª CAPA ni PINTURA
+  // 4. Hoy >= Fecha Fabricación + días según peso medio
+  if(p.tipo!=='D.O. PAST.'||p.formato!=='1 KG')return false;
+  if(!p.sala||p.sala==='')return false;
+  var regsP=rawRows.filter(function(r){return matchPaleId(r['ID PALET'],p.id);});
+  if(!regsP.length)return false;
+  var tieneVenta=regsP.some(function(r){
+    var sd=(r['SALA DESTINO']||'').toUpperCase();
+    return sd.includes('VENTA')||sd.includes('SELECCION');
+  });
+  if(tieneVenta)return false;
+  var tiene2C=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='2ª CAPA';});
+  if(tiene2C)return false;
+  var tienePint=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='PINTURA';});
+  if(tienePint)return false;
+  // Comprobar días según peso medio
+  var diasMin=diasSeleccionSegunPeso(p.pesoMedio);
+  if(diasDesde(p.fechaFab)<diasMin)return false;
+  return true;
+}
+function aptoSalidaAppSite(p){
+  // Condición exacta AppSite Salida Secaderos:
+  // 1. Último registro con SALA DESTINO no vacía está en un secadero
+  // 2. Sin ningún registro de VENTA ni SELECCION en sala destino
+  // 3. >= 50 días desde fabricación
+  if(!enSec(p))return false;
+  if(diasDesde(p.fechaFab)<CFG.secW)return false;
+  var regsP=rawRows.filter(function(r){return matchPaleId(r['ID PALET'],p.id);});
+  var tieneVenta=regsP.some(function(r){
+    var sd=normSala(r['SALA DESTINO']||'');
+    return sd==='9.VENTA'||sd==='SELECCION'||(r['SALA DESTINO']||'').toUpperCase().includes('VENTA')||(r['SALA DESTINO']||'').toUpperCase().includes('SELECCION');
+  });
+  if(tieneVenta)return false;
+  return true;
+}
 function aptoC1(p){return !esTierno(p);}
 
 function abrirHistorialPlanPale(paleId){
@@ -1733,21 +1850,19 @@ function abrirHistorialPlanPale(paleId){
 function getPlanItems(accion,sala){
   var items=[];
   if(accion==='volteo'){
-    pales.filter(function(p){return p.sala===sala;}).forEach(function(p){
-      var u=getLastOp(p,'VOLTEO');var uc2=getLastOp(p,'2ª CAPA');
-      var refDate=u?u.fecha:null;
-      if(uc2&&(!refDate||new Date(uc2.fecha)>new Date(refDate)))refDate=uc2.fecha;
-      var d=refDate?diasDesde(refDate):diasDesde(p.fechaFab);
-      if(d>=CFG.volteoW)items.push({p:p,d:d,c:d>=CFG.volteoC});
+    pales.filter(function(p){return p.sala===sala&&aptoVolteoAppSite(p);}).forEach(function(p){
+      var d=diasVolteoAppSite(p);
+      items.push({p:p,d:d,c:d>=CFG.volteoC});
     });
   } else if(accion==='anti2'){
-    pales.filter(function(p){return p.sala===sala&&aptoC2(p);}).forEach(function(p){
-      var a1=getLastOp(p,'1ª CAPA'),a2op=getLastOp(p,'2ª CAPA');
-      if(a1&&!a2op){var d=diasDesde(a1.fecha);if(d>=CFG.anti2W)items.push({p:p,d:d,c:d>=CFG.anti2C});}
+    pales.filter(function(p){return p.sala===sala&&aptoC2AppSite(p);}).forEach(function(p){
+      var d=diasDesde(p.fechaFab);
+      items.push({p:p,d:d,c:d>=CFG.anti2C});
     });
   } else if(accion==='salida'){
-    pales.filter(function(p){return p.sala===sala;}).forEach(function(p){
-      var d=diasDesde(p.fechaFab);if(d>=CFG.secW)items.push({p:p,d:d,c:d>=CFG.secC});
+    pales.filter(function(p){return p.sala===sala&&aptoSalidaAppSite(p);}).forEach(function(p){
+      var d=diasDesde(p.fechaFab);
+      items.push({p:p,d:d,c:d>=CFG.secC});
     });
   }
   items.sort(function(a,b){return b.d-a.d;});
@@ -1763,6 +1878,7 @@ function abrirPlanSala(accion,sala){
   if(accion==='volteo')badgeFn=function(i){return{badge:i.d+' d',crit:i.c};};
   else if(accion==='anti2')badgeFn=function(i){return{badge:i.d+' d',crit:i.c};};
   else if(accion==='salida')badgeFn=function(i){return{badge:i.d+' d',crit:i.c};};
+  else if(accion==='seleccion')badgeFn=function(i){return{badge:i.d+' d',crit:i.c};};
   document.getElementById('plan-sala-content').innerHTML=renderPlanGrupos(items.map(function(i){return i.p;}),function(p){return badgeFn(items.find(function(i){return i.p===p;}));});
   ir('s-plan-sala');
 }
@@ -2166,6 +2282,7 @@ function procesarDatos(rows){
     if(!map[pid])map[pid]={id:pid,tipo:normTipo(tq)||'?',variedad:getVariedad(pid),formato:fmt||'—',piezas:pz,lote:lq,sala:sd||sv||so||'2.GOLPE FRIO',fechaFab:null,pesoFijo:fmt==='1 KG',ops:[]};
     var p=map[pid];
     if(tq)p.tipo=normTipo(tq);if(fmt)p.formato=fmt;if(pz)p.piezas=pz;if(lq)p.lote=lq;
+    var pm=parseFloat(row['PESO MEDIO']||'');if(pm>0&&sec==='1ª CAPA')p.pesoMedio=pm;
     if(sd&&sec!=='2ª CAPA'&&sec!=='PINTURA')p.sala=sd;
     else if(sv&&sec==='VOLTEO')p.sala=sv;
     var o={sec:sec,fecha:fecha?fecha.toISOString():null,op:op};
