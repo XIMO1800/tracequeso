@@ -1667,14 +1667,7 @@ function abrirPlanAccion(accion){
   }
 
   if(accion==='seleccion'){
-    var sel=pales.filter(function(p){return aptoSeleccionAppSite(p);});
-    if(!sel.length){
-      document.getElementById('plan-detalle-content').innerHTML='<div class="nodata" style="padding:20px;text-align:center;">✅ Sin palés pendientes</div>';
-      ir('s-plan-detalle');return;
-    }
-    document.getElementById('plan-detalle-content').innerHTML=renderPlanGrupos(sel,function(p){
-      var d=diasDesde(p.fechaFab);return{badge:d+' d',crit:d>=60};
-    });
+    document.getElementById('plan-detalle-content').innerHTML=renderSeleccionSemanal();
     ir('s-plan-detalle');
     return;
   }
@@ -1798,6 +1791,115 @@ function diasSeleccionSegunPeso(pesoMedio){
   if(pm<1.08)return 32;
   if(pm<1.09)return 34;
   return 35;
+}
+function fechaSeleccionPale(p){
+  // Calcula la fecha en que debe ir a selección según peso medio
+  if(!p.fechaFab||!p.pesoMedio)return null;
+  var dias=diasSeleccionSegunPeso(p.pesoMedio);
+  if(dias===9999)return null;
+  var d=new Date(p.fechaFab);
+  d.setDate(d.getDate()+dias);
+  return d;
+}
+function renderSeleccionSemanal(){
+  // Agrupa los D.O. PAST. 1 KG por fecha de selección
+  // Muestra: vencidos (rojo), hoy (naranja), próximos 7 días (normal)
+  var hoy=new Date();
+  var hoyMed=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
+  var limSem=new Date(hoyMed);limSem.setDate(hoyMed.getDate()+7);
+
+  // Candidatos: D.O. PAST. 1 KG sin pintura, sin venta, con peso medio
+  var candidatos=pales.filter(function(p){
+    if(p.tipo!=='D.O. PAST.'||p.formato!=='1 KG')return false;
+    if(!p.sala||p.sala==='')return false;
+    if(!p.pesoMedio)return false;
+    var regsP=rawRows.filter(function(r){return matchPaleId(r['ID PALET'],p.id);});
+    var tieneVenta=regsP.some(function(r){var sd=(r['SALA DESTINO']||'').toUpperCase();return sd.includes('VENTA')||sd.includes('SELECCION');});
+    if(tieneVenta)return false;
+    var tienePint=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='PINTURA';});
+    if(tienePint)return false;
+    var tiene2C=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='2ª CAPA';});
+    if(tiene2C)return false;
+    var fSel=fechaSeleccionPale(p);
+    if(!fSel)return false;
+    // Mostrar vencidos + hoy + próximos 7 días
+    var fSelMed=new Date(fSel.getFullYear(),fSel.getMonth(),fSel.getDate());
+    return fSelMed<=limSem;
+  });
+
+  if(!candidatos.length){
+    return '<div style="text-align:center;padding:30px;color:var(--green);">✅ Sin palés pendientes esta semana</div>';
+  }
+
+  // Agrupar por fecha de selección
+  var porFecha={};
+  candidatos.forEach(function(p){
+    var fSel=fechaSeleccionPale(p);
+    var fSelMed=new Date(fSel.getFullYear(),fSel.getMonth(),fSel.getDate());
+    var key=fSelMed.toISOString().split('T')[0];
+    if(!porFecha[key])porFecha[key]={fecha:fSelMed,pales:[],totalPiezas:0};
+    porFecha[key].pales.push(p);
+    porFecha[key].totalPiezas+=(p.piezas||0);
+  });
+
+  var keys=Object.keys(porFecha).sort();
+  var html='<div style="font-size:0.78rem;color:var(--text3);padding:0 0 12px;">Palés a seleccionar — próximos 7 días</div>';
+
+  keys.forEach(function(key){
+    var g=porFecha[key];
+    var fSelMed=g.fecha;
+    var diffDias=Math.round((fSelMed-hoyMed)/86400000);
+    var esVencido=diffDias<0;
+    var esHoy=diffDias===0;
+    var esMañana=diffDias===1;
+
+    // Colores según urgencia
+    var borderColor=esVencido?'var(--red)':esHoy?'var(--gold)':'var(--border)';
+    var bgColor=esVencido?'var(--red-bg)':esHoy?'var(--gold-bg)':'var(--bg2)';
+    var textColor=esVencido?'var(--red)':esHoy?'var(--gold)':'var(--text)';
+    var barColor=esVencido?'var(--red)':esHoy?'var(--gold)':'#1a3a6a';
+
+    var diasLabel=esVencido
+      ?(diffDias===-1?'Ayer':Math.abs(diffDias)+' días atrás')
+      :esHoy?'Hoy'
+      :esMañana?'Mañana'
+      :'En '+diffDias+' días';
+    var fechaLabel=fSelMed.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'2-digit'});
+
+    // Agrupar palés por lote
+    var lotes={};
+    g.pales.forEach(function(p){
+      var lc=p.loteCorto||p.lote||'—';
+      if(!lotes[lc])lotes[lc]={lote:lc,pales:[],piezas:0};
+      lotes[lc].pales.push(p);
+      lotes[lc].piezas+=(p.piezas||0);
+    });
+
+    html+='<div style="background:'+bgColor+';border:2px solid '+borderColor+';border-radius:14px;padding:14px;margin-bottom:10px;">';
+    // Cabecera del día
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
+      +'<div>'
+      +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.05rem;color:'+textColor+';">'
+      +(esVencido?'⚠️ ':esHoy?'📅 ':'')+diasLabel
+      +'</div>'
+      +'<div style="font-size:0.75rem;color:var(--text3);margin-top:1px;">'+fechaLabel+' · '+g.pales.length+' palés · '+g.totalPiezas.toLocaleString()+' pzas</div>'
+      +'</div>'
+      +(esVencido?'<div style="background:var(--red);color:#fff;border-radius:8px;padding:4px 10px;font-size:0.75rem;font-weight:700;">URGENTE</div>':'')
+      +'</div>';
+
+    // Palés agrupados por lote
+    Object.values(lotes).forEach(function(l){
+      html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">'
+        +'<div>'
+        +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text);">Lote '+l.lote+'</div>'
+        +'<div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">'+l.pales.length+' palés · '+l.piezas.toLocaleString()+' pzas</div>'
+        +'</div>'
+        +'<div style="width:8px;height:32px;background:'+barColor+';border-radius:4px;"></div>'
+        +'</div>';
+    });
+    html+='</div>';
+  });
+  return html;
 }
 function aptoSeleccionAppSite(p){
   // Condición AppSite D.O. PAST. 1 KG para selección:
@@ -2367,6 +2469,27 @@ setInterval(function(){
 
 // ═══════ UTILS ═══════
 function diasDesde(f){if(!f)return 9999;return Math.floor((new Date()-new Date(f))/86400000);}
+function diasCalendario(f){
+  // Cuenta días de calendario ignorando la hora
+  // Si f fue el día 19 y hoy es el 21, devuelve 2 independientemente de la hora
+  if(!f)return 9999;
+  var hoy=new Date();
+  var hoyMed=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
+  var fDate=new Date(f);
+  var fMed=new Date(fDate.getFullYear(),fDate.getMonth(),fDate.getDate());
+  return Math.floor((hoyMed-fMed)/86400000);
+}
+function diasCalendarioDesde(f){
+  // Cuenta días de calendario (no horas exactas)
+  // Ejemplo: 19/04 → 21/04 = 2 días, independientemente de la hora
+  if(!f)return 9999;
+  var hoy=new Date();
+  var ref=new Date(f);
+  // Comparar solo fechas, sin hora
+  var hoyD=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
+  var refD=new Date(ref.getFullYear(),ref.getMonth(),ref.getDate());
+  return Math.floor((hoyD-refD)/86400000);
+}
 function matchPaleId(rowId, paleId){
   // Comparar IDs ignorando sufijos *variedad!loteCorto
   var r1=(rowId||'').toString().trim().replace(/\s/g,'').split('*')[0].split('!')[0];
@@ -2393,7 +2516,7 @@ function estaEnGolfeFrio(p){
   var fechaC1=parseFecha(regC1['FECHA']);
   if(!fechaC1)return false;
   // Condición: >= 2 días desde la 1ª CAPA
-  if(diasDesde(fechaC1.toISOString())<=1)return false;
+  if(diasCalendario(fechaC1.toISOString())<2)return false;
   // Último registro debe tener SALA DESTINO = "2.GOLPE FRIO"
   var ultimoReg=regsP[regsP.length-1];
   var sd=(ultimoReg['SALA DESTINO']||'').toString().trim();
@@ -2407,7 +2530,7 @@ function diasDesdeC1(p){
   if(!regsC1.length)return diasDesde(p.fechaFab);
   regsC1.sort(function(a,b){var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);if(!fa)return 1;if(!fb)return -1;return fa-fb;});
   var f=parseFecha(regsC1[0]['FECHA']);
-  return f?diasDesde(f.toISOString()):diasDesde(p.fechaFab);
+  return f?diasCalendario(f.toISOString()):diasCalendario(p.fechaFab);
 }
 function horasDesde(f){if(!f)return 9999;return Math.floor((new Date()-new Date(f))/3600000);}
 function enSec(p){return['3.SECADERO 1','4.SECADERO 2','5.SECADERO 3'].indexOf(p.sala)>=0;}
