@@ -1,11 +1,10 @@
-// TraceQueso Service Worker v1
-const CACHE = 'tracequeso-v1';
+// TraceQueso Service Worker v2
+const CACHE = 'tracequeso-v2';
 const ASSETS = [
   '/tracequeso/',
   '/tracequeso/index.html',
 ];
 
-// Instalar — cachear assets principales
 self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(CACHE).then(function(cache) {
@@ -15,7 +14,6 @@ self.addEventListener('install', function(e) {
   self.skipWaiting();
 });
 
-// Activar — limpiar caches antiguas
 self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(keys) {
@@ -28,15 +26,11 @@ self.addEventListener('activate', function(e) {
   self.clients.claim();
 });
 
-// Fetch — network first, fallback a cache
 self.addEventListener('fetch', function(e) {
-  // Solo interceptar mismo origen
   if (!e.request.url.startsWith(self.location.origin)) return;
-  
   e.respondWith(
     fetch(e.request)
       .then(function(response) {
-        // Guardar en cache si es ok
         if (response && response.status === 200) {
           var clone = response.clone();
           caches.open(CACHE).then(function(cache) {
@@ -46,7 +40,6 @@ self.addEventListener('fetch', function(e) {
         return response;
       })
       .catch(function() {
-        // Sin red — usar cache
         return caches.match(e.request).then(function(cached) {
           return cached || caches.match('/tracequeso/index.html');
         });
