@@ -1783,7 +1783,6 @@ function diasSeleccionSegunPeso(pesoMedio){
   return 35;
 }
 function fechaSeleccionPale(p){
-  // Calcula la fecha en que debe ir a selección según peso medio
   if(!p.fechaFab||!p.pesoMedio)return null;
   var dias=diasSeleccionSegunPeso(p.pesoMedio);
   if(dias===9999)return null;
@@ -1791,28 +1790,34 @@ function fechaSeleccionPale(p){
   d.setDate(d.getDate()+dias);
   return d;
 }
+function candidatoSeleccion(p){
+  // Candidato válido para selección: D.O.PAST. 1KG, sin venta/pintura/2ªcapa, con peso medio y fecha selección
+  if(p.tipo!=='D.O. PAST.'||p.formato!=='1 KG')return false;
+  if(!p.sala||p.sala==='')return false;
+  if(!p.pesoMedio)return false;
+  if(!fechaSeleccionPale(p))return false;
+  var regsP=rawRows.filter(function(r){return matchPaleId(r['ID PALET'],p.id);});
+  if(!regsP.length)return false;
+  var tieneVenta=regsP.some(function(r){
+    var sd=(r['SALA DESTINO']||'').toUpperCase();
+    return sd.includes('VENTA')||sd.includes('SELECCION');
+  });
+  if(tieneVenta)return false;
+  var tienePint=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='PINTURA';});
+  if(tienePint)return false;
+  var tiene2C=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='2ª CAPA';});
+  if(tiene2C)return false;
+  return true;
+}
 function renderSeleccionSemanal(){
-  // Agrupa los D.O. PAST. 1 KG por fecha de selección
-  // Muestra: vencidos (rojo), hoy (naranja), próximos 7 días (normal)
   var hoy=new Date();
   var hoyMed=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
   var limSem=new Date(hoyMed);limSem.setDate(hoyMed.getDate()+7);
 
-  // Candidatos: D.O. PAST. 1 KG sin pintura, sin venta, con peso medio
+  // Candidatos: vencidos + próximos 7 días
   var candidatos=pales.filter(function(p){
-    if(p.tipo!=='D.O. PAST.'||p.formato!=='1 KG')return false;
-    if(!p.sala||p.sala==='')return false;
-    if(!p.pesoMedio)return false;
-    var regsP=rawRows.filter(function(r){return matchPaleId(r['ID PALET'],p.id);});
-    var tieneVenta=regsP.some(function(r){var sd=(r['SALA DESTINO']||'').toUpperCase();return sd.includes('VENTA')||sd.includes('SELECCION');});
-    if(tieneVenta)return false;
-    var tienePint=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='PINTURA';});
-    if(tienePint)return false;
-    var tiene2C=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='2ª CAPA';});
-    if(tiene2C)return false;
+    if(!candidatoSeleccion(p))return false;
     var fSel=fechaSeleccionPale(p);
-    if(!fSel)return false;
-    // Mostrar vencidos + hoy + próximos 7 días
     var fSelMed=new Date(fSel.getFullYear(),fSel.getMonth(),fSel.getDate());
     return fSelMed<=limSem;
   });
@@ -1833,63 +1838,97 @@ function renderSeleccionSemanal(){
   });
 
   var keys=Object.keys(porFecha).sort();
-  var html='<div style="font-size:0.78rem;color:var(--text3);padding:0 0 12px;">Palés a seleccionar — próximos 7 días</div>';
+  var html='<div style="font-size:0.78rem;color:var(--text3);padding:0 0 10px;">Selecciona una fecha para ver los palés</div>';
 
+  // Vista nivel 1: lista de fechas (igual que AppSite)
   keys.forEach(function(key){
     var g=porFecha[key];
-    var fSelMed=g.fecha;
-    var diffDias=Math.round((fSelMed-hoyMed)/86400000);
+    var diffDias=Math.round((g.fecha-hoyMed)/86400000);
     var esVencido=diffDias<0;
     var esHoy=diffDias===0;
     var esMañana=diffDias===1;
-
-    // Colores según urgencia
-    var borderColor=esVencido?'var(--red)':esHoy?'var(--gold)':'var(--border)';
+    var borderColor=esVencido?'rgba(139,26,26,0.4)':esHoy?'rgba(200,120,10,0.4)':'var(--border)';
     var bgColor=esVencido?'var(--red-bg)':esHoy?'var(--gold-bg)':'var(--bg2)';
-    var textColor=esVencido?'var(--red)':esHoy?'var(--gold)':'var(--text)';
     var barColor=esVencido?'var(--red)':esHoy?'var(--gold)':'#1a3a6a';
-
-    var diasLabel=esVencido
-      ?(diffDias===-1?'Ayer':Math.abs(diffDias)+' días atrás')
-      :esHoy?'Hoy'
-      :esMañana?'Mañana'
-      :'En '+diffDias+' días';
-    var fechaLabel=fSelMed.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'2-digit'});
-
-    // Agrupar palés por lote
-    var lotes={};
-    g.pales.forEach(function(p){
-      var lc=p.loteCorto||p.lote||'—';
-      if(!lotes[lc])lotes[lc]={lote:lc,pales:[],piezas:0};
-      lotes[lc].pales.push(p);
-      lotes[lc].piezas+=(p.piezas||0);
-    });
-
-    html+='<div style="background:'+bgColor+';border:2px solid '+borderColor+';border-radius:14px;padding:14px;margin-bottom:10px;">';
-    // Cabecera del día
-    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
-      +'<div>'
-      +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.05rem;color:'+textColor+';">'
-      +(esVencido?'⚠️ ':esHoy?'📅 ':'')+diasLabel
+    var textColor=esVencido?'var(--red)':esHoy?'var(--gold)':'var(--text)';
+    var diasLabel=esVencido?(diffDias===-1?'Ayer':Math.abs(diffDias)+' días atrás'):esHoy?'Hoy':esMañana?'Mañana':'En '+diffDias+' días';
+    var fechaLabel=g.fecha.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'2-digit'});
+    // Contar lotes distintos
+    var lotes=new Set(g.pales.map(function(p){return p.loteCorto||p.lote||'—';}));
+    html+='<button onclick="abrirSeleccionFecha(\''+key+'\')" style="width:100%;background:'+bgColor+';border:2px solid '+borderColor+';border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:var(--shadow);margin-bottom:10px;text-align:left;">'
+      +'<div style="width:10px;min-height:50px;background:'+barColor+';border-radius:5px;flex-shrink:0;"></div>'
+      +'<div style="flex:1;">'
+      +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.05rem;color:'+textColor+';">'+(esVencido?'⚠️ ':'')+fechaLabel+' — '+diasLabel+'</div>'
+      +'<div style="font-size:0.72rem;color:var(--text3);margin-top:3px;">'+lotes.size+' lotes · '+g.pales.length+' palés · '+g.totalPiezas.toLocaleString()+' pzas</div>'
       +'</div>'
-      +'<div style="font-size:0.75rem;color:var(--text3);margin-top:1px;">'+fechaLabel+' · '+g.pales.length+' palés · '+g.totalPiezas.toLocaleString()+' pzas</div>'
+      +'<div style="text-align:right;flex-shrink:0;">'
+      +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.5rem;color:'+textColor+';">'+g.pales.length+'</div>'
+      +'<div style="font-size:0.65rem;color:var(--text3);">palés</div>'
       +'</div>'
-      +(esVencido?'<div style="background:var(--red);color:#fff;border-radius:8px;padding:4px 10px;font-size:0.75rem;font-weight:700;">URGENTE</div>':'')
+      +'<span style="color:var(--text3);font-size:1.2rem;">›</span>'
+      +'</button>';
+  });
+  return html;
+}
+// Datos de selección por fecha (para drill-down)
+var seleccionFechaActual='';
+var seleccionPorFecha={};
+function abrirSeleccionFecha(key){
+  seleccionFechaActual=key;
+  var hoy=new Date();
+  var hoyMed=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
+  var limSem=new Date(hoyMed);limSem.setDate(hoyMed.getDate()+7);
+  // Reconstruir candidatos para esta fecha
+  var candidatos=pales.filter(function(p){
+    if(!candidatoSeleccion(p))return false;
+    var fSel=fechaSeleccionPale(p);
+    var fSelMed=new Date(fSel.getFullYear(),fSel.getMonth(),fSel.getDate());
+    return fSelMed.toISOString().split('T')[0]===key;
+  });
+  var fLabel=new Date(key+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'long'});
+  document.getElementById('plan-detalle-title').textContent='⚖️ '+fLabel;
+  // Agrupar por lote corto
+  var lotes={};
+  candidatos.forEach(function(p){
+    var lc=p.loteCorto||p.lote||'—';
+    if(!lotes[lc])lotes[lc]={lote:lc,pales:[],piezas:0};
+    lotes[lc].pales.push(p);
+    lotes[lc].piezas+=(p.piezas||0);
+  });
+  var totalPzas=candidatos.reduce(function(s,p){return s+(p.piezas||0);},0);
+  var html='<div style="background:var(--blue-bg);border:1px solid rgba(26,58,106,0.2);border-radius:12px;padding:12px 14px;margin-bottom:14px;">'
+    +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1rem;color:var(--blue);">'+fLabel+'</div>'
+    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:2px;">'+candidatos.length+' palés · '+totalPzas.toLocaleString()+' pzas</div>'
+    +'</div>';
+  Object.values(lotes).forEach(function(l){
+    html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">'
+      +'<div style="background:var(--bg3);padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'
+      +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;color:var(--text);">D.O. PAST. · Lote '+l.lote+'</div>'
+      +'<div style="font-size:0.72rem;color:var(--text3);">'+l.pales.length+' palés · '+l.piezas.toLocaleString()+' pzas</div>'
       +'</div>';
-
-    // Palés agrupados por lote
-    Object.values(lotes).forEach(function(l){
-      html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">'
+    l.pales.sort(function(a,b){return parseInt(parsearId(a.id||'').nPale||0)-parseInt(parsearId(b.id||'').nPale||0);});
+    l.pales.forEach(function(p){
+      var pm=p.pesoMedio?p.pesoMedio.toFixed(3)+' kg/pza':'—';
+      var paleId=(p.id||'').replace(/'/g,"\'");
+      html+='<div onclick="verHistorialDesdeSeleccion(\''+paleId+'\')" style="padding:10px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--bg2);">'
         +'<div>'
-        +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text);">Lote '+l.lote+'</div>'
-        +'<div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">'+l.pales.length+' palés · '+l.piezas.toLocaleString()+' pzas</div>'
+        +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.88rem;color:var(--text);">'+p.piezas+' pzas · '+pm+'</div>'
+        +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.62rem;color:var(--text3);margin-top:1px;">'+p.id+'</div>'
         +'</div>'
-        +'<div style="width:8px;height:32px;background:'+barColor+';border-radius:4px;"></div>'
+        +'<span style="color:var(--text3);font-size:1rem;">›</span>'
         +'</div>';
     });
     html+='</div>';
   });
-  return html;
+  // Guardar en plan-sala-content y usar esa pantalla como drill-down
+  document.getElementById('plan-sala-content').innerHTML=html;
+  document.querySelector('#s-plan-sala .tbback').setAttribute('onclick',"ir('s-plan-detalle')");
+  document.getElementById('plan-sala-title').textContent='⚖️ Pesaje de Minis';
+  ir('s-plan-sala');
+}
+function verHistorialDesdeSeleccion(paleId){
+  abrirHistorial(paleId);
+  document.querySelector('#s-historial .tbback').setAttribute('onclick',"ir('s-plan-sala')");
 }
 function aptoSeleccionAppSite(p){
   // Condición AppSite D.O. PAST. 1 KG para selección:
