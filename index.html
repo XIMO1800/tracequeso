@@ -1812,7 +1812,7 @@ function candidatoSeleccion(p){
 function renderSeleccionSemanal(){
   var hoy=new Date();
   var hoyMed=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
-  var limSem=new Date(hoyMed);limSem.setDate(hoyMed.getDate()+7);
+  var limSem=new Date(hoyMed);limSem.setDate(hoyMed.getDate()+4);
 
   // Candidatos: vencidos + próximos 7 días
   var candidatos=pales.filter(function(p){
@@ -1908,11 +1908,12 @@ function abrirSeleccionFecha(key){
       +'</div>';
     l.pales.sort(function(a,b){return parseInt(parsearId(a.id||'').nPale||0)-parseInt(parsearId(b.id||'').nPale||0);});
     l.pales.forEach(function(p){
+      var nPale=parsearId(p.id||'').nPale||'?';
       var pm=p.pesoMedio?p.pesoMedio.toFixed(3)+' kg/pza':'—';
       var paleId=(p.id||'').replace(/'/g,"\'");
       html+='<div onclick="verHistorialDesdeSeleccion(\''+paleId+'\')" style="padding:10px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--bg2);">'
         +'<div>'
-        +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.88rem;color:var(--text);">'+p.piezas+' pzas · '+pm+'</div>'
+        +'<div style="display:flex;align-items:baseline;gap:10px;"><span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.2rem;color:var(--accent);">'+nPale+'<span style="font-size:0.65rem;font-weight:400;color:var(--text3);margin-left:2px;"> palé</span></span><span style="font-size:0.88rem;color:var(--text);">'+p.piezas+' pzas · '+pm+'</span></div>'
         +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.62rem;color:var(--text3);margin-top:1px;">'+p.id+'</div>'
         +'</div>'
         +'<span style="color:var(--text3);font-size:1rem;">›</span>'
