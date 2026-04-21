@@ -1454,18 +1454,8 @@ function renderRegs(){
             +'</div>';
           g.pales.sort(function(a,b){return parseInt(parsearId(a.pale||'').nPale||0)-parseInt(parsearId(b.pale||'').nPale||0);});
           g.pales.forEach(function(r){
-            html+='<div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);">'
-              +'<div>'
-              +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.88rem;color:var(--text);">'+r.piezas+' pzas</div>'
-              +'<div style="font-size:0.68rem;color:var(--text3);margin-top:1px;">'
-              +(r.origen?sl(r.origen)+' → ':'')+(r.destino?sl(r.destino):'')
-              +'</div>'
-              +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.6rem;color:var(--text3);">'+r.pale+'</div>'
-              +'</div>'
-              +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">'
-              +(esAdmin&&r.operario?'<span style="font-size:0.68rem;color:var(--accent);font-weight:700;font-family:\'Karla\',sans-serif;text-transform:uppercase;">'+r.operario+'</span>':'')
-              +(!r.fromSheets?'<button onclick="elimReg(\''+r.sesionId+'\')" style="background:var(--red-bg);color:var(--red);border:1px solid rgba(139,26,26,0.2);border-radius:6px;padding:3px 7px;font-size:0.72rem;cursor:pointer;">🗑</button>':'')
-              +'</div></div>';
+            var rowIdM=r.rowId||'';var sesionIdM=r.sesionId||'';var rawIdxM=r.rawIdx!==undefined?r.rawIdx:-1;
+            html+='<div onclick="abrirRegFicha(\''+rowIdM+'\',\''+sesionIdM+'\','+rawIdxM+')" style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);cursor:pointer;">'              +'<div>'              +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.88rem;color:var(--text);">'+r.piezas+' pzas</div>'              +'<div style="font-size:0.68rem;color:var(--text3);margin-top:1px;">'              +(r.origen?sl(r.origen)+' → ':'')+(r.destino?sl(r.destino):'')              +'</div>'              +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.6rem;color:var(--text3);">'+r.pale+'</div>'              +(esAdmin&&r.operario?'<div style="font-size:0.62rem;color:var(--text3);margin-top:1px;">'+r.operario+'</div>':'')              +'</div>'              +'<span style="color:var(--text3);font-size:1rem;">›</span>'              +'</div>';
           });
         });
       });
