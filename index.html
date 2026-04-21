@@ -3419,10 +3419,19 @@ function mostrarDetalleOp(idx){
   return{tipo:tipo,lote:lote,nPale:nPale,fmt:fmt,fmtD:fmtD,piezas:piezas,variedad:variedad,loteCorto:loteCorto};
 }
 function calcPesoMedio(pesoBruto,piezas,fmtD){
+  // fmtD: '1'=1KG, '2'=2KG, '3'=3KG, '4'=BARRA, '5'=SUPERMINIS
   if(!pesoBruto||!piezas)return null;
   var pb=parseFloat(pesoBruto);if(isNaN(pb))return null;
-  var taraBandeja=(fmtD==='1'||fmtD==='5')?3.18:3.12;
-  var bandejas=Math.ceil(piezas/6);if(bandejas%2!==0)bandejas++;
+  var piezasPorBandeja, taraBandeja;
+  if(fmtD==='1'||fmtD==='5'){
+    piezasPorBandeja=12; taraBandeja=3.18; // 1KG y SUPERMINIS
+  } else if(fmtD==='4'){
+    piezasPorBandeja=4; taraBandeja=3.12;  // BARRA
+  } else {
+    piezasPorBandeja=6; taraBandeja=3.12;  // 2KG y 3KG
+  }
+  var bandejas=Math.ceil(piezas/piezasPorBandeja);
+  if(bandejas%2!==0)bandejas++;
   var tara=11.25+(bandejas*taraBandeja);
   var neto=pb-tara;
   if(neto<=0)return null;
