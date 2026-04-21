@@ -1812,7 +1812,7 @@ function candidatoSeleccion(p){
 function renderSeleccionSemanal(){
   var hoy=new Date();
   var hoyMed=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
-  var limSem=new Date(hoyMed);limSem.setDate(hoyMed.getDate()+4);
+  var limSem=new Date(hoyMed);limSem.setDate(hoyMed.getDate()+7);
 
   // Candidatos: vencidos + próximos 7 días
   var candidatos=pales.filter(function(p){
@@ -1845,21 +1845,19 @@ function renderSeleccionSemanal(){
     var g=porFecha[key];
     var diffDias=Math.round((g.fecha-hoyMed)/86400000);
     var esVencido=diffDias<0;
-    var esHoy=diffDias===0;
-    var esMañana=diffDias===1;
-    var borderColor=esVencido?'rgba(139,26,26,0.4)':esHoy?'rgba(200,120,10,0.4)':'var(--border)';
-    var bgColor=esVencido?'var(--red-bg)':esHoy?'var(--gold-bg)':'var(--bg2)';
-    var barColor=esVencido?'var(--red)':esHoy?'var(--gold)':'#1a3a6a';
-    var textColor=esVencido?'var(--red)':esHoy?'var(--gold)':'var(--text)';
-    var diasLabel=esVencido?(diffDias===-1?'Ayer':Math.abs(diffDias)+' días atrás'):esHoy?'Hoy':esMañana?'Mañana':'En '+diffDias+' días';
-    var fechaLabel=g.fecha.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'2-digit'});
-    // Contar lotes distintos
-    var lotes=new Set(g.pales.map(function(p){return p.loteCorto||p.lote||'—';}));
+    var borderColor=esVencido?'rgba(139,26,26,0.4)':'var(--border)';
+    var bgColor=esVencido?'var(--red-bg)':'var(--bg2)';
+    var barColor=esVencido?'var(--red)':'#1a3a6a';
+    var textColor=esVencido?'var(--red)':'var(--text)';
+    var fechaLabel=g.fecha.toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'2-digit',year:'2-digit'});
+    var lotesMap={};
+    g.pales.forEach(function(p){var lc=p.loteCorto||p.lote||'—';if(!lotesMap[lc])lotesMap[lc]=0;lotesMap[lc]++;});
+    var lotesStr=Object.keys(lotesMap).map(function(l){return 'L-'+l+(lotesMap[l]>1?' ('+lotesMap[l]+')':'');}).join(' · ');
     html+='<button onclick="abrirSeleccionFecha(\''+key+'\')" style="width:100%;background:'+bgColor+';border:2px solid '+borderColor+';border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:var(--shadow);margin-bottom:10px;text-align:left;">'
       +'<div style="width:10px;min-height:50px;background:'+barColor+';border-radius:5px;flex-shrink:0;"></div>'
       +'<div style="flex:1;">'
-      +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.05rem;color:'+textColor+';">'+(esVencido?'⚠️ ':'')+fechaLabel+' — '+diasLabel+'</div>'
-      +'<div style="font-size:0.72rem;color:var(--text3);margin-top:3px;">'+lotes.size+' lotes · '+g.pales.length+' palés · '+g.totalPiezas.toLocaleString()+' pzas</div>'
+      +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.05rem;color:'+textColor+';">'+(esVencido?'⚠️ ':'')+fechaLabel+'</div>'
+      +'<div style="font-size:0.72rem;color:var(--text3);margin-top:3px;">'+lotesStr+'</div>'
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0;">'
       +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.5rem;color:'+textColor+';">'+g.pales.length+'</div>'
