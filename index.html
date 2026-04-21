@@ -1415,7 +1415,7 @@ function renderRegs(){
     var col=SCOLOR[sec]||'#5a5a5a';
     html+='<div style="background:'+col+';color:#fff;border-radius:12px 12px 0 0;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:12px;">'
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;">'+(SICON[sec]||'📝')+' '+sec+'</span>'
-      +'<span style="font-family:\'Inconsolata\',monospace;font-size:0.75rem;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">'+regs.length+' palés</span>'
+      +'<span style="font-family:\'Inconsolata\',monospace;font-size:0.75rem;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">'+regs.length+' palets</span>'
       +'</div>';
     html+='<div style="border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;overflow:hidden;margin-bottom:4px;">';
     var fmtOrder={'3 KG':0,'2 KG':1,'1 KG':2,'BARRA':3,'SUPERMINIS':4};
@@ -1437,7 +1437,7 @@ function renderRegs(){
         var ruta=rutas[rutaKey];
         html+='<div style="background:#c8780a;color:#fff;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;border-top:2px solid rgba(0,0,0,0.1);">'
           +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;">🚚 '+ruta.label+'</span>'
-          +'<span style="font-size:0.72rem;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">'+ruta.total+' palés</span>'
+          +'<span style="font-size:0.72rem;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">'+ruta.total+' palets</span>'
           +'</div>';
         var tkeys=Object.keys(ruta.grupos).sort(function(a,b){
           var ga=ruta.grupos[a],gb=ruta.grupos[b];
@@ -1480,25 +1480,26 @@ function renderRegs(){
       if(ga.variedad!==gb.variedad)return ga.variedad.localeCompare(gb.variedad);
       return(fmtOrder[ga.fmt]||9)-(fmtOrder[gb.fmt]||9);
     });
-    var lastTipoVar='';
+    var lastTipoVarFmt='';
     gkeys.forEach(function(key){
       var g=grupos[key];
       var tipoVar=g.tipo+(g.variedad?' · '+g.variedad:'');
+      var tipoVarFmt=tipoVar+' · '+g.fmt;
       var bgColor=tipoColor(g.tipo,'light');
       var fgColor=tipoColor(g.tipo,'bg');
-      if(tipoVar!==lastTipoVar){
+      if(tipoVarFmt!==lastTipoVarFmt){
         html+='<div style="background:'+bgColor+';padding:8px 14px;border-top:2px solid '+fgColor+';display:flex;align-items:center;gap:8px;">'
           +'<div style="width:4px;height:20px;background:'+fgColor+';border-radius:2px;"></div>'
           +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.05rem;color:'+fgColor+';">'+tipoVar+' · '+g.fmt+'</span>'
           +'</div>';
-        lastTipoVar=tipoVar;
+        lastTipoVarFmt=tipoVarFmt;
       }
       var ag=g.tipo==='D.O. PAST.'||g.tipo==='D.O. CRUDA'
         ?{label:'Lote corto',valor:g.agrupador}
         :{label:'Fab.',valor:fechaFabDesdeId(g.pales[0].pale)};
       html+='<div style="background:'+bgColor+';padding:4px 14px 5px 30px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,0,0,0.06);">'
         +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.85rem;color:'+fgColor+';opacity:0.85;">'+ag.valor+'</span>'
-        +'<span style="font-size:0.65rem;color:'+fgColor+';opacity:0.55;">'+g.pales.length+' palés</span>'
+        +'<span style="font-size:0.65rem;color:'+fgColor+';opacity:0.55;">'+g.pales.length+' palets</span>'
         +'</div>';
       g.pales.sort(function(a,b){
         var na=parsearId(a.pale||'').nPale||'0';
@@ -1670,7 +1671,7 @@ function abrirPlanAccion(accion){
     var hayCrit=items.some(function(i){return i.c;});
     var color=SALA_COLORS[sala]||'#5a5a5a';
     var rightContent=items.length
-      ?'<div style="text-align:right;"><div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.5rem;color:'+(hayCrit?'var(--red)':'var(--accent)')+';">'+maxD+' d</div><div style="font-size:0.68rem;color:var(--text3);">'+items.length+' palés</div></div>'
+      ?'<div style="text-align:right;"><div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.5rem;color:'+(hayCrit?'var(--red)':'var(--accent)')+';">'+maxD+' d</div><div style="font-size:0.68rem;color:var(--text3);">'+items.length+' palets</div></div>'
       :'<div style="font-size:1.1rem;color:var(--green);">✅</div>';
     html+='<button onclick="abrirPlanSala(\''+accion+'\',\''+sala+'\')" style="width:100%;background:var(--bg2);border:2px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:var(--shadow);margin-bottom:10px;text-align:left;">'
       +'<div style="width:10px;height:44px;background:'+color+';border-radius:5px;flex-shrink:0;"></div>'
@@ -1703,7 +1704,7 @@ function abrirGolpeFecha(fab){
   var headerHtml='<div style="background:'+(hayCrit?'var(--red-bg)':'var(--blue-bg)')+';border:2px solid '+(hayCrit?'var(--red)':'var(--blue)')+';border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">'
     +'<div>'
     +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1rem;color:'+(hayCrit?'var(--red)':'var(--blue)')+';">fab. '+fabLabel+'</div>'
-    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:3px;">'+palesDelDia.length+' palés · '+totalPiezas.toLocaleString()+' piezas</div>'
+    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:3px;">'+palesDelDia.length+' palets · '+totalPiezas.toLocaleString()+' piezas</div>'
     +'</div>'
     +'<div style="text-align:right;">'
     +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.8rem;color:'+(hayCrit?'var(--red)':'var(--blue)')+';">'+maxD+' d</div>'
@@ -1896,13 +1897,13 @@ function abrirSeleccionFecha(key){
   var totalPzas=candidatos.reduce(function(s,p){return s+(p.piezas||0);},0);
   var html='<div style="background:var(--blue-bg);border:1px solid rgba(26,58,106,0.2);border-radius:12px;padding:12px 14px;margin-bottom:14px;">'
     +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1rem;color:var(--blue);">'+fLabel+'</div>'
-    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:2px;">'+candidatos.length+' palés · '+totalPzas.toLocaleString()+' pzas</div>'
+    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:2px;">'+candidatos.length+' palets · '+totalPzas.toLocaleString()+' pzas</div>'
     +'</div>';
   Object.values(lotes).forEach(function(l){
     html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">'
       +'<div style="background:var(--bg3);padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'
       +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;color:var(--text);">D.O. PAST. · Lote '+l.lote+'</div>'
-      +'<div style="font-size:0.72rem;color:var(--text3);">'+l.pales.length+' palés · '+l.piezas.toLocaleString()+' pzas</div>'
+      +'<div style="font-size:0.72rem;color:var(--text3);">'+l.pales.length+' palets · '+l.piezas.toLocaleString()+' pzas</div>'
       +'</div>';
     l.pales.sort(function(a,b){return parseInt(parsearId(a.id||'').nPale||0)-parseInt(parsearId(b.id||'').nPale||0);});
     l.pales.forEach(function(p){
@@ -2067,7 +2068,7 @@ function renderPlanGrupos(palesList,badgeFn){
       +'<div style="display:flex;align-items:baseline;gap:6px;">'
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;color:'+fgColor+';">'+agVal+'</span>'
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.78rem;color:'+fgColor+';">'+g.pales.length+'</span>'
-      +'<span style="font-size:0.6rem;color:'+fgColor+';opacity:0.45;letter-spacing:0.02em;">palés</span>'
+      +'<span style="font-size:0.6rem;color:'+fgColor+';opacity:0.45;letter-spacing:0.02em;">palets</span>'
       +'</div>'
       +'<span style="font-size:0.6rem;color:'+fgColor+';opacity:0.5;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">'+refRight+'</span>'
       +'</div>';
@@ -2204,7 +2205,7 @@ function renderStock(){
     html+='<div class="stock-card">';
     html+='<div class="stock-sala" style="background:'+color+';">'
          +'<div class="stock-sala-info">'+salaIcon(sala)+' <span>'+SLBL[sala]+'</span></div>'
-         +'<span class="stock-sala-cnt">'+pp.length+' palés</span>'
+         +'<span class="stock-sala-cnt">'+pp.length+' palets</span>'
          +'</div>';
     html+='<div class="stock-sub">'+piezas.toLocaleString()+' piezas totales</div>';
     html+='<div class="stock-tipos">';
@@ -2229,7 +2230,7 @@ function abrirDrill(sala,tipo){
   document.getElementById('drill-header').innerHTML=
     '<div style="background:'+bgColor+';border-left:4px solid '+fgColor+';border-radius:12px;padding:12px 14px;margin-bottom:4px;">'
     +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.1rem;color:'+fgColor+';">'+tipo+'</div>'
-    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:2px;">'+salaIcon(sala)+' '+SLBL[sala]+' · '+pp.length+' palés · '+piezasTotales.toLocaleString()+' piezas</div>'
+    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:2px;">'+salaIcon(sala)+' '+SLBL[sala]+' · '+pp.length+' palets · '+piezasTotales.toLocaleString()+' piezas</div>'
     +'</div>';
   // Agrupar por variedad·formato
   var grupos={};
@@ -2258,7 +2259,7 @@ function abrirDrill(sala,tipo){
       +'<div style="font-size:0.75rem;color:var(--text3);margin-top:2px;">'+piezas.toLocaleString()+' piezas</div>'
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:8px;">'
-      +'<span style="background:'+bgColor+';color:'+fgColor+';border-radius:8px;padding:3px 10px;font-size:0.8rem;font-weight:700;">'+g.pales.length+' palés</span>'
+      +'<span style="background:'+bgColor+';color:'+fgColor+';border-radius:8px;padding:3px 10px;font-size:0.8rem;font-weight:700;">'+g.pales.length+' palets</span>'
       +'<span style="color:var(--text3);">›</span>'
       +'</div>'
       +'</div>';
@@ -2280,7 +2281,7 @@ function abrirDrill2(sala,tipo,variedad,fmt){
   document.getElementById('drill2-header').innerHTML=
     '<div style="background:'+bgColor+';border-left:4px solid '+fgColor+';border-radius:12px;padding:12px 14px;margin-bottom:12px;">'
     +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1rem;color:'+fgColor+';">'+label+'</div>'
-    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:2px;">'+salaIcon(sala)+' '+SLBL[sala]+' · '+pp.length+' palés · '+piezasTotales.toLocaleString()+' piezas</div>'
+    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:2px;">'+salaIcon(sala)+' '+SLBL[sala]+' · '+pp.length+' palets · '+piezasTotales.toLocaleString()+' piezas</div>'
     +'</div>';
   // Agrupar por fecha/loteCorto
   var isDO=(tipo==='D.O. PAST.'||tipo==='D.O. CRUDA');
@@ -3239,7 +3240,7 @@ function mostrarPalesLote(lote,palesEncontrados){
   var resumen=Object.keys(tipos).map(function(t){return tipos[t]+' '+t;}).join(' · ');
   var headerHtml='<div style="background:var(--bg3);border-radius:12px;padding:12px 14px;margin-bottom:12px;">'
     +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.1rem;color:var(--text);">Lote '+lote+'</div>'
-    +'<div style="font-size:0.8rem;color:var(--text3);margin-top:4px;">'+palesEncontrados.length+' palés · '+(totalPiezas?totalPiezas+' pzas · ':'')+resumen+'</div>'
+    +'<div style="font-size:0.8rem;color:var(--text3);margin-top:4px;">'+palesEncontrados.length+' palets · '+(totalPiezas?totalPiezas+' pzas · ':'')+resumen+'</div>'
     +'</div>';
   // Lista de palés — ordenar por tipo, variedad, formato
   palesEncontrados.sort(function(a,b){
