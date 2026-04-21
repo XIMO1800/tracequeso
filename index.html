@@ -1861,7 +1861,7 @@ function renderSeleccionSemanal(){
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0;">'
       +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.5rem;color:'+textColor+';">'+g.pales.length+'</div>'
-      +'<div style="font-size:0.65rem;color:var(--text3);">palés</div>'
+      +'<div style="font-size:0.65rem;color:var(--text3);">palets</div>'
       +'</div>'
       +'<span style="color:var(--text3);font-size:1.2rem;">›</span>'
       +'</button>';
@@ -2405,7 +2405,8 @@ function procesarDatos(rows){
     var fmt=(row['FORMATO/PESO']||'').toString().trim().toUpperCase();
     var pz=parseInt(row['Nº DE PIEZAS'])||0;
     var lq=(row['LOTE QUESO']||'').toString().trim();
-    if(!map[pid])map[pid]={id:pid,tipo:normTipo(tq)||'?',variedad:getVariedad(pid),formato:fmt||'—',piezas:pz,lote:lq,sala:sd||sv||so||'2.GOLPE FRIO',fechaFab:null,pesoFijo:fmt==='1 KG',ops:[]};
+    var pidInfo=parsearId(pid);
+    if(!map[pid])map[pid]={id:pid,tipo:normTipo(tq)||'?',variedad:getVariedad(pid),formato:fmt||'—',piezas:pz,lote:lq,loteCorto:pidInfo.loteCorto||'',sala:sd||sv||so||'2.GOLPE FRIO',fechaFab:null,pesoFijo:fmt==='1 KG',ops:[]};
     var p=map[pid];
     if(tq)p.tipo=normTipo(tq);if(fmt)p.formato=fmt;if(pz)p.piezas=pz;if(lq)p.lote=lq;
     if(sec==='1ª CAPA'){
