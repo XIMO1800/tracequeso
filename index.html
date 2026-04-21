@@ -1851,7 +1851,7 @@ function renderSeleccionSemanal(){
     var textColor=esVencido?'var(--red)':'var(--text)';
     var fechaLabel=g.fecha.toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'2-digit',year:'2-digit'});
     var lotesMap={};
-    g.pales.forEach(function(p){var lc=p.loteCorto||p.lote||'—';if(!lotesMap[lc])lotesMap[lc]=0;lotesMap[lc]++;});
+    g.pales.forEach(function(p){var lc=p.loteCorto||'—';if(!lotesMap[lc])lotesMap[lc]=0;lotesMap[lc]++;});
     var lotesStr=Object.keys(lotesMap).map(function(l){return 'L-'+l+(lotesMap[l]>1?' ('+lotesMap[l]+')':'');}).join(' · ');
     html+='<button onclick="abrirSeleccionFecha(\''+key+'\')" style="width:100%;background:'+bgColor+';border:2px solid '+borderColor+';border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:var(--shadow);margin-bottom:10px;text-align:left;">'
       +'<div style="width:10px;min-height:50px;background:'+barColor+';border-radius:5px;flex-shrink:0;"></div>'
@@ -1888,7 +1888,7 @@ function abrirSeleccionFecha(key){
   // Agrupar por lote corto
   var lotes={};
   candidatos.forEach(function(p){
-    var lc=p.loteCorto||p.lote||'—';
+    var lc=p.loteCorto||'—';
     if(!lotes[lc])lotes[lc]={lote:lc,pales:[],piezas:0};
     lotes[lc].pales.push(p);
     lotes[lc].piezas+=(p.piezas||0);
