@@ -2370,7 +2370,19 @@ function procesarDatos(rows){
     if(!map[pid])map[pid]={id:pid,tipo:normTipo(tq)||'?',variedad:getVariedad(pid),formato:fmt||'—',piezas:pz,lote:lq,sala:sd||sv||so||'2.GOLPE FRIO',fechaFab:null,pesoFijo:fmt==='1 KG',ops:[]};
     var p=map[pid];
     if(tq)p.tipo=normTipo(tq);if(fmt)p.formato=fmt;if(pz)p.piezas=pz;if(lq)p.lote=lq;
-    var pm=parseFloat(row['PESO MEDIO']||'');if(pm>0&&sec==='1ª CAPA')p.pesoMedio=pm;
+    if(sec==='1ª CAPA'){
+      var pm=parseFloat(row['PESO MEDIO']||'');
+      if(pm>0){
+        p.pesoMedio=pm; // usar el valor guardado en Sheets si existe
+      } else {
+        // Calcular en tiempo real desde PESO PALET y Nº DE PIEZAS (columna virtual)
+        var pesoBrutoRow=row['PESO PALET']||'';
+        var pzRow=parseInt(row['Nº DE PIEZAS'])||pz;
+        var infoRow=parsearId(pid);
+        var pmCalc=calcPesoMedio(pesoBrutoRow,pzRow,infoRow.fmtD);
+        if(pmCalc)p.pesoMedio=pmCalc;
+      }
+    }
     if(sd&&sec!=='2ª CAPA'&&sec!=='PINTURA')p.sala=sd;
     else if(sv&&sec==='VOLTEO')p.sala=sv;
     var o={sec:sec,fecha:fecha?fecha.toISOString():null,op:op};
