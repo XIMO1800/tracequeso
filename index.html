@@ -1910,18 +1910,7 @@ function abrirSeleccionFecha(key){
       var nPale=parsearId(p.id||'').nPale||'?';
       var pm=p.pesoMedio?p.pesoMedio.toFixed(3)+' kg/pza':'—';
       var paleId=(p.id||'').replace(/'/g,"\'");
-      html+='<div onclick="verHistorialDesdeSeleccion(\''+paleId+'\')" style="padding:10px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--bg2);">'
-        +'<div style="flex:1;">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-        +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.85rem;color:var(--text3);">L-'+l.lote+'</span>'
-        +'<span style="font-family:\'Karla\',sans-serif;font-weight:900;font-size:1.4rem;color:var(--accent);line-height:1;">'+nPale+'</span>'
-        +'</div>'
-        +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:3px;">'
-        +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text);">'+pm+'</span>'
-        +'<span style="font-size:0.72rem;color:var(--text3);">'+p.piezas+' pzas</span>'
-        +'</div>'
-        +'</div>'
-        +'<span style="color:var(--text3);font-size:1rem;margin-left:8px;">›</span>'
+      html+='<div onclick="verHistorialDesdeSeleccion(\''+paleId+'\')" style="padding:10px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--bg2);">'        +'<div style="flex:1;">'        +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.1rem;color:var(--text);">L-'+l.lote+'</div>'        +'<div style="display:flex;align-items:baseline;gap:4px;margin-top:2px;">'        +'<span style="font-size:0.68rem;color:var(--text3);font-weight:400;">palet nº</span>'        +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.1rem;color:var(--text);">'+nPale+'</span>'        +'</div>'        +'</div>'        +'<div style="text-align:right;flex-shrink:0;">'        +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text);">'+pm+'</div>'        +'<div style="font-size:0.68rem;color:var(--text3);margin-top:2px;">'+p.piezas+' pzas</div>'        +'</div>'        +'<span style="color:var(--text3);font-size:1rem;margin-left:8px;">›</span>'        +'</div>';
         +'</div>';
     });
     html+='</div>';
