@@ -3412,11 +3412,13 @@ function mostrarDetalleOp(idx){
   var dig=base.replace(/\s/g,'').replace(/\D/g,'');
   var tipo=TQMAP[dig.charAt(0)]||'?';
   var lote=dig.substring(0,7);
-  var isDO=(dig.charAt(0)==='3'||dig.charAt(0)==='4');
-  var nPale=isDO?dig.substring(7,9):dig.charAt(8);
-  var fmtD=dig.charAt(9);
+  var fmtD=dig.charAt(8);
   var fmt=FMAP[fmtD]||'—';
-  var piezas=parseInt(dig.substring(10,13))||0;
+  var piezas=parseInt(dig.substring(9,12))||0;
+  // D.O. PAST.(3) y D.O. CRUDA(4) formato 3KG: pos 7+8 = nº palé (sin cuba)
+  // Resto: pos 7 = cuba, pos 8 = nº palé
+  var isDO3=(( dig.charAt(0)==='3'||dig.charAt(0)==='4')&&fmtD==='3');
+  var nPale=isDO3?dig.substring(6,8):dig.charAt(7);
   // Variedad: entre * y !
   var variedad='—';
   var mV=id.match(/\*([^!]+)/);
