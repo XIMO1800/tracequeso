@@ -1104,7 +1104,8 @@ function onC1Key(e){
   }
 }
 function registrarC1(codigo){
-  var paleId=codigo.trim();
+  var codigoCompleto=codigo.trim();
+  var paleId=codigoCompleto.split('*')[0].trim();
   // Validar fecha del ID
   var val=validarFechaId(paleId);
   if(val.ok===false){mostrarErrFecha('c1-err',val.msg);return;}
@@ -1113,7 +1114,7 @@ function registrarC1(codigo){
   // Prevenir doble escaneo
   var yaReg=misRegs.find(function(r){return r.pale===paleId&&r.sec==='1ª CAPA'&&r.op===CU.n;});
   if(yaReg){toast('⚠️ '+paleId+' ya registrado hoy en 1ª Capa','err');return;}
-  var info=parsearId(paleId);
+  var info=parsearId(codigoCompleto);
   // Determinar lote(s)
   var loteUsado=loteC1;
   if(transC1>0){
@@ -1184,8 +1185,10 @@ function onVolteoKey(e){
   }
 }
 function registrarVolteo(codigo){
-  var paleId=codigo.split('*')[0];
   var codigoCompleto=codigo.trim();
+  var paleId=codigoCompleto.split('*')[0].trim();
+  var p=pales.find(function(x){return x.id===paleId;});
+  var errEl=document.getElementById('v-err');
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('v-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('v-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('v-err');}
   if(p && p.sala !== salaVolteoActual){
     errEl.textContent='⚠️ El palé '+paleId+' no está en '+SLBL[salaVolteoActual]+' — está en '+sl(p.sala);
@@ -1840,7 +1843,8 @@ function renderSeleccionSemanal(){
   candidatos.forEach(function(p){
     var fSel=fechaSeleccionPale(p);
     var fSelMed=new Date(fSel.getFullYear(),fSel.getMonth(),fSel.getDate());
-    var key=fSelMed.toISOString().split('T')[0];
+    var _pad=function(n){return n<10?'0'+n:''+n;};
+    var key=fSelMed.getFullYear()+'-'+_pad(fSelMed.getMonth()+1)+'-'+_pad(fSelMed.getDate());
     if(!porFecha[key])porFecha[key]={fecha:fSelMed,pales:[],totalPiezas:0};
     porFecha[key].pales.push(p);
     porFecha[key].totalPiezas+=(p.piezas||0);
@@ -1890,9 +1894,11 @@ function abrirSeleccionFecha(key){
     if(!candidatoSeleccion(p))return false;
     var fSel=fechaSeleccionPale(p);
     var fSelMed=new Date(fSel.getFullYear(),fSel.getMonth(),fSel.getDate());
-    return fSelMed.toISOString().split('T')[0]===key;
+    var _pad2=function(n){return n<10?'0'+n:''+n;};
+    return fSelMed.getFullYear()+'-'+_pad2(fSelMed.getMonth()+1)+'-'+_pad2(fSelMed.getDate())===key;
   });
-  var fLabel=new Date(key+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'long'});
+  var keyParts=key.split('-');var fDate=new Date(parseInt(keyParts[0]),parseInt(keyParts[1])-1,parseInt(keyParts[2]));
+  var fLabel=fDate.toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'long'});
   document.getElementById('plan-detalle-title').textContent='⚖️ '+fLabel;
   // Agrupar por lote corto
   var lotes={};
