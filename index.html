@@ -2599,7 +2599,9 @@ function parseFecha(f){
   // Formato antiguo TraceQueso: "19/04/2026 08:26"
   var m2=f.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
   if(m2)return new Date(m2[3],m2[2]-1,m2[1],m2[4],m2[5]);
-  // Formato ISO: "2026-04-19T14:39:23.000Z"
+  // Formato ISO: "2026-04-19T14:39:23.000Z" — convertir a hora local evitando desfase UTC
+  var mISO=f.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+  if(mISO)return new Date(parseInt(mISO[1]),parseInt(mISO[2])-1,parseInt(mISO[3]),parseInt(mISO[4]),parseInt(mISO[5]),parseInt(mISO[6]));
   var d=new Date(f);return isNaN(d)?null:d;
 }
 // ═══════ FICHA EDITABLE REGISTRO ═══════
