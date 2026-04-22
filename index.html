@@ -1104,7 +1104,8 @@ function onC1Key(e){
   }
 }
 function registrarC1(codigo){
-  var paleId=codigo.trim();
+  var codigoCompleto=codigo.trim();
+  var paleId=codigoCompleto.split('*')[0].trim();
   // Validar fecha del ID
   var val=validarFechaId(paleId);
   if(val.ok===false){mostrarErrFecha('c1-err',val.msg);return;}
@@ -1113,7 +1114,7 @@ function registrarC1(codigo){
   // Prevenir doble escaneo
   var yaReg=misRegs.find(function(r){return r.pale===paleId&&r.sec==='1ª CAPA'&&r.op===CU.n;});
   if(yaReg){toast('⚠️ '+paleId+' ya registrado hoy en 1ª Capa','err');return;}
-  var info=parsearId(paleId);
+  var info=parsearId(codigoCompleto);
   // Determinar lote(s)
   var loteUsado=loteC1;
   if(transC1>0){
@@ -1126,7 +1127,7 @@ function registrarC1(codigo){
   var pesoBruto=document.getElementById('c1-peso').value||'';
   var pesoMedio=calcPesoMedio(pesoBruto,info.piezas,info.fmtD);
   var datos={
-    'ID PALET':paleId,
+    'ID PALET':codigoCompleto,
     'SECCIÓN':'1ª CAPA',
     'OPERARIO':CU.n,
     'FECHA':new Date().toLocaleString('es-ES'),
@@ -1184,8 +1185,10 @@ function onVolteoKey(e){
   }
 }
 function registrarVolteo(codigo){
-  var paleId=codigo.split('*')[0];
   var codigoCompleto=codigo.trim();
+  var paleId=codigoCompleto.split('*')[0].trim();
+  var p=pales.find(function(x){return x.id===paleId;});
+  var errEl=document.getElementById('v-err');
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('v-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('v-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('v-err');}
   if(p && p.sala !== salaVolteoActual){
     errEl.textContent='⚠️ El palé '+paleId+' no está en '+SLBL[salaVolteoActual]+' — está en '+sl(p.sala);
@@ -1197,7 +1200,7 @@ function registrarVolteo(codigo){
   errEl.style.display='none';
   var salaActualVolteo=p?p.sala:salaVolteoActual;
   var infoV=parsearId(codigoCompleto||paleId);
-  var datos={'ID PALET':paleId,'SECCIÓN':'VOLTEO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoV.lote||paleId.substring(0,7),'TIPO DE QUESO':infoV.tipo,'VARIEDAD':infoV.variedad,'FORMATO/PESO':infoV.fmt,'Nº DE PIEZAS':infoV.piezas||'','SALA VOLTEO':salaVolteoActual,'SALA ORIGEN':salaActualVolteo,'SALA DESTINO':salaVolteoActual};
+  var datos={'ID PALET':codigoCompleto,'SECCIÓN':'VOLTEO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoV.lote||paleId.substring(0,7),'TIPO DE QUESO':infoV.tipo,'VARIEDAD':infoV.variedad,'FORMATO/PESO':infoV.fmt,'Nº DE PIEZAS':infoV.piezas||'','SALA VOLTEO':salaVolteoActual,'SALA ORIGEN':salaActualVolteo,'SALA DESTINO':salaVolteoActual};
   guardarRegistro(datos,'VOLTEO',paleId);
   cntVolteo++;document.getElementById('v-cnt').textContent=cntVolteo;
   renderLogVolteo();
@@ -1233,7 +1236,7 @@ function registrarC2(codigo){
     else document.getElementById('c2-lote-activo').textContent=loteUsado;
   }
   var infoC2=parsearId(codigoCompleto||paleId);
-  var datos={'ID PALET':paleId,'SECCIÓN':'2ª CAPA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoC2.lote||paleId.substring(0,7),'TIPO DE QUESO':infoC2.tipo,'VARIEDAD':infoC2.variedad,'FORMATO/PESO':infoC2.fmt,'Nº DE PIEZAS':infoC2.piezas||'','PRODUCTO':'INMERSIÓN','LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaActual,'SALA DESTINO':salaActual,'OBSERVACIONES':document.getElementById('c2-notas').value};
+  var datos={'ID PALET':codigoCompleto,'SECCIÓN':'2ª CAPA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoC2.lote||paleId.substring(0,7),'TIPO DE QUESO':infoC2.tipo,'VARIEDAD':infoC2.variedad,'FORMATO/PESO':infoC2.fmt,'Nº DE PIEZAS':infoC2.piezas||'','PRODUCTO':'INMERSIÓN','LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaActual,'SALA DESTINO':salaActual,'OBSERVACIONES':document.getElementById('c2-notas').value};
   guardarRegistro(datos,'2ª CAPA',paleId);
   cntC2++;document.getElementById('c2-cnt').textContent=cntC2;
   renderLogC2();
@@ -1272,7 +1275,7 @@ function registrarMov(codigo){
   }
   errEl.style.display='none';
   var infoM=parsearId(codigoCompleto||paleId);
-  var datos={'ID PALET':paleId,'SECCIÓN':'MOVIMIENTO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoM.lote||paleId.substring(0,7),'TIPO DE QUESO':infoM.tipo,'VARIEDAD':infoM.variedad,'FORMATO/PESO':infoM.fmt,'Nº DE PIEZAS':infoM.piezas||'','SALA ORIGEN':orig,'SALA DESTINO':dest};
+  var datos={'ID PALET':codigoCompleto,'SECCIÓN':'MOVIMIENTO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoM.lote||paleId.substring(0,7),'TIPO DE QUESO':infoM.tipo,'VARIEDAD':infoM.variedad,'FORMATO/PESO':infoM.fmt,'Nº DE PIEZAS':infoM.piezas||'','SALA ORIGEN':orig,'SALA DESTINO':dest};
   guardarRegistro(datos,'MOVIMIENTO',paleId);
   if(p)p.sala=dest;
   cntMov++;document.getElementById('mov-cnt').textContent=cntMov;
@@ -1334,7 +1337,7 @@ function registrarPint(codigo){
   var p=pales.find(function(x){return x.id===paleId;});
   var salaPint=p?p.sala:'';
   var infoP=parsearId(codigoCompleto||paleId);
-  var datos={'ID PALET':paleId,'SECCIÓN':'PINTURA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoP.lote||paleId.substring(0,7),'TIPO DE QUESO':infoP.tipo,'VARIEDAD':infoP.variedad,'FORMATO/PESO':infoP.fmt,'Nº DE PIEZAS':infoP.piezas||'','PRODUCTO':pintProdActual,'LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaPint,'SALA DESTINO':salaPint,'OBSERVACIONES':document.getElementById('pint-notas').value};
+  var datos={'ID PALET':codigoCompleto,'SECCIÓN':'PINTURA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoP.lote||paleId.substring(0,7),'TIPO DE QUESO':infoP.tipo,'VARIEDAD':infoP.variedad,'FORMATO/PESO':infoP.fmt,'Nº DE PIEZAS':infoP.piezas||'','PRODUCTO':pintProdActual,'LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaPint,'SALA DESTINO':salaPint,'OBSERVACIONES':document.getElementById('pint-notas').value};
   guardarRegistro(datos,'PINTURA',paleId);
   cntPint++;document.getElementById('pint-cnt').textContent=cntPint;
   renderLogPint();
@@ -1840,7 +1843,8 @@ function renderSeleccionSemanal(){
   candidatos.forEach(function(p){
     var fSel=fechaSeleccionPale(p);
     var fSelMed=new Date(fSel.getFullYear(),fSel.getMonth(),fSel.getDate());
-    var key=fSelMed.toISOString().split('T')[0];
+    var _pad=function(n){return n<10?'0'+n:''+n;};
+    var key=fSelMed.getFullYear()+'-'+_pad(fSelMed.getMonth()+1)+'-'+_pad(fSelMed.getDate());
     if(!porFecha[key])porFecha[key]={fecha:fSelMed,pales:[],totalPiezas:0};
     porFecha[key].pales.push(p);
     porFecha[key].totalPiezas+=(p.piezas||0);
@@ -1890,9 +1894,11 @@ function abrirSeleccionFecha(key){
     if(!candidatoSeleccion(p))return false;
     var fSel=fechaSeleccionPale(p);
     var fSelMed=new Date(fSel.getFullYear(),fSel.getMonth(),fSel.getDate());
-    return fSelMed.toISOString().split('T')[0]===key;
+    var _pad2=function(n){return n<10?'0'+n:''+n;};
+    return fSelMed.getFullYear()+'-'+_pad2(fSelMed.getMonth()+1)+'-'+_pad2(fSelMed.getDate())===key;
   });
-  var fLabel=new Date(key+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'long'});
+  var keyParts=key.split('-');var fDate=new Date(parseInt(keyParts[0]),parseInt(keyParts[1])-1,parseInt(keyParts[2]));
+  var fLabel=fDate.toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'long'});
   document.getElementById('plan-detalle-title').textContent='⚖️ '+fLabel;
   // Agrupar por lote corto
   var lotes={};
@@ -3406,10 +3412,13 @@ function mostrarDetalleOp(idx){
   var dig=base.replace(/\s/g,'').replace(/\D/g,'');
   var tipo=TQMAP[dig.charAt(0)]||'?';
   var lote=dig.substring(0,7);
-  var nPale=dig.charAt(7);
   var fmtD=dig.charAt(8);
   var fmt=FMAP[fmtD]||'—';
   var piezas=parseInt(dig.substring(9,12))||0;
+  // D.O. PAST.(3) y D.O. CRUDA(4) formato 3KG: pos 7+8 = nº palé (sin cuba)
+  // Resto: pos 7 = cuba, pos 8 = nº palé
+  var isDO3=(( dig.charAt(0)==='3'||dig.charAt(0)==='4')&&fmtD==='3');
+  var nPale=isDO3?dig.substring(6,8):dig.charAt(7);
   // Variedad: entre * y !
   var variedad='—';
   var mV=id.match(/\*([^!]+)/);
