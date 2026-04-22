@@ -1185,6 +1185,7 @@ function onVolteoKey(e){
 }
 function registrarVolteo(codigo){
   var paleId=codigo.split('*')[0];
+  var codigoCompleto=codigo.trim();
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('v-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('v-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('v-err');}
   if(p && p.sala !== salaVolteoActual){
     errEl.textContent='⚠️ El palé '+paleId+' no está en '+SLBL[salaVolteoActual]+' — está en '+sl(p.sala);
@@ -1195,7 +1196,7 @@ function registrarVolteo(codigo){
   }
   errEl.style.display='none';
   var salaActualVolteo=p?p.sala:salaVolteoActual;
-  var infoV=parsearId(paleId);
+  var infoV=parsearId(codigoCompleto||paleId);
   var datos={'ID PALET':paleId,'SECCIÓN':'VOLTEO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoV.lote||paleId.substring(0,7),'TIPO DE QUESO':infoV.tipo,'VARIEDAD':infoV.variedad,'FORMATO/PESO':infoV.fmt,'Nº DE PIEZAS':infoV.piezas||'','SALA VOLTEO':salaVolteoActual,'SALA ORIGEN':salaActualVolteo,'SALA DESTINO':salaVolteoActual};
   guardarRegistro(datos,'VOLTEO',paleId);
   cntVolteo++;document.getElementById('v-cnt').textContent=cntVolteo;
@@ -1220,6 +1221,7 @@ function onNuevoLoteC2(v){nuevoLoteC2=v.trim();transC2=v.trim()?2:0;}
 function onC2Key(e){if(e.key==='Enter'){var v=document.getElementById('c2-qr').value.trim();if(v){registrarC2(v);document.getElementById('c2-qr').value='';}}}
 function registrarC2(codigo){
   var paleId=codigo.split('*')[0];
+  var codigoCompleto=codigo.trim();
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('c2-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('c2-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('c2-err');}
   var p=pales.find(function(x){return x.id===paleId;});
   var salaActual=p?p.sala:'';
@@ -1230,7 +1232,7 @@ function registrarC2(codigo){
     if(transC2===0){loteC2=nuevoLoteC2;nuevoLoteC2='';document.getElementById('c2-nuevo-lote-wrap').style.display='none';document.getElementById('c2-nuevo-lote').value='';document.getElementById('c2-lote-activo').textContent=loteC2;toast('Lote actualizado: '+loteC2);}
     else document.getElementById('c2-lote-activo').textContent=loteUsado;
   }
-  var infoC2=parsearId(paleId);
+  var infoC2=parsearId(codigoCompleto||paleId);
   var datos={'ID PALET':paleId,'SECCIÓN':'2ª CAPA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoC2.lote||paleId.substring(0,7),'TIPO DE QUESO':infoC2.tipo,'VARIEDAD':infoC2.variedad,'FORMATO/PESO':infoC2.fmt,'Nº DE PIEZAS':infoC2.piezas||'','PRODUCTO':'INMERSIÓN','LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaActual,'SALA DESTINO':salaActual,'OBSERVACIONES':document.getElementById('c2-notas').value};
   guardarRegistro(datos,'2ª CAPA',paleId);
   cntC2++;document.getElementById('c2-cnt').textContent=cntC2;
@@ -1255,6 +1257,7 @@ function initMov(){
 function onMovKey(e){if(e.key==='Enter'){var v=document.getElementById('mov-qr').value.trim();if(v){registrarMov(v);document.getElementById('mov-qr').value='';}}}
 function registrarMov(codigo){
   var paleId=codigo.split('*')[0];
+  var codigoCompleto=codigo.trim();
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('mov-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('mov-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('mov-err');}
   var orig=document.getElementById('mov-orig').value;
   var dest=document.getElementById('mov-dest').value;
@@ -1268,7 +1271,7 @@ function registrarMov(codigo){
     return;
   }
   errEl.style.display='none';
-  var infoM=parsearId(paleId);
+  var infoM=parsearId(codigoCompleto||paleId);
   var datos={'ID PALET':paleId,'SECCIÓN':'MOVIMIENTO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoM.lote||paleId.substring(0,7),'TIPO DE QUESO':infoM.tipo,'VARIEDAD':infoM.variedad,'FORMATO/PESO':infoM.fmt,'Nº DE PIEZAS':infoM.piezas||'','SALA ORIGEN':orig,'SALA DESTINO':dest};
   guardarRegistro(datos,'MOVIMIENTO',paleId);
   if(p)p.sala=dest;
@@ -1310,6 +1313,7 @@ function onNuevoLotePint(v){nuevoLotePint=v.trim();transPint=v.trim()?2:0;}
 function onPintKey(e){if(e.key==='Enter'){var v=document.getElementById('pint-qr').value.trim();if(v){registrarPint(v);document.getElementById('pint-qr').value='';}}}
 function registrarPint(codigo){
   var paleId=codigo.split('*')[0];
+  var codigoCompleto=codigo.trim();
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('pint-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('pint-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('pint-err');}
   var loteActual=lotePinturaPorProducto[pintProdActual]||'';
   var loteUsado=loteActual;
@@ -1329,7 +1333,7 @@ function registrarPint(codigo){
   }
   var p=pales.find(function(x){return x.id===paleId;});
   var salaPint=p?p.sala:'';
-  var infoP=parsearId(paleId);
+  var infoP=parsearId(codigoCompleto||paleId);
   var datos={'ID PALET':paleId,'SECCIÓN':'PINTURA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoP.lote||paleId.substring(0,7),'TIPO DE QUESO':infoP.tipo,'VARIEDAD':infoP.variedad,'FORMATO/PESO':infoP.fmt,'Nº DE PIEZAS':infoP.piezas||'','PRODUCTO':pintProdActual,'LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaPint,'SALA DESTINO':salaPint,'OBSERVACIONES':document.getElementById('pint-notas').value};
   guardarRegistro(datos,'PINTURA',paleId);
   cntPint++;document.getElementById('pint-cnt').textContent=cntPint;
@@ -1910,7 +1914,7 @@ function abrirSeleccionFecha(key){
       var nPale=parsearId(p.id||'').nPale||'?';
       var pm=p.pesoMedio?p.pesoMedio.toFixed(3)+' kg/pza':'—';
       var paleId=(p.id||'').replace(/'/g,"\'");
-      html+='<div onclick="verHistorialDesdeSeleccion(\''+paleId+'\')" style="padding:10px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--bg2);">'        +'<div style="flex:1;">'        +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.1rem;color:var(--text);">L-'+l.lote+'</div>'        +'<div style="display:flex;align-items:baseline;gap:4px;margin-top:2px;">'        +'<span style="font-size:0.68rem;color:var(--text3);font-weight:400;">palet nº</span>'        +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.1rem;color:var(--text);">'+nPale+'</span>'        +'</div>'        +'</div>'        +'<div style="text-align:right;flex-shrink:0;">'        +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text);">'+pm+'</div>'        +'<div style="font-size:0.68rem;color:var(--text3);margin-top:2px;">'+p.piezas+' pzas</div>'        +'</div>'        +'<span style="color:var(--text3);font-size:1rem;margin-left:8px;">›</span>'        +'</div>';
+      html+='<div onclick="verHistorialDesdeSeleccion(\''+paleId+'\')" style="padding:12px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--bg2);">'        +'<div style="flex:1;">'        +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.2rem;color:var(--text);">L-'+l.lote+'</div>'        +'<div style="display:flex;align-items:baseline;gap:4px;margin-top:3px;">'        +'<span style="font-size:0.65rem;color:var(--text3);font-weight:400;">palet nº</span>'        +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.2rem;color:var(--text);">'+nPale+'</span>'        +'</div>'        +'</div>'        +'<div style="text-align:right;flex-shrink:0;margin-left:12px;">'        +'<div style="font-size:0.78rem;color:var(--text2);font-weight:600;">'+pm+'</div>'        +'<div style="font-size:0.68rem;color:var(--text3);margin-top:3px;">'+p.piezas+' pzas</div>'        +'</div>'        +'<span style="color:var(--text3);font-size:1rem;margin-left:8px;">›</span>'        +'</div>';
         +'</div>';
     });
     html+='</div>';
