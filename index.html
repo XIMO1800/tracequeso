@@ -1185,6 +1185,7 @@ function onVolteoKey(e){
 }
 function registrarVolteo(codigo){
   var paleId=codigo.split('*')[0];
+  var codigoCompleto=codigo.trim();
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('v-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('v-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('v-err');}
   if(p && p.sala !== salaVolteoActual){
     errEl.textContent='⚠️ El palé '+paleId+' no está en '+SLBL[salaVolteoActual]+' — está en '+sl(p.sala);
@@ -1195,7 +1196,8 @@ function registrarVolteo(codigo){
   }
   errEl.style.display='none';
   var salaActualVolteo=p?p.sala:salaVolteoActual;
-  var datos={'ID PALET':paleId,'SECCIÓN':'VOLTEO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'SALA VOLTEO':salaVolteoActual,'SALA ORIGEN':salaActualVolteo,'SALA DESTINO':salaVolteoActual,'LOTE QUESO':paleId.substring(0,7)};
+  var infoV=parsearId(codigoCompleto||paleId);
+  var datos={'ID PALET':paleId,'SECCIÓN':'VOLTEO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoV.lote||paleId.substring(0,7),'TIPO DE QUESO':infoV.tipo,'VARIEDAD':infoV.variedad,'FORMATO/PESO':infoV.fmt,'Nº DE PIEZAS':infoV.piezas||'','SALA VOLTEO':salaVolteoActual,'SALA ORIGEN':salaActualVolteo,'SALA DESTINO':salaVolteoActual};
   guardarRegistro(datos,'VOLTEO',paleId);
   cntVolteo++;document.getElementById('v-cnt').textContent=cntVolteo;
   renderLogVolteo();
@@ -1219,6 +1221,7 @@ function onNuevoLoteC2(v){nuevoLoteC2=v.trim();transC2=v.trim()?2:0;}
 function onC2Key(e){if(e.key==='Enter'){var v=document.getElementById('c2-qr').value.trim();if(v){registrarC2(v);document.getElementById('c2-qr').value='';}}}
 function registrarC2(codigo){
   var paleId=codigo.split('*')[0];
+  var codigoCompleto=codigo.trim();
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('c2-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('c2-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('c2-err');}
   var p=pales.find(function(x){return x.id===paleId;});
   var salaActual=p?p.sala:'';
@@ -1229,7 +1232,8 @@ function registrarC2(codigo){
     if(transC2===0){loteC2=nuevoLoteC2;nuevoLoteC2='';document.getElementById('c2-nuevo-lote-wrap').style.display='none';document.getElementById('c2-nuevo-lote').value='';document.getElementById('c2-lote-activo').textContent=loteC2;toast('Lote actualizado: '+loteC2);}
     else document.getElementById('c2-lote-activo').textContent=loteUsado;
   }
-  var datos={'ID PALET':paleId,'SECCIÓN':'2ª CAPA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':paleId.substring(0,7),'PRODUCTO':'INMERSIÓN','LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaActual,'SALA DESTINO':salaActual,'OBSERVACIONES':document.getElementById('c2-notas').value};
+  var infoC2=parsearId(codigoCompleto||paleId);
+  var datos={'ID PALET':paleId,'SECCIÓN':'2ª CAPA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoC2.lote||paleId.substring(0,7),'TIPO DE QUESO':infoC2.tipo,'VARIEDAD':infoC2.variedad,'FORMATO/PESO':infoC2.fmt,'Nº DE PIEZAS':infoC2.piezas||'','PRODUCTO':'INMERSIÓN','LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaActual,'SALA DESTINO':salaActual,'OBSERVACIONES':document.getElementById('c2-notas').value};
   guardarRegistro(datos,'2ª CAPA',paleId);
   cntC2++;document.getElementById('c2-cnt').textContent=cntC2;
   renderLogC2();
@@ -1253,6 +1257,7 @@ function initMov(){
 function onMovKey(e){if(e.key==='Enter'){var v=document.getElementById('mov-qr').value.trim();if(v){registrarMov(v);document.getElementById('mov-qr').value='';}}}
 function registrarMov(codigo){
   var paleId=codigo.split('*')[0];
+  var codigoCompleto=codigo.trim();
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('mov-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('mov-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('mov-err');}
   var orig=document.getElementById('mov-orig').value;
   var dest=document.getElementById('mov-dest').value;
@@ -1266,7 +1271,8 @@ function registrarMov(codigo){
     return;
   }
   errEl.style.display='none';
-  var datos={'ID PALET':paleId,'SECCIÓN':'MOVIMIENTO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'SALA ORIGEN':orig,'SALA DESTINO':dest,'LOTE QUESO':paleId.substring(0,7)};
+  var infoM=parsearId(codigoCompleto||paleId);
+  var datos={'ID PALET':paleId,'SECCIÓN':'MOVIMIENTO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoM.lote||paleId.substring(0,7),'TIPO DE QUESO':infoM.tipo,'VARIEDAD':infoM.variedad,'FORMATO/PESO':infoM.fmt,'Nº DE PIEZAS':infoM.piezas||'','SALA ORIGEN':orig,'SALA DESTINO':dest};
   guardarRegistro(datos,'MOVIMIENTO',paleId);
   if(p)p.sala=dest;
   cntMov++;document.getElementById('mov-cnt').textContent=cntMov;
@@ -1307,6 +1313,7 @@ function onNuevoLotePint(v){nuevoLotePint=v.trim();transPint=v.trim()?2:0;}
 function onPintKey(e){if(e.key==='Enter'){var v=document.getElementById('pint-qr').value.trim();if(v){registrarPint(v);document.getElementById('pint-qr').value='';}}}
 function registrarPint(codigo){
   var paleId=codigo.split('*')[0];
+  var codigoCompleto=codigo.trim();
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('pint-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('pint-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('pint-err');}
   var loteActual=lotePinturaPorProducto[pintProdActual]||'';
   var loteUsado=loteActual;
@@ -1326,7 +1333,8 @@ function registrarPint(codigo){
   }
   var p=pales.find(function(x){return x.id===paleId;});
   var salaPint=p?p.sala:'';
-  var datos={'ID PALET':paleId,'SECCIÓN':'PINTURA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'PRODUCTO':pintProdActual,'LOTE PRODUCTO':loteUsado,'LOTE QUESO':paleId.substring(0,7),'SALA ORIGEN':salaPint,'SALA DESTINO':salaPint,'OBSERVACIONES':document.getElementById('pint-notas').value};
+  var infoP=parsearId(codigoCompleto||paleId);
+  var datos={'ID PALET':paleId,'SECCIÓN':'PINTURA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoP.lote||paleId.substring(0,7),'TIPO DE QUESO':infoP.tipo,'VARIEDAD':infoP.variedad,'FORMATO/PESO':infoP.fmt,'Nº DE PIEZAS':infoP.piezas||'','PRODUCTO':pintProdActual,'LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaPint,'SALA DESTINO':salaPint,'OBSERVACIONES':document.getElementById('pint-notas').value};
   guardarRegistro(datos,'PINTURA',paleId);
   cntPint++;document.getElementById('pint-cnt').textContent=cntPint;
   renderLogPint();
@@ -1415,7 +1423,7 @@ function renderRegs(){
     var col=SCOLOR[sec]||'#5a5a5a';
     html+='<div style="background:'+col+';color:#fff;border-radius:12px 12px 0 0;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:12px;">'
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;">'+(SICON[sec]||'📝')+' '+sec+'</span>'
-      +'<span style="font-family:\'Inconsolata\',monospace;font-size:0.75rem;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">'+regs.length+' palés</span>'
+      +'<span style="font-family:\'Inconsolata\',monospace;font-size:0.75rem;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">'+regs.length+' palets</span>'
       +'</div>';
     html+='<div style="border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;overflow:hidden;margin-bottom:4px;">';
     var fmtOrder={'3 KG':0,'2 KG':1,'1 KG':2,'BARRA':3,'SUPERMINIS':4};
@@ -1437,7 +1445,7 @@ function renderRegs(){
         var ruta=rutas[rutaKey];
         html+='<div style="background:#c8780a;color:#fff;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;border-top:2px solid rgba(0,0,0,0.1);">'
           +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;">🚚 '+ruta.label+'</span>'
-          +'<span style="font-size:0.72rem;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">'+ruta.total+' palés</span>'
+          +'<span style="font-size:0.72rem;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">'+ruta.total+' palets</span>'
           +'</div>';
         var tkeys=Object.keys(ruta.grupos).sort(function(a,b){
           var ga=ruta.grupos[a],gb=ruta.grupos[b];
@@ -1480,25 +1488,26 @@ function renderRegs(){
       if(ga.variedad!==gb.variedad)return ga.variedad.localeCompare(gb.variedad);
       return(fmtOrder[ga.fmt]||9)-(fmtOrder[gb.fmt]||9);
     });
-    var lastTipoVar='';
+    var lastTipoVarFmt='';
     gkeys.forEach(function(key){
       var g=grupos[key];
       var tipoVar=g.tipo+(g.variedad?' · '+g.variedad:'');
+      var tipoVarFmt=tipoVar+' · '+g.fmt;
       var bgColor=tipoColor(g.tipo,'light');
       var fgColor=tipoColor(g.tipo,'bg');
-      if(tipoVar!==lastTipoVar){
+      if(tipoVarFmt!==lastTipoVarFmt){
         html+='<div style="background:'+bgColor+';padding:8px 14px;border-top:2px solid '+fgColor+';display:flex;align-items:center;gap:8px;">'
           +'<div style="width:4px;height:20px;background:'+fgColor+';border-radius:2px;"></div>'
           +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.05rem;color:'+fgColor+';">'+tipoVar+' · '+g.fmt+'</span>'
           +'</div>';
-        lastTipoVar=tipoVar;
+        lastTipoVarFmt=tipoVarFmt;
       }
       var ag=g.tipo==='D.O. PAST.'||g.tipo==='D.O. CRUDA'
         ?{label:'Lote corto',valor:g.agrupador}
         :{label:'Fab.',valor:fechaFabDesdeId(g.pales[0].pale)};
       html+='<div style="background:'+bgColor+';padding:4px 14px 5px 30px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,0,0,0.06);">'
         +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.85rem;color:'+fgColor+';opacity:0.85;">'+ag.valor+'</span>'
-        +'<span style="font-size:0.65rem;color:'+fgColor+';opacity:0.55;">'+g.pales.length+' palés</span>'
+        +'<span style="font-size:0.65rem;color:'+fgColor+';opacity:0.55;">'+g.pales.length+' palets</span>'
         +'</div>';
       g.pales.sort(function(a,b){
         var na=parsearId(a.pale||'').nPale||'0';
@@ -1670,7 +1679,7 @@ function abrirPlanAccion(accion){
     var hayCrit=items.some(function(i){return i.c;});
     var color=SALA_COLORS[sala]||'#5a5a5a';
     var rightContent=items.length
-      ?'<div style="text-align:right;"><div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.5rem;color:'+(hayCrit?'var(--red)':'var(--accent)')+';">'+maxD+' d</div><div style="font-size:0.68rem;color:var(--text3);">'+items.length+' palés</div></div>'
+      ?'<div style="text-align:right;"><div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.5rem;color:'+(hayCrit?'var(--red)':'var(--accent)')+';">'+maxD+' d</div><div style="font-size:0.68rem;color:var(--text3);">'+items.length+' palets</div></div>'
       :'<div style="font-size:1.1rem;color:var(--green);">✅</div>';
     html+='<button onclick="abrirPlanSala(\''+accion+'\',\''+sala+'\')" style="width:100%;background:var(--bg2);border:2px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:var(--shadow);margin-bottom:10px;text-align:left;">'
       +'<div style="width:10px;height:44px;background:'+color+';border-radius:5px;flex-shrink:0;"></div>'
@@ -1703,7 +1712,7 @@ function abrirGolpeFecha(fab){
   var headerHtml='<div style="background:'+(hayCrit?'var(--red-bg)':'var(--blue-bg)')+';border:2px solid '+(hayCrit?'var(--red)':'var(--blue)')+';border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">'
     +'<div>'
     +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1rem;color:'+(hayCrit?'var(--red)':'var(--blue)')+';">fab. '+fabLabel+'</div>'
-    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:3px;">'+palesDelDia.length+' palés · '+totalPiezas.toLocaleString()+' piezas</div>'
+    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:3px;">'+palesDelDia.length+' palets · '+totalPiezas.toLocaleString()+' piezas</div>'
     +'</div>'
     +'<div style="text-align:right;">'
     +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.8rem;color:'+(hayCrit?'var(--red)':'var(--blue)')+';">'+maxD+' d</div>'
@@ -1791,9 +1800,9 @@ function fechaSeleccionPale(p){
   return d;
 }
 function candidatoSeleccion(p){
-  // Candidato válido para selección: D.O.PAST. 1KG, sin venta/pintura/2ªcapa, con peso medio y fecha selección
+  // Candidato válido para selección: D.O.PAST. 1KG, en secadero, sin venta/pintura/2ªcapa, con peso medio y fecha selección
   if(p.tipo!=='D.O. PAST.'||p.formato!=='1 KG')return false;
-  if(!p.sala||p.sala==='')return false;
+  if(!enSec(p))return false;
   if(!p.pesoMedio)return false;
   if(!fechaSeleccionPale(p))return false;
   var regsP=rawRows.filter(function(r){return matchPaleId(r['ID PALET'],p.id);});
@@ -1883,7 +1892,8 @@ function abrirSeleccionFecha(key){
     var fSelMed=new Date(fSel.getFullYear(),fSel.getMonth(),fSel.getDate());
     return fSelMed.toISOString().split('T')[0]===key;
   });
-  var fLabel=new Date(key+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'long'});
+  var keyParts=key.split('-');var fDate=new Date(parseInt(keyParts[0]),parseInt(keyParts[1])-1,parseInt(keyParts[2]));
+  var fLabel=fDate.toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'long'});
   document.getElementById('plan-detalle-title').textContent='⚖️ '+fLabel;
   // Agrupar por lote corto
   var lotes={};
@@ -1896,25 +1906,16 @@ function abrirSeleccionFecha(key){
   var totalPzas=candidatos.reduce(function(s,p){return s+(p.piezas||0);},0);
   var html='<div style="background:var(--blue-bg);border:1px solid rgba(26,58,106,0.2);border-radius:12px;padding:12px 14px;margin-bottom:14px;">'
     +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1rem;color:var(--blue);">'+fLabel+'</div>'
-    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:2px;">'+candidatos.length+' palés · '+totalPzas.toLocaleString()+' pzas</div>'
+    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:2px;">'+candidatos.length+' palets · '+totalPzas.toLocaleString()+' pzas</div>'
     +'</div>';
   Object.values(lotes).forEach(function(l){
-    html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">'
-      +'<div style="background:var(--bg3);padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'
-      +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;color:var(--text);">D.O. PAST. · Lote '+l.lote+'</div>'
-      +'<div style="font-size:0.72rem;color:var(--text3);">'+l.pales.length+' palés · '+l.piezas.toLocaleString()+' pzas</div>'
-      +'</div>';
+    html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">';
     l.pales.sort(function(a,b){return parseInt(parsearId(a.id||'').nPale||0)-parseInt(parsearId(b.id||'').nPale||0);});
     l.pales.forEach(function(p){
       var nPale=parsearId(p.id||'').nPale||'?';
       var pm=p.pesoMedio?p.pesoMedio.toFixed(3)+' kg/pza':'—';
       var paleId=(p.id||'').replace(/'/g,"\'");
-      html+='<div onclick="verHistorialDesdeSeleccion(\''+paleId+'\')" style="padding:10px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--bg2);">'
-        +'<div>'
-        +'<div style="display:flex;align-items:baseline;gap:10px;"><span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.2rem;color:var(--accent);">'+nPale+'<span style="font-size:0.65rem;font-weight:400;color:var(--text3);margin-left:2px;"> palé</span></span><span style="font-size:0.88rem;color:var(--text);">'+p.piezas+' pzas · '+pm+'</span></div>'
-        +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.62rem;color:var(--text3);margin-top:1px;">'+p.id+'</div>'
-        +'</div>'
-        +'<span style="color:var(--text3);font-size:1rem;">›</span>'
+      html+='<div onclick="verHistorialDesdeSeleccion(\''+paleId+'\')" style="padding:12px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--bg2);">'        +'<div style="flex:1;">'        +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.2rem;color:var(--text);">L-'+l.lote+'</div>'        +'<div style="display:flex;align-items:baseline;gap:4px;margin-top:3px;">'        +'<span style="font-size:0.65rem;color:var(--text3);font-weight:400;">palet nº</span>'        +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.2rem;color:var(--text);">'+nPale+'</span>'        +'</div>'        +'</div>'        +'<div style="text-align:right;flex-shrink:0;margin-left:12px;">'        +'<div style="font-size:0.78rem;color:var(--text2);font-weight:600;">'+pm+'</div>'        +'<div style="font-size:0.68rem;color:var(--text3);margin-top:3px;">'+p.piezas+' pzas</div>'        +'</div>'        +'<span style="color:var(--text3);font-size:1rem;margin-left:8px;">›</span>'        +'</div>';
         +'</div>';
     });
     html+='</div>';
@@ -2067,7 +2068,7 @@ function renderPlanGrupos(palesList,badgeFn){
       +'<div style="display:flex;align-items:baseline;gap:6px;">'
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;color:'+fgColor+';">'+agVal+'</span>'
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.78rem;color:'+fgColor+';">'+g.pales.length+'</span>'
-      +'<span style="font-size:0.6rem;color:'+fgColor+';opacity:0.45;letter-spacing:0.02em;">palés</span>'
+      +'<span style="font-size:0.6rem;color:'+fgColor+';opacity:0.45;letter-spacing:0.02em;">palets</span>'
       +'</div>'
       +'<span style="font-size:0.6rem;color:'+fgColor+';opacity:0.5;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">'+refRight+'</span>'
       +'</div>';
@@ -2204,7 +2205,7 @@ function renderStock(){
     html+='<div class="stock-card">';
     html+='<div class="stock-sala" style="background:'+color+';">'
          +'<div class="stock-sala-info">'+salaIcon(sala)+' <span>'+SLBL[sala]+'</span></div>'
-         +'<span class="stock-sala-cnt">'+pp.length+' palés</span>'
+         +'<span class="stock-sala-cnt">'+pp.length+' palets</span>'
          +'</div>';
     html+='<div class="stock-sub">'+piezas.toLocaleString()+' piezas totales</div>';
     html+='<div class="stock-tipos">';
@@ -2229,7 +2230,7 @@ function abrirDrill(sala,tipo){
   document.getElementById('drill-header').innerHTML=
     '<div style="background:'+bgColor+';border-left:4px solid '+fgColor+';border-radius:12px;padding:12px 14px;margin-bottom:4px;">'
     +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.1rem;color:'+fgColor+';">'+tipo+'</div>'
-    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:2px;">'+salaIcon(sala)+' '+SLBL[sala]+' · '+pp.length+' palés · '+piezasTotales.toLocaleString()+' piezas</div>'
+    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:2px;">'+salaIcon(sala)+' '+SLBL[sala]+' · '+pp.length+' palets · '+piezasTotales.toLocaleString()+' piezas</div>'
     +'</div>';
   // Agrupar por variedad·formato
   var grupos={};
@@ -2258,7 +2259,7 @@ function abrirDrill(sala,tipo){
       +'<div style="font-size:0.75rem;color:var(--text3);margin-top:2px;">'+piezas.toLocaleString()+' piezas</div>'
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:8px;">'
-      +'<span style="background:'+bgColor+';color:'+fgColor+';border-radius:8px;padding:3px 10px;font-size:0.8rem;font-weight:700;">'+g.pales.length+' palés</span>'
+      +'<span style="background:'+bgColor+';color:'+fgColor+';border-radius:8px;padding:3px 10px;font-size:0.8rem;font-weight:700;">'+g.pales.length+' palets</span>'
       +'<span style="color:var(--text3);">›</span>'
       +'</div>'
       +'</div>';
@@ -2280,7 +2281,7 @@ function abrirDrill2(sala,tipo,variedad,fmt){
   document.getElementById('drill2-header').innerHTML=
     '<div style="background:'+bgColor+';border-left:4px solid '+fgColor+';border-radius:12px;padding:12px 14px;margin-bottom:12px;">'
     +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1rem;color:'+fgColor+';">'+label+'</div>'
-    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:2px;">'+salaIcon(sala)+' '+SLBL[sala]+' · '+pp.length+' palés · '+piezasTotales.toLocaleString()+' piezas</div>'
+    +'<div style="font-size:0.78rem;color:var(--text2);margin-top:2px;">'+salaIcon(sala)+' '+SLBL[sala]+' · '+pp.length+' palets · '+piezasTotales.toLocaleString()+' piezas</div>'
     +'</div>';
   // Agrupar por fecha/loteCorto
   var isDO=(tipo==='D.O. PAST.'||tipo==='D.O. CRUDA');
@@ -2598,7 +2599,9 @@ function parseFecha(f){
   // Formato antiguo TraceQueso: "19/04/2026 08:26"
   var m2=f.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
   if(m2)return new Date(m2[3],m2[2]-1,m2[1],m2[4],m2[5]);
-  // Formato ISO: "2026-04-19T14:39:23.000Z"
+  // Formato ISO: "2026-04-19T14:39:23.000Z" — convertir a hora local evitando desfase UTC
+  var mISO=f.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+  if(mISO)return new Date(parseInt(mISO[1]),parseInt(mISO[2])-1,parseInt(mISO[3]),parseInt(mISO[4]),parseInt(mISO[5]),parseInt(mISO[6]));
   var d=new Date(f);return isNaN(d)?null:d;
 }
 // ═══════ FICHA EDITABLE REGISTRO ═══════
@@ -3239,7 +3242,7 @@ function mostrarPalesLote(lote,palesEncontrados){
   var resumen=Object.keys(tipos).map(function(t){return tipos[t]+' '+t;}).join(' · ');
   var headerHtml='<div style="background:var(--bg3);border-radius:12px;padding:12px 14px;margin-bottom:12px;">'
     +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.1rem;color:var(--text);">Lote '+lote+'</div>'
-    +'<div style="font-size:0.8rem;color:var(--text3);margin-top:4px;">'+palesEncontrados.length+' palés · '+(totalPiezas?totalPiezas+' pzas · ':'')+resumen+'</div>'
+    +'<div style="font-size:0.8rem;color:var(--text3);margin-top:4px;">'+palesEncontrados.length+' palets · '+(totalPiezas?totalPiezas+' pzas · ':'')+resumen+'</div>'
     +'</div>';
   // Lista de palés — ordenar por tipo, variedad, formato
   palesEncontrados.sort(function(a,b){
