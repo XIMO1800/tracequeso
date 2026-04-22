@@ -3412,10 +3412,11 @@ function mostrarDetalleOp(idx){
   var dig=base.replace(/\s/g,'').replace(/\D/g,'');
   var tipo=TQMAP[dig.charAt(0)]||'?';
   var lote=dig.substring(0,7);
-  var nPale=dig.charAt(7);
-  var fmtD=dig.charAt(8);
+  var isDO=(dig.charAt(0)==='3'||dig.charAt(0)==='4');
+  var nPale=isDO?dig.substring(7,9):dig.charAt(8);
+  var fmtD=dig.charAt(9);
   var fmt=FMAP[fmtD]||'—';
-  var piezas=parseInt(dig.substring(9,12))||0;
+  var piezas=parseInt(dig.substring(10,13))||0;
   // Variedad: entre * y !
   var variedad='—';
   var mV=id.match(/\*([^!]+)/);
