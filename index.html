@@ -1127,7 +1127,7 @@ function registrarC1(codigo){
   var pesoBruto=document.getElementById('c1-peso').value||'';
   var pesoMedio=calcPesoMedio(pesoBruto,info.piezas,info.fmtD);
   var datos={
-    'ID PALET':paleId,
+    'ID PALET':codigoCompleto,
     'SECCIÓN':'1ª CAPA',
     'OPERARIO':CU.n,
     'FECHA':new Date().toLocaleString('es-ES'),
@@ -1200,7 +1200,7 @@ function registrarVolteo(codigo){
   errEl.style.display='none';
   var salaActualVolteo=p?p.sala:salaVolteoActual;
   var infoV=parsearId(codigoCompleto||paleId);
-  var datos={'ID PALET':paleId,'SECCIÓN':'VOLTEO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoV.lote||paleId.substring(0,7),'TIPO DE QUESO':infoV.tipo,'VARIEDAD':infoV.variedad,'FORMATO/PESO':infoV.fmt,'Nº DE PIEZAS':infoV.piezas||'','SALA VOLTEO':salaVolteoActual,'SALA ORIGEN':salaActualVolteo,'SALA DESTINO':salaVolteoActual};
+  var datos={'ID PALET':codigoCompleto,'SECCIÓN':'VOLTEO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoV.lote||paleId.substring(0,7),'TIPO DE QUESO':infoV.tipo,'VARIEDAD':infoV.variedad,'FORMATO/PESO':infoV.fmt,'Nº DE PIEZAS':infoV.piezas||'','SALA VOLTEO':salaVolteoActual,'SALA ORIGEN':salaActualVolteo,'SALA DESTINO':salaVolteoActual};
   guardarRegistro(datos,'VOLTEO',paleId);
   cntVolteo++;document.getElementById('v-cnt').textContent=cntVolteo;
   renderLogVolteo();
@@ -1236,7 +1236,7 @@ function registrarC2(codigo){
     else document.getElementById('c2-lote-activo').textContent=loteUsado;
   }
   var infoC2=parsearId(codigoCompleto||paleId);
-  var datos={'ID PALET':paleId,'SECCIÓN':'2ª CAPA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoC2.lote||paleId.substring(0,7),'TIPO DE QUESO':infoC2.tipo,'VARIEDAD':infoC2.variedad,'FORMATO/PESO':infoC2.fmt,'Nº DE PIEZAS':infoC2.piezas||'','PRODUCTO':'INMERSIÓN','LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaActual,'SALA DESTINO':salaActual,'OBSERVACIONES':document.getElementById('c2-notas').value};
+  var datos={'ID PALET':codigoCompleto,'SECCIÓN':'2ª CAPA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoC2.lote||paleId.substring(0,7),'TIPO DE QUESO':infoC2.tipo,'VARIEDAD':infoC2.variedad,'FORMATO/PESO':infoC2.fmt,'Nº DE PIEZAS':infoC2.piezas||'','PRODUCTO':'INMERSIÓN','LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaActual,'SALA DESTINO':salaActual,'OBSERVACIONES':document.getElementById('c2-notas').value};
   guardarRegistro(datos,'2ª CAPA',paleId);
   cntC2++;document.getElementById('c2-cnt').textContent=cntC2;
   renderLogC2();
@@ -1275,7 +1275,7 @@ function registrarMov(codigo){
   }
   errEl.style.display='none';
   var infoM=parsearId(codigoCompleto||paleId);
-  var datos={'ID PALET':paleId,'SECCIÓN':'MOVIMIENTO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoM.lote||paleId.substring(0,7),'TIPO DE QUESO':infoM.tipo,'VARIEDAD':infoM.variedad,'FORMATO/PESO':infoM.fmt,'Nº DE PIEZAS':infoM.piezas||'','SALA ORIGEN':orig,'SALA DESTINO':dest};
+  var datos={'ID PALET':codigoCompleto,'SECCIÓN':'MOVIMIENTO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoM.lote||paleId.substring(0,7),'TIPO DE QUESO':infoM.tipo,'VARIEDAD':infoM.variedad,'FORMATO/PESO':infoM.fmt,'Nº DE PIEZAS':infoM.piezas||'','SALA ORIGEN':orig,'SALA DESTINO':dest};
   guardarRegistro(datos,'MOVIMIENTO',paleId);
   if(p)p.sala=dest;
   cntMov++;document.getElementById('mov-cnt').textContent=cntMov;
@@ -1337,7 +1337,7 @@ function registrarPint(codigo){
   var p=pales.find(function(x){return x.id===paleId;});
   var salaPint=p?p.sala:'';
   var infoP=parsearId(codigoCompleto||paleId);
-  var datos={'ID PALET':paleId,'SECCIÓN':'PINTURA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoP.lote||paleId.substring(0,7),'TIPO DE QUESO':infoP.tipo,'VARIEDAD':infoP.variedad,'FORMATO/PESO':infoP.fmt,'Nº DE PIEZAS':infoP.piezas||'','PRODUCTO':pintProdActual,'LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaPint,'SALA DESTINO':salaPint,'OBSERVACIONES':document.getElementById('pint-notas').value};
+  var datos={'ID PALET':codigoCompleto,'SECCIÓN':'PINTURA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoP.lote||paleId.substring(0,7),'TIPO DE QUESO':infoP.tipo,'VARIEDAD':infoP.variedad,'FORMATO/PESO':infoP.fmt,'Nº DE PIEZAS':infoP.piezas||'','PRODUCTO':pintProdActual,'LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaPint,'SALA DESTINO':salaPint,'OBSERVACIONES':document.getElementById('pint-notas').value};
   guardarRegistro(datos,'PINTURA',paleId);
   cntPint++;document.getElementById('pint-cnt').textContent=cntPint;
   renderLogPint();
