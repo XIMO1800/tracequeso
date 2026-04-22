@@ -2400,8 +2400,10 @@ function procesarDatos(rows){
   var map={};
   rows.forEach(function(row){
     var pid=(row['ID PALET']||'').toString().trim();if(!pid)return;
-    // Ignorar palés sin los 12 dígitos iniciales (palés antiguos sin QR)
-    if(!/^\d{12}/.test(pid))return;
+    // Ignorar palés sin los 12 caracteres iniciales (dígitos o espacio para manchego 3KG)
+    // Formato normal: 12 dígitos seguidos
+    // Manchego 3KG: 6 dígitos + espacio + 5 dígitos = 12 caracteres
+    if(!/^\d{6}[\d ]/.test(pid))return;
     var sec=(row['SECCIÓN']||'').toString().trim().toUpperCase();
     var fecha=parseFecha(row['FECHA']);
     var op=(row['OPERARIO']||'').toString().trim().toUpperCase();
@@ -2415,7 +2417,7 @@ function procesarDatos(rows){
     if(!map[pid])map[pid]={id:pid,tipo:normTipo(tq)||'?',variedad:getVariedad(pid),formato:fmt||'—',piezas:pz,lote:lq,loteCorto:pidInfo.loteCorto||'',sala:sd||sv||so||'2.GOLPE FRIO',fechaFab:null,pesoFijo:fmt==='1 KG',ops:[]};
     var p=map[pid];
     if(tq)p.tipo=normTipo(tq);if(fmt)p.formato=fmt;if(pz)p.piezas=pz;if(lq)p.lote=lq;
-    if(sec==='1ª CAPA'){
+    if(sec==='1ª CAPA'||sec.replace(/[^A-Z0-9]/g,'').startsWith('1ACAPA')){
       var pm=parseFloat(row['PESO MEDIO']||'');
       if(pm>0){
         p.pesoMedio=pm; // usar el valor guardado en Sheets si existe
@@ -2558,7 +2560,7 @@ function estaEnGolfeFrio(p){
     return fa-fb;
   });
   // Buscar registro de 1ª CAPA para calcular días en Golpe de Frío
-  var regC1=regsP.find(function(r){var s=(r['SECCIÓN']||'').toString().trim().toUpperCase();return s==='1ª CAPA'||s==='1A CAPA'||s==='1ª CAPA'||s.replace(/[^A-Z0-9]/g,'')==='1ACAPA';});
+  var regC1=regsP.find(function(r){var s=(r['SECCIÓN']||'').toString().trim().toUpperCase();var sc=s.replace(/[^A-Z0-9]/g,'');return s==='1ª CAPA'||s==='1A CAPA'||sc==='1ACAPA'||sc.startsWith('1ACAPA');});
   if(!regC1)return false;
   var fechaC1=parseFecha(regC1['FECHA']);
   if(!fechaC1)return false;
@@ -2572,7 +2574,7 @@ function estaEnGolfeFrio(p){
 function diasDesdeC1(p){
   // Días desde el registro de 1ª CAPA (cuando entró en Golpe de Frío)
   var regsC1=rawRows.filter(function(r){
-    var s=(r['SECCIÓN']||'').toString().trim().toUpperCase();return matchPaleId(r['ID PALET'],p.id)&&(s==='1ª CAPA'||s==='1A CAPA'||s.replace(/[^A-Z0-9]/g,'')==='1ACAPA');
+    var s=(r['SECCIÓN']||'').toString().trim().toUpperCase();var sc=s.replace(/[^A-Z0-9]/g,'');return matchPaleId(r['ID PALET'],p.id)&&(s==='1ª CAPA'||s==='1A CAPA'||sc==='1ACAPA'||sc.startsWith('1ACAPA'));
   });
   if(!regsC1.length)return diasDesde(p.fechaFab);
   regsC1.sort(function(a,b){var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);if(!fa)return 1;if(!fb)return -1;return fa-fb;});
