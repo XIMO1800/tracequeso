@@ -1,5 +1,5 @@
-// TraceQueso Service Worker v9
-const CACHE = 'tracequeso-v9';
+// TraceQueso Service Worker v11
+const CACHE = 'tracequeso-v11';
 const ASSETS = ['/tracequeso/','/tracequeso/index.html'];
 self.addEventListener('install', function(e) {
   e.waitUntil(caches.open(CACHE).then(function(cache) { return cache.addAll(ASSETS); }));
