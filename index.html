@@ -2400,10 +2400,10 @@ function procesarDatos(rows){
   var map={};
   rows.forEach(function(row){
     var pid=(row['ID PALET']||'').toString().trim();if(!pid)return;
-    // Ignorar palés sin los 12 caracteres iniciales (dígitos o espacio para manchego 3KG)
-    // Formato normal: 12 dígitos seguidos
-    // Manchego 3KG: 6 dígitos + espacio + 5 dígitos = 12 caracteres
+    // Ignorar palés sin los 12 caracteres iniciales
     if(!/^\d{6}[\d ]/.test(pid))return;
+    // Clave normalizada para el map (sin espacios, sin sufijos)
+    var pidKey=pid.replace(/\s/g,'').split('*')[0].split('!')[0];
     var sec=(row['SECCIÓN']||'').toString().trim().toUpperCase();
     var fecha=parseFecha(row['FECHA']);
     var op=(row['OPERARIO']||'').toString().trim().toUpperCase();
@@ -2414,13 +2414,11 @@ function procesarDatos(rows){
     var pz=parseInt(row['Nº DE PIEZAS'])||0;
     var lq=(row['LOTE QUESO']||'').toString().trim();
     var pidInfo=parsearId(pid);
-    var fmtFinal=pidInfo.fmt&&pidInfo.fmt!=='—'?pidInfo.fmt:(fmt||'—');
-    if(!map[pid])map[pid]={id:pid,tipo:normTipo(tq)||'?',variedad:getVariedad(pid),formato:fmtFinal,piezas:pz,lote:lq,loteCorto:pidInfo.loteCorto||'',sala:sd||sv||so||'2.GOLPE FRIO',fechaFab:null,pesoFijo:fmtFinal==='1 KG',ops:[]};
-    var p=map[pid];
+    var fmtFinal=fmt||pidInfo.fmt||'—';
+    if(!map[pidKey])map[pidKey]={id:pid,tipo:normTipo(tq)||'?',variedad:getVariedad(pid),formato:fmtFinal,piezas:pz,lote:lq,loteCorto:pidInfo.loteCorto||'',sala:sd||sv||so||'2.GOLPE FRIO',fechaFab:null,pesoFijo:fmtFinal==='1 KG',ops:[]};
+    var p=map[pidKey];
     if(tq)p.tipo=normTipo(tq);
-    // Formato: parsearId tiene prioridad sobre Sheets
-    var fmtParsed=pidInfo.fmt&&pidInfo.fmt!=='—'?pidInfo.fmt:null;
-    if(fmtParsed)p.formato=fmtParsed;else if(fmt)p.formato=fmt;
+    if(fmt)p.formato=fmt;else if(pidInfo.fmt&&pidInfo.fmt!=='—')p.formato=pidInfo.fmt;
     if(pz)p.piezas=pz;if(lq)p.lote=lq;
     if(sec==='1ª CAPA'||sec.replace(/[^A-Z0-9]/g,'').startsWith('1ACAPA')){
       var pm=parseFloat(row['PESO MEDIO']||'');
