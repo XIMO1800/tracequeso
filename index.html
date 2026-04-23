@@ -2414,9 +2414,14 @@ function procesarDatos(rows){
     var pz=parseInt(row['Nº DE PIEZAS'])||0;
     var lq=(row['LOTE QUESO']||'').toString().trim();
     var pidInfo=parsearId(pid);
-    if(!map[pid])map[pid]={id:pid,tipo:normTipo(tq)||'?',variedad:getVariedad(pid),formato:fmt||'—',piezas:pz,lote:lq,loteCorto:pidInfo.loteCorto||'',sala:sd||sv||so||'2.GOLPE FRIO',fechaFab:null,pesoFijo:fmt==='1 KG',ops:[]};
+    var fmtFinal=pidInfo.fmt&&pidInfo.fmt!=='—'?pidInfo.fmt:(fmt||'—');
+    if(!map[pid])map[pid]={id:pid,tipo:normTipo(tq)||'?',variedad:getVariedad(pid),formato:fmtFinal,piezas:pz,lote:lq,loteCorto:pidInfo.loteCorto||'',sala:sd||sv||so||'2.GOLPE FRIO',fechaFab:null,pesoFijo:fmtFinal==='1 KG',ops:[]};
     var p=map[pid];
-    if(tq)p.tipo=normTipo(tq);if(fmt)p.formato=fmt;if(pz)p.piezas=pz;if(lq)p.lote=lq;
+    if(tq)p.tipo=normTipo(tq);
+    // Formato: parsearId tiene prioridad sobre Sheets
+    var fmtParsed=pidInfo.fmt&&pidInfo.fmt!=='—'?pidInfo.fmt:null;
+    if(fmtParsed)p.formato=fmtParsed;else if(fmt)p.formato=fmt;
+    if(pz)p.piezas=pz;if(lq)p.lote=lq;
     if(sec==='1ª CAPA'||sec.replace(/[^A-Z0-9]/g,'').startsWith('1ACAPA')){
       var pm=parseFloat(row['PESO MEDIO']||'');
       if(pm>0){
