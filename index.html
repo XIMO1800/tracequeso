@@ -948,10 +948,16 @@ var cntC1=0, cntC2=0, cntVolteo=0, cntMov=0, cntPint=0;
 var salaVolteoActual='2.GOLPE FRIO';
 
 // ═══════ LOGIN ═══════
-(function(){
+function poblarSelectOperarios(){
   var s=document.getElementById('l-nombre');
+  if(!s)return;
   USUARIOS.forEach(function(u){var o=document.createElement('option');o.value=u.n;o.textContent=u.n;s.appendChild(o);});
-})();
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',poblarSelectOperarios);
+}else{
+  poblarSelectOperarios();
+}
 
 function toggleManualQR(inputId){
   var el=document.getElementById(inputId);
