@@ -12,7 +12,6 @@
 <title>El Hidalgo — Trazabilidad</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Karla:wght@400;500;600;700&family=Inconsolata:wght@400;600&display=swap" rel="stylesheet">
 <script>
-  // Prueba de flujo Cowork → GitHub Desktop (2026-04-23 14:15)
   // ═══════ NUEVO SISTEMA DE SEGURIDAD Y GUARDADO ═══════
 
 function guardarEnLibretaLocal(registro) {
@@ -3491,4 +3490,14 @@ function cerrarScanner(){
   document.getElementById('qr-video').srcObject=null;
 }
 
-// ═══════ PWA 
+// ═══════ PWA SERVICE WORKER ═══════
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('/tracequeso/sw.js')
+      .then(function(reg){ console.log('SW registrado:', reg.scope); })
+      .catch(function(err){ console.log('SW error:', err); });
+  });
+}
+</script>
+</body>
+</html>
