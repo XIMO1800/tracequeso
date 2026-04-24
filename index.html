@@ -1488,7 +1488,7 @@ function renderRegs(){
         if(!salasMap[salaKey])salasMap[salaKey]={label:sl(salaKey)||salaKey||'—',grupos:{},total:0};
         var t=r.tipo||'?';var v=r.variedad&&r.variedad!=='—'?r.variedad:'';var f=r.fmt||'—';
         var info=parsearId(r.pale);var loteCortoR=info.loteCorto||'';
-        var loteGrupo=(t==='D.O. PAST.'||t==='D.O. CRUDA')?(loteCortoR||r.pale.replace(/\s/g,'').substring(0,7)):r.pale.replace(/\s/g,'').substring(0,6);
+        var loteGrupo=(t==='D.O. PAST.'||t==='D.O. CRUDA')?(loteCortoR||r.pale.replace(/\s/g,'').substring(0,6)):r.pale.replace(/\s/g,'').substring(0,7);
         var key=t+'|||'+v+'|||'+f+'|||'+loteGrupo;
         if(!salasMap[salaKey].grupos[key])salasMap[salaKey].grupos[key]={tipo:t,variedad:v,fmt:f,lote:loteGrupo,agrupador:loteCortoR||loteGrupo,pales:[]};
         salasMap[salaKey].grupos[key].pales.push(r);
@@ -1502,7 +1502,7 @@ function renderRegs(){
       regs.forEach(function(r){
         var t=r.tipo||'?';var v=r.variedad&&r.variedad!=='—'?r.variedad:'';var f=r.fmt||'—';
         var info=parsearId(r.pale);var loteCortoR=info.loteCorto||'';
-        var loteGrupo=(t==='D.O. PAST.'||t==='D.O. CRUDA')?(loteCortoR||r.pale.replace(/\s/g,'').substring(0,7)):r.pale.replace(/\s/g,'').substring(0,6);
+        var loteGrupo=(t==='D.O. PAST.'||t==='D.O. CRUDA')?(loteCortoR||r.pale.replace(/\s/g,'').substring(0,6)):r.pale.replace(/\s/g,'').substring(0,7);
         var key=t+'|||'+v+'|||'+f+'|||'+loteGrupo;
         if(!gruposDir[key])gruposDir[key]={tipo:t,variedad:v,fmt:f,lote:loteGrupo,agrupador:loteCortoR||loteGrupo,pales:[]};
         gruposDir[key].pales.push(r);
@@ -2082,8 +2082,8 @@ function renderPlanGrupos(palesList,badgeFn){
     var f=p.formato||'—';
     var info=parsearId(p.id||p.pale||'');
     var loteGrupo=(t==='D.O. PAST.'||t==='D.O. CRUDA')
-      ?(info.loteCorto||p.lote||'—')
-      :(p.id||p.pale||'').replace(/\s/g,'').substring(0,6);
+      ?(info.loteCorto||(p.id||p.pale||'').replace(/\s/g,'').substring(0,6))
+      :(p.id||p.pale||'').replace(/\s/g,'').substring(0,7);
     var key=t+'|||'+v+'|||'+f+'|||'+loteGrupo;
     if(!grupos[key])grupos[key]={tipo:t,variedad:v,fmt:f,loteGrupo:loteGrupo,isDO:(t==='D.O. PAST.'||t==='D.O. CRUDA'),pales:[]};
     grupos[key].pales.push(p);
@@ -3476,7 +3476,9 @@ function mostrarDetalleOp(idx){
   var nPale=parseInt((c6orig===' '?'0':c6orig)+(c7orig.match(/\d/)?c7orig:'0'))||0;
   var dig=base.replace(/\s/g,'').replace(/\D/g,'');
   var tipo=TQMAP[dig.charAt(0)]||'?';
-  var lote=dig.substring(0,7);
+  // Lote: DO=6 dígitos, resto=7 dígitos
+  var isDO=(dig.charAt(0)==='3'||dig.charAt(0)==='4');
+  var lote=isDO?dig.substring(0,6):dig.substring(0,7);
   // Formato: si tiene espacio en pos6, pos 8 del original = pos 7 de dig
   var fmtD=tieneEspacio?dig.charAt(7):dig.charAt(8);
   var fmt=FMAP[fmtD]||'—';
