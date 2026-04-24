@@ -1513,10 +1513,10 @@ function renderRegs(){
     function getNPale(paleId){
       var base=(paleId||'').split('*')[0].split('!')[0];
       // Manchego 3KG: tiene espacio en pos 6 → pos 7+8 son nº palé
-      if(base.charAt(0)==='3'&&base.charAt(6)===' '){return parseInt(base.substring(6).replace(/\s/g,''))||0;}
-      // Resto: pos 8 (índice 7) = nº palé
-      var digits=base.replace(/\s/g,'');
-      return parseInt(digits.charAt(7))||0;
+      // Pos 6 y 7 del ID original → nº de palé (espacio = 0)
+      var c6=base.charAt(6);var c7=base.charAt(7);
+      var d6=c6===' '?'0':c6;var d7=/\d/.test(c7)?c7:'0';
+      return parseInt(d6+d7)||0;
     }
     // Renderizar contenedores (salas para VOLTEO, directo para el resto)
     contenedores.forEach(function(cont){
@@ -1562,11 +1562,12 @@ function renderRegs(){
         g.pales.sort(function(a,b){
           function nPaleOrden(paleId){
             var base=(paleId||'').split('*')[0].split('!')[0];
-            if(base.charAt(0)==='3'&&base.charAt(6)===' '){
-              return parseInt(base.substring(7).replace(/\s/g,''))||0;
-            }
-            var digits=base.replace(/\s/g,'');
-            return parseInt(digits.charAt(7))||0;
+            // Pos 6 y 7 del ID original → nº de palé (espacio = 0)
+            var c6=base.charAt(6);
+            var c7=base.charAt(7);
+            var d6=c6===' '?'0':c6;
+            var d7=c7.match(/\d/)?c7:'0';
+            return parseInt(d6+d7)||0;
           }
           return nPaleOrden(a.pale)-nPaleOrden(b.pale);
         });
@@ -3468,16 +3469,18 @@ function mostrarDetalleOp(idx){
 }function parsearId(id){
   var base=id.split('*')[0];
   // Eliminar espacios para procesar los dígitos
+  // Detectar manchego 3KG por espacio en pos 6 del ID original
+  var tieneEspacio=(base.charAt(6)===' ');
+  // nPale: usar posiciones 6 y 7 del ID original (espacio = '0')
+  var c6orig=base.charAt(6);var c7orig=base.charAt(7);
+  var nPale=parseInt((c6orig===' '?'0':c6orig)+(c7orig.match(/\d/)?c7orig:'0'))||0;
   var dig=base.replace(/\s/g,'').replace(/\D/g,'');
   var tipo=TQMAP[dig.charAt(0)]||'?';
   var lote=dig.substring(0,7);
-  var fmtD=dig.charAt(8);
+  // Formato: si tiene espacio en pos6, pos 8 del original = pos 7 de dig
+  var fmtD=tieneEspacio?dig.charAt(7):dig.charAt(8);
   var fmt=FMAP[fmtD]||'—';
-  var piezas=parseInt(dig.substring(9,12))||0;
-  // D.O. PAST.(3) y D.O. CRUDA(4) formato 3KG: pos 7+8 = nº palé (sin cuba)
-  // Resto: pos 7 = cuba, pos 8 = nº palé
-  var isDO3=(( dig.charAt(0)==='3'||dig.charAt(0)==='4')&&fmtD==='3');
-  var nPale=isDO3?dig.substring(6,8):dig.charAt(7);
+  var piezas=tieneEspacio?parseInt(dig.substring(8,11))||0:parseInt(dig.substring(9,12))||0;
   // Variedad: entre * y !
   var variedad='—';
   var mV=id.match(/\*([^!]+)/);
