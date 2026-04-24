@@ -633,11 +633,76 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="scan-mode-title">Escanea el QR del palé</div>
       <div class="scan-mode-sub">El registro se guarda automáticamente al escanear</div>
       <input class="scan-mode-input" type="text" inputmode="none" id="pint-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onPintKey(event)">
-      <button onclick="toggleManualQR('pint-qr')" style="width:100%;margin-top:10px;padding:10px;background:var(--bg3);color:var(--text2);border:1.5px solid var(--border);border-radius:10px;font-family:'Karla',sans-serif;font-weight:600;font-size:0.85rem;cursor:pointer;">✏️ Manual</button>
+      <button onclick="toggleManualQR('pint-qr')" style="width:100%;margin-top:10px;padding:10px;background:var(--bg3);color:var(--text2);border:1.5px solid var(--border);border-radius:10px;font-family:'Karla',sans-serif;font-weight:600;font-size:0.85rem;cursor:pointer;">✏️ Manual QR</button>
       <button onclick="abrirScanner('pint')" style="width:100%;margin-top:6px;padding:14px;background:var(--text);color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">📷 Abrir cámara</button>
+      <button onclick="toggleFormManualPint()" style="width:100%;margin-top:6px;padding:12px;background:var(--blue-bg);color:var(--blue);border:1.5px solid rgba(26,94,200,0.3);border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">📋 Registro sin QR (palé antiguo)</button>
       <div class="errbanner" id="pint-err"></div>
       <div class="scan-counter" id="pint-cnt">0</div>
       <div class="scan-counter-lbl">palés registrados esta sesión</div>
+    </div>
+    <!-- FORMULARIO MANUAL PINTURA (palés sin QR) -->
+    <div id="pint-manual-form" style="display:none;background:var(--bg2);border:2px solid var(--blue);border-radius:12px;padding:16px;margin:12px 0;">
+      <div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;color:var(--blue);margin-bottom:12px;">📋 Registro manual — palé sin QR</div>
+      <div class="fgrid">
+        <div class="fg full">
+          <div class="flabel">ID Palé <span style="color:var(--text3);font-weight:400;">(opcional, si lo conoces)</span></div>
+          <input class="finput" type="text" id="pint-man-id" placeholder="Ej: 52617111264" autocomplete="off" autocapitalize="off">
+        </div>
+        <div class="fg full">
+          <div class="flabel">Lote queso <span style="color:red;">*</span></div>
+          <input class="finput" type="text" id="pint-man-lote" placeholder="Ej: 1261711" autocomplete="off">
+        </div>
+        <div class="fg full">
+          <div class="flabel">Tipo de queso <span style="color:red;">*</span></div>
+          <select class="finput" id="pint-man-tipo">
+            <option value="">— Selecciona —</option>
+            <option>MEZCLA</option>
+            <option>OVEJA</option>
+            <option>D.O. PAST.</option>
+            <option>D.O. CRUDA</option>
+            <option>CABRA</option>
+            <option>OVEJA CRUDA</option>
+            <option>FINOS</option>
+            <option>MESNERA</option>
+          </select>
+        </div>
+        <div class="fg full">
+          <div class="flabel">Variedad <span style="color:var(--text3);font-weight:400;">(si aplica)</span></div>
+          <select class="finput" id="pint-man-variedad">
+            <option value="">— Sin variedad —</option>
+            <option>ACEITE</option>
+            <option>TOSTADO</option>
+            <option>ROMERO</option>
+            <option>PIMIENTA</option>
+            <option>TIERNO</option>
+            <option>SEMICURADO</option>
+            <option>CURADO</option>
+            <option>VIEJO</option>
+            <option>ANEJO</option>
+          </select>
+        </div>
+        <div class="fg full">
+          <div class="flabel">Formato / Peso <span style="color:red;">*</span></div>
+          <select class="finput" id="pint-man-fmt">
+            <option value="">— Selecciona —</option>
+            <option>1 KG</option>
+            <option>2 KG</option>
+            <option>3 KG</option>
+            <option>BARRA</option>
+            <option>SUPERMINIS</option>
+          </select>
+        </div>
+        <div class="fg half">
+          <div class="flabel">Piezas <span style="color:red;">*</span></div>
+          <input class="finput" type="number" id="pint-man-piezas" placeholder="0" min="0" inputmode="numeric">
+        </div>
+        <div class="fg half">
+          <div class="flabel">Piezas no aptas</div>
+          <input class="finput" type="number" id="pint-man-noaptas" placeholder="0" min="0" inputmode="numeric">
+        </div>
+      </div>
+      <div class="errbanner" id="pint-man-err"></div>
+      <button onclick="registrarPintManual()" style="width:100%;margin-top:14px;padding:14px;background:#2d5a2d;color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">✅ Guardar registro manual</button>
     </div>
     <div class="scan-log" id="pint-log"></div>
   </div>
@@ -1228,12 +1293,33 @@ function initC2(){
 function toggleNuevoLoteC2(){var w=document.getElementById('c2-nuevo-lote-wrap');w.style.display=w.style.display==='none'?'':'none';if(w.style.display!=='none')document.getElementById('c2-nuevo-lote').focus();}
 function onNuevoLoteC2(v){nuevoLoteC2=v.trim();transC2=v.trim()?2:0;}
 function onC2Key(e){if(e.key==='Enter'){var v=document.getElementById('c2-qr').value.trim();if(v){registrarC2(v);document.getElementById('c2-qr').value='';}}}
+function getSalaActualPale(paleId){
+  // Buscar la sala del último registro por fecha/hora REAL del palé en rawRows
+  var regsP=rawRows.filter(function(r){return matchPaleId(r['ID PALET'],paleId);});
+  if(!regsP.length){
+    // Si no está en rawRows, buscar en pales cacheados
+    var p=pales.find(function(x){return matchPaleId(x.id,paleId);});
+    return p?p.sala:'';
+  }
+  // Ordenar por fecha/hora real (columna FECHA, parseada)
+  regsP.sort(function(a,b){
+    var fa=parseFecha(a['FECHA']);var fb=parseFecha(b['FECHA']);
+    if(!fa&&!fb)return 0;if(!fa)return -1;if(!fb)return 1;
+    return fa-fb;
+  });
+  // Tomar el último registro y extraer su sala destino o sala volteo
+  var ultimo=regsP[regsP.length-1];
+  var sd=normSala(ultimo['SALA DESTINO']||'');
+  var sv=normSala(ultimo['SALA VOLTEO']||'');
+  var so=normSala(ultimo['SALA ORIGEN']||'');
+  return sd||sv||so||'';
+}
 function registrarC2(codigo){
   var paleId=codigo.split('*')[0];
   var codigoCompleto=codigo.trim();
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('c2-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('c2-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('c2-err');}
   var p=pales.find(function(x){return x.id===paleId;});
-  var salaActual=p?p.sala:'';
+  var salaActual=getSalaActualPale(paleId)||( p?p.sala:'');
   var loteUsado=loteC2;
   if(transC2>0){
     loteUsado=loteC2+'|'+nuevoLoteC2;
@@ -1341,11 +1427,59 @@ function registrarPint(codigo){
     }
   }
   var p=pales.find(function(x){return x.id===paleId;});
-  var salaPint=p?p.sala:'';
+  var salaPint=getSalaActualPale(paleId)||(p?p.sala:'');
   var infoP=parsearId(codigoCompleto||paleId);
   var datos={'ID PALET':codigoCompleto,'SECCIÓN':'PINTURA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoP.lote||paleId.substring(0,7),'TIPO DE QUESO':infoP.tipo,'VARIEDAD':infoP.variedad,'FORMATO/PESO':infoP.fmt,'Nº DE PIEZAS':infoP.piezas||'','PRODUCTO':pintProdActual,'LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaPint,'SALA DESTINO':salaPint,'OBSERVACIONES':document.getElementById('pint-notas').value};
   guardarRegistro(datos,'PINTURA',paleId);
   cntPint++;document.getElementById('pint-cnt').textContent=cntPint;
+  renderLogPint();
+}
+function toggleFormManualPint(){
+  var f=document.getElementById('pint-manual-form');
+  f.style.display=f.style.display==='none'?'block':'none';
+}
+function registrarPintManual(){
+  var idPale=document.getElementById('pint-man-id').value.trim();
+  var lote=document.getElementById('pint-man-lote').value.trim();
+  var tipo=document.getElementById('pint-man-tipo').value.trim();
+  var variedad=document.getElementById('pint-man-variedad').value.trim();
+  var fmt=document.getElementById('pint-man-fmt').value.trim();
+  var piezas=parseInt(document.getElementById('pint-man-piezas').value)||0;
+  var noAptas=parseInt(document.getElementById('pint-man-noaptas').value)||0;
+  var errEl=document.getElementById('pint-man-err');
+  if(!lote){errEl.textContent='El lote es obligatorio';errEl.style.display='block';return;}
+  if(!tipo){errEl.textContent='El tipo de queso es obligatorio';errEl.style.display='block';return;}
+  if(!fmt){errEl.textContent='El formato/peso es obligatorio';errEl.style.display='block';return;}
+  if(!piezas){errEl.textContent='Introduce el número de piezas';errEl.style.display='block';return;}
+  errEl.style.display='none';
+  var loteActual=lotePinturaPorProducto[pintProdActual]||'';
+  var loteUsado=loteActual;
+  if(transPint>0){
+    loteUsado=loteActual+'|'+nuevoLotePint;
+    transPint--;
+    if(transPint===0){
+      lotePinturaPorProducto[pintProdActual]=nuevoLotePint;
+      nuevoLotePint='';
+      document.getElementById('pint-nuevo-lote-wrap').style.display='none';
+      document.getElementById('pint-nuevo-lote').value='';
+      document.getElementById('pint-lote-activo').textContent=lotePinturaPorProducto[pintProdActual];
+      toast('Lote pintura actualizado');
+    }
+  }
+  var p=idPale?pales.find(function(x){return x.id===idPale;}):null;
+  var salaPint=idPale?(getSalaActualPale(idPale)||(p?p.sala:'')):''
+  var datos={'ID PALET':idPale||'SIN QR','SECCIÓN':'PINTURA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':lote,'TIPO DE QUESO':tipo,'VARIEDAD':variedad,'FORMATO/PESO':fmt,'Nº DE PIEZAS':piezas,'PIEZAS NO APTAS':noAptas,'PRODUCTO':pintProdActual,'LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaPint,'SALA DESTINO':salaPint,'OBSERVACIONES':document.getElementById('pint-notas').value+' [REGISTRO MANUAL]'};
+  guardarRegistro(datos,'PINTURA',idPale||'SIN QR');
+  cntPint++;document.getElementById('pint-cnt').textContent=cntPint;
+  // Limpiar formulario
+  document.getElementById('pint-man-id').value='';
+  document.getElementById('pint-man-lote').value='';
+  document.getElementById('pint-man-tipo').value='';
+  document.getElementById('pint-man-variedad').value='';
+  document.getElementById('pint-man-fmt').value='';
+  document.getElementById('pint-man-piezas').value='';
+  document.getElementById('pint-man-noaptas').value='';
+  toast('✅ Registro manual guardado');
   renderLogPint();
 }
 function renderLogPint(){
