@@ -2606,7 +2606,9 @@ function procesarDatos(rows){
     if(!map[pidKey])map[pidKey]={id:pid,tipo:normTipo(tq)||'?',variedad:getVariedad(pid),formato:fmtFinal,piezas:pz,lote:lq,loteCorto:pidInfo.loteCorto||'',sala:sd||sv||so||'2.GOLPE FRIO',fechaFab:null,pesoFijo:fmtFinal==='1 KG',ops:[]};
     var p=map[pidKey];
     if(tq)p.tipo=normTipo(tq);
-    if(fmt)p.formato=fmt;else if(pidInfo.fmt&&pidInfo.fmt!=='—')p.formato=pidInfo.fmt;
+    // Formato: parsearId del ID tiene prioridad absoluta (evita que filas de VOLTEO con dato incorrecto sobreescriban)
+    var fmtFromId=pidInfo.fmt&&pidInfo.fmt!=='—'?pidInfo.fmt:null;
+    if(fmtFromId){p.formato=fmtFromId;}else if(fmt&&fmt!=='—'){p.formato=fmt;}
     if(pz)p.piezas=pz;if(lq)p.lote=lq;
     if(sec==='1ª CAPA'||sec.replace(/[^A-Z0-9]/g,'').startsWith('1ACAPA')){
       var pm=parseFloat(row['PESO MEDIO']||'');
