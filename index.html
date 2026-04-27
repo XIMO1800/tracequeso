@@ -2597,7 +2597,12 @@ function procesarDatos(rows){
     // Ignorar palés sin los 12 caracteres iniciales
     if(!/^\d{6}[\d ]/.test(pid))return;
     // Clave normalizada para el map (sin espacios, sin sufijos)
-    var pidKey=pid.replace(/\s/g,'').split('*')[0].split('!')[0];
+    // Clave normalizada: dígitos base (sin espacios) + variedad si existe
+    // Así 126175111264*BAJO EN SAL y 126175111264*PRUEBA son palés DISTINTOS
+    var pidBase=pid.replace(/\s/g,'').split('!')[0]; // quita loteCorto tras !
+    var pidDigits=pidBase.split('*')[0];              // dígitos puros
+    var pidVar=pidBase.indexOf('*')>=0?pidBase.substring(pidBase.indexOf('*')+1).trim():'';
+    var pidKey=pidDigits+(pidVar?'*'+pidVar:'');
     var sec=(row['SECCIÓN']||'').toString().trim().toUpperCase();
     var fecha=parseFecha(row['FECHA']);
     var op=(row['OPERARIO']||'').toString().trim().toUpperCase();
@@ -2739,11 +2744,35 @@ function diasCalendarioDesde(f){
   var refD=new Date(ref.getFullYear(),ref.getMonth(),ref.getDate());
   return Math.floor((hoyD-refD)/86400000);
 }
+function normPaleKey(id){
+  // Normalizar un ID de palé para comparación:
+  // - quitar espacios del bloque de dígitos
+  // - conservar variedad (entre * y !) si existe
+  // - descartar loteCorto (tras !)
+  var s=(id||'').toString().trim();
+  var base=s.split('!')[0]; // quitar loteCorto
+  var digits=base.split('*')[0].replace(/\s/g,'');
+  var varPart=base.indexOf('*')>=0?base.substring(base.indexOf('*')+1).trim():'';
+  return digits+(varPart?'*'+varPart:'');
+}
 function matchPaleId(rowId, paleId){
-  // Comparar IDs ignorando sufijos *variedad!loteCorto
-  var r1=(rowId||'').toString().trim().replace(/\s/g,'').split('*')[0].split('!')[0];
-  var r2=(paleId||'').toString().trim().replace(/\s/g,'').split('*')[0].split('!')[0];
-  return r1===r2;
+  // Comparar IDs: los dígitos deben coincidir Y la variedad debe coincidir
+  // Si uno tiene variedad y el otro no → NO son el mismo palé
+  var k1=normPaleKey(rowId);
+  var k2=normPaleKey(paleId);
+  // Comparación exacta (dígitos + variedad)
+  if(k1===k2)return true;
+  // Compatibilidad: si ninguno tiene variedad, comparar solo dígitos
+  var d1=k1.split('*')[0];
+  var d2=k2.split('*')[0];
+  var v1=k1.indexOf('*')>=0?k1.substring(k1.indexOf('*')+1):'';
+  var v2=k2.indexOf('*')>=0?k2.substring(k2.indexOf('*')+1):'';
+  if(d1!==d2)return false;
+  // Si ambos tienen variedad y son distintas → NO son el mismo
+  if(v1&&v2&&v1!==v2)return false;
+  // Si uno tiene variedad y el otro no → NO son el mismo
+  if((v1&&!v2)||(v2&&!v1))return false;
+  return true;
 }
 function estaEnGolfeFrio(p){
   // Un palé aparece en Golpe de Frío si:
