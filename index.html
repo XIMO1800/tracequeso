@@ -2226,11 +2226,21 @@ function renderPlanGrupos(palesList,badgeFn){
     if(!grupos[key])grupos[key]={tipo:t,variedad:v,fmt:f,loteGrupo:loteGrupo,isDO:(t==='D.O. PAST.'||t==='D.O. CRUDA'),pales:[]};
     grupos[key].pales.push(p);
   });
+  // Calcular días máx por grupo para ordenar (más días = más arriba)
+  var gruposDias={};
+  Object.keys(grupos).forEach(function(key){
+    var g=grupos[key];
+    var mx=0;
+    g.pales.forEach(function(p){var b=badgeFn(p);var d=parseInt(b.badge)||0;if(d>mx)mx=d;});
+    gruposDias[key]=mx;
+  });
   var keys=Object.keys(grupos).sort(function(a,b){
+    // Primero: más días (más urgente) arriba
+    var da=gruposDias[a],db=gruposDias[b];
+    if(da!==db)return db-da;
+    // Empate: lote más antiguo primero
     var ga=grupos[a],gb=grupos[b];
-    // Primero: lote más antiguo (orden alfanumérico del lote funciona por ser año+semana+día)
     if(ga.loteGrupo!==gb.loteGrupo)return ga.loteGrupo.localeCompare(gb.loteGrupo);
-    // Segundo: tipo, variedad, formato
     if(ga.tipo!==gb.tipo)return ga.tipo.localeCompare(gb.tipo);
     if(ga.variedad!==gb.variedad)return ga.variedad.localeCompare(gb.variedad);
     return(fmtOrder[ga.fmt]||9)-(fmtOrder[gb.fmt]||9);
@@ -2258,13 +2268,12 @@ function renderPlanGrupos(palesList,badgeFn){
     // Fecha/lote como cabecera principal
     var agVal=g.isDO?g.loteGrupo:fechaFabDesdeId(g.pales[0].id||g.pales[0].pale||'');
     html+='<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">';
-    // Cabecera: fecha + nº palets + días máx
-    html+='<div style="background:'+bgColor+';padding:10px 14px;border-bottom:2px solid '+fgColor+';display:flex;justify-content:space-between;align-items:center;">'
-      +'<div>'
-      +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.1rem;color:'+fgColor+';">'+agVal+'</div>'
+    // Cabecera: solo fecha + tipo·variedad·fmt + nº palés (sin badge de días)
+    html+='<div style="background:'+bgColor+';padding:10px 14px;border-bottom:2px solid '+fgColor+';display:flex;align-items:center;gap:8px;">'
+      +'<div style="flex:1;">'
+      +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.05rem;color:'+fgColor+';">'+agVal+'</div>'
       +'<div style="font-size:0.72rem;color:'+fgColor+';opacity:0.7;margin-top:2px;">'+g.pales.length+' palet'+(g.pales.length>1?'s':'')+' · '+tipoVarFmt+'</div>'
       +'</div>'
-      +'<span style="background:'+badgeBgCab+';color:#fff;border-radius:8px;padding:5px 12px;font-family:\'Karla\',sans-serif;font-size:1rem;font-weight:800;">'+maxDias+' d</span>'
       +'</div>';
     // Palés individuales
     g.pales.forEach(function(p){
