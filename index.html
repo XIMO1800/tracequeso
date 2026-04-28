@@ -1571,7 +1571,7 @@ function renderRegs(){
     html+='<div style="border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;overflow:hidden;margin-bottom:4px;">';
     var fmtOrder={'3 KG':0,'2 KG':1,'1 KG':2,'BARRA':3,'SUPERMINIS':4};
     if(sec==='MOVIMIENTO'){
-      // Agrupación especial: Nivel 1 = origen→destino, Nivel 2 = tipo·variedad·formato
+      // Panel resumen: tarjetas por ruta origen→destino, colapsables
       var rutas={};
       regs.forEach(function(r){
         var orig=sl(r.origen||'');
@@ -1584,12 +1584,21 @@ function renderRegs(){
         rutas[rutaKey].grupos[tKey].pales.push(r);
         rutas[rutaKey].total++;
       });
-      Object.keys(rutas).sort().forEach(function(rutaKey){
+      Object.keys(rutas).sort().forEach(function(rutaKey,ri){
         var ruta=rutas[rutaKey];
-        html+='<div style="background:#c8780a;color:#fff;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;border-top:2px solid rgba(0,0,0,0.1);">'
-          +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;">🚚 '+ruta.label+'</span>'
-          +'<span style="font-size:0.72rem;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">'+ruta.total+' palets</span>'
+        var rutaId='ruta-'+ri+'-'+rutaKey.replace(/[^a-zA-Z0-9]/g,'');
+        // Tarjeta resumen pulsable
+        html+='<div onclick="toggleSalaVolteo(\''+rutaId+'\')" style="background:#c8780a;color:#fff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-top:3px solid rgba(0,0,0,0.15);cursor:pointer;">'
+          +'<div>'
+          +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.95rem;">🚚 '+ruta.label+'</div>'
+          +'<div style="font-size:0.7rem;opacity:0.8;margin-top:2px;">'+ruta.total+' palet'+(ruta.total>1?'s':'')+' · toca para ver detalle</div>'
+          +'</div>'
+          +'<div style="display:flex;align-items:center;gap:8px;">'
+          +'<span style="font-size:0.85rem;background:rgba(255,255,255,0.25);padding:3px 10px;border-radius:6px;font-weight:700;">'+ruta.total+'</span>'
+          +'<span id="arr-'+rutaId+'" style="font-size:1rem;">▼</span>'
+          +'</div>'
           +'</div>';
+        html+='<div id="'+rutaId+'" style="display:none;">';
         var tkeys=Object.keys(ruta.grupos).sort(function(a,b){
           var ga=ruta.grupos[a],gb=ruta.grupos[b];
           if(ga.tipo!==gb.tipo)return ga.tipo.localeCompare(gb.tipo);
@@ -1606,9 +1615,80 @@ function renderRegs(){
           g.pales.sort(function(a,b){return parseInt(parsearId(a.pale||'').nPale||0)-parseInt(parsearId(b.pale||'').nPale||0);});
           g.pales.forEach(function(r){
             var rowIdM=r.rowId||'';var sesionIdM=r.sesionId||'';var rawIdxM=r.rawIdx!==undefined?r.rawIdx:-1;
-            html+='<div onclick="abrirRegFicha(\''+rowIdM+'\',\''+sesionIdM+'\','+rawIdxM+')" style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);cursor:pointer;">'              +'<div>'              +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.88rem;color:var(--text);">'+r.piezas+' pzas</div>'              +'<div style="font-size:0.68rem;color:var(--text3);margin-top:1px;">'              +(r.origen?sl(r.origen)+' → ':'')+(r.destino?sl(r.destino):'')              +'</div>'              +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.6rem;color:var(--text3);">'+r.pale+'</div>'              +(esAdmin&&r.operario?'<div style="font-size:0.62rem;color:var(--text3);margin-top:1px;">'+r.operario+'</div>':'')              +'</div>'              +'<span style="color:var(--text3);font-size:1rem;">›</span>'              +'</div>';
+            html+='<div onclick="event.stopPropagation();abrirRegFicha(\''+rowIdM+'\',\''+sesionIdM+'\','+rawIdxM+')" style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);cursor:pointer;">'
+              +'<div>'
+              +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.88rem;color:var(--text);">'+r.piezas+' pzas</div>'
+              +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.6rem;color:var(--text3);">'+r.pale+'</div>'
+              +(esAdmin&&r.operario?'<div style="font-size:0.62rem;color:var(--text3);">'+r.operario+'</div>':'')
+              +'</div>'
+              +'<span style="color:var(--text3);font-size:1rem;">›</span>'
+              +'</div>';
           });
         });
+        html+='</div>';
+      });
+    } else if(sec==='2ª CAPA'||sec==='2A CAPA'){
+      // Panel resumen: tarjetas por sala origen, colapsables
+      var SALAS_C2_ORDER=['3.SECADERO 1','4.SECADERO 2','5.SECADERO 3','2.GOLPE FRIO'];
+      var salasC2={};
+      regs.forEach(function(r){
+        var salaKey=r.origen||'';
+        if(!salasC2[salaKey])salasC2[salaKey]={label:sl(salaKey)||salaKey||'—',grupos:{},total:0};
+        var t=r.tipo||'?';var v=r.variedad&&r.variedad!=='—'?r.variedad:'';var f=r.fmt||'—';
+        var info=parsearId(r.pale);var loteCortoR=info.loteCorto||'';
+        var isDOtipo=(t==='D.O. PAST.'||t==='D.O. CRUDA');
+        var loteGrupo=isDOtipo?(loteCortoR||r.pale.replace(/\s/g,'').substring(0,6)):r.pale.replace(/\s/g,'').substring(0,7);
+        var tKey=t+'|||'+v+'|||'+f+'|||'+loteGrupo;
+        if(!salasC2[salaKey].grupos[tKey])salasC2[salaKey].grupos[tKey]={tipo:t,variedad:v,fmt:f,lote:loteGrupo,pales:[]};
+        salasC2[salaKey].grupos[tKey].pales.push(r);
+        salasC2[salaKey].total++;
+      });
+      Object.keys(salasC2).sort(function(a,b){var ia=SALAS_C2_ORDER.indexOf(a),ib=SALAS_C2_ORDER.indexOf(b);return(ia<0?99:ia)-(ib<0?99:ib);}).forEach(function(sk){
+        var sc=salasC2[sk];
+        var salaId='c2sala-'+sk.replace(/[^a-zA-Z0-9]/g,'');
+        html+='<div onclick="toggleSalaVolteo(\''+salaId+'\')" style="background:#1a3a6a;color:#fff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-top:3px solid rgba(0,0,0,0.15);cursor:pointer;">'
+          +'<div>'
+          +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.95rem;">🏭 '+sc.label+'</div>'
+          +'<div style="font-size:0.7rem;opacity:0.8;margin-top:2px;">'+sc.total+' palet'+(sc.total>1?'s':'')+' · toca para ver detalle</div>'
+          +'</div>'
+          +'<div style="display:flex;align-items:center;gap:8px;">'
+          +'<span style="font-size:0.85rem;background:rgba(255,255,255,0.25);padding:3px 10px;border-radius:6px;font-weight:700;">'+sc.total+'</span>'
+          +'<span id="arr-'+salaId+'" style="font-size:1rem;">▼</span>'
+          +'</div>'
+          +'</div>';
+        html+='<div id="'+salaId+'" style="display:none;">';
+        var gkeys=Object.keys(sc.grupos).sort(function(a,b){
+          var ga=sc.grupos[a],gb=sc.grupos[b];
+          if(ga.tipo!==gb.tipo)return ga.tipo.localeCompare(gb.tipo);
+          if(ga.variedad!==gb.variedad)return ga.variedad.localeCompare(gb.variedad);
+          return(fmtOrder[ga.fmt]||9)-(fmtOrder[gb.fmt]||9);
+        });
+        var lastTVF='';
+        gkeys.forEach(function(key){
+          var g=sc.grupos[key];
+          var tipoVarFmt=g.tipo+(g.variedad?' · '+g.variedad:'')+(g.fmt?' · '+g.fmt:'');
+          if(tipoVarFmt!==lastTVF){
+            var bgColor=tipoColor(g.tipo,'light');var fgColor=tipoColor(g.tipo,'bg');
+            html+='<div style="background:'+bgColor+';padding:5px 14px;display:flex;align-items:center;gap:8px;border-top:1px solid rgba(0,0,0,0.06);">'
+              +'<div style="width:3px;height:14px;background:'+fgColor+';border-radius:2px;"></div>'
+              +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.75rem;letter-spacing:0.04em;text-transform:uppercase;color:'+fgColor+';">'+tipoVarFmt+'</span>'
+              +'</div>';
+            lastTVF=tipoVarFmt;
+          }
+          g.pales.sort(function(a,b){return parsearId(a.pale||'').nPale-parsearId(b.pale||'').nPale;});
+          g.pales.forEach(function(r){
+            var rowIdC=r.rowId||'';var sesionIdC=r.sesionId||'';var rawIdxC=r.rawIdx!==undefined?r.rawIdx:-1;
+            html+='<div onclick="event.stopPropagation();abrirRegFicha(\''+rowIdC+'\',\''+sesionIdC+'\','+rawIdxC+')" style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);cursor:pointer;">'
+              +'<div>'
+              +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.88rem;color:var(--text);">'+r.piezas+' pzas</div>'
+              +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.6rem;color:var(--text3);">'+r.pale+'</div>'
+              +(esAdmin&&r.operario?'<div style="font-size:0.62rem;color:var(--text3);">'+r.operario+'</div>':'')
+              +'</div>'
+              +'<span style="color:var(--text3);font-size:1rem;">›</span>'
+              +'</div>';
+          });
+        });
+        html+='</div>';
       });
     } else {
     // Para VOLTEO: primer nivel = sala, segundo nivel = tipo·variedad·formato
@@ -1631,6 +1711,30 @@ function renderRegs(){
       Object.keys(salasMap).sort(function(a,b){var ia=SALAS_VOLTEO_ORDER.indexOf(a),ib=SALAS_VOLTEO_ORDER.indexOf(b);return(ia<0?99:ia)-(ib<0?99:ib);}).forEach(function(sk){
         contenedores.push({label:salasMap[sk].label,grupos:salasMap[sk].grupos,total:salasMap[sk].total,esSala:true});
       });
+    } else if(sec==='PINTURA'){
+      // PINTURA: separar registros CON QR (tienen ID palé) de registros SIN QR (sólo lote)
+      var regsCon=regs.filter(function(r){return r.pale&&r.pale!=='SIN QR'&&r.pale.length>4;});
+      var regssin=regs.filter(function(r){return !r.pale||r.pale==='SIN QR'||r.pale.length<=4;});
+      var gruposDir={};
+      // Registros CON QR: agrupar por tipo·variedad·formato·lote (normal)
+      regsCon.forEach(function(r){
+        var t=r.tipo||'?';var v=r.variedad&&r.variedad!=='—'?r.variedad:'';var f=r.fmt||'—';
+        var info=parsearId(r.pale);var loteCortoR=info.loteCorto||'';
+        var isDOtipo=(t==='D.O. PAST.'||t==='D.O. CRUDA');
+        var loteGrupo=isDOtipo?(loteCortoR||r.pale.replace(/\s/g,'').substring(0,6)):r.pale.replace(/\s/g,'').substring(0,7);
+        var key='CON|||'+t+'|||'+v+'|||'+f+'|||'+loteGrupo;
+        if(!gruposDir[key])gruposDir[key]={tipo:t,variedad:v,fmt:f,lote:loteGrupo,agrupador:loteCortoR||loteGrupo,sinQR:false,pales:[]};
+        gruposDir[key].pales.push(r);
+      });
+      // Registros SIN QR: agrupar por lote manual → tipo·variedad·formato
+      regssin.forEach(function(r){
+        var loteMan=(r.lote||'SIN LOTE').trim().toUpperCase();
+        var t=r.tipo||'?';var v=r.variedad&&r.variedad!=='—'?r.variedad:'';var f=r.fmt||'—';
+        var key='SIN|||'+loteMan+'|||'+t+'|||'+v+'|||'+f;
+        if(!gruposDir[key])gruposDir[key]={tipo:t,variedad:v,fmt:f,lote:loteMan,agrupador:loteMan,sinQR:true,pales:[]};
+        gruposDir[key].pales.push(r);
+      });
+      contenedores.push({label:'',grupos:gruposDir,total:regs.length,esSala:false,esPintura:true});
     } else {
       var gruposDir={};
       regs.forEach(function(r){
@@ -1654,12 +1758,18 @@ function renderRegs(){
     }
     // Renderizar contenedores (salas para VOLTEO, directo para el resto)
     contenedores.forEach(function(cont){
-      // Cabecera de sala (solo para VOLTEO)
+      // Cabecera de sala (solo para VOLTEO) — plegable
       if(cont.esSala){
-        html+='<div style="background:#2d5a2d;color:#fff;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;border-top:3px solid rgba(0,0,0,0.15);">'
-          +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.92rem;">🏭 '+cont.label+'</span>'
-          +'<span style="font-size:0.72rem;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">'+cont.total+' palets</span>'
+        var salaId='sala-'+cont.label.replace(/[^a-zA-Z0-9]/g,'');
+        html+='<div onclick="toggleSalaVolteo(\''+salaId+'\')" style="background:#2d5a2d;color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-top:3px solid rgba(0,0,0,0.15);cursor:pointer;">'
+          +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;">🏭 '+cont.label+'</span>'
+          +'<div style="display:flex;align-items:center;gap:8px;">'
+          +'<span style="font-size:0.8rem;background:rgba(255,255,255,0.25);padding:3px 10px;border-radius:6px;font-weight:700;">'+cont.total+' palets</span>'
+          +'<span id="arr-'+salaId+'" style="font-size:1rem;transition:transform 0.2s;">▼</span>'
+          +'</div>'
           +'</div>';
+        html+='<div id="'+salaId+'" style="display:none;">';
+        cont._salaId=salaId;
       }
       var grupos=cont.grupos;
       var gkeys=Object.keys(grupos).sort(function(a,b){
@@ -1675,7 +1785,20 @@ function renderRegs(){
         var tipoVarFmt=tipoVar+' · '+g.fmt;
         var bgColor=tipoColor(g.tipo,'light');
         var fgColor=tipoColor(g.tipo,'bg');
-        // Cabecera tipo·variedad·formato
+        // Cabecera: si es sinQR mostrar LOTE como título principal
+        if(g.sinQR){
+          // SIN QR: cabecera = lote manual, subcabecera = tipo·variedad·formato
+          if(tipoVarFmt!==lastTipoVarFmt||true){ // siempre mostrar en sinQR
+            html+='<div style="background:'+bgColor+';padding:8px 14px;border-top:2px solid '+fgColor+';display:flex;justify-content:space-between;align-items:center;">'
+              +'<div>'
+              +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1rem;color:'+fgColor+';">📋 Lote: '+g.lote+'</div>'
+              +'<div style="font-size:0.72rem;color:'+fgColor+';opacity:0.7;margin-top:1px;">'+tipoVarFmt+' · '+g.pales.length+' palet'+(g.pales.length>1?'s':'')+'</div>'
+              +'</div>'
+              +'</div>';
+            lastTipoVarFmt=g.lote+'|||'+tipoVarFmt;
+          }
+        } else {
+        // CON QR: cabecera normal tipo·variedad·formato
         if(tipoVarFmt!==lastTipoVarFmt){
           html+='<div style="background:'+bgColor+';padding:8px 14px;border-top:2px solid '+fgColor+';display:flex;align-items:center;gap:8px;">'
             +'<div style="width:4px;height:20px;background:'+fgColor+';border-radius:2px;"></div>'
@@ -1683,10 +1806,11 @@ function renderRegs(){
             +'</div>';
           lastTipoVarFmt=tipoVarFmt;
         }
+        } // fin if sinQR
         // Cabecera de lote: manchegos → lote corto, resto → fecha fabricación
         var esDO=(g.tipo==='D.O. PAST.'||g.tipo==='D.O. CRUDA');
-        var agValor=esDO?g.agrupador:fechaFabDesdeId(g.pales[0].pale);
-        html+='<div style="background:'+bgColor+';padding:4px 14px 5px 30px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,0,0,0.06);">'
+        var agValor=g.sinQR?'':esDO?g.agrupador:fechaFabDesdeId(g.pales[0].pale);
+        if(!g.sinQR)html+='<div style="background:'+bgColor+';padding:4px 14px 5px 30px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,0,0,0.06);">'
           +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.85rem;color:'+fgColor+';opacity:0.85;">'+agValor+'</span>'
           +'<span style="font-size:0.65rem;color:'+fgColor+';opacity:0.55;">'+g.pales.length+' palets</span>'
           +'</div>';
@@ -1719,6 +1843,8 @@ function renderRegs(){
             +'</div>';
         });
       });
+      // Cerrar div colapsable de sala (VOLTEO)
+      if(cont.esSala)html+='</div>';
     });
     } // fin else MOVIMIENTO
     html+='</div>';
@@ -1728,6 +1854,14 @@ function renderRegs(){
     console.error('renderRegs error:',e);
     document.getElementById('reg-lista').innerHTML='<div style="padding:20px;color:var(--text3);text-align:center;">Error al cargar registros. Actualiza los datos (🔄) e inténtalo de nuevo.</div>';
   }
+}
+function toggleSalaVolteo(salaId){
+  var div=document.getElementById(salaId);
+  var arr=document.getElementById('arr-'+salaId);
+  if(!div)return;
+  var abierto=div.style.display!=='none';
+  div.style.display=abierto?'none':'block';
+  if(arr)arr.style.transform=abierto?'':'rotate(180deg)';
 }
 function elimReg(id){
   // Eliminar de misRegs (sesión)
@@ -3646,18 +3780,49 @@ function mostrarDetalleOp(idx){
   // Eliminar espacios para procesar los dígitos
   // Detectar manchego 3KG por espacio en pos 6 del ID original
   var tieneEspacio=(base.charAt(6)===' ');
-  // nPale: usar posiciones 6 y 7 del ID original (espacio = '0')
+  // nPale:
+  // - manchego 3KG con espacio (pos6=' '): pos6+7 del original (espacio='0') → 2 dígitos → palé 1-12+
+  // - D.O. sin espacio (tipo 3 o 4): pos 7 solo → 1 dígito → palé 1-9
+  // - resto: pos 7 solo → 1 dígito
   var c6orig=base.charAt(6);var c7orig=base.charAt(7);
-  var nPale=parseInt((c6orig===' '?'0':c6orig)+(c7orig.match(/\d/)?c7orig:'0'))||0;
+  var nPale;
+  if(c6orig===' '){
+    // manchego 3KG con espacio: la longitud del ID indica cuántos dígitos tiene el nPale
+    // len=12 → palé 1 dígito (ej: "326171 83108"), len=13 → palé 2 dígitos (ej: "326171 103108")
+    var baseLen=(id.split('*')[0]).length;
+    if(baseLen>=13){
+      nPale=parseInt(c7orig+(base.charAt(8)||''))||0;
+    } else {
+      nPale=parseInt(c7orig)||0;
+    }
+  } else {
+    // todos los demás: nPale = pos 7 (índice 7) un solo dígito
+    nPale=parseInt(c7orig)||0;
+  }
   var dig=base.replace(/\s/g,'').replace(/\D/g,'');
   var tipo=TQMAP[dig.charAt(0)]||'?';
   // Lote: DO=6 dígitos, resto=7 dígitos
   var isDO=(dig.charAt(0)==='3'||dig.charAt(0)==='4');
   var lote=isDO?dig.substring(0,6):dig.substring(0,7);
-  // Formato: si tiene espacio en pos6, pos 8 del original = pos 7 de dig
-  var fmtD=tieneEspacio?dig.charAt(7):dig.charAt(8);
+  // Formato y piezas: depende de si tiene espacio y longitud del ID
+  var fmtD,piezas;
+  if(tieneEspacio){
+    var basePart=id.split('*')[0];
+    var baseLen2=basePart.length;
+    if(baseLen2>=13){
+      // palé 2 dígitos (10+): formato en pos9, piezas en pos10-12
+      fmtD=basePart.charAt(9);
+      piezas=parseInt(basePart.substring(10,13))||0;
+    } else {
+      // palé 1 dígito: formato en pos8, piezas en pos9-11
+      fmtD=basePart.charAt(8);
+      piezas=parseInt(basePart.substring(9,12))||0;
+    }
+  } else {
+    fmtD=dig.charAt(8);
+    piezas=parseInt(dig.substring(9,12))||0;
+  }
   var fmt=FMAP[fmtD]||'—';
-  var piezas=tieneEspacio?parseInt(dig.substring(8,11))||0:parseInt(dig.substring(9,12))||0;
   // Variedad: entre * y !
   var variedad='—';
   var mV=id.match(/\*([^!]+)/);
