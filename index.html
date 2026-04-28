@@ -2237,41 +2237,36 @@ function renderPlanGrupos(palesList,badgeFn){
   });
   var html='';
   var lastTipoVar='';
-  var grupoAbierto=false;
+  // Cada grupo = un bloque: cabecera fecha+días, subcabecera tipo·variedad·fmt, palés
   keys.forEach(function(key){
     var g=grupos[key];
     var fgColor=tipoColor(g.tipo,'bg');
     var bgColor=tipoColor(g.tipo,'light');
     var tipoVar=g.tipo+(g.variedad?' · '+g.variedad:'');
+    var tipoVarFmt=tipoVar+' · '+g.fmt;
     // Ordenar palés por nPale
     g.pales.sort(function(a,b){
       var na=parsearId(a.id||a.pale||'').nPale||'0';
       var nb=parsearId(b.id||b.pale||'').nPale||'0';
       return parseInt(na)-parseInt(nb);
     });
-    // Cabecera tipo+variedad+formato (solo cuando cambia)
-    if(tipoVar+' · '+g.fmt!==lastTipoVar){
-      if(grupoAbierto)html+='</div>';
-      html+='<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">';
-      grupoAbierto=true;
-      html+='<div style="background:'+bgColor+';padding:7px 14px;border-bottom:2px solid '+fgColor+';display:flex;align-items:center;gap:8px;">'
-        +'<div style="width:4px;height:18px;background:'+fgColor+';border-radius:2px;"></div>'
-        +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1rem;letter-spacing:0.02em;color:'+fgColor+';">'+tipoVar+' · '+g.fmt+'</span>'
-        +'</div>';
-      lastTipoVar=tipoVar+' · '+g.fmt;
-    }
-    // Cabecera lote/fecha
+    // Calcular máximo días del grupo para el badge de cabecera
+    var maxDias=0;
+    var hayCrit=false;
+    g.pales.forEach(function(p){var b=badgeFn(p);var d=parseInt(b.badge)||0;if(d>maxDias)maxDias=d;if(b.crit)hayCrit=true;});
+    var badgeBgCab=hayCrit?'#8b1a1a':fgColor;
+    // Fecha/lote como cabecera principal
     var agVal=g.isDO?g.loteGrupo:fechaFabDesdeId(g.pales[0].id||g.pales[0].pale||'');
-    var refRight=g.tipo+(g.variedad&&g.variedad!=='—'?' · '+g.variedad:'')+(g.fmt?' · '+g.fmt:'');
-    html+='<div style="background:'+bgColor+';padding:5px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,0,0,0.06);">'
-      +'<div style="display:flex;align-items:baseline;gap:6px;">'
-      +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;color:'+fgColor+';">'+agVal+'</span>'
-      +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.78rem;color:'+fgColor+';">'+g.pales.length+'</span>'
-      +'<span style="font-size:0.6rem;color:'+fgColor+';opacity:0.45;letter-spacing:0.02em;">palets</span>'
+    html+='<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">';
+    // Cabecera: fecha + nº palets + días máx
+    html+='<div style="background:'+bgColor+';padding:10px 14px;border-bottom:2px solid '+fgColor+';display:flex;justify-content:space-between;align-items:center;">'
+      +'<div>'
+      +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.1rem;color:'+fgColor+';">'+agVal+'</div>'
+      +'<div style="font-size:0.72rem;color:'+fgColor+';opacity:0.7;margin-top:2px;">'+g.pales.length+' palet'+(g.pales.length>1?'s':'')+' · '+tipoVarFmt+'</div>'
       +'</div>'
-      +'<span style="font-size:0.6rem;color:'+fgColor+';opacity:0.5;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">'+refRight+'</span>'
+      +'<span style="background:'+badgeBgCab+';color:#fff;border-radius:8px;padding:5px 12px;font-family:\'Karla\',sans-serif;font-size:1rem;font-weight:800;">'+maxDias+' d</span>'
       +'</div>';
-    // Palés individuales — pulsables para ver historial
+    // Palés individuales
     g.pales.forEach(function(p){
       var b=badgeFn(p);
       var badgeBg=b.crit?'#8b1a1a':fgColor;
@@ -2288,8 +2283,8 @@ function renderPlanGrupos(palesList,badgeFn){
         +'</div>'
         +'</div>';
     });
+    html+='</div>';
   });
-  if(grupoAbierto)html+='</div>';
   return html||'<div class="nodata">✅ Sin pendientes</div>';
 }
 
