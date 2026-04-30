@@ -1490,6 +1490,29 @@ function renderLogPint(){
 
 
 // ═══════ REGISTROS DEL DÍA ═══════
+// Helper robusto para ordenar palés por nº de palé
+// D.O. PAST./CRUDA (tipo 3/4): pos6+pos7 = nº palé (sin cuba). Palés 1-9 llevan espacio en pos6.
+// Resto (mezcla, oveja, cabra...): pos6=cuba, pos7=nPale (1 dígito)
+function getNPaleOrden(id){
+  var base=(id||'').toString().trim().split('*')[0].split('!')[0];
+  var dig0=base.replace(/\s/g,'').charAt(0); // tipo
+  var isDO=(dig0==='3'||dig0==='4');
+  var c6=base.charAt(6);
+  var c7=base.charAt(7);
+  if(isDO){
+    // D.O.: pos6+pos7 son el nº de palé (espacio en pos6 = palé 1-9)
+    if(c6===' '){
+      // palé 1-9: pos7 = nPale
+      return parseInt(c7)||0;
+    } else {
+      // palé 10+: pos6+pos7 = nPale (ej: '1'+'0'=10)
+      return parseInt(c6+(c7||''))||0;
+    }
+  } else {
+    // Resto: pos6=cuba, pos7=nPale (1 dígito)
+    return parseInt(c7)||0;
+  }
+}
 function renderRegs(){
   try{
   var esAdmin=(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
@@ -1612,7 +1635,7 @@ function renderRegs(){
             +'<div style="width:3px;height:14px;background:'+fgColor+';border-radius:2px;"></div>'
             +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.75rem;letter-spacing:0.04em;text-transform:uppercase;color:'+fgColor+';">'+g.tipo+(g.variedad?' · '+g.variedad:'')+(g.fmt?' · '+g.fmt:'')+'</span>'
             +'</div>';
-          g.pales.sort(function(a,b){return parseInt(parsearId(a.pale||'').nPale||0)-parseInt(parsearId(b.pale||'').nPale||0);});
+          g.pales.sort(function(a,b){return getNPaleOrden(a.pale||'')-getNPaleOrden(b.pale||'');});
           g.pales.forEach(function(r){
             var rowIdM=r.rowId||'';var sesionIdM=r.sesionId||'';var rawIdxM=r.rawIdx!==undefined?r.rawIdx:-1;
             html+='<div onclick="event.stopPropagation();abrirRegFicha(\''+rowIdM+'\',\''+sesionIdM+'\','+rawIdxM+')" style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);cursor:pointer;">'
@@ -1675,7 +1698,7 @@ function renderRegs(){
               +'</div>';
             lastTVF=tipoVarFmt;
           }
-          g.pales.sort(function(a,b){return parsearId(a.pale||'').nPale-parsearId(b.pale||'').nPale;});
+          g.pales.sort(function(a,b){return getNPaleOrden(a.pale||'')-getNPaleOrden(b.pale||'');});
           g.pales.forEach(function(r){
             var rowIdC=r.rowId||'';var sesionIdC=r.sesionId||'';var rawIdxC=r.rawIdx!==undefined?r.rawIdx:-1;
             html+='<div onclick="event.stopPropagation();abrirRegFicha(\''+rowIdC+'\',\''+sesionIdC+'\','+rawIdxC+')" style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);cursor:pointer;">'
@@ -1822,13 +1845,7 @@ function renderRegs(){
         // Resto: nº palé = pos 8 (índice 7 en dígitos limpios)
         g.pales.sort(function(a,b){
           function nPaleOrden(paleId){
-            var base=(paleId||'').split('*')[0].split('!')[0];
-            // Pos 6 y 7 del ID original → nº de palé (espacio = 0)
-            var c6=base.charAt(6);
-            var c7=base.charAt(7);
-            var d6=c6===' '?'0':c6;
-            var d7=c7.match(/\d/)?c7:'0';
-            return parseInt(d6+d7)||0;
+            return getNPaleOrden(paleId);
           }
           return nPaleOrden(a.pale)-nPaleOrden(b.pale);
         });
@@ -2240,7 +2257,7 @@ function abrirSeleccionFecha(key){
     +'</div>';
   Object.values(lotes).forEach(function(l){
     html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">';
-    l.pales.sort(function(a,b){return parseInt(parsearId(a.id||'').nPale||0)-parseInt(parsearId(b.id||'').nPale||0);});
+    l.pales.sort(function(a,b){return getNPaleOrden(a.id||'')-getNPaleOrden(b.id||'');});
     l.pales.forEach(function(p){
       var nPale=parsearId(p.id||'').nPale||'?';
       var pm=p.pesoMedio?p.pesoMedio.toFixed(3)+' kg/pza':'—';
@@ -2393,9 +2410,7 @@ function renderPlanGrupos(palesList,badgeFn){
     var tipoVarFmt=tipoVar+' · '+g.fmt;
     // Ordenar palés por nPale
     g.pales.sort(function(a,b){
-      var na=parsearId(a.id||a.pale||'').nPale||'0';
-      var nb=parsearId(b.id||b.pale||'').nPale||'0';
-      return parseInt(na)-parseInt(nb);
+      return getNPaleOrden(a.id||a.pale||'')-getNPaleOrden(b.id||b.pale||'');
     });
     // Calcular máximo días del grupo para el badge de cabecera
     var maxDias=0;
@@ -2648,7 +2663,7 @@ function abrirDrill2(sala,tipo,variedad,fmt){
     html+='<div class="drill-lote-head">'
          +'<div><span class="drill-lote-name">'+g.lote+'</span>'
          +'<div style="font-size:0.78rem;font-weight:600;color:var(--text2);margin-top:2px;">'+lotePiezas.toLocaleString()+' piezas · '+g.pales.length+' palés</div></div></div>';
-    g.pales.sort(function(a,b){return parseInt(parsearId(a.id||'').nPale||0)-parseInt(parsearId(b.id||'').nPale||0);});
+    g.pales.sort(function(a,b){return getNPaleOrden(a.id||'')-getNPaleOrden(b.id||'');});
     g.pales.forEach(function(p){
       var dias=p.fechaFab?diasDesde(p.fechaFab)+'d':'—';
       var fechaTxt=p.fechaFab?p.fechaFab.substring(0,10).split('-').reverse().join('/'):'—';
@@ -3626,7 +3641,8 @@ function mostrarPalesLote(lote,palesEncontrados){
     var ia=parsearId(a),ib=parsearId(b);
     var ta=(ia.tipo||'')+(ia.variedad&&ia.variedad!=='—'?ia.variedad:'')+(ia.fmt||'');
     var tb=(ib.tipo||'')+(ib.variedad&&ib.variedad!=='—'?ib.variedad:'')+(ib.fmt||'');
-    return ta.localeCompare(tb);
+    if(ta!==tb)return ta.localeCompare(tb);
+    return getNPaleOrden(a)-getNPaleOrden(b);
   });
   var html='';
   var lastGrupo='';
@@ -3789,17 +3805,20 @@ function mostrarDetalleOp(idx){
   // - resto: pos 7 solo → 1 dígito
   var c6orig=base.charAt(6);var c7orig=base.charAt(7);
   var nPale;
+  var isDOcheck=(base.replace(/\s/g,'').charAt(0)==='3'||base.replace(/\s/g,'').charAt(0)==='4');
   if(c6orig===' '){
-    // manchego 3KG con espacio: la longitud del ID indica cuántos dígitos tiene el nPale
-    // len=12 → palé 1 dígito (ej: "326171 83108"), len=13 → palé 2 dígitos (ej: "326171 103108")
+    // Con espacio: len=12 → palé 1 dígito, len=13 → palé 2 dígitos
     var baseLen=(id.split('*')[0]).length;
     if(baseLen>=13){
       nPale=parseInt(c7orig+(base.charAt(8)||''))||0;
     } else {
       nPale=parseInt(c7orig)||0;
     }
+  } else if(isDOcheck){
+    // D.O. sin espacio: pos6+pos7 = nPale (D.O. no tiene cuba)
+    nPale=parseInt(c6orig+(c7orig||''))||0;
   } else {
-    // todos los demás: nPale = pos 7 (índice 7) un solo dígito
+    // No-DO sin espacio: pos7 = nPale (pos6 = cuba)
     nPale=parseInt(c7orig)||0;
   }
   var dig=base.replace(/\s/g,'').replace(/\D/g,'');
