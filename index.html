@@ -201,8 +201,11 @@ html,body{height:100%;overflow:hidden;font-family:'Karla',sans-serif;background:
 .sval.a{color:var(--gold);}.sval.r{color:var(--red);}.sval.g{color:var(--green);}
 .slbl{font-size:0.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;font-family:'Inconsolata',monospace;margin-top:2px;}
 .mbtns{display:flex;flex-direction:column;gap:11px;padding:0 14px 14px;}
-.mbtn{background:var(--bg2);border:2px solid var(--border);border-radius:15px;padding:18px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:var(--shadow);width:100%;text-align:left;}
-.mbtn:active{transform:scale(0.97);}
+.mbtn{background:var(--bg2);border:2px solid var(--border);border-radius:15px;padding:18px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:var(--shadow);width:100%;text-align:left;transition:transform 0.12s ease,background 0.12s ease,box-shadow 0.12s ease;}
+.mbtn:active,.mbtn.tapped{transform:scale(0.95);background:var(--bg3);box-shadow:none;border-color:var(--text3);}
+.tap-loading{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(30,30,30,0.82);color:#fff;border-radius:24px;padding:11px 22px;font-family:'Karla',sans-serif;font-size:0.9rem;font-weight:700;z-index:9999;display:flex;align-items:center;gap:10px;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,0.25);}
+@keyframes spin{to{transform:rotate(360deg);}}
+.tap-spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
 .mbtn-icon{font-size:1.9rem;width:46px;text-align:center;flex-shrink:0;}
 .mbtn-title{font-family:'Karla',sans-serif;font-weight:700;font-size:1.15rem;color:var(--text);margin-bottom:4px;}
 .mbtn-desc{font-size:0.85rem;color:var(--text3);line-height:1.35;}
@@ -387,27 +390,27 @@ textarea.finput{resize:vertical;min-height:60px;}
     </button>
   </div>
   <div class="mbtns">
-    <button class="mbtn m1" onclick="irF()">
+    <button class="mbtn m1" onclick="tapFeedback(this);irF()">
       <div class="mbtn-icon">✏️</div>
       <div><div class="mbtn-title">Registrar operación</div><div class="mbtn-desc">1ª capa, volteo, 2ª capa, movimiento, pintura</div></div>
     </button>
-    <button class="mbtn m2" onclick="irR()">
+    <button class="mbtn m2" onclick="tapFeedback(this);irR()">
       <div class="mbtn-icon">📋</div>
       <div><div class="mbtn-title">Mis registros de hoy</div><div class="mbtn-desc">Consulta o elimina tus registros del día</div></div>
     </button>
-    <button class="mbtn m3" id="btn-scan" onclick="irScan()">
+    <button class="mbtn m3" id="btn-scan" onclick="tapFeedback(this);irScan()">
       <div class="mbtn-icon">📷</div>
       <div><div class="mbtn-title">Escaneo rápido</div><div class="mbtn-desc">Verifica los palés escaneados en los últimos 5 min</div></div>
     </button>
-    <button class="mbtn m4" id="btn-plan" onclick="irPlan()" style="display:none;">
+    <button class="mbtn m4" id="btn-plan" onclick="tapFeedback(this);irPlan()" style="display:none;">
       <div class="mbtn-icon">📊</div>
       <div><div class="mbtn-title">Plan de trabajo</div><div class="mbtn-desc">Salidas, volteos, pesaje minis, 2ª capa, secaderos</div></div>
     </button>
-    <button class="mbtn m5" id="btn-stock" onclick="irStock()" style="display:none;">
+    <button class="mbtn m5" id="btn-stock" onclick="tapFeedback(this);irStock()" style="display:none;">
       <div class="mbtn-icon">🏭</div>
       <div><div class="mbtn-title">Control de stock</div><div class="mbtn-desc">Palés por sala, tipos y formatos en tiempo real</div></div>
     </button>
-    <button class="mbtn" id="btn-trazabilidad" onclick="irTraz()" style="display:none;border-left:4px solid #8b1a1a;">
+    <button class="mbtn" id="btn-trazabilidad" onclick="tapFeedback(this);irTraz()" style="display:none;border-left:4px solid #8b1a1a;">
       <div class="mbtn-icon">🔍</div>
       <div><div class="mbtn-title">Trazabilidad</div><div class="mbtn-desc">Buscar por lote, historial de palés</div></div>
     </button>
@@ -628,25 +631,31 @@ textarea.finput{resize:vertical;min-height:60px;}
         </div>
       </div>
     </div>
-    <div class="scan-mode">
-      <div class="scan-mode-icon">📷</div>
-      <div class="scan-mode-title">Escanea el QR del palé</div>
-      <div class="scan-mode-sub">El registro se guarda automáticamente al escanear</div>
-      <input class="scan-mode-input" type="text" inputmode="none" id="pint-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onPintKey(event)">
-      <button onclick="toggleManualQR('pint-qr')" style="width:100%;margin-top:10px;padding:10px;background:var(--bg3);color:var(--text2);border:1.5px solid var(--border);border-radius:10px;font-family:'Karla',sans-serif;font-weight:600;font-size:0.85rem;cursor:pointer;">✏️ Manual QR</button>
-      <button onclick="abrirScanner('pint')" style="width:100%;margin-top:6px;padding:14px;background:var(--text);color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">📷 Abrir cámara</button>
-      <button onclick="toggleFormManualPint()" style="width:100%;margin-top:6px;padding:12px;background:var(--blue-bg);color:var(--blue);border:1.5px solid rgba(26,94,200,0.3);border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">📋 Registro sin QR (palé antiguo)</button>
-      <div class="errbanner" id="pint-err"></div>
-      <div class="scan-counter" id="pint-cnt">0</div>
-      <div class="scan-counter-lbl">palés registrados esta sesión</div>
+    <!-- 2 BOTONES PRINCIPALES -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 4px;">
+      <button onclick="abrirScanner('pint')" style="padding:18px 10px;background:var(--text);color:#fff;border:none;border-radius:12px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <span style="font-size:1.8rem;">📷</span>
+        <span>Escanear QR</span>
+      </button>
+      <button onclick="mostrarPintManual()" id="pint-btn-manual" style="padding:18px 10px;background:var(--bg3);color:var(--text);border:2px solid var(--border);border-radius:12px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <span style="font-size:1.8rem;">✏️</span>
+        <span>Manual</span>
+      </button>
     </div>
-    <!-- FORMULARIO MANUAL PINTURA (palés sin QR) -->
-    <div id="pint-manual-form" style="display:none;background:var(--bg2);border:2px solid var(--blue);border-radius:12px;padding:16px;margin:12px 0;">
-      <div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;color:var(--blue);margin-bottom:12px;">📋 Registro manual — palé sin QR</div>
+    <!-- input oculto para scanner QR (auto-registra al escanear) -->
+    <input type="text" inputmode="none" id="pint-qr" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onPintKey(event)">
+    <div class="errbanner" id="pint-err"></div>
+    <div style="text-align:center;margin:6px 0;">
+      <span style="font-family:'Karla',sans-serif;font-size:2rem;font-weight:800;color:var(--accent);" id="pint-cnt">0</span>
+      <div style="font-size:0.75rem;color:var(--text3);">palés registrados esta sesión</div>
+    </div>
+    <!-- FORMULARIO MANUAL (oculto por defecto) -->
+    <div id="pint-manual-form" style="display:none;background:var(--bg2);border:2px solid var(--border);border-radius:12px;padding:16px;margin:8px 0;">
+      <div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;color:var(--text);margin-bottom:12px;">✏️ Registro manual</div>
       <div class="fgrid">
         <div class="fg full">
-          <div class="flabel">ID Palé <span style="color:var(--text3);font-weight:400;">(opcional, si lo conoces)</span></div>
-          <input class="finput" type="text" id="pint-man-id" placeholder="Ej: 52617111264" autocomplete="off" autocapitalize="off">
+          <div class="flabel">ID Palé <span style="color:var(--text3);font-weight:400;">(si lo tienes — rellena los campos automáticamente)</span></div>
+          <input class="finput" type="text" id="pint-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off" oninput="autorellenarPintManual(this.value)">
         </div>
         <div class="fg full">
           <div class="flabel">Lote queso <span style="color:red;">*</span></div>
@@ -656,40 +665,26 @@ textarea.finput{resize:vertical;min-height:60px;}
           <div class="flabel">Tipo de queso <span style="color:red;">*</span></div>
           <select class="finput" id="pint-man-tipo">
             <option value="">— Selecciona —</option>
-            <option>MEZCLA</option>
-            <option>OVEJA</option>
-            <option>D.O. PAST.</option>
-            <option>D.O. CRUDA</option>
-            <option>CABRA</option>
-            <option>OVEJA CRUDA</option>
-            <option>FINOS</option>
-            <option>MESNERA</option>
+            <option>MEZCLA</option><option>OVEJA</option><option>D.O. PAST.</option>
+            <option>D.O. CRUDA</option><option>CABRA</option><option>OVEJA CRUDA</option>
+            <option>FINOS</option><option>MESNERA</option>
           </select>
         </div>
         <div class="fg full">
           <div class="flabel">Variedad <span style="color:var(--text3);font-weight:400;">(si aplica)</span></div>
           <select class="finput" id="pint-man-variedad">
             <option value="">— Sin variedad —</option>
-            <option>ACEITE</option>
-            <option>TOSTADO</option>
-            <option>ROMERO</option>
-            <option>PIMIENTA</option>
-            <option>TIERNO</option>
-            <option>SEMICURADO</option>
-            <option>CURADO</option>
-            <option>VIEJO</option>
-            <option>ANEJO</option>
+            <option>ACEITE</option><option>TOSTADO</option><option>ROMERO</option>
+            <option>PIMIENTA</option><option>TIERNO</option><option>SEMICURADO</option>
+            <option>CURADO</option><option>VIEJO</option><option>ANEJO</option>
           </select>
         </div>
         <div class="fg full">
           <div class="flabel">Formato / Peso <span style="color:red;">*</span></div>
           <select class="finput" id="pint-man-fmt">
             <option value="">— Selecciona —</option>
-            <option>1 KG</option>
-            <option>2 KG</option>
-            <option>3 KG</option>
-            <option>BARRA</option>
-            <option>SUPERMINIS</option>
+            <option>1 KG</option><option>2 KG</option><option>3 KG</option>
+            <option>BARRA</option><option>SUPERMINIS</option>
           </select>
         </div>
         <div class="fg half">
@@ -702,7 +697,7 @@ textarea.finput{resize:vertical;min-height:60px;}
         </div>
       </div>
       <div class="errbanner" id="pint-man-err"></div>
-      <button onclick="registrarPintManual()" style="width:100%;margin-top:14px;padding:14px;background:#2d5a2d;color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">✅ Guardar registro manual</button>
+      <button onclick="registrarPintManual()" style="width:100%;margin-top:14px;padding:14px;background:#3a6b3a;color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">✅ Guardar registro</button>
     </div>
     <div class="scan-log" id="pint-log"></div>
   </div>
@@ -743,7 +738,7 @@ textarea.finput{resize:vertical;min-height:60px;}
   <div class="topbar">
     <button class="tbback" onclick="ir('s-main')">←</button>
     <div class="tbtitle">📷 Escaneo rápido</div>
-    <div class="tbright"><button onclick="irScan()" style="background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:0.75rem;cursor:pointer;">🔄</button></div>
+    <div class="tbright"><button onclick="tapFeedback(this);irScan()" style="background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:0.75rem;cursor:pointer;">🔄</button></div>
   </div>
   <div class="scrl">
     <div class="scan-mode" style="border-style:solid;">
@@ -1129,6 +1124,17 @@ function irR(){
   ir('s-regs');
 }
 function irScan(){renderScanRapido();ir('s-scan');}
+function tapFeedback(el){
+  if(el){el.classList.add('tapped');setTimeout(function(){el.classList.remove('tapped');},300);}
+  var ov=document.createElement('div');
+  ov.className='tap-loading';ov.id='tap-ov';
+  ov.innerHTML='<div class="tap-spinner"></div><span>Cargando...</span>';
+  document.body.appendChild(ov);
+  setTimeout(function(){removeTapLoading();},4000);
+}
+function removeTapLoading(){
+  var o=document.getElementById('tap-ov');if(o&&o.parentNode)o.parentNode.removeChild(o);
+}
 function irPlan(){renderPlanMenu();ir('s-plan');}
 function irStock(){renderStock();ir('s-stock');}
 
@@ -1438,6 +1444,54 @@ function toggleFormManualPint(){
   var f=document.getElementById('pint-manual-form');
   f.style.display=f.style.display==='none'?'block':'none';
 }
+function mostrarPintManual(){
+  var f=document.getElementById('pint-manual-form');
+  var btn=document.getElementById('pint-btn-manual');
+  var visible=f.style.display!=='none';
+  f.style.display=visible?'none':'block';
+  if(btn)btn.style.background=visible?'var(--bg3)':'var(--blue-bg)';
+  if(!visible)setTimeout(function(){document.getElementById('pint-man-id').focus();},100);
+}
+function autorellenarPintManual(val){
+  // Si el ID tiene 12 dígitos (o 13 con espacio), autorrellenar campos
+  var id=val.trim();
+  var digitos=id.replace(/[^0-9]/g,'');
+  if(digitos.length<9)return; // no suficientes dígitos todavía
+  var info=parsearId(id);
+  // Tipo
+  if(info.tipo&&info.tipo!=='?'){
+    var sel=document.getElementById('pint-man-tipo');
+    for(var i=0;i<sel.options.length;i++){
+      if(sel.options[i].value===info.tipo){sel.selectedIndex=i;break;}
+    }
+  }
+  // Lote
+  if(info.lote){
+    var loteEl=document.getElementById('pint-man-lote');
+    if(!loteEl.value)loteEl.value=info.lote; // solo si está vacío
+  }
+  // Formato
+  if(info.fmt&&info.fmt!=='—'){
+    var fmtSel=document.getElementById('pint-man-fmt');
+    for(var j=0;j<fmtSel.options.length;j++){
+      if(fmtSel.options[j].value===info.fmt){fmtSel.selectedIndex=j;break;}
+    }
+  }
+  // Piezas
+  if(info.piezas&&info.piezas>0){
+    var pzEl=document.getElementById('pint-man-piezas');
+    if(!pzEl.value||pzEl.value==='0')pzEl.value=info.piezas;
+  }
+  // Variedad (si viene en el ID como *VARIEDAD)
+  var mV=id.match(/\*([^!\s]+)/);
+  if(mV&&mV[1]){
+    var varSel=document.getElementById('pint-man-variedad');
+    var varVal=mV[1].trim().toUpperCase();
+    for(var k=0;k<varSel.options.length;k++){
+      if(varSel.options[k].value.toUpperCase()===varVal){varSel.selectedIndex=k;break;}
+    }
+  }
+}
 function registrarPintManual(){
   var idPale=document.getElementById('pint-man-id').value.trim();
   var lote=document.getElementById('pint-man-lote').value.trim();
@@ -1587,9 +1641,9 @@ function renderRegs(){
   secs.forEach(function(sec){
     var regs=porSec[sec];
     var col=SCOLOR[sec]||'#5a5a5a';
-    html+='<div style="background:'+col+';color:#fff;border-radius:12px 12px 0 0;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:12px;">'
-      +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;">'+(SICON[sec]||'📝')+' '+sec+'</span>'
-      +'<span style="font-family:\'Inconsolata\',monospace;font-size:0.75rem;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:5px;">'+regs.length+' palets</span>'
+    html+='<div style="background:'+col+'18;border-left:5px solid '+col+';border-radius:10px 10px 0 0;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:12px;">'
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.95rem;color:'+col+';">'+(SICON[sec]||'📝')+' '+sec+'</span>'
+      +'<span style="font-family:\'Karla\',sans-serif;font-size:0.75rem;font-weight:700;background:'+col+'28;color:'+col+';padding:2px 10px;border-radius:5px;">'+regs.length+' palets</span>'
       +'</div>';
     html+='<div style="border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;overflow:hidden;margin-bottom:4px;">';
     var fmtOrder={'3 KG':0,'2 KG':1,'1 KG':2,'BARRA':3,'SUPERMINIS':4};
@@ -1611,13 +1665,13 @@ function renderRegs(){
         var ruta=rutas[rutaKey];
         var rutaId='ruta-'+ri+'-'+rutaKey.replace(/[^a-zA-Z0-9]/g,'');
         // Tarjeta resumen pulsable
-        html+='<div onclick="toggleSalaVolteo(\''+rutaId+'\')" style="background:#7a5e3a;color:#fff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,0,0,0.08);cursor:pointer;">'
+        html+='<div onclick="toggleSalaVolteo(\''+rutaId+'\')" style="background:#8a5a1a12;border-left:4px solid #8a5a1a;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);cursor:pointer;">'
           +'<div>'
           +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.95rem;">🚚 '+ruta.label+'</div>'
           +'<div style="font-size:0.7rem;opacity:0.8;margin-top:2px;">'+ruta.total+' palet'+(ruta.total>1?'s':'')+' · toca para ver detalle</div>'
           +'</div>'
           +'<div style="display:flex;align-items:center;gap:8px;">'
-          +'<span style="font-size:0.85rem;background:rgba(255,255,255,0.25);padding:3px 10px;border-radius:6px;font-weight:700;">'+ruta.total+'</span>'
+          +'<span style="font-size:0.85rem;background:var(--bg3);color:var(--text2);padding:3px 10px;border-radius:6px;font-weight:700;">'+ruta.total+'</span>'
           +'<span id="arr-'+rutaId+'" style="font-size:1rem;">▼</span>'
           +'</div>'
           +'</div>';
@@ -1669,13 +1723,13 @@ function renderRegs(){
       Object.keys(salasC2).sort(function(a,b){var ia=SALAS_C2_ORDER.indexOf(a),ib=SALAS_C2_ORDER.indexOf(b);return(ia<0?99:ia)-(ib<0?99:ib);}).forEach(function(sk){
         var sc=salasC2[sk];
         var salaId='c2sala-'+sk.replace(/[^a-zA-Z0-9]/g,'');
-        html+='<div onclick="toggleSalaVolteo(\''+salaId+'\')" style="background:#425470;color:#fff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,0,0,0.08);cursor:pointer;">'
+        html+='<div onclick="toggleSalaVolteo(\''+salaId+'\')" style="background:#2a4a7a12;border-left:4px solid #2a4a7a;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);cursor:pointer;">'
           +'<div>'
           +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.95rem;">🏭 '+sc.label+'</div>'
           +'<div style="font-size:0.7rem;opacity:0.8;margin-top:2px;">'+sc.total+' palet'+(sc.total>1?'s':'')+' · toca para ver detalle</div>'
           +'</div>'
           +'<div style="display:flex;align-items:center;gap:8px;">'
-          +'<span style="font-size:0.85rem;background:rgba(255,255,255,0.25);padding:3px 10px;border-radius:6px;font-weight:700;">'+sc.total+'</span>'
+          +'<span style="font-size:0.85rem;background:var(--bg3);color:var(--text2);padding:3px 10px;border-radius:6px;font-weight:700;">'+sc.total+'</span>'
           +'<span id="arr-'+salaId+'" style="font-size:1rem;">▼</span>'
           +'</div>'
           +'</div>';
@@ -1784,7 +1838,7 @@ function renderRegs(){
       // Cabecera de sala (solo para VOLTEO) — plegable
       if(cont.esSala){
         var salaId='sala-'+cont.label.replace(/[^a-zA-Z0-9]/g,'');
-        html+='<div onclick="toggleSalaVolteo(\''+salaId+'\')" style="background:#4a5e4a;color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(0,0,0,0.08);cursor:pointer;">'
+        html+='<div onclick="toggleSalaVolteo(\''+salaId+'\')" style="background:#3a6b3a12;border-left:4px solid #3a6b3a;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);cursor:pointer;">'
           +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;">🏭 '+cont.label+'</span>'
           +'<div style="display:flex;align-items:center;gap:8px;">'
           +'<span style="font-size:0.8rem;background:rgba(255,255,255,0.25);padding:3px 10px;border-radius:6px;font-weight:700;">'+cont.total+' palets</span>'
@@ -3180,6 +3234,9 @@ function guardarEditReg(){
         if(!isNaN(d)){
           r[c.k]=d.getDate()+'/'+( d.getMonth()+1)+'/'+d.getFullYear()+', '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')+':00';
         }
+      } else if(c.type==='select-sala'){
+        // Normalizar sala antes de guardar: siempre formato "9.VENTA", "3.SECADERO 1", etc.
+        r[c.k]=normSala(el.value)||el.value;
       } else {
         r[c.k]=el.value;
       }
