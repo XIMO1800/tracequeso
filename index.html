@@ -1456,7 +1456,16 @@ function autorellenarPintManual(val){
   // Si el ID tiene 12 dígitos (o 13 con espacio), autorrellenar campos
   var id=val.trim();
   var digitos=id.replace(/[^0-9]/g,'');
-  if(digitos.length<9)return; // no suficientes dígitos todavía
+  // Si el ID se borra, limpiar campos autorellenados
+  if(digitos.length<9){
+    if(digitos.length===0){
+      document.getElementById('pint-man-lote').value='';
+      document.getElementById('pint-man-tipo').selectedIndex=0;
+      document.getElementById('pint-man-fmt').selectedIndex=0;
+      document.getElementById('pint-man-piezas').value='';
+    }
+    return;
+  }
   var info=parsearId(id);
   // Tipo
   if(info.tipo&&info.tipo!=='?'){
@@ -1477,10 +1486,10 @@ function autorellenarPintManual(val){
       if(fmtSel.options[j].value===info.fmt){fmtSel.selectedIndex=j;break;}
     }
   }
-  // Piezas
-  if(info.piezas&&info.piezas>0){
-    var pzEl=document.getElementById('pint-man-piezas');
-    if(!pzEl.value||pzEl.value==='0')pzEl.value=info.piezas;
+  // Piezas: solo si el ID tiene 12+ dígitos (ID completo)
+  var digCount=id.replace(/[^0-9]/g,'').length;
+  if(digCount>=12&&info.piezas&&info.piezas>0){
+    document.getElementById('pint-man-piezas').value=info.piezas;
   }
   // Variedad (si viene en el ID como *VARIEDAD)
   var mV=id.match(/\*([^!\s]+)/);
