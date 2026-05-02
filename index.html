@@ -2866,7 +2866,7 @@ function procesarDatos(rows){
     // Recuperar último lote de pintura por producto
     if(sec==='PINTURA'&&row['PRODUCTO']&&lp){
       var prod=row['PRODUCTO'].toString().trim();
-      if(!lotePinturaPorProducto[prod])lotePinturaPorProducto[prod]=lp;
+      lotePinturaPorProducto[prod]=lp; // siempre sobreescribir → el último registro gana
     }
   });
   Object.values(map).forEach(function(p){
@@ -3980,7 +3980,7 @@ function cerrarScanner(){
 // ═══════ PWA SERVICE WORKER ═══════
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('/tracequeso/sw.js')
+    navigator.serviceWorker.register('/tracequeso/sw.js?v=43')
       .then(function(reg){ console.log('SW registrado:', reg.scope); })
       .catch(function(err){ console.log('SW error:', err); });
   });
