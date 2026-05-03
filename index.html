@@ -363,7 +363,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v76</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v78</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -568,7 +568,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="fgrid">
         <div class="fg full">
           <div class="flabel">ID Palé</div>
-          <input class="finput" type="text" id="v-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off">
+          <input class="finput" type="text" id="v-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off" oninput="document.getElementById('v-err').style.display='none';">
         </div>
       </div>
       <div class="errbanner" id="v-man-err"></div>
@@ -707,7 +707,7 @@ textarea.finput{resize:vertical;min-height:60px;}
         <span>Manual</span>
       </button>
     </div>
-    <input type="text" inputmode="none" id="mov-qr" style="display:none;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onMovKey(event)">
+    <input type="text" inputmode="none" id="mov-qr" style="display:none;" oninput="document.getElementById('mov-err').style.display='none';" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onMovKey(event)">
     <div class="errbanner" id="mov-err"></div>
     <div style="text-align:center;margin:6px 0;">
       <span style="font-family:'Karla',sans-serif;font-size:2rem;font-weight:800;color:var(--gold);" id="mov-cnt">0</span>
@@ -718,7 +718,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="fgrid">
         <div class="fg full">
           <div class="flabel">ID Palé</div>
-          <input class="finput" type="text" id="mov-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off">
+          <input class="finput" type="text" id="mov-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off" oninput="document.getElementById('mov-err').style.display='none';">
           <div id="mov-man-info" style="font-size:0.75rem;color:var(--green);font-family:'Inconsolata',monospace;margin-top:4px;min-height:16px;"></div>
         </div>
       </div>
@@ -1466,17 +1466,24 @@ function registrarVolteo(codigo){
   var errEl=document.getElementById('v-err');
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('v-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('v-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('v-err');}
   if(!p){
-    errEl.textContent='⚠️ Este palé no existe en el sistema';
-    errEl.style.display='';
-    setTimeout(function(){errEl.style.display='none';},4000);
-    toast('Palé no encontrado en el sistema','err');
-    return;
+    var _cands=buscarPorDigitos(paleId);
+    if(_cands.length===1){
+      p=_cands[0];
+    } else if(_cands.length>1){
+      errEl.innerHTML='<span style="font-size:1.1rem;font-weight:800;">⚠️ Hay '+_cands.length+' palés con ese número: '+_cands.map(function(x){return x.variedad||x.id;}).join(', ')+'. Escanea el QR para identificarlo.</span>';
+      errEl.style.display='';
+      return;
+    } else {
+      errEl.innerHTML='<span style="font-size:1.1rem;font-weight:800;">⚠️ Este palé no existe en el sistema</span>';
+      errEl.style.display='';
+      toast('Palé no encontrado','err');
+      return;
+    }
   }
   if(p.sala !== salaVolteoActual){
-    errEl.textContent='⚠️ El palé '+paleId+' no está en '+SLBL[salaVolteoActual]+' — está en '+sl(p.sala);
+    errEl.innerHTML='<span style="font-size:1.1rem;font-weight:800;">⚠️ Este palé está en <u>'+sl(p.sala)+'</u>, no en '+SLBL[salaVolteoActual]+'</span>';
     errEl.style.display='';
-    setTimeout(function(){errEl.style.display='none';},4000);
-    toast('Palé no encontrado en esta sala','err');
+    toast('Palé no está en esta sala','err');
     return;
   }
   errEl.style.display='none';
@@ -1591,15 +1598,22 @@ function registrarMov(codigo){
   }
   var _pkBuscar=normPaleKey(paleId);var p=pales.find(function(x){return normPaleKey(x.id)===_pkBuscar;});
   if(!p){
-    errEl.textContent='⚠️ Este palé no existe en el sistema';
-    errEl.style.display='';
-    setTimeout(function(){errEl.style.display='none';},4000);
-    return;
+    var _candidatos=buscarPorDigitos(paleId);
+    if(_candidatos.length===1){
+      p=_candidatos[0];
+    } else if(_candidatos.length>1){
+      errEl.innerHTML='<span style="font-size:1.1rem;font-weight:800;">⚠️ Hay '+_candidatos.length+' palés con ese número: '+_candidatos.map(function(x){return x.variedad||x.id;}).join(', ')+'. Escanea el QR para identificarlo.</span>';
+      errEl.style.display='';
+      return;
+    } else {
+      errEl.innerHTML='<span style="font-size:1.1rem;font-weight:800;">⚠️ Este palé no existe en el sistema</span>';
+      errEl.style.display='';
+      return;
+    }
   }
   if(p.sala && normSala(p.sala)!==normSala(orig)){
-    errEl.textContent='⚠️ Este palé está en '+p.sala+', no en '+orig;
+    errEl.innerHTML='<span style="font-size:1.1rem;font-weight:800;">⚠️ Este palé está en <u>'+p.sala+'</u>, no en '+orig+'</span>';
     errEl.style.display='';
-    setTimeout(function(){errEl.style.display='none';},4000);
     return;
   }
   if(p && p.sala !== orig){
@@ -3223,6 +3237,15 @@ function diasCalendarioDesde(f){
   var refD=new Date(ref.getFullYear(),ref.getMonth(),ref.getDate());
   return Math.floor((hoyD-refD)/86400000);
 }
+function buscarPorDigitos(digitos){
+  // Busca palés cuyos primeros 12 dígitos (sin espacios) coincidan
+  var d12=digitos.replace(/\s/g,'').substring(0,12);
+  if(d12.length<12)return [];
+  return pales.filter(function(p){
+    var base=p.id.split('*')[0].split('!')[0].replace(/\s/g,'');
+    return base.substring(0,12)===d12;
+  });
+}
 function normPaleKey(id){
   // Normalizar un ID de palé para comparación:
   // - quitar espacios del bloque de dígitos
@@ -4240,7 +4263,7 @@ function cerrarScanner(){
 // ═══════ PWA SERVICE WORKER ═══════
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('/tracequeso/sw.js?v=76')
+    navigator.serviceWorker.register('/tracequeso/sw.js?v=78')
       .then(function(reg){ console.log('SW registrado:', reg.scope); })
       .catch(function(err){ console.log('SW error:', err); });
   });
