@@ -363,7 +363,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v67</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v71</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -454,14 +454,7 @@ textarea.finput{resize:vertical;min-height:60px;}
           <input class="finput" type="text" id="c1-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLoteC1(this.value)" autocomplete="off" inputmode="none">
           <button onclick="abrirScanner('c1-lote')" style="margin-top:6px;width:100%;padding:10px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;font-size:0.85rem;cursor:pointer;">📷 Escanear lote</button>
         </div>
-        <div class="fg">
-          <div class="flabel">Peso palé (kg)</div>
-          <input class="finput" type="number" step="0.1" id="c1-peso" placeholder="0.0">
-        </div>
-        <div class="fg">
-          <div class="flabel">Piezas no aptas</div>
-          <input class="finput" type="number" id="c1-noAptas" placeholder="0" value="0">
-        </div>
+
         <div class="fg">
           <div class="flabel">Peso palé (kg)</div>
           <input class="finput" type="number" step="0.1" id="c1-peso" placeholder="0.0">
@@ -497,8 +490,12 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="fgrid">
         <div class="fg full">
           <div class="flabel">ID Palé <span style="color:var(--text3);font-weight:400;">(rellena los campos automáticamente)</span></div>
-          <input class="finput" type="text" id="c1-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off">
+          <input class="finput" type="text" id="c1-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off" oninput="autorellenarC1Manual(this.value)">
           <div id="c1-man-info" style="font-size:0.75rem;color:var(--green);font-family:'Inconsolata',monospace;margin-top:4px;min-height:16px;"></div>
+        </div>
+        <div class="fg">
+          <div class="flabel">Peso palé (kg)</div>
+          <input class="finput" type="number" step="0.1" id="c1-man-peso" placeholder="0.0">
         </div>
       </div>
       <div class="errbanner" id="c1-man-err"></div>
@@ -559,7 +556,6 @@ textarea.finput{resize:vertical;min-height:60px;}
     <div class="tbtitle">🫧 2ª Capa Antifúngico</div>
   </div>
   <div class="scrl">
-    <div class="infobanner">La sala del palé no se modifica</div>
     <div class="fcard">
       <div class="fgrid">
         <div class="fg full">
@@ -578,11 +574,7 @@ textarea.finput{resize:vertical;min-height:60px;}
           <input class="finput" type="text" id="c2-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLoteC2(this.value)" autocomplete="off" inputmode="none">
           <button onclick="abrirScanner('c2-lote')" style="margin-top:6px;width:100%;padding:10px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;font-size:0.85rem;cursor:pointer;">📷 Escanear lote</button>
         </div>
-        <div class="fg">
-          <div class="flabel">Peso palé (kg)</div>
-          <input class="finput" type="number" step="0.1" id="c2-peso" placeholder="0.0">
-        </div>
-        <div class="fg">
+        <div class="fg full">
           <div class="flabel">Piezas no aptas</div>
           <input class="finput" type="number" id="c2-noAptas" placeholder="0" value="0" min="0" inputmode="numeric">
         </div>
@@ -613,7 +605,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="fgrid">
         <div class="fg full">
           <div class="flabel">ID Palé <span style="color:var(--text3);font-weight:400;">(rellena los campos automáticamente)</span></div>
-          <input class="finput" type="text" id="c2-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off">
+          <input class="finput" type="text" id="c2-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off" oninput="autorellenarC2Manual(this.value)">
           <div id="c2-man-info" style="font-size:0.75rem;color:var(--green);font-family:'Inconsolata',monospace;margin-top:4px;min-height:16px;"></div>
         </div>
       </div>
@@ -1298,6 +1290,15 @@ function mostrarC1Manual(){
   if(f)f.style.display=visible?'none':'block';
   if(btn)btn.style.background=visible?'var(--bg3)':'var(--blue-bg)';
 }
+function autorellenarC1Manual(val){
+  var base=val.trim().split('*')[0];
+  var digCount=base.replace(/\s/g,'').length;
+  var infoEl=document.getElementById('c1-man-info');
+  if(digCount<12){if(infoEl)infoEl.textContent='';return;}
+  var info=parsearId(val.trim());
+  if(infoEl&&info.lote)infoEl.textContent='Lote: '+info.lote+' · '+info.tipo+' · '+(info.variedad||'—')+' · '+info.fmt+(info.piezas?' · '+info.piezas+' pzs':'');
+  else if(infoEl)infoEl.textContent='';
+}
 function registrarC1Manual(){
   var idPale=document.getElementById('c1-man-id').value.trim();
   var errEl=document.getElementById('c1-man-err');
@@ -1313,6 +1314,15 @@ function mostrarC2Manual(){
   if(f)f.style.display=visible?'none':'block';
   if(btn)btn.style.background=visible?'var(--bg3)':'var(--blue-bg)';
 }
+function autorellenarC2Manual(val){
+  var base=val.trim().split('*')[0];
+  var digCount=base.replace(/\s/g,'').length;
+  var infoEl=document.getElementById('c2-man-info');
+  if(digCount<12){if(infoEl)infoEl.textContent='';return;}
+  var info=parsearId(val.trim());
+  if(infoEl&&info.lote)infoEl.textContent='Lote: '+info.lote+' · '+info.tipo+' · '+(info.variedad||'—')+' · '+info.fmt+(info.piezas?' · '+info.piezas+' pzs':'');
+  else if(infoEl)infoEl.textContent='';
+}
 function registrarC2Manual(){
   var idPale=document.getElementById('c2-man-id').value.trim();
   var errEl=document.getElementById('c2-man-err');
@@ -1320,6 +1330,9 @@ function registrarC2Manual(){
   errEl.style.display='none';
   registrarC2(idPale);
   document.getElementById('c2-man-id').value='';
+  var inf=document.getElementById('c2-man-info');if(inf)inf.textContent='';
+  var na=document.getElementById('c2-man-noAptas');if(na)na.value='0';
+  var nt=document.getElementById('c2-man-notas');if(nt)nt.value='';
 }
 function renderLogC1(){
   var propios=misRegs.filter(function(r){return r.sec==='1ª CAPA'&&r.op===CU.n;}).slice(-10).reverse();
@@ -4104,7 +4117,7 @@ function cerrarScanner(){
 // ═══════ PWA SERVICE WORKER ═══════
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('/tracequeso/sw.js?v=67')
+    navigator.serviceWorker.register('/tracequeso/sw.js?v=71')
       .then(function(reg){ console.log('SW registrado:', reg.scope); })
       .catch(function(err){ console.log('SW error:', err); });
   });
