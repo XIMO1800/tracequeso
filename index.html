@@ -363,7 +363,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v64</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v67</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -403,7 +403,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="mbtn-icon">🏭</div>
       <div><div class="mbtn-title">Control de stock</div><div class="mbtn-desc">Palés por sala, tipos y formatos en tiempo real</div></div>
     </button>
-    <button class="mbtn" id="btn-trazabilidad" onclick="tapFeedback(this);irTraz()" style="display:none;border-left:4px solid #8b1a1a;">
+    <button class="mbtn m1" id="btn-trazabilidad" onclick="tapFeedback(this);irTraz()" style="display:none">
       <div class="mbtn-icon">🔍</div>
       <div><div class="mbtn-title">Trazabilidad</div><div class="mbtn-desc">Buscar por lote, historial de palés</div></div>
     </button>
@@ -432,7 +432,7 @@ textarea.finput{resize:vertical;min-height:60px;}
 <div class="scr" id="s-capa1">
   <div class="topbar">
     <button class="tbback" onclick="resetSeccion('s-capa1');ir('s-secs')">←</button>
-    <div class="tbtitle">🧴 1ª Capa Antifúngico</div>
+    <div class="tbtitle">🫧 1ª Capa Antifúngico</div>
   </div>
   <div class="scrl">
     <div class="infobanner">Saladero → Golpe Frío</div>
@@ -462,22 +462,47 @@ textarea.finput{resize:vertical;min-height:60px;}
           <div class="flabel">Piezas no aptas</div>
           <input class="finput" type="number" id="c1-noAptas" placeholder="0" value="0">
         </div>
+        <div class="fg">
+          <div class="flabel">Peso palé (kg)</div>
+          <input class="finput" type="number" step="0.1" id="c1-peso" placeholder="0.0">
+        </div>
+        <div class="fg">
+          <div class="flabel">Piezas no aptas</div>
+          <input class="finput" type="number" id="c1-noAptas" placeholder="0" value="0" min="0" inputmode="numeric">
+        </div>
         <div class="fg full">
           <div class="flabel">Observaciones</div>
           <textarea class="finput" id="c1-notas" placeholder="Opcional..."></textarea>
         </div>
       </div>
     </div>
-    <div class="scan-mode">
-      <div class="scan-mode-icon">📷</div>
-      <div class="scan-mode-title">Escanea el QR del palé</div>
-      <div class="scan-mode-sub">El registro se guarda automáticamente al escanear</div>
-      <input class="scan-mode-input" type="text" inputmode="none" id="c1-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onC1Key(event)">
-      <button onclick="toggleManualQR('c1-qr')" style="width:100%;margin-top:10px;padding:10px;background:var(--bg3);color:var(--text2);border:1.5px solid var(--border);border-radius:10px;font-family:'Karla',sans-serif;font-weight:600;font-size:0.85rem;cursor:pointer;">✏️ Manual</button>
-      <button onclick="abrirScanner('c1')" style="width:100%;margin-top:6px;padding:14px;background:var(--text);color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">📷 Abrir cámara</button>
-      <div class="errbanner" id="c1-err"></div>
-      <div class="scan-counter" id="c1-cnt">0</div>
-      <div class="scan-counter-lbl">palés registrados esta sesión</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 4px;">
+      <button onclick="abrirScanner('c1')" style="padding:18px 10px;background:var(--text);color:#fff;border:none;border-radius:12px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <span style="font-size:1.8rem;">📷</span>
+        <span>Escanear QR</span>
+      </button>
+      <button onclick="mostrarC1Manual()" id="c1-btn-manual" style="padding:18px 10px;background:var(--bg3);color:var(--text);border:2px solid var(--border);border-radius:12px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <span style="font-size:1.8rem;">✏️</span>
+        <span>Manual</span>
+      </button>
+    </div>
+    <input type="text" inputmode="none" id="c1-qr" style="display:none;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onC1Key(event)">
+    <div class="errbanner" id="c1-err"></div>
+    <div style="text-align:center;margin:6px 0;">
+      <span style="font-family:'Karla',sans-serif;font-size:2rem;font-weight:800;color:var(--gold);" id="c1-cnt">0</span>
+      <div style="font-size:0.75rem;color:var(--text3);">palés registrados esta sesión</div>
+    </div>
+    <div id="c1-manual-form" style="display:none;background:var(--bg2);border:2px solid var(--border);border-radius:12px;padding:16px;margin:8px 0;">
+      <div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;color:var(--text);margin-bottom:12px;">✏️ Registro manual</div>
+      <div class="fgrid">
+        <div class="fg full">
+          <div class="flabel">ID Palé <span style="color:var(--text3);font-weight:400;">(rellena los campos automáticamente)</span></div>
+          <input class="finput" type="text" id="c1-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off">
+          <div id="c1-man-info" style="font-size:0.75rem;color:var(--green);font-family:'Inconsolata',monospace;margin-top:4px;min-height:16px;"></div>
+        </div>
+      </div>
+      <div class="errbanner" id="c1-man-err"></div>
+      <button onclick="registrarC1Manual()" style="width:100%;margin-top:14px;padding:14px;background:#3a6b3a;color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">✅ Guardar registro</button>
     </div>
     <div class="scan-log" id="c1-log"></div>
   </div>
@@ -496,16 +521,32 @@ textarea.finput{resize:vertical;min-height:60px;}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;" id="volteo-salas"></div>
       </div>
     </div>
-    <div class="scan-mode">
-      <div class="scan-mode-icon">🔄</div>
-      <div class="scan-mode-title">Escanea el QR del palé</div>
-      <div class="scan-mode-sub">Registro automático · Se verifica que el palé esté en esta sala</div>
-      <input class="scan-mode-input" type="text" inputmode="none" id="v-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onVolteoKey(event)">
-      <button onclick="toggleManualQR('v-qr')" style="width:100%;margin-top:10px;padding:10px;background:var(--bg3);color:var(--text2);border:1.5px solid var(--border);border-radius:10px;font-family:'Karla',sans-serif;font-weight:600;font-size:0.85rem;cursor:pointer;">✏️ Manual</button>
-      <button onclick="abrirScanner('v')" style="width:100%;margin-top:6px;padding:14px;background:var(--text);color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">📷 Abrir cámara</button>
-      <div class="errbanner" id="v-err"></div>
-      <div class="scan-counter" id="v-cnt">0</div>
-      <div class="scan-counter-lbl">palés volteados esta sesión</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 4px;">
+      <button onclick="abrirScanner('v')" style="padding:18px 10px;background:var(--text);color:#fff;border:none;border-radius:12px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <span style="font-size:1.8rem;">📷</span>
+        <span>Escanear QR</span>
+      </button>
+      <button onclick="mostrarVolteoManual()" id="v-btn-manual" style="padding:18px 10px;background:var(--bg3);color:var(--text);border:2px solid var(--border);border-radius:12px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <span style="font-size:1.8rem;">✏️</span>
+        <span>Manual</span>
+      </button>
+    </div>
+    <input type="text" inputmode="none" id="v-qr" style="display:none;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onVolteoKey(event)">
+    <div class="errbanner" id="v-err"></div>
+    <div style="text-align:center;margin:6px 0;">
+      <span style="font-family:'Karla',sans-serif;font-size:2rem;font-weight:800;color:var(--gold);" id="v-cnt">0</span>
+      <div style="font-size:0.75rem;color:var(--text3);">palés volteados esta sesión</div>
+    </div>
+    <div id="v-manual-form" style="display:none;background:var(--bg2);border:2px solid var(--border);border-radius:12px;padding:16px;margin:8px 0;">
+      <div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;color:var(--text);margin-bottom:12px;">✏️ Registro manual</div>
+      <div class="fgrid">
+        <div class="fg full">
+          <div class="flabel">ID Palé</div>
+          <input class="finput" type="text" id="v-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off">
+        </div>
+      </div>
+      <div class="errbanner" id="v-man-err"></div>
+      <button onclick="registrarVolteoManual()" style="width:100%;margin-top:14px;padding:14px;background:#3a6b3a;color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">✅ Guardar registro</button>
     </div>
     <div class="scan-log" id="v-log"></div>
   </div>
@@ -515,7 +556,7 @@ textarea.finput{resize:vertical;min-height:60px;}
 <div class="scr" id="s-capa2">
   <div class="topbar">
     <button class="tbback" onclick="resetSeccion('s-capa2');ir('s-secs')">←</button>
-    <div class="tbtitle">🧴 2ª Capa Antifúngico</div>
+    <div class="tbtitle">🫧 2ª Capa Antifúngico</div>
   </div>
   <div class="scrl">
     <div class="infobanner">La sala del palé no se modifica</div>
@@ -537,22 +578,47 @@ textarea.finput{resize:vertical;min-height:60px;}
           <input class="finput" type="text" id="c2-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLoteC2(this.value)" autocomplete="off" inputmode="none">
           <button onclick="abrirScanner('c2-lote')" style="margin-top:6px;width:100%;padding:10px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;font-size:0.85rem;cursor:pointer;">📷 Escanear lote</button>
         </div>
+        <div class="fg">
+          <div class="flabel">Peso palé (kg)</div>
+          <input class="finput" type="number" step="0.1" id="c2-peso" placeholder="0.0">
+        </div>
+        <div class="fg">
+          <div class="flabel">Piezas no aptas</div>
+          <input class="finput" type="number" id="c2-noAptas" placeholder="0" value="0" min="0" inputmode="numeric">
+        </div>
         <div class="fg full">
           <div class="flabel">Observaciones</div>
           <textarea class="finput" id="c2-notas" placeholder="Opcional..."></textarea>
         </div>
       </div>
     </div>
-    <div class="scan-mode">
-      <div class="scan-mode-icon">📷</div>
-      <div class="scan-mode-title">Escanea el QR del palé</div>
-      <div class="scan-mode-sub">El registro se guarda automáticamente al escanear</div>
-      <input class="scan-mode-input" type="text" inputmode="none" id="c2-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onC2Key(event)">
-      <button onclick="toggleManualQR('c2-qr')" style="width:100%;margin-top:10px;padding:10px;background:var(--bg3);color:var(--text2);border:1.5px solid var(--border);border-radius:10px;font-family:'Karla',sans-serif;font-weight:600;font-size:0.85rem;cursor:pointer;">✏️ Manual</button>
-      <button onclick="abrirScanner('c2')" style="width:100%;margin-top:6px;padding:14px;background:var(--text);color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">📷 Abrir cámara</button>
-      <div class="errbanner" id="c2-err"></div>
-      <div class="scan-counter" id="c2-cnt">0</div>
-      <div class="scan-counter-lbl">palés registrados esta sesión</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 4px;">
+      <button onclick="abrirScanner('c2')" style="padding:18px 10px;background:var(--text);color:#fff;border:none;border-radius:12px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <span style="font-size:1.8rem;">📷</span>
+        <span>Escanear QR</span>
+      </button>
+      <button onclick="mostrarC2Manual()" id="c2-btn-manual" style="padding:18px 10px;background:var(--bg3);color:var(--text);border:2px solid var(--border);border-radius:12px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <span style="font-size:1.8rem;">✏️</span>
+        <span>Manual</span>
+      </button>
+    </div>
+    <input type="text" inputmode="none" id="c2-qr" style="display:none;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onC2Key(event)">
+    <div class="errbanner" id="c2-err"></div>
+    <div style="text-align:center;margin:6px 0;">
+      <span style="font-family:'Karla',sans-serif;font-size:2rem;font-weight:800;color:var(--gold);" id="c2-cnt">0</span>
+      <div style="font-size:0.75rem;color:var(--text3);">palés registrados esta sesión</div>
+    </div>
+    <div id="c2-manual-form" style="display:none;background:var(--bg2);border:2px solid var(--border);border-radius:12px;padding:16px;margin:8px 0;">
+      <div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;color:var(--text);margin-bottom:12px;">✏️ Registro manual</div>
+      <div class="fgrid">
+        <div class="fg full">
+          <div class="flabel">ID Palé <span style="color:var(--text3);font-weight:400;">(rellena los campos automáticamente)</span></div>
+          <input class="finput" type="text" id="c2-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off">
+          <div id="c2-man-info" style="font-size:0.75rem;color:var(--green);font-family:'Inconsolata',monospace;margin-top:4px;min-height:16px;"></div>
+        </div>
+      </div>
+      <div class="errbanner" id="c2-man-err"></div>
+      <button onclick="registrarC2Manual()" style="width:100%;margin-top:14px;padding:14px;background:#3a6b3a;color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">✅ Guardar registro</button>
     </div>
     <div class="scan-log" id="c2-log"></div>
   </div>
@@ -562,7 +628,7 @@ textarea.finput{resize:vertical;min-height:60px;}
 <div class="scr" id="s-mov">
   <div class="topbar">
     <button class="tbback" onclick="resetSeccion('s-mov');ir('s-secs')">←</button>
-    <div class="tbtitle">🚚 Movimiento</div>
+    <div class="tbtitle">🚛 Movimiento</div>
   </div>
   <div class="scrl">
     <div class="fcard" style="margin-bottom:12px;">
@@ -596,10 +662,9 @@ textarea.finput{resize:vertical;min-height:60px;}
 <div class="scr" id="s-pintura">
   <div class="topbar">
     <button class="tbback" onclick="resetSeccion('s-pintura');ir('s-secs')">←</button>
-    <div class="tbtitle">🎨 Pintura / Encerado</div>
+    <div class="tbtitle">🖌️ Pintura / Encerado</div>
   </div>
   <div class="scrl">
-    <div class="infobanner">La sala del palé no se modifica</div>
     <div class="fcard">
       <div class="fgrid">
         <div class="fg full">
@@ -617,6 +682,10 @@ textarea.finput{resize:vertical;min-height:60px;}
           <div class="flabel">Nuevo lote (transición 2 palés)</div>
           <input class="finput" type="text" id="pint-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLotePint(this.value)" autocomplete="off" inputmode="none">
           <button onclick="abrirScanner('pint-lote')" style="margin-top:6px;width:100%;padding:10px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;font-size:0.85rem;cursor:pointer;">📷 Escanear lote</button>
+        </div>
+        <div class="fg full">
+          <div class="flabel">Piezas no aptas</div>
+          <input class="finput" type="number" id="pint-noAptas" placeholder="0" value="0" min="0" inputmode="numeric">
         </div>
         <div class="fg full">
           <div class="flabel">Observaciones</div>
@@ -1095,7 +1164,7 @@ function resetSeccion(id){
   if(id==='s-volteo'){document.getElementById('v-qr').value='';cntVolteo=0;document.getElementById('v-cnt').textContent='0';document.getElementById('v-log').innerHTML='';}
   if(id==='s-capa2'){document.getElementById('c2-qr').value='';document.getElementById('c2-notas').value='';cntC2=0;document.getElementById('c2-cnt').textContent='0';document.getElementById('c2-log').innerHTML='';}
   if(id==='s-mov'){document.getElementById('mov-qr').value='';cntMov=0;document.getElementById('mov-cnt').textContent='0';document.getElementById('mov-log').innerHTML='';}
-  if(id==='s-pintura'){document.getElementById('pint-qr').value='';document.getElementById('pint-notas').value='';cntPint=0;document.getElementById('pint-cnt').textContent='0';document.getElementById('pint-log').innerHTML='';}
+  if(id==='s-pintura'){document.getElementById('pint-qr').value='';document.getElementById('pint-notas').value='';var _pna=document.getElementById('pint-noAptas');if(_pna)_pna.value='0';cntPint=0;document.getElementById('pint-cnt').textContent='0';document.getElementById('pint-log').innerHTML='';}
 }
 function irF(){renderSecs();ir('s-secs');}
 function irR(){
@@ -1147,7 +1216,7 @@ function abrirSec(sec){
   var s=SECCIONES.find(function(x){return x.id===sec;});
   if(!CU.p[s.perm]){toast('Sin permiso para '+s.nombre,'err');return;}
   if(sec==='1ª CAPA'){initC1();ir('s-capa1');setTimeout(function(){document.getElementById('c1-qr').focus();},200);}
-  else if(sec==='VOLTEO'){initVolteo();ir('s-volteo');setTimeout(function(){document.getElementById('v-qr').focus();},200);}
+  else if(sec==='VOLTEO'){initVolteo();ir('s-volteo');}
   else if(sec==='2ª CAPA'){initC2();ir('s-capa2');setTimeout(function(){document.getElementById('c2-qr').focus();},200);}
   else if(sec==='MOVIMIENTO'){initMov();ir('s-mov');setTimeout(function(){document.getElementById('mov-qr').focus();},200);}
   else if(sec==='PINTURA'){initPintura();ir('s-pintura');setTimeout(function(){document.getElementById('pint-qr').focus();},200);}
@@ -1222,6 +1291,36 @@ function registrarC1(codigo){
   var p=pales.find(function(x){return x.id===paleId;});
   if(p){p.sala='2.GOLPE FRIO';if(pesoMedio)p.pesoMedio=pesoMedio;if(info.variedad!=='—')p.variedad=info.variedad;}
 }
+function mostrarC1Manual(){
+  var f=document.getElementById('c1-manual-form');
+  var btn=document.getElementById('c1-btn-manual');
+  var visible=f&&f.style.display!=='none';
+  if(f)f.style.display=visible?'none':'block';
+  if(btn)btn.style.background=visible?'var(--bg3)':'var(--blue-bg)';
+}
+function registrarC1Manual(){
+  var idPale=document.getElementById('c1-man-id').value.trim();
+  var errEl=document.getElementById('c1-man-err');
+  if(!idPale){errEl.textContent='Introduce el ID del palé';errEl.style.display='block';return;}
+  errEl.style.display='none';
+  registrarC1(idPale);
+  document.getElementById('c1-man-id').value='';
+}
+function mostrarC2Manual(){
+  var f=document.getElementById('c2-manual-form');
+  var btn=document.getElementById('c2-btn-manual');
+  var visible=f&&f.style.display!=='none';
+  if(f)f.style.display=visible?'none':'block';
+  if(btn)btn.style.background=visible?'var(--bg3)':'var(--blue-bg)';
+}
+function registrarC2Manual(){
+  var idPale=document.getElementById('c2-man-id').value.trim();
+  var errEl=document.getElementById('c2-man-err');
+  if(!idPale){errEl.textContent='Introduce el ID del palé';errEl.style.display='block';return;}
+  errEl.style.display='none';
+  registrarC2(idPale);
+  document.getElementById('c2-man-id').value='';
+}
 function renderLogC1(){
   var propios=misRegs.filter(function(r){return r.sec==='1ª CAPA'&&r.op===CU.n;}).slice(-10).reverse();
   document.getElementById('c1-log').innerHTML=propios.map(function(r){
@@ -1274,6 +1373,21 @@ function registrarVolteo(codigo){
   guardarRegistro(datos,'VOLTEO',paleId);
   cntVolteo++;document.getElementById('v-cnt').textContent=cntVolteo;
   renderLogVolteo();
+}
+function mostrarVolteoManual(){
+  var f=document.getElementById('v-manual-form');
+  var btn=document.getElementById('v-btn-manual');
+  var visible=f&&f.style.display!=='none';
+  if(f)f.style.display=visible?'none':'block';
+  if(btn)btn.style.background=visible?'var(--bg3)':'var(--blue-bg)';
+}
+function registrarVolteoManual(){
+  var idPale=document.getElementById('v-man-id').value.trim();
+  var errEl=document.getElementById('v-man-err');
+  if(!idPale){errEl.textContent='Introduce el ID del palé';errEl.style.display='block';return;}
+  errEl.style.display='none';
+  registrarVolteo(idPale);
+  document.getElementById('v-man-id').value='';
 }
 function renderLogVolteo(){
   var propios=misRegs.filter(function(r){return r.sec==='VOLTEO'&&r.op===CU.n;}).slice(-10).reverse();
@@ -1363,6 +1477,12 @@ function registrarMov(codigo){
     return;
   }
   var p=pales.find(function(x){return x.id===paleId;});
+  if(p && p.sala && normSala(p.sala)!==normSala(orig)){
+    errEl.textContent='⚠️ Este palé está en '+p.sala+', no en '+orig;
+    errEl.style.display='';
+    setTimeout(function(){errEl.style.display='none';},4000);
+    return;
+  }
   if(p && p.sala !== orig){
     errEl.textContent='⚠️ El palé '+paleId+' no está en '+SLBL[orig]+' — está en '+sl(p.sala);
     errEl.style.display='';
@@ -1434,7 +1554,7 @@ function registrarPint(codigo){
   var p=pales.find(function(x){return x.id===paleId;});
   var salaPint=getSalaActualPale(paleId)||(p?p.sala:'');
   var infoP=parsearId(codigoCompleto||paleId);
-  var datos={'ID PALET':codigoCompleto,'SECCIÓN':'PINTURA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoP.lote||paleId.substring(0,7),'TIPO DE QUESO':infoP.tipo,'VARIEDAD':infoP.variedad,'FORMATO/PESO':infoP.fmt,'Nº DE PIEZAS':infoP.piezas||'','PRODUCTO':pintProdActual,'LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaPint,'SALA DESTINO':salaPint,'OBSERVACIONES':document.getElementById('pint-notas').value};
+  var datos={'ID PALET':codigoCompleto,'SECCIÓN':'PINTURA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoP.lote||paleId.substring(0,7),'TIPO DE QUESO':infoP.tipo,'VARIEDAD':infoP.variedad,'FORMATO/PESO':infoP.fmt,'Nº DE PIEZAS':infoP.piezas||'','PRODUCTO':pintProdActual,'LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaPint,'SALA DESTINO':salaPint,'Nº PIEZAS NO APTAS':(document.getElementById('pint-noAptas')?document.getElementById('pint-noAptas').value:'0'),'OBSERVACIONES':document.getElementById('pint-notas').value};
   guardarRegistro(datos,'PINTURA',paleId);
   cntPint++;document.getElementById('pint-cnt').textContent=cntPint;
   renderLogPint();
@@ -2853,8 +2973,13 @@ function procesarDatos(rows){
       }
     }
     var sec1c=sec.replace(/[^A-Z0-9]/g,'');
-    if(sd&&sec!=='2ª CAPA'&&sec!=='PINTURA')p.sala=sd;
-    else if(sv&&sec==='VOLTEO')p.sala=sv;
+    // Actualizar sala solo si este registro es más reciente que el último que la actualizó
+    var fechaActual=fecha?fecha.getTime():0;
+    if(sd&&sec!=='2ª CAPA'&&sec!=='PINTURA'){
+      if(!p.salaFecha||fechaActual>=p.salaFecha){p.sala=sd;p.salaFecha=fechaActual;}
+    } else if(sv&&sec==='VOLTEO'){
+      if(!p.salaFecha||fechaActual>=p.salaFecha){p.sala=sv;p.salaFecha=fechaActual;}
+    }
     var o={sec:sec,fecha:fecha?fecha.toISOString():null,op:op};
     if(sec==='1ª CAPA'||sec==='2ª CAPA')o.loteAnti=lp;
     if(sec==='PINTURA')o.lotePintura=lp;
@@ -3979,7 +4104,7 @@ function cerrarScanner(){
 // ═══════ PWA SERVICE WORKER ═══════
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('/tracequeso/sw.js?v=64')
+    navigator.serviceWorker.register('/tracequeso/sw.js?v=67')
       .then(function(reg){ console.log('SW registrado:', reg.scope); })
       .catch(function(err){ console.log('SW error:', err); });
   });
