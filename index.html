@@ -365,7 +365,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v84</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v87</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -823,7 +823,7 @@ textarea.finput{resize:vertical;min-height:60px;}
         </div>
         <div class="fg full">
           <div class="flabel">Formato / Peso <span style="color:red;">*</span></div>
-          <select class="finput" id="pint-man-fmt">
+          <select class="finput" id="pint-man-fmt" onchange="actualizarPreviewIdPint()">
             <option value="">— Selecciona —</option>
             <option>1 KG</option><option>2 KG</option><option>3 KG</option>
             <option>BARRA</option><option>SUPERMINIS</option>
@@ -831,7 +831,7 @@ textarea.finput{resize:vertical;min-height:60px;}
         </div>
         <div class="fg half">
           <div class="flabel">Piezas <span style="color:red;">*</span></div>
-          <input class="finput" type="number" id="pint-man-piezas" placeholder="0" min="0" inputmode="numeric">
+          <input class="finput" type="number" id="pint-man-piezas" placeholder="0" min="0" inputmode="numeric" oninput="actualizarPreviewIdPint()">
         </div>
         <div class="fg full">
           <div class="flabel">Lote corto <span style="color:var(--text3);font-weight:400;">(solo manchego, ej: L-26049)</span></div>
@@ -1831,9 +1831,13 @@ function actualizarPreviewIdPint(){
   if(!preview||!previewVal)return;
   if(idPale){preview.style.display='none';return;}
   if(!lote){preview.style.display='none';return;}
-  var loteDig=lote.replace(/[^0-9]/g,'').substring(0,7);
-  while(loteDig.length<7)loteDig='0'+loteDig;
-  var idGen='SL'+loteDig+'000';
+  var fmt2=document.getElementById('pint-man-fmt')?document.getElementById('pint-man-fmt').value.trim():'';
+  var pzs2=parseInt(document.getElementById('pint-man-piezas')?document.getElementById('pint-man-piezas').value:0)||0;
+  var loteDig=lote.replace(/[^0-9]/g,'').substring(0,6);
+  while(loteDig.length<6)loteDig='0'+loteDig;
+  var fmtCod2={'3 KG':'3','2 KG':'2','1 KG':'1','BARRA':'5','SUPERMINIS':'9'}[fmt2]||'0';
+  var pzStr2=String(pzs2||0).padStart(3,'0').slice(-3);
+  var idGen=loteDig+'00'+fmtCod2+pzStr2;
   if(variedad)idGen+='*'+variedad.toUpperCase();
   if(loteCorto)idGen+='!'+loteCorto.toUpperCase();
   previewVal.textContent=idGen;
@@ -1905,12 +1909,16 @@ function registrarPintManual(){
   errEl.style.display='none';
   // Generar ID provisional si no hay ID palé
   if(!idPale){
-    // Construir ID: lote (dígitos, max 7) + relleno hasta 12 + variedad + loteCorto
-    var loteDig=lote.replace(/[^0-9]/g,'').substring(0,7);
-    while(loteDig.length<7)loteDig='0'+loteDig;
-    var idBase='SL'+loteDig+'00000'.substring(0,5-(12-9));
-    // Formato simplificado: SLXXXXXXX + 3 dígitos = 12 chars
-    idPale='SL'+loteDig.substring(0,7)+'000';
+    // Lógica real del ID: LLLLLLL + 00 (cuba/palé desconocidos) + F + PPP
+    // LLLLLLL = 7 dígitos del lote
+    // 00 = cuba y nº palé desconocidos
+    // F = código formato (3KG→3, 2KG→2, 1KG→1, BARRA→5, SUPERMINIS→9)
+    // PPP = nº piezas en 3 dígitos (ej: 108, 096)
+    var loteDig=lote.replace(/[^0-9]/g,'').substring(0,6);
+    while(loteDig.length<6)loteDig='0'+loteDig;
+    var fmtCod={'3 KG':'3','2 KG':'2','1 KG':'1','BARRA':'5','SUPERMINIS':'9'}[fmt]||'0';
+    var pzStr=String(piezas||0).padStart(3,'0').slice(-3);
+    idPale=loteDig+'00'+fmtCod+pzStr;
     if(variedad)idPale+='*'+variedad.toUpperCase();
     if(loteCorto)idPale+='!'+loteCorto.toUpperCase();
   }
@@ -4402,7 +4410,7 @@ function cerrarScanner(){
 // ═══════ PWA SERVICE WORKER ═══════
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('/tracequeso/sw.js?v=84')
+    navigator.serviceWorker.register('/tracequeso/sw.js?v=87')
       .then(function(reg){ console.log('SW registrado:', reg.scope); })
       .catch(function(err){ console.log('SW error:', err); });
   });
