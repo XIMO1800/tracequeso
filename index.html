@@ -363,7 +363,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v71</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v76</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -491,11 +491,40 @@ textarea.finput{resize:vertical;min-height:60px;}
         <div class="fg full">
           <div class="flabel">ID Palé <span style="color:var(--text3);font-weight:400;">(rellena los campos automáticamente)</span></div>
           <input class="finput" type="text" id="c1-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off" oninput="autorellenarC1Manual(this.value)">
-          <div id="c1-man-info" style="font-size:0.75rem;color:var(--green);font-family:'Inconsolata',monospace;margin-top:4px;min-height:16px;"></div>
         </div>
-        <div class="fg">
-          <div class="flabel">Peso palé (kg)</div>
-          <input class="finput" type="number" step="0.1" id="c1-man-peso" placeholder="0.0">
+        <div class="fg full">
+          <div class="flabel">Lote queso <span style="color:red;">*</span></div>
+          <input class="finput" type="text" id="c1-man-lote" placeholder="Ej: 1261711" autocomplete="off">
+        </div>
+        <div class="fg full">
+          <div class="flabel">Tipo de queso <span style="color:red;">*</span></div>
+          <select class="finput" id="c1-man-tipo">
+            <option value="">— Selecciona —</option>
+            <option>MEZCLA</option><option>OVEJA</option><option>D.O. PAST.</option>
+            <option>D.O. CRUDA</option><option>CABRA</option><option>OVEJA CRUDA</option>
+            <option>FINOS</option><option>MESNERA</option>
+          </select>
+        </div>
+        <div class="fg full">
+          <div class="flabel">Variedad <span style="color:var(--text3);font-weight:400;">(si aplica)</span></div>
+          <select class="finput" id="c1-man-variedad">
+            <option value="">— Sin variedad —</option>
+            <option>ACEITE</option><option>TOSTADO</option><option>ROMERO</option>
+            <option>PIMIENTA</option><option>TIERNO</option><option>SEMICURADO</option>
+            <option>CURADO</option><option>VIEJO</option><option>ANEJO</option>
+          </select>
+        </div>
+        <div class="fg full">
+          <div class="flabel">Formato / Peso <span style="color:red;">*</span></div>
+          <select class="finput" id="c1-man-fmt">
+            <option value="">— Selecciona —</option>
+            <option>1 KG</option><option>2 KG</option><option>3 KG</option>
+            <option>BARRA</option><option>SUPERMINIS</option>
+          </select>
+        </div>
+        <div class="fg full">
+          <div class="flabel">Piezas <span style="color:red;">*</span></div>
+          <input class="finput" type="number" id="c1-man-piezas" placeholder="0" min="0" inputmode="numeric">
         </div>
       </div>
       <div class="errbanner" id="c1-man-err"></div>
@@ -606,7 +635,40 @@ textarea.finput{resize:vertical;min-height:60px;}
         <div class="fg full">
           <div class="flabel">ID Palé <span style="color:var(--text3);font-weight:400;">(rellena los campos automáticamente)</span></div>
           <input class="finput" type="text" id="c2-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off" oninput="autorellenarC2Manual(this.value)">
-          <div id="c2-man-info" style="font-size:0.75rem;color:var(--green);font-family:'Inconsolata',monospace;margin-top:4px;min-height:16px;"></div>
+        </div>
+        <div class="fg full">
+          <div class="flabel">Lote queso <span style="color:red;">*</span></div>
+          <input class="finput" type="text" id="c2-man-lote" placeholder="Ej: 1261711" autocomplete="off">
+        </div>
+        <div class="fg full">
+          <div class="flabel">Tipo de queso <span style="color:red;">*</span></div>
+          <select class="finput" id="c2-man-tipo">
+            <option value="">— Selecciona —</option>
+            <option>MEZCLA</option><option>OVEJA</option><option>D.O. PAST.</option>
+            <option>D.O. CRUDA</option><option>CABRA</option><option>OVEJA CRUDA</option>
+            <option>FINOS</option><option>MESNERA</option>
+          </select>
+        </div>
+        <div class="fg full">
+          <div class="flabel">Variedad <span style="color:var(--text3);font-weight:400;">(si aplica)</span></div>
+          <select class="finput" id="c2-man-variedad">
+            <option value="">— Sin variedad —</option>
+            <option>ACEITE</option><option>TOSTADO</option><option>ROMERO</option>
+            <option>PIMIENTA</option><option>TIERNO</option><option>SEMICURADO</option>
+            <option>CURADO</option><option>VIEJO</option><option>ANEJO</option>
+          </select>
+        </div>
+        <div class="fg full">
+          <div class="flabel">Formato / Peso <span style="color:red;">*</span></div>
+          <select class="finput" id="c2-man-fmt">
+            <option value="">— Selecciona —</option>
+            <option>1 KG</option><option>2 KG</option><option>3 KG</option>
+            <option>BARRA</option><option>SUPERMINIS</option>
+          </select>
+        </div>
+        <div class="fg full">
+          <div class="flabel">Piezas <span style="color:red;">*</span></div>
+          <input class="finput" type="number" id="c2-man-piezas" placeholder="0" min="0" inputmode="numeric">
         </div>
       </div>
       <div class="errbanner" id="c2-man-err"></div>
@@ -635,16 +697,33 @@ textarea.finput{resize:vertical;min-height:60px;}
         </div>
       </div>
     </div>
-    <div class="scan-mode">
-      <div class="scan-mode-icon">🚚</div>
-      <div class="scan-mode-title">Escanea el QR del palé</div>
-      <div class="scan-mode-sub">Se verifica que el palé esté en la sala origen</div>
-      <input class="scan-mode-input" type="text" inputmode="none" id="mov-qr" placeholder="QR del palé..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onMovKey(event)">
-      <button onclick="toggleManualQR('mov-qr')" style="width:100%;margin-top:10px;padding:10px;background:var(--bg3);color:var(--text2);border:1.5px solid var(--border);border-radius:10px;font-family:'Karla',sans-serif;font-weight:600;font-size:0.85rem;cursor:pointer;">✏️ Manual</button>
-      <button onclick="abrirScanner('mov')" style="width:100%;margin-top:6px;padding:14px;background:var(--text);color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">📷 Abrir cámara</button>
-      <div class="errbanner" id="mov-err"></div>
-      <div class="scan-counter" id="mov-cnt">0</div>
-      <div class="scan-counter-lbl">palés movidos esta sesión</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 4px;">
+      <button onclick="abrirScanner('mov')" style="padding:18px 10px;background:var(--text);color:#fff;border:none;border-radius:12px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <span style="font-size:1.8rem;">📷</span>
+        <span>Escanear QR</span>
+      </button>
+      <button onclick="mostrarMovManual()" id="mov-btn-manual" style="padding:18px 10px;background:var(--bg3);color:var(--text);border:2px solid var(--border);border-radius:12px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <span style="font-size:1.8rem;">✏️</span>
+        <span>Manual</span>
+      </button>
+    </div>
+    <input type="text" inputmode="none" id="mov-qr" style="display:none;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="onMovKey(event)">
+    <div class="errbanner" id="mov-err"></div>
+    <div style="text-align:center;margin:6px 0;">
+      <span style="font-family:'Karla',sans-serif;font-size:2rem;font-weight:800;color:var(--gold);" id="mov-cnt">0</span>
+      <div style="font-size:0.75rem;color:var(--text3);">palés movidos esta sesión</div>
+    </div>
+    <div id="mov-manual-form" style="display:none;background:var(--bg2);border:2px solid var(--border);border-radius:12px;padding:16px;margin:8px 0;">
+      <div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;color:var(--text);margin-bottom:12px;">✏️ Registro manual</div>
+      <div class="fgrid">
+        <div class="fg full">
+          <div class="flabel">ID Palé</div>
+          <input class="finput" type="text" id="mov-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off">
+          <div id="mov-man-info" style="font-size:0.75rem;color:var(--green);font-family:'Inconsolata',monospace;margin-top:4px;min-height:16px;"></div>
+        </div>
+      </div>
+      <div class="errbanner" id="mov-man-err"></div>
+      <button onclick="registrarMovManual()" style="width:100%;margin-top:14px;padding:14px;background:#3a6b3a;color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">✅ Guardar registro</button>
     </div>
     <div class="scan-log" id="mov-log"></div>
   </div>
@@ -744,10 +823,6 @@ textarea.finput{resize:vertical;min-height:60px;}
         <div class="fg half">
           <div class="flabel">Piezas <span style="color:red;">*</span></div>
           <input class="finput" type="number" id="pint-man-piezas" placeholder="0" min="0" inputmode="numeric">
-        </div>
-        <div class="fg half">
-          <div class="flabel">Piezas no aptas</div>
-          <input class="finput" type="number" id="pint-man-noaptas" placeholder="0" min="0" inputmode="numeric">
         </div>
       </div>
       <div class="errbanner" id="pint-man-err"></div>
@@ -1280,7 +1355,7 @@ function registrarC1(codigo){
   cntC1++;document.getElementById('c1-cnt').textContent=cntC1;
   renderLogC1();
   // Actualizar palé en memoria
-  var p=pales.find(function(x){return x.id===paleId;});
+  var _pkBuscar=normPaleKey(paleId);var p=pales.find(function(x){return normPaleKey(x.id)===_pkBuscar;});
   if(p){p.sala='2.GOLPE FRIO';if(pesoMedio)p.pesoMedio=pesoMedio;if(info.variedad!=='—')p.variedad=info.variedad;}
 }
 function mostrarC1Manual(){
@@ -1293,11 +1368,20 @@ function mostrarC1Manual(){
 function autorellenarC1Manual(val){
   var base=val.trim().split('*')[0];
   var digCount=base.replace(/\s/g,'').length;
-  var infoEl=document.getElementById('c1-man-info');
-  if(digCount<12){if(infoEl)infoEl.textContent='';return;}
+  if(digCount<12){
+    document.getElementById('c1-man-lote').value='';
+    document.getElementById('c1-man-tipo').value='';
+    document.getElementById('c1-man-variedad').value='';
+    document.getElementById('c1-man-fmt').value='';
+    document.getElementById('c1-man-piezas').value='';
+    return;
+  }
   var info=parsearId(val.trim());
-  if(infoEl&&info.lote)infoEl.textContent='Lote: '+info.lote+' · '+info.tipo+' · '+(info.variedad||'—')+' · '+info.fmt+(info.piezas?' · '+info.piezas+' pzs':'');
-  else if(infoEl)infoEl.textContent='';
+  if(info.lote)document.getElementById('c1-man-lote').value=info.lote;
+  if(info.tipo)document.getElementById('c1-man-tipo').value=info.tipo;
+  if(info.variedad)document.getElementById('c1-man-variedad').value=info.variedad;
+  if(info.fmt)document.getElementById('c1-man-fmt').value=info.fmt;
+  if(info.piezas)document.getElementById('c1-man-piezas').value=info.piezas;
 }
 function registrarC1Manual(){
   var idPale=document.getElementById('c1-man-id').value.trim();
@@ -1317,11 +1401,20 @@ function mostrarC2Manual(){
 function autorellenarC2Manual(val){
   var base=val.trim().split('*')[0];
   var digCount=base.replace(/\s/g,'').length;
-  var infoEl=document.getElementById('c2-man-info');
-  if(digCount<12){if(infoEl)infoEl.textContent='';return;}
+  if(digCount<12){
+    document.getElementById('c2-man-lote').value='';
+    document.getElementById('c2-man-tipo').value='';
+    document.getElementById('c2-man-variedad').value='';
+    document.getElementById('c2-man-fmt').value='';
+    document.getElementById('c2-man-piezas').value='';
+    return;
+  }
   var info=parsearId(val.trim());
-  if(infoEl&&info.lote)infoEl.textContent='Lote: '+info.lote+' · '+info.tipo+' · '+(info.variedad||'—')+' · '+info.fmt+(info.piezas?' · '+info.piezas+' pzs':'');
-  else if(infoEl)infoEl.textContent='';
+  if(info.lote)document.getElementById('c2-man-lote').value=info.lote;
+  if(info.tipo)document.getElementById('c2-man-tipo').value=info.tipo;
+  if(info.variedad)document.getElementById('c2-man-variedad').value=info.variedad;
+  if(info.fmt)document.getElementById('c2-man-fmt').value=info.fmt;
+  if(info.piezas)document.getElementById('c2-man-piezas').value=info.piezas;
 }
 function registrarC2Manual(){
   var idPale=document.getElementById('c2-man-id').value.trim();
@@ -1369,10 +1462,17 @@ function onVolteoKey(e){
 function registrarVolteo(codigo){
   var codigoCompleto=codigo.trim();
   var paleId=codigoCompleto.split('*')[0].trim();
-  var p=pales.find(function(x){return x.id===paleId;});
+  var _pkBuscar=normPaleKey(paleId);var p=pales.find(function(x){return normPaleKey(x.id)===_pkBuscar;});
   var errEl=document.getElementById('v-err');
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('v-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('v-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('v-err');}
-  if(p && p.sala !== salaVolteoActual){
+  if(!p){
+    errEl.textContent='⚠️ Este palé no existe en el sistema';
+    errEl.style.display='';
+    setTimeout(function(){errEl.style.display='none';},4000);
+    toast('Palé no encontrado en el sistema','err');
+    return;
+  }
+  if(p.sala !== salaVolteoActual){
     errEl.textContent='⚠️ El palé '+paleId+' no está en '+SLBL[salaVolteoActual]+' — está en '+sl(p.sala);
     errEl.style.display='';
     setTimeout(function(){errEl.style.display='none';},4000);
@@ -1444,7 +1544,7 @@ function registrarC2(codigo){
   var paleId=codigo.split('*')[0];
   var codigoCompleto=codigo.trim();
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('c2-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('c2-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('c2-err');}
-  var p=pales.find(function(x){return x.id===paleId;});
+  var _pkBuscar=normPaleKey(paleId);var p=pales.find(function(x){return normPaleKey(x.id)===_pkBuscar;});
   var salaActual=getSalaActualPale(paleId)||( p?p.sala:'');
   var loteUsado=loteC2;
   if(transC2>0){
@@ -1489,8 +1589,14 @@ function registrarMov(codigo){
     setTimeout(function(){errEl.style.display='none';},3500);
     return;
   }
-  var p=pales.find(function(x){return x.id===paleId;});
-  if(p && p.sala && normSala(p.sala)!==normSala(orig)){
+  var _pkBuscar=normPaleKey(paleId);var p=pales.find(function(x){return normPaleKey(x.id)===_pkBuscar;});
+  if(!p){
+    errEl.textContent='⚠️ Este palé no existe en el sistema';
+    errEl.style.display='';
+    setTimeout(function(){errEl.style.display='none';},4000);
+    return;
+  }
+  if(p.sala && normSala(p.sala)!==normSala(orig)){
     errEl.textContent='⚠️ Este palé está en '+p.sala+', no en '+orig;
     errEl.style.display='';
     setTimeout(function(){errEl.style.display='none';},4000);
@@ -1510,6 +1616,23 @@ function registrarMov(codigo){
   if(p)p.sala=dest;
   cntMov++;document.getElementById('mov-cnt').textContent=cntMov;
   renderLogMov();
+}
+function mostrarMovManual(){
+  var f=document.getElementById('mov-manual-form');
+  var btn=document.getElementById('mov-btn-manual');
+  var visible=f&&f.style.display!=='none';
+  if(f)f.style.display=visible?'none':'block';
+  if(btn)btn.style.background=visible?'var(--bg3)':'var(--blue-bg)';
+  if(!visible)setTimeout(function(){var el=document.getElementById('mov-man-id');if(el)el.focus();},100);
+}
+function registrarMovManual(){
+  var idPale=document.getElementById('mov-man-id').value.trim();
+  var errEl=document.getElementById('mov-man-err');
+  if(!idPale){errEl.textContent='Introduce el ID del palé';errEl.style.display='block';return;}
+  errEl.style.display='none';
+  registrarMov(idPale);
+  document.getElementById('mov-man-id').value='';
+  var inf=document.getElementById('mov-man-info');if(inf)inf.textContent='';
 }
 function renderLogMov(){
   var propios=misRegs.filter(function(r){return r.sec==='MOVIMIENTO'&&r.op===CU.n;}).slice(-10).reverse();
@@ -1564,7 +1687,7 @@ function registrarPint(codigo){
       document.getElementById('pint-lote-activo').textContent=loteUsado;
     }
   }
-  var p=pales.find(function(x){return x.id===paleId;});
+  var _pkBuscar=normPaleKey(paleId);var p=pales.find(function(x){return normPaleKey(x.id)===_pkBuscar;});
   var salaPint=getSalaActualPale(paleId)||(p?p.sala:'');
   var infoP=parsearId(codigoCompleto||paleId);
   var datos={'ID PALET':codigoCompleto,'SECCIÓN':'PINTURA','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),'LOTE QUESO':infoP.lote||paleId.substring(0,7),'TIPO DE QUESO':infoP.tipo,'VARIEDAD':infoP.variedad,'FORMATO/PESO':infoP.fmt,'Nº DE PIEZAS':infoP.piezas||'','PRODUCTO':pintProdActual,'LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaPint,'SALA DESTINO':salaPint,'Nº PIEZAS NO APTAS':(document.getElementById('pint-noAptas')?document.getElementById('pint-noAptas').value:'0'),'OBSERVACIONES':document.getElementById('pint-notas').value};
@@ -2875,7 +2998,7 @@ function abrirDrill2(sala,tipo,variedad,fmt){
   ir('s-stock-drill2');
 }
 function abrirHistorial(paleId){
-  var p=pales.find(function(x){return x.id===paleId;});
+  var _pkBuscar=normPaleKey(paleId);var p=pales.find(function(x){return normPaleKey(x.id)===_pkBuscar;});
   if(!p){toast('Palé no encontrado','err');return;}
   var fgColor=tipoColor(p.tipo,'bg');
   var bgColor=tipoColor(p.tipo,'light');
@@ -4117,7 +4240,7 @@ function cerrarScanner(){
 // ═══════ PWA SERVICE WORKER ═══════
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('/tracequeso/sw.js?v=71')
+    navigator.serviceWorker.register('/tracequeso/sw.js?v=76')
       .then(function(reg){ console.log('SW registrado:', reg.scope); })
       .catch(function(err){ console.log('SW error:', err); });
   });
