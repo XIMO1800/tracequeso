@@ -1141,6 +1141,7 @@ function cerrarSesion(){CU=null;cpin='';resetPin();document.getElementById('l-no
 // ═══════ NAVEGACIÓN ═══════
 var _lastSync=0;
 function ir(id){
+  removeTapLoading();
   document.querySelectorAll('.scr').forEach(function(s){s.classList.remove('on');});
   document.getElementById(id).classList.add('on');
   // Sync silencioso al volver al menú si han pasado más de 2 minutos
@@ -3057,14 +3058,14 @@ function procesarDatos(rows){
   if(ultimaC2)loteC2=ultimaC2['LOTE PRODUCTO'].toString().trim().split('|').pop();
 }
 function actualizarStats(){
-  document.getElementById('st-p').textContent=pales.length;
+  var stp=document.getElementById('st-p');if(stp)stp.textContent=pales.length;
   var al=0;
   pales.forEach(function(p){
     if(p.sala==='2.GOLPE FRIO'&&horasDesde(p.fechaFab)>=CFG.golpeH)al++;
     var u=getLastOp(p,'VOLTEO');var d=u?diasDesde(u.fecha):diasDesde(p.fechaFab);
     if(d>=CFG.volteoC)al++;
   });
-  document.getElementById('st-a').textContent=al||'0';
+  var sta=document.getElementById('st-a');if(sta)sta.textContent=al||'0';
   // Hora de última sync
   var ahora=new Date();
   var h=ahora.getHours().toString().padStart(2,'0');
@@ -4120,7 +4121,7 @@ function cerrarScanner(){
 // ═══════ PWA SERVICE WORKER ═══════
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('/tracequeso/sw.js?v=56')
+    navigator.serviceWorker.register('/tracequeso/sw.js?v=58')
       .then(function(reg){ console.log('SW registrado:', reg.scope); })
       .catch(function(err){ console.log('SW error:', err); });
   });
