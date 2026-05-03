@@ -223,6 +223,8 @@ html,body{height:100%;overflow:hidden;font-family:'Karla',sans-serif;background:
 .s1{border-left:4px solid #2196F3;}.s2{border-left:4px solid #4CAF50;}.s3{border-left:4px solid #FF9800;}
 .s4{border-left:4px solid #9C27B0;}.s5{border-left:4px solid #F44336;}.s6{border-left:4px solid #009688;}
 
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.sync-spin{display:inline-block;animation:spin 0.8s linear infinite;}
 /* FORMS */
 .fcard{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow);margin-bottom:12px;}
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
@@ -363,12 +365,12 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v78</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v80</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
     <button onclick="cargarDatos()" style="padding:12px;background:var(--bg2);border:2px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:var(--shadow);">
-      <span style="font-size:1.1rem;">🔄</span>
+      <span id="sync-icon" style="font-size:1.1rem;">🔄</span>
       <div style="text-align:left;">
         <div style="font-family:'Karla',sans-serif;font-weight:700;font-size:0.85rem;color:var(--text);">Actualizar</div>
         <div style="font-family:'Inconsolata',monospace;font-size:0.65rem;color:var(--text3);" id="sync-time">—</div>
@@ -567,12 +569,16 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;color:var(--text);margin-bottom:12px;">✏️ Registro manual</div>
       <div class="fgrid">
         <div class="fg full">
-          <div class="flabel">ID Palé</div>
-          <input class="finput" type="text" id="v-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off" oninput="document.getElementById('v-err').style.display='none';">
+          <div class="flabel">ID Palé (12 dígitos)</div>
+          <input class="finput" type="text" id="v-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off" inputmode="numeric" oninput="onVManId(this.value)">
         </div>
       </div>
+      <div id="v-man-confirm" style="display:none;background:var(--bg3);border:2px solid var(--green);border-radius:10px;padding:12px;margin-top:10px;">
+        <div style="font-size:0.7rem;color:var(--text3);font-family:'Karla',sans-serif;font-weight:700;margin-bottom:6px;">PALÉ ENCONTRADO — CONFIRMA QUE ES CORRECTO</div>
+        <div id="v-man-confirm-data" style="font-family:'Inconsolata',monospace;font-size:0.85rem;color:var(--text);line-height:1.8;"></div>
+      </div>
       <div class="errbanner" id="v-man-err"></div>
-      <button onclick="registrarVolteoManual()" style="width:100%;margin-top:14px;padding:14px;background:#3a6b3a;color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">✅ Guardar registro</button>
+      <button id="v-man-btn-guardar" onclick="registrarVolteoManual()" style="display:none;width:100%;margin-top:14px;padding:14px;background:#3a6b3a;color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">✅ Confirmar y registrar volteo</button>
     </div>
     <div class="scan-log" id="v-log"></div>
   </div>
@@ -717,13 +723,16 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;color:var(--text);margin-bottom:12px;">✏️ Registro manual</div>
       <div class="fgrid">
         <div class="fg full">
-          <div class="flabel">ID Palé</div>
-          <input class="finput" type="text" id="mov-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off" oninput="document.getElementById('mov-err').style.display='none';">
-          <div id="mov-man-info" style="font-size:0.75rem;color:var(--green);font-family:'Inconsolata',monospace;margin-top:4px;min-height:16px;"></div>
+          <div class="flabel">ID Palé (12 dígitos)</div>
+          <input class="finput" type="text" id="mov-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off" inputmode="numeric" oninput="onMovManId(this.value)">
         </div>
       </div>
+      <div id="mov-man-confirm" style="display:none;background:var(--bg3);border:2px solid var(--green);border-radius:10px;padding:12px;margin-top:10px;">
+        <div style="font-size:0.7rem;color:var(--text3);font-family:'Karla',sans-serif;font-weight:700;margin-bottom:6px;">PALÉ ENCONTRADO — CONFIRMA QUE ES CORRECTO</div>
+        <div id="mov-man-confirm-data" style="font-family:'Inconsolata',monospace;font-size:0.85rem;color:var(--text);line-height:1.8;"></div>
+      </div>
       <div class="errbanner" id="mov-man-err"></div>
-      <button onclick="registrarMovManual()" style="width:100%;margin-top:14px;padding:14px;background:#3a6b3a;color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">✅ Guardar registro</button>
+      <button id="mov-man-btn-guardar" onclick="registrarMovManual()" style="display:none;width:100%;margin-top:14px;padding:14px;background:#3a6b3a;color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">✅ Confirmar y registrar movimiento</button>
     </div>
     <div class="scan-log" id="mov-log"></div>
   </div>
@@ -1494,6 +1503,47 @@ function registrarVolteo(codigo){
   cntVolteo++;document.getElementById('v-cnt').textContent=cntVolteo;
   renderLogVolteo();
 }
+function onVManId(val){
+  var base=val.replace(/\s/g,'');
+  var confirm_div=document.getElementById('v-man-confirm');
+  var confirm_data=document.getElementById('v-man-confirm-data');
+  var btn=document.getElementById('v-man-btn-guardar');
+  var errEl=document.getElementById('v-man-err');
+  errEl.style.display='none';
+  if(base.length<12){confirm_div.style.display='none';if(btn)btn.style.display='none';return;}
+  // Buscar palé
+  var pk=normPaleKey(base);
+  var p=pales.find(function(x){return normPaleKey(x.id)===pk;});
+  if(!p){
+    var cands=buscarPorDigitos(base);
+    if(cands.length===1){p=cands[0];}
+    else if(cands.length>1){
+      confirm_div.style.display='none';
+      if(btn)btn.style.display='none';
+      errEl.innerHTML='<span style="font-size:1.1rem;font-weight:800;">⚠️ Hay '+cands.length+' palés con ese número: '+cands.map(function(x){return x.variedad||'sin variedad';}).join(', ')+'. Escanea el QR.</span>';
+      errEl.style.display='';
+      return;
+    } else {
+      confirm_div.style.display='none';
+      if(btn)btn.style.display='none';
+      errEl.innerHTML='<span style="font-size:1.1rem;font-weight:800;">⚠️ Este palé no existe en el sistema</span>';
+      errEl.style.display='';
+      return;
+    }
+  }
+  // Mostrar tarjeta
+  var html='';
+  html+='<b>ID:</b> '+p.id+'<br>';
+  html+='<b>Lote:</b> '+(p.lote||'—')+'<br>';
+  html+='<b>Tipo:</b> '+(p.tipo||'—')+'<br>';
+  html+='<b>Variedad:</b> '+(p.variedad||'— sin variedad —')+'<br>';
+  html+='<b>Formato:</b> '+(p.formato||'—')+'<br>';
+  html+='<b>Piezas:</b> '+(p.piezas||'—')+'<br>';
+  html+='<b>Sala actual:</b> '+(p.sala||'—');
+  confirm_data.innerHTML=html;
+  confirm_div.style.display='';
+  if(btn)btn.style.display='';
+}
 function mostrarVolteoManual(){
   var f=document.getElementById('v-manual-form');
   var btn=document.getElementById('v-btn-manual');
@@ -1630,6 +1680,33 @@ function registrarMov(codigo){
   if(p)p.sala=dest;
   cntMov++;document.getElementById('mov-cnt').textContent=cntMov;
   renderLogMov();
+}
+function onMovManId(val){
+  var base=val.replace(/\s/g,'');
+  var confirm_div=document.getElementById('mov-man-confirm');
+  var confirm_data=document.getElementById('mov-man-confirm-data');
+  var btn=document.getElementById('mov-man-btn-guardar');
+  var errEl=document.getElementById('mov-man-err');
+  errEl.style.display='none';
+  if(base.length<12){confirm_div.style.display='none';if(btn)btn.style.display='none';return;}
+  var pk=normPaleKey(base);
+  var p=pales.find(function(x){return normPaleKey(x.id)===pk;});
+  if(!p){
+    var cands=buscarPorDigitos(base);
+    if(cands.length===1){p=cands[0];}
+    else if(cands.length>1){
+      confirm_div.style.display='none';if(btn)btn.style.display='none';
+      errEl.innerHTML='<span style="font-size:1.1rem;font-weight:800;">⚠️ Hay '+cands.length+' palés: '+cands.map(function(x){return x.variedad||'sin variedad';}).join(', ')+'. Escanea el QR.</span>';
+      errEl.style.display='';return;
+    } else {
+      confirm_div.style.display='none';if(btn)btn.style.display='none';
+      errEl.innerHTML='<span style="font-size:1.1rem;font-weight:800;">⚠️ Este palé no existe en el sistema</span>';
+      errEl.style.display='';return;
+    }
+  }
+  var html='<b>ID:</b> '+p.id+'<br><b>Lote:</b> '+(p.lote||'—')+'<br><b>Tipo:</b> '+(p.tipo||'—')+'<br><b>Variedad:</b> '+(p.variedad||'— sin variedad —')+'<br><b>Formato:</b> '+(p.formato||'—')+'<br><b>Piezas:</b> '+(p.piezas||'—')+'<br><b>Sala actual:</b> '+(p.sala||'—');
+  confirm_data.innerHTML=html;
+  confirm_div.style.display='';if(btn)btn.style.display='';
 }
 function mostrarMovManual(){
   var f=document.getElementById('mov-manual-form');
@@ -3077,7 +3154,16 @@ function cargarDatos(){
   var sc=document.createElement('script');sc.id='jps';sc.src=API_URL+'?callback=__tqcb';sc.onerror=onErrS;document.head.appendChild(sc);
 }
 function onErrS(){setSB('err','❌');toast('Sin conexión a Google Sheets','err');}
-function setSB(cls,txt){var el=document.getElementById('sync-badge');el.className='tbsync '+cls;el.textContent=txt;}
+function setSB(cls,txt){
+  var el=document.getElementById('sync-badge');
+  el.className='tbsync '+cls;
+  el.textContent=txt;
+  // Spinner en el botón de actualizar
+  var ic=document.getElementById('sync-icon');
+  if(ic){ic.className=cls==='loading'?'sync-spin':'';ic.textContent=cls==='loading'?'⟳':'🔄';}
+  var st=document.getElementById('sync-time');
+  if(st&&cls==='loading')st.textContent='Actualizando...';
+}
 function procesarDatos(rows){
   var map={};
   rows.forEach(function(row){
@@ -4263,7 +4349,7 @@ function cerrarScanner(){
 // ═══════ PWA SERVICE WORKER ═══════
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('/tracequeso/sw.js?v=78')
+    navigator.serviceWorker.register('/tracequeso/sw.js?v=80')
       .then(function(reg){ console.log('SW registrado:', reg.scope); })
       .catch(function(err){ console.log('SW error:', err); });
   });
