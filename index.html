@@ -365,7 +365,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v80</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v82</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -833,6 +833,10 @@ textarea.finput{resize:vertical;min-height:60px;}
           <div class="flabel">Piezas <span style="color:red;">*</span></div>
           <input class="finput" type="number" id="pint-man-piezas" placeholder="0" min="0" inputmode="numeric">
         </div>
+        <div class="fg full">
+          <div class="flabel">Lote corto <span style="color:var(--text3);font-weight:400;">(solo manchego, ej: L-26049)</span></div>
+          <input class="finput" type="text" id="pint-man-lotecorto" placeholder="Ej: L-26049" autocomplete="off" autocapitalize="off">
+        </div>
       </div>
       <div class="errbanner" id="pint-man-err"></div>
       <button onclick="registrarPintManual()" style="width:100%;margin-top:14px;padding:14px;background:#3a6b3a;color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">✅ Guardar registro</button>
@@ -1240,7 +1244,7 @@ function resetSeccion(id){
   if(id==='s-volteo'){document.getElementById('v-qr').value='';cntVolteo=0;document.getElementById('v-cnt').textContent='0';document.getElementById('v-log').innerHTML='';}
   if(id==='s-capa2'){document.getElementById('c2-qr').value='';document.getElementById('c2-notas').value='';cntC2=0;document.getElementById('c2-cnt').textContent='0';document.getElementById('c2-log').innerHTML='';}
   if(id==='s-mov'){document.getElementById('mov-qr').value='';cntMov=0;document.getElementById('mov-cnt').textContent='0';document.getElementById('mov-log').innerHTML='';}
-  if(id==='s-pintura'){document.getElementById('pint-qr').value='';document.getElementById('pint-notas').value='';var _pna=document.getElementById('pint-noAptas');if(_pna)_pna.value='0';cntPint=0;document.getElementById('pint-cnt').textContent='0';document.getElementById('pint-log').innerHTML='';}
+  if(id==='s-pintura'){document.getElementById('pint-qr').value='';document.getElementById('pint-notas').value='';var _pna=document.getElementById('pint-noAptas');if(_pna)_pna.value='0';var _plc=document.getElementById('pint-man-lotecorto');if(_plc)_plc.value='';cntPint=0;document.getElementById('pint-cnt').textContent='0';document.getElementById('pint-log').innerHTML='';}
 }
 function irF(){renderSecs();ir('s-secs');}
 function irR(){
@@ -1490,9 +1494,15 @@ function registrarVolteo(codigo){
     }
   }
   if(p.sala !== salaVolteoActual){
-    errEl.innerHTML='<span style="font-size:1.1rem;font-weight:800;">⚠️ Este palé está en <u>'+sl(p.sala)+'</u>, no en '+SLBL[salaVolteoActual]+'</span>';
-    errEl.style.display='';
-    toast('Palé no está en esta sala','err');
+    var manForm=document.getElementById('v-manual-form');
+    var manErr=document.getElementById('v-man-err');
+    var msg='<span style="font-size:1.05rem;font-weight:800;color:#c0392b;">⚠️ Este palé está en <u>'+sl(p.sala)+'</u>, no en <u>'+SLBL[salaVolteoActual]+'</u>.<br>Cambia la sala y vuelve a confirmar.</span>';
+    if(manForm&&manForm.style.display!=='none'&&manErr){
+      manErr.innerHTML=msg;manErr.style.display='';
+    } else {
+      errEl.innerHTML=msg;errEl.style.display='';
+      toast('Palé no está en esta sala','err');
+    }
     return;
   }
   errEl.style.display='none';
@@ -1662,8 +1672,18 @@ function registrarMov(codigo){
     }
   }
   if(p.sala && normSala(p.sala)!==normSala(orig)){
-    errEl.innerHTML='<span style="font-size:1.1rem;font-weight:800;">⚠️ Este palé está en <u>'+p.sala+'</u>, no en '+orig+'</span>';
-    errEl.style.display='';
+    // Mostrar error en el form manual si está abierto, si no en mov-err
+    var manForm=document.getElementById('mov-manual-form');
+    var manErr=document.getElementById('mov-man-err');
+    var msg='<span style="font-size:1.05rem;font-weight:800;color:#c0392b;">⚠️ Este palé está en <u>'+p.sala+'</u>, no en <u>'+orig+'</u>.<br>Cambia la sala origen y vuelve a confirmar.</span>';
+    if(manForm&&manForm.style.display!=='none'&&manErr){
+      manErr.innerHTML=msg;
+      manErr.style.display='';
+      // NO limpiar el ID — dejar todo tal cual para que pueda cambiar la sala
+    } else {
+      errEl.innerHTML=msg;
+      errEl.style.display='';
+    }
     return;
   }
   if(p && p.sala !== orig){
@@ -1856,11 +1876,23 @@ function registrarPintManual(){
   var piezas=parseInt(document.getElementById('pint-man-piezas').value)||0;
   var noAptas=parseInt(document.getElementById('pint-man-noaptas').value)||0;
   var errEl=document.getElementById('pint-man-err');
+  var loteCorto=document.getElementById('pint-man-lotecorto')?document.getElementById('pint-man-lotecorto').value.trim():'';
   if(!lote){errEl.textContent='El lote es obligatorio';errEl.style.display='block';return;}
   if(!tipo){errEl.textContent='El tipo de queso es obligatorio';errEl.style.display='block';return;}
   if(!fmt){errEl.textContent='El formato/peso es obligatorio';errEl.style.display='block';return;}
   if(!piezas){errEl.textContent='Introduce el número de piezas';errEl.style.display='block';return;}
   errEl.style.display='none';
+  // Generar ID provisional si no hay ID palé
+  if(!idPale){
+    // Construir ID: lote (dígitos, max 7) + relleno hasta 12 + variedad + loteCorto
+    var loteDig=lote.replace(/[^0-9]/g,'').substring(0,7);
+    while(loteDig.length<7)loteDig='0'+loteDig;
+    var idBase='SL'+loteDig+'00000'.substring(0,5-(12-9));
+    // Formato simplificado: SLXXXXXXX + 3 dígitos = 12 chars
+    idPale='SL'+loteDig.substring(0,7)+'000';
+    if(variedad)idPale+='*'+variedad.toUpperCase();
+    if(loteCorto)idPale+='!'+loteCorto.toUpperCase();
+  }
   var loteActual=lotePinturaPorProducto[pintProdActual]||'';
   var loteUsado=loteActual;
   if(transPint>0){
@@ -4349,7 +4381,7 @@ function cerrarScanner(){
 // ═══════ PWA SERVICE WORKER ═══════
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('/tracequeso/sw.js?v=80')
+    navigator.serviceWorker.register('/tracequeso/sw.js?v=82')
       .then(function(reg){ console.log('SW registrado:', reg.scope); })
       .catch(function(err){ console.log('SW error:', err); });
   });
