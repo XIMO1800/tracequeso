@@ -365,7 +365,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v87</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v89</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -511,9 +511,9 @@ textarea.finput{resize:vertical;min-height:60px;}
           <div class="flabel">Variedad <span style="color:var(--text3);font-weight:400;">(si aplica)</span></div>
           <select class="finput" id="c1-man-variedad">
             <option value="">— Sin variedad —</option>
-            <option>ACEITE</option><option>TOSTADO</option><option>ROMERO</option>
-            <option>PIMIENTA</option><option>TIERNO</option><option>SEMICURADO</option>
-            <option>CURADO</option><option>VIEJO</option><option>ANEJO</option>
+            <option>ACEITE</option><option>TIERNO</option><option>BAJO EN SAL</option>
+            <option>NEGRO</option><option>PRUEBA</option><option>TOSTADO</option>
+            <option>BOUQUET</option><option>SEMICURADO</option>
           </select>
         </div>
         <div class="fg full">
@@ -659,9 +659,9 @@ textarea.finput{resize:vertical;min-height:60px;}
           <div class="flabel">Variedad <span style="color:var(--text3);font-weight:400;">(si aplica)</span></div>
           <select class="finput" id="c2-man-variedad">
             <option value="">— Sin variedad —</option>
-            <option>ACEITE</option><option>TOSTADO</option><option>ROMERO</option>
-            <option>PIMIENTA</option><option>TIERNO</option><option>SEMICURADO</option>
-            <option>CURADO</option><option>VIEJO</option><option>ANEJO</option>
+            <option>ACEITE</option><option>TIERNO</option><option>BAJO EN SAL</option>
+            <option>NEGRO</option><option>PRUEBA</option><option>TOSTADO</option>
+            <option>BOUQUET</option><option>SEMICURADO</option>
           </select>
         </div>
         <div class="fg full">
@@ -816,9 +816,9 @@ textarea.finput{resize:vertical;min-height:60px;}
           <div class="flabel">Variedad <span style="color:var(--text3);font-weight:400;">(si aplica)</span></div>
           <select class="finput" id="pint-man-variedad" onchange="actualizarPreviewIdPint()">
             <option value="">— Sin variedad —</option>
-            <option>ACEITE</option><option>TOSTADO</option><option>ROMERO</option>
-            <option>PIMIENTA</option><option>TIERNO</option><option>SEMICURADO</option>
-            <option>CURADO</option><option>VIEJO</option><option>ANEJO</option>
+            <option>ACEITE</option><option>TIERNO</option><option>BAJO EN SAL</option>
+            <option>NEGRO</option><option>PRUEBA</option><option>TOSTADO</option>
+            <option>BOUQUET</option><option>SEMICURADO</option>
           </select>
         </div>
         <div class="fg full">
@@ -1227,7 +1227,21 @@ function pv(){
   var sb=document.getElementById('stats-block');if(sb)sb.style.display=u.stock?'':'none';
   document.getElementById('btn-trazabilidad').style.display=(u.rol==='CALIDAD'||u.rol==='ADMIN')?'':'none';
   document.getElementById('btn-materiales').style.display=(u.rol==='CALIDAD'||u.rol==='ADMIN')?'':'none';
-  ir('s-main');cargarDatos();
+  ir('s-main');cargarDatos();iniciarAutoSync();
+}
+function iniciarAutoSync(){
+  if(window._autoSyncTimer)clearInterval(window._autoSyncTimer);
+  window._autoSyncTimer=setInterval(function(){
+    if(!CU)return;
+    var ahora=Date.now();
+    if(ahora-_lastSync>180000){
+      _lastSync=ahora;
+      var sc=document.createElement('script');
+      sc.src=API_URL+'?callback=__tqcb&t='+ahora;
+      document.head.appendChild(sc);
+      setTimeout(function(){if(sc&&sc.parentNode)sc.parentNode.removeChild(sc);},10000);
+    }
+  },60000);
 }
 function cerrarSesion(){CU=null;cpin='';resetPin();document.getElementById('l-nombre').value='';ir('s-login');}
 
@@ -1298,6 +1312,9 @@ function abrirSec(sec){
   if(!CU)return;
   var s=SECCIONES.find(function(x){return x.id===sec;});
   if(!CU.p[s.perm]){toast('Sin permiso para '+s.nombre,'err');return;}
+  // Sync silencioso al abrir sección si han pasado más de 2 minutos
+  var ahora=Date.now();
+  if(ahora-_lastSync>120000){_lastSync=ahora;cargarDatos();}
   if(sec==='1ª CAPA'){initC1();ir('s-capa1');setTimeout(function(){document.getElementById('c1-qr').focus();},200);}
   else if(sec==='VOLTEO'){initVolteo();ir('s-volteo');}
   else if(sec==='2ª CAPA'){initC2();ir('s-capa2');setTimeout(function(){document.getElementById('c2-qr').focus();},200);}
@@ -4410,7 +4427,7 @@ function cerrarScanner(){
 // ═══════ PWA SERVICE WORKER ═══════
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('/tracequeso/sw.js?v=87')
+    navigator.serviceWorker.register('/tracequeso/sw.js?v=89')
       .then(function(reg){ console.log('SW registrado:', reg.scope); })
       .catch(function(err){ console.log('SW error:', err); });
   });
