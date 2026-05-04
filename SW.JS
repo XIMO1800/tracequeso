@@ -1,4 +1,4 @@
-const CACHE = 'tracequeso-v90c';
+const CACHE = 'tracequeso-v90d';
 const ASSETS = [
   '/tracequeso/',
   '/tracequeso/index.html',

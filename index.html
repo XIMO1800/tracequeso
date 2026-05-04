@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="TraceQueso">
 <meta name="theme-color" content="#6a1010">
 <link rel="manifest" href="manifest.json">
-<title>El Hidalgo — Trazabilidad</title>
+<title>El Hidalgo — Trazabilidad v90d</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Karla:wght@400;500;600;700&family=Inconsolata:wght@400;600&display=swap" rel="stylesheet">
 <script>
 // SISTEMA DE GUARDADO
@@ -237,7 +237,7 @@ textarea.finput{resize:vertical;min-height:60px;}
   <div class="greet">
     <div class="greet-name">Hola, <span id="g-name">—</span> 👋</div>
     <div class="greet-sub" id="g-sub"></div>
-    <div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v90</div>
+    <div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v90d</div>
   </div>
   <div style="flex:1;overflow-y:auto;padding:0;">
     <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -488,7 +488,7 @@ textarea.finput{resize:vertical;min-height:60px;}
 </div>
 
 <!-- ═══════════════════════════════════════ -->
-<!-- ENVASADO v90                            -->
+<!-- ENVASADO v90d                            -->
 <!-- ═══════════════════════════════════════ -->
 <div class="scr" id="s-envasado">
   <div class="topbar">
@@ -1859,10 +1859,13 @@ function normSala(s){
 function parseFecha(str){
   if(!str)return null;if(str instanceof Date)return str;
   var s=str.toString().trim();
+  // Formato d/m/yyyy, h:mm:ss (con o sin ceros, coma o espacio entre fecha y hora)
   var m1=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
   if(m1)return new Date(parseInt(m1[3]),parseInt(m1[2])-1,parseInt(m1[1]),parseInt(m1[4]),parseInt(m1[5]),parseInt(m1[6]||0));
+  // ISO yyyy-mm-ddThh:mm
   var m2=s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
   if(m2)return new Date(parseInt(m2[1]),parseInt(m2[2])-1,parseInt(m2[3]),parseInt(m2[4]),parseInt(m2[5]));
+  // Solo fecha d/m/yyyy
   var m3=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if(m3)return new Date(parseInt(m3[3]),parseInt(m3[2])-1,parseInt(m3[1]));
   return null;
