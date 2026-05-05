@@ -365,7 +365,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v89a</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v89b</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -2025,7 +2025,7 @@ function renderRegs(){
   var porSec={};
   var SECCIONES_ORDER=['1ª CAPA','VOLTEO','2ª CAPA','MOVIMIENTO','PINTURA','ENVASADO'];
   var SCOLOR={'1ª CAPA':'#6b4a4a','VOLTEO':'#4a5e4a','2ª CAPA':'#425470','MOVIMIENTO':'#7a5e3a','PINTURA':'#5a4568','ENVASADO':'#4a5a3a'};
-  var SICON={'1ª CAPA':'🧴','VOLTEO':'🔄','2ª CAPA':'🧴','MOVIMIENTO':'🚚','PINTURA':'🎨','ENVASADO':'📦'};
+  var SICON={'1ª CAPA':'🫧','VOLTEO':'🔄','2ª CAPA':'🫧','MOVIMIENTO':'🚚','PINTURA':'🎨','ENVASADO':'📦'};
   regsSheets.forEach(function(r){
     try{
     var sec=(r['SECCIÓN']||'').toUpperCase();if(!sec)return;
@@ -2100,7 +2100,7 @@ function renderRegs(){
         // Tarjeta resumen pulsable
         html+='<div onclick="toggleSalaVolteo(\''+rutaId+'\')" style="background:#8a5a1a12;border-left:4px solid #8a5a1a;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);cursor:pointer;">'
           +'<div>'
-          +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.95rem;">🚚 '+ruta.label+'</div>'
+          +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.95rem;">'+ruta.label+'</div>'
           +'<div style="font-size:0.7rem;opacity:0.8;margin-top:2px;">'+ruta.total+' palet'+(ruta.total>1?'s':'')+' · toca para ver detalle</div>'
           +'</div>'
           +'<div style="display:flex;align-items:center;gap:8px;">'
@@ -3183,7 +3183,7 @@ function abrirHistorial(paleId){
   regsP.sort(function(a,b){var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);if(!fa&&!fb)return 0;if(!fa)return 1;if(!fb)return -1;return fa-fb;});
   // Guardar para uso en detalle
   trazOpsActuales=regsP;
-  var SICON={'1ª CAPA':'🧴','2ª CAPA':'🧴','PINTURA':'🎨','VOLTEO':'🔄','MOVIMIENTO':'🚚','ENVASADO':'📦'};
+  var SICON={'1ª CAPA':'🫧','2ª CAPA':'🫧','PINTURA':'🎨','VOLTEO':'🔄','MOVIMIENTO':'🚚','ENVASADO':'📦'};
   var SCOLOR={'1ª CAPA':'#6b4a4a','VOLTEO':'#4a5e4a','2ª CAPA':'#425470','MOVIMIENTO':'#7a5e3a','PINTURA':'#5a4568','ENVASADO':'#4a5a3a'};
   var html='<div style="font-size:0.75rem;color:var(--text3);margin-bottom:10px;">'+regsP.length+' operaciones registradas</div>';
   if(!regsP.length){html='<div style="color:var(--text3);text-align:center;padding:20px;">Sin operaciones registradas</div>';}
@@ -3923,7 +3923,7 @@ function verHistorialPale(paleId){
     +(info.piezas?'<div style="font-size:0.78rem;color:var(--text3);margin-top:1px;">'+info.piezas+' pzas</div>':'')
     +'</div>';
 
-  var SICON={'1ª CAPA':'🧴','2ª CAPA':'🧴','PINTURA':'🎨','VOLTEO':'🔄','MOVIMIENTO':'🚚','ENVASADO':'📦'};
+  var SICON={'1ª CAPA':'🫧','2ª CAPA':'🫧','PINTURA':'🎨','VOLTEO':'🔄','MOVIMIENTO':'🚚','ENVASADO':'📦'};
   var SCOLOR={'1ª CAPA':'#6b4a4a','VOLTEO':'#4a5e4a','2ª CAPA':'#425470','MOVIMIENTO':'#7a5e3a','PINTURA':'#5a4568','ENVASADO':'#4a5a3a'};
 
   var html='<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.82rem;color:var(--text3);margin-bottom:8px;">HISTORIAL CRONOLÓGICO — pulsa para ver detalle</div>';
@@ -4051,7 +4051,7 @@ function buscarPale(id){
     +(info.piezas?'<div style="font-size:0.85rem;color:var(--text2);margin-top:4px;">'+info.piezas+' pzas</div>':'')
     +'</div>';
   html+='<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.85rem;color:var(--text3);margin-bottom:8px;">HISTORIAL ('+regs.length+' operaciones)</div>';
-  var SICON={'1ª CAPA':'🧴','2ª CAPA':'🧴','PINTURA':'🎨','VOLTEO':'🔄','MOVIMIENTO':'🚚','ENVASADO':'📦'};
+  var SICON={'1ª CAPA':'🫧','2ª CAPA':'🫧','PINTURA':'🎨','VOLTEO':'🔄','MOVIMIENTO':'🚚','ENVASADO':'📦'};
   var SCOLOR={'1ª CAPA':'#6b4a4a','VOLTEO':'#4a5e4a','2ª CAPA':'#425470','MOVIMIENTO':'#7a5e3a','PINTURA':'#5a4568','ENVASADO':'#4a5a3a'};
   regs.forEach(function(r){
     var sec=(r['SECCIÓN']||'').toUpperCase();
@@ -4213,7 +4213,7 @@ function mostrarHistorialPale(paleId){
     if(!fa&&!fb)return 0;if(!fa)return 1;if(!fb)return -1;
     return fa-fb;
   });
-  var SICON={'1ª CAPA':'🧴','2ª CAPA':'🧴','PINTURA':'🎨','VOLTEO':'🔄','MOVIMIENTO':'🚚','ENVASADO':'📦'};
+  var SICON={'1ª CAPA':'🫧','2ª CAPA':'🫧','PINTURA':'🎨','VOLTEO':'🔄','MOVIMIENTO':'🚚','ENVASADO':'📦'};
   var SCOLOR={'1ª CAPA':'#6b4a4a','VOLTEO':'#4a5e4a','2ª CAPA':'#425470','MOVIMIENTO':'#7a5e3a','PINTURA':'#5a4568','ENVASADO':'#4a5a3a'};
   if(!trazOpsActuales.length){
     document.getElementById('traz-hist-ops').innerHTML='<div style="color:var(--text3);text-align:center;padding:20px;">Sin operaciones registradas.</div>';
