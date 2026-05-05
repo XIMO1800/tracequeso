@@ -331,6 +331,8 @@ textarea.finput{resize:vertical;min-height:60px;}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--text);color:#fff;padding:10px 20px;border-radius:10px;font-size:0.85rem;z-index:9999;opacity:0;transition:all 0.25s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 .toast.ok{background:var(--green);}.toast.err{background:var(--red);}
+.env-cuna-btn{padding:18px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;line-height:1.4;border-radius:12px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);width:100%;}
+.env-cuna-btn.sel{background:#1a6a2a !important;border-color:#1a6a2a !important;color:#fff !important;box-shadow:0 3px 10px rgba(26,106,42,0.4);}
 @media(max-width:360px){.fgrid{grid-template-columns:1fr;}.stock-grid{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -366,7 +368,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v89g</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v89i</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -1252,11 +1254,11 @@ textarea.finput{resize:vertical;min-height:60px;}
             <button class="env-cuna-btn" onclick="selCuna(this,'1/6')">1/6</button>
             <button class="env-cuna-btn" onclick="selCuna(this,'1/8')">1/8</button>
             <button class="env-cuna-btn" onclick="selCuna(this,'1/12')">1/12</button>
-            <button class="env-cuna-btn" onclick="selCuna(this,'500gr')">500 gr.</button>
-            <button class="env-cuna-btn" onclick="selCuna(this,'380gr')">380 gr.</button>
-            <button class="env-cuna-btn" onclick="selCuna(this,'250gr')">250 gr.</button>
-            <button class="env-cuna-btn" onclick="selCuna(this,'200gr')">200 gr.</button>
-            <button class="env-cuna-btn" onclick="selCuna(this,'150gr')">150 gr.</button>
+            <button class="env-cuna-btn" onclick="selCuna(this,'500gr')">Peso fijo<br>500 gr.</button>
+            <button class="env-cuna-btn" onclick="selCuna(this,'380gr')">Peso fijo<br>380 gr.</button>
+            <button class="env-cuna-btn" onclick="selCuna(this,'250gr')">Peso fijo<br>250 gr.</button>
+            <button class="env-cuna-btn" onclick="selCuna(this,'200gr')">Peso fijo<br>200 gr.</button>
+            <button class="env-cuna-btn" onclick="selCuna(this,'150gr')">Peso fijo<br>150 gr.</button>
           </div>
           <div style="margin-top:12px;">
             <div class="flabel" style="margin-bottom:4px;">Total unidades (cuñas)</div>
@@ -1282,7 +1284,15 @@ textarea.finput{resize:vertical;min-height:60px;}
         </div>
         <div id="env-etiq-wrap" style="display:none;margin-top:12px;">
           <div class="fgrid">
-            <div class="fg full"><div class="flabel">Descripción etiqueta</div><input class="finput" type="text" id="env-etiq-desc" placeholder="Descripción de la etiqueta" autocomplete="off"></div>
+            <div class="fg full">
+              <div class="flabel">Descripción etiqueta</div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <select class="finput" id="env-etiq-desc" style="flex:1;">
+                  <option value="">— Selecciona etiqueta —</option>
+                </select>
+                <button onclick="nuevaEtiqueta()" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;padding:10px 12px;font-size:0.85rem;cursor:pointer;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:700;">➕ Nueva</button>
+              </div>
+            </div>
             <div class="fg"><div class="flabel">Nº etiquetas</div><input class="finput" type="number" id="env-etiq-num" placeholder="0" min="0" inputmode="numeric"></div>
             <div class="fg"><div class="flabel">Etiquetas no conformes</div><input class="finput" type="number" id="env-etiq-nc" placeholder="0" min="0" inputmode="numeric"></div>
           </div>
@@ -1302,8 +1312,8 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">🔖 Contraetiquetas D.O. Manchego</div>
       <div style="padding:14px;">
         <div class="fgrid">
-          <div class="fg"><div class="flabel">Primera contraetiqueta nº</div><input class="finput" type="number" id="env-contra-primera" placeholder="Ej: 11326" inputmode="numeric" oninput="validarContraetiquetas()"></div>
-          <div class="fg"><div class="flabel">Última contraetiqueta nº</div><input class="finput" type="number" id="env-contra-ultima" placeholder="Ej: 12525" inputmode="numeric" oninput="validarContraetiquetas()"></div>
+          <div class="fg"><div class="flabel">Primera contraetiqueta</div><input class="finput" type="text" id="env-contra-primera" placeholder="Ej: MI11326" autocomplete="off" autocapitalize="characters" oninput="validarContraetiquetas()"></div>
+          <div class="fg"><div class="flabel">Última contraetiqueta</div><input class="finput" type="text" id="env-contra-ultima" placeholder="Ej: MI12525" autocomplete="off" autocapitalize="characters" oninput="validarContraetiquetas()"></div>
         </div>
         <div id="env-contra-resultado" style="display:none;margin-top:8px;">
           <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:0.82rem;display:flex;justify-content:space-between;align-items:center;">
@@ -1323,9 +1333,12 @@ textarea.finput{resize:vertical;min-height:60px;}
         <div class="fgrid">
           <div class="fg full"><div class="flabel">Lote manteca</div><input class="finput" type="text" id="env-lote-manteca" placeholder="Opcional" autocomplete="off" autocapitalize="characters"></div>
           <div class="fg full"><div class="flabel">Lote romero</div><input class="finput" type="text" id="env-lote-romero" placeholder="Opcional" autocomplete="off" autocapitalize="characters"></div>
+          <div class="fg full"><div class="flabel">Lote finas hierbas</div><input class="finput" type="text" id="env-lote-finas-hierbas" placeholder="Opcional" autocomplete="off" autocapitalize="characters"></div>
           <div class="fg full"><div class="flabel">Lote pimienta</div><input class="finput" type="text" id="env-lote-pimienta" placeholder="Opcional" autocomplete="off" autocapitalize="characters"></div>
           <div class="fg"><div class="flabel">Lote trufa</div><input class="finput" type="text" id="env-lote-trufa" placeholder="Opcional" autocomplete="off" autocapitalize="characters"></div>
           <div class="fg"><div class="flabel">Cantidad trufa (g)</div><input class="finput" type="number" id="env-cant-trufa" placeholder="0" min="0" inputmode="numeric"></div>
+          <div class="fg"><div class="flabel">Lote aceite</div><input class="finput" type="text" id="env-lote-aceite" placeholder="Opcional" autocomplete="off" autocapitalize="characters"></div>
+          <div class="fg"><div class="flabel">Cantidad aceite (g)</div><input class="finput" type="number" id="env-cant-aceite" placeholder="0" min="0" inputmode="numeric"></div>
         </div>
       </div>
     </div>
@@ -4939,6 +4952,7 @@ function onEnvFormato(fmt){
   document.getElementById('env-bloque-tapa').style.display='';
   document.getElementById('env-bloque-porcionado').style.display='';
   document.getElementById('env-bloque-etiquetado').style.display='';
+  cargarListaEtiquetas();
   onEnvTipoCambia();
 }
 
@@ -4965,6 +4979,7 @@ function selEnvEtiq(val){
   si.style.background=val?'#3a6a2a':'var(--bg3)'; si.style.borderColor=val?'#3a6a2a':'var(--border)'; si.style.color=val?'#fff':'var(--text2)';
   no.style.background=!val?'#8b1a1a':'var(--bg3)'; no.style.borderColor=!val?'#8b1a1a':'var(--border)'; no.style.color=!val?'#fff':'var(--text2)';
   document.getElementById('env-etiq-wrap').style.display=val?'':'none';
+  if(val)cargarListaEtiquetas();
 }
 
 function selEnvVacio(val){
@@ -4982,9 +4997,14 @@ function adjEnvNum(id,delta){
   if(id==='env-cunas-total') validarContraetiquetas();
 }
 
+function extraerNumContra(val){
+  // Extrae solo los dígitos de un código de contraetiqueta (ej: "MI11326" → 11326)
+  var soloNums=(val||'').toString().replace(/[^0-9]/g,'');
+  return parseInt(soloNums)||0;
+}
 function validarContraetiquetas(){
-  var primera=parseInt(document.getElementById('env-contra-primera').value)||0;
-  var ultima=parseInt(document.getElementById('env-contra-ultima').value)||0;
+  var primera=extraerNumContra(document.getElementById('env-contra-primera').value);
+  var ultima=extraerNumContra(document.getElementById('env-contra-ultima').value);
   var resDiv=document.getElementById('env-contra-resultado');
   var okDiv=document.getElementById('env-contra-ok');
   var errDiv=document.getElementById('env-contra-err');
@@ -4994,7 +5014,11 @@ function validarContraetiquetas(){
   resDiv.style.display='';
   var refPzs=ENV.porciona?(parseInt(document.getElementById('env-cunas-total').value)||0):(parseInt(document.getElementById('env-piezas').value)||0);
   if(refPzs>0&&total===refPzs){okDiv.style.display='';errDiv.style.display='none';}
-  else if(refPzs>0){okDiv.style.display='none';errDiv.style.display='';}
+  else if(refPzs>0){
+    okDiv.style.display='none';
+    errDiv.style.display='';
+    errDiv.textContent='⚠️ Las contraetiquetas ('+total+') no coinciden con las '+(ENV.porciona?'cuñas':'piezas')+' ('+refPzs+'). Revisa los números.';
+  }
   else{okDiv.style.display='none';errDiv.style.display='none';}
 }
 
@@ -5011,8 +5035,8 @@ function guardarEnvasado(){
   if(!piezas){errEl.textContent='Introduce el número de piezas';errEl.style.display='';return;}
   var esDO=(tipo==='D.O. PAST.'||tipo==='D.O. CRUDA');
   if(esDO){
-    var primera=parseInt(document.getElementById('env-contra-primera').value)||0;
-    var ultima=parseInt(document.getElementById('env-contra-ultima').value)||0;
+    var primera=extraerNumContra(document.getElementById('env-contra-primera').value);
+    var ultima=extraerNumContra(document.getElementById('env-contra-ultima').value);
     if(!primera||!ultima){errEl.textContent='Introduce las contraetiquetas para D.O. Manchego';errEl.style.display='';return;}
     var totalCE=ultima-primera+1;
     var refPzs=ENV.porciona?(parseInt(document.getElementById('env-cunas-total').value)||0):piezas;
@@ -5042,9 +5066,12 @@ function guardarEnvasado(){
     'ULTIMA CONTRAETIQUETA':esDO?document.getElementById('env-contra-ultima').value:'',
     'LOTE MANTECA':document.getElementById('env-lote-manteca').value,
     'LOTE ROMERO':document.getElementById('env-lote-romero').value,
+    'LOTE FINAS HIERBAS':document.getElementById('env-lote-finas-hierbas').value,
     'LOTE PIMIENTA':document.getElementById('env-lote-pimienta').value,
     'LOTE TRUFA':document.getElementById('env-lote-trufa').value,
     'CANTIDAD TRUFA':document.getElementById('env-cant-trufa').value,
+    'LOTE ACEITE':document.getElementById('env-lote-aceite').value,
+    'CANTIDAD ACEITE (g)':document.getElementById('env-cant-aceite').value,
     'Nº PIEZAS NO APTAS':document.getElementById('env-no-aptas').value||'0',
     'OBSERVACIONES':document.getElementById('env-obs').value,
     'SALA ORIGEN':'ENVASADO','SALA DESTINO':'ENVASADO'
@@ -5094,6 +5121,36 @@ function nuevoRegistroEnvasado(){
 }
 
 function resetEnvasado(){ENV.cnt=0;nuevoRegistroEnvasado();}
+
+
+// ═══ GESTIÓN LISTA ETIQUETAS (localStorage) ═══
+function cargarListaEtiquetas(){
+  var sel=document.getElementById('env-etiq-desc');
+  if(!sel)return;
+  var lista=JSON.parse(localStorage.getItem('tq_etiquetas')||'[]');
+  var valActual=sel.value;
+  sel.innerHTML='<option value="">— Selecciona etiqueta —</option>';
+  lista.forEach(function(e){
+    var opt=document.createElement('option');
+    opt.value=e;opt.textContent=e;
+    sel.appendChild(opt);
+  });
+  if(valActual)sel.value=valActual;
+}
+
+function nuevaEtiqueta(){
+  var nombre=prompt('Nombre de la nueva etiqueta:');
+  if(!nombre||!nombre.trim())return;
+  nombre=nombre.trim().toUpperCase();
+  var lista=JSON.parse(localStorage.getItem('tq_etiquetas')||'[]');
+  if(lista.indexOf(nombre)>=0){toast('Esa etiqueta ya existe','err');return;}
+  lista.push(nombre);
+  lista.sort();
+  localStorage.setItem('tq_etiquetas',JSON.stringify(lista));
+  cargarListaEtiquetas();
+  document.getElementById('env-etiq-desc').value=nombre;
+  toast('✅ Etiqueta "'+nombre+'" guardada');
+}
 
 </script>
 </body>
