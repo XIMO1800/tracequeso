@@ -365,7 +365,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v89e</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v89f</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -2417,12 +2417,32 @@ function renderPlanMenu(){
   var c2Count=c2Items.length;
 
   var salItems=[];pales.filter(function(p){return aptoSalidaAppSite(p);}).forEach(function(p){salItems.push(diasDesde(p.fechaFab));});
-  var selItems=[];pales.filter(function(p){return aptoSeleccionAppSite(p);}).forEach(function(p){selItems.push(diasDesde(p.fechaFab));});
+  var selItems=[];var selCountHoy=0;
+  pales.filter(function(p){return aptoSeleccionAppSite(p);}).forEach(function(p){
+    selItems.push(diasDesde(p.fechaFab));
+    var fSel=fechaSeleccionPale(p);
+    var hoy=new Date();var hoyMed=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
+    if(fSel&&new Date(fSel.getFullYear(),fSel.getMonth(),fSel.getDate())<=hoyMed)selCountHoy++;
+  });
   var selMaxD=selItems.length?Math.max.apply(null,selItems):0;
   var selCount=selItems.length;
   var salMaxD=salItems.length?Math.max.apply(null,salItems):0;
   var salCount=salItems.length;
 
+  function btnPlanSel(ico,titulo,countHoy,accion){
+    var hasPending=countHoy>0;
+    var color=hasPending?'var(--red)':'var(--green)';
+    var rightContent=hasPending
+      ?'<div style="text-align:right;"><div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.5rem;color:'+color+';">'+countHoy+'</div><div style="font-size:0.68rem;color:var(--text3);">palés hoy</div></div>'
+      :'<div style="font-size:1.3rem;">✅</div>';
+    return '<button onclick="abrirPlanAccion(\''+accion+'\')" style="width:100%;background:var(--bg2);border:2px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:var(--shadow);margin-bottom:10px;text-align:left;">'
+      +'<div style="font-size:2rem;width:44px;text-align:center;">'+ico+'</div>'
+      +'<div style="flex:1;">'
+      +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:1rem;color:var(--text);">'+titulo+'</div>'
+      +'</div>'
+      +rightContent
+      +'</button>';
+  }
   function btnPlan(ico,titulo,maxD,count,crit,accion){
     var hasPending=count>0;
     var color=crit&&hasPending?'var(--red)':'var(--accent)';
@@ -2441,7 +2461,7 @@ function renderPlanMenu(){
     '<div style="padding:4px 0 8px;font-size:0.78rem;color:var(--text3);">Selecciona una acción</div>'
     +btnPlan('❄️','Salida Golpe de Frío',gfMaxD,gfCount,true,'golpe')
     +btnPlan('🔄','Volteo',volteoMaxD,volteoCount,true,'volteo')
-    +btnPlan('⚖️','Pesaje de Minis',selMaxD,selCount,true,'seleccion')
+    +btnPlanSel('⚖️','Pesaje de Minis',selCountHoy,'seleccion')
     +btnPlan('🧴','2ª Capa antifúngico',c2MaxD,c2Count,true,'anti2')
     +btnPlan('🚪','Salida Secaderos',salMaxD,salCount,true,'salida');
 }

@@ -1,4 +1,4 @@
-const CACHE = 'tracequeso-v89e';
+const CACHE = 'tracequeso-v89f';
 const ASSETS = ['/tracequeso/','/tracequeso/index.html'];
 self.addEventListener('install', function(e) {
   e.waitUntil(caches.open(CACHE).then(function(cache) { return cache.addAll(ASSETS); }));
