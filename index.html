@@ -155,6 +155,7 @@ document.head.appendChild(ml);
   --yellow:#8b5a0a;
   --yellow-bg:rgba(139,90,10,0.1);
   --shadow:0 2px 8px rgba(42,21,5,0.1);
+  --env:#c8780a;--env-bg:rgba(200,120,10,0.08);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;font-family:'Karla',sans-serif;background:var(--bg);color:var(--text);}
@@ -365,7 +366,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v89f</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v89g</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -1091,6 +1092,283 @@ textarea.finput{resize:vertical;min-height:60px;}
 </div>
 
 <!-- ESCÁNER QR CÁMARA -->
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- ENVASADO                                               -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="scr" id="s-envasado">
+  <div class="topbar">
+    <button class="tbback" onclick="resetEnvasado();ir('s-secs')">←</button>
+    <div class="tbtitle">📦 Envasado</div>
+    <div class="tbright"><div class="tbuser" id="env-user-badge">—</div></div>
+  </div>
+  <div class="scrl">
+
+    <!-- BLOQUE 1: MÁQUINA -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
+      <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">🏭 Máquina de envasado</div>
+      <div style="padding:14px;">
+        <div class="flabel" style="margin-bottom:6px;">Selecciona la máquina en la que trabajas</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <button id="env-maq-elton" onclick="selEnvMaq('ELTON')"
+            style="padding:18px 8px;font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;border-radius:12px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);line-height:1.4;transition:all 0.15s;">
+            ELTON<br><span style="font-size:0.7rem;font-weight:400;opacity:0.8;">fondo 365 mm</span>
+          </button>
+          <button id="env-maq-mecaplastic" onclick="selEnvMaq('MECAPLASTIC')"
+            style="padding:18px 8px;font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;border-radius:12px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);line-height:1.4;transition:all 0.15s;">
+            MECAPLASTIC<br><span style="font-size:0.7rem;font-weight:400;opacity:0.8;">fondo 310 mm</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOQUE 2: DATOS DEL PALÉ -->
+    <div id="env-bloque-pale" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
+      <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">📷 Datos del palé a envasar</div>
+      <div style="padding:14px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <button onclick="abrirScanner('env')"
+            style="padding:16px 8px;background:var(--text);color:#fff;border:none;border-radius:12px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;">
+            <span style="font-size:1.6rem;">📷</span><span>Escanear QR</span>
+          </button>
+          <button id="env-btn-manual" onclick="toggleEnvManual()"
+            style="padding:16px 8px;background:var(--bg3);color:var(--text);border:2px solid var(--border);border-radius:12px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;">
+            <span style="font-size:1.6rem;">✏️</span><span>Manual</span>
+          </button>
+        </div>
+        <div id="env-manual-wrap" style="display:none;margin-bottom:10px;">
+          <div class="flabel" style="margin-bottom:4px;">ID Palé o lote</div>
+          <input class="finput" type="text" id="env-pale-input"
+            placeholder="Ej: 126175111264*ACEITE!L-26049"
+            autocomplete="off" autocapitalize="off"
+            oninput="onEnvPaleInput(this.value)"
+            style="font-family:'Inconsolata',monospace;">
+        </div>
+        <!-- Info palé autorellenada -->
+        <div id="env-pale-data" style="display:none;">
+          <div style="background:var(--bg3);border-radius:10px;padding:12px 14px;margin-bottom:12px;">
+            <div style="font-size:0.68rem;color:var(--text3);font-family:'Inconsolata',monospace;margin-bottom:4px;" id="env-pale-id-txt">—</div>
+            <div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1.05rem;color:var(--text);" id="env-pale-tipo-txt">—</div>
+            <div style="font-size:0.82rem;color:var(--text2);margin-top:2px;" id="env-pale-meta-txt">—</div>
+          </div>
+          <!-- Campos editables -->
+          <div class="fgrid">
+            <div class="fg full">
+              <div class="flabel">Tipo de queso *</div>
+              <select class="finput" id="env-tipo" onchange="onEnvTipoCambia()">
+                <option value="">— Selecciona —</option>
+                <option>MEZCLA</option><option>OVEJA</option><option>D.O. PAST.</option>
+                <option>D.O. CRUDA</option><option>CABRA</option><option>OVEJA CRUDA</option>
+                <option>FINOS</option><option>MESNERA</option>
+              </select>
+            </div>
+            <div class="fg full">
+              <div class="flabel">Variedad</div>
+              <select class="finput" id="env-variedad">
+                <option value="">— Sin variedad —</option>
+                <option>ACEITE</option><option>TIERNO</option><option>BAJO EN SAL</option>
+                <option>NEGRO</option><option>PRUEBA</option><option>TOSTADO</option>
+                <option>BOUQUET</option><option>SEMICURADO</option>
+              </select>
+            </div>
+            <div class="fg">
+              <div class="flabel">Formato *</div>
+              <select class="finput" id="env-formato" onchange="onEnvFormato(this.value)">
+                <option value="">— Selecciona —</option>
+                <option>1 KG</option><option>2 KG</option><option>3 KG</option>
+                <option>BARRA</option><option>SUPERMINIS</option>
+              </select>
+            </div>
+            <div class="fg">
+              <div class="flabel">Piezas *</div>
+              <input class="finput" type="number" id="env-piezas" placeholder="0" min="0" inputmode="numeric" oninput="validarContraetiquetas()">
+            </div>
+            <div class="fg full">
+              <div class="flabel">Lote queso</div>
+              <input class="finput" type="text" id="env-lote" placeholder="Ej: 1261711" autocomplete="off" style="font-family:'Inconsolata',monospace;">
+            </div>
+          </div>
+        </div>
+        <div class="errbanner" id="env-pale-err"></div>
+      </div>
+    </div>
+
+    <!-- BLOQUE 3: MATERIAL FONDO -->
+    <div id="env-bloque-fondo" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
+      <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">🎞️ Material fondo — <span id="env-fondo-ancho-label">—</span> mm</div>
+      <div style="padding:14px;">
+        <div class="flabel" style="margin-bottom:6px;">Proveedor</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+          <button id="env-prov-tofil" onclick="selEnvProv('TOFIL')"
+            style="padding:12px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.88rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">TOFIL</button>
+          <button id="env-prov-anduflex" onclick="selEnvProv('ANDUFLEX')"
+            style="padding:12px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.88rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">ANDUFLEX</button>
+        </div>
+        <div class="flabel" style="margin-bottom:4px;">Lote bobina fondo activo</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="flex:1;background:rgba(200,120,10,0.08);border:1.5px solid var(--env);border-radius:8px;padding:10px 12px;font-family:'Inconsolata',monospace;font-size:0.95rem;color:var(--env);font-weight:600;" id="env-fondo-lote-display">—</div>
+          <button onclick="toggleEnvCambioFondo()" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;padding:10px 12px;font-size:0.75rem;cursor:pointer;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:700;">Cambiar</button>
+        </div>
+        <div id="env-fondo-cambio-wrap" style="display:none;margin-top:8px;background:var(--blue-bg);border:1px solid rgba(26,58,106,0.2);border-radius:10px;padding:12px;">
+          <div class="flabel" style="margin-bottom:6px;">⚠️ Nuevo lote bobina fondo</div>
+          <input class="finput" type="text" id="env-fondo-nuevo-lote" placeholder="Nº lote nueva bobina" autocomplete="off" autocapitalize="characters" style="font-family:'Inconsolata',monospace;">
+          <button onclick="confirmarCambioFondo()" style="width:100%;margin-top:8px;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">✅ Confirmar cambio</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOQUE 4: MATERIAL TAPA -->
+    <div id="env-bloque-tapa" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
+      <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">🎞️ Material tapa — <span id="env-tapa-ancho-label">—</span> mm</div>
+      <div style="padding:14px;">
+        <div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px;">Ancho asignado automáticamente según formato: 245mm=3KG · 200mm=2KG · 330mm=resto</div>
+        <div class="flabel" style="margin-bottom:4px;">Lote bobina tapa activo</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="flex:1;background:rgba(200,120,10,0.08);border:1.5px solid var(--env);border-radius:8px;padding:10px 12px;font-family:'Inconsolata',monospace;font-size:0.95rem;color:var(--env);font-weight:600;" id="env-tapa-lote-display">—</div>
+          <button onclick="toggleEnvCambioTapa()" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;padding:10px 12px;font-size:0.75rem;cursor:pointer;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:700;">Cambiar</button>
+        </div>
+        <div id="env-tapa-cambio-wrap" style="display:none;margin-top:8px;background:var(--blue-bg);border:1px solid rgba(26,58,106,0.2);border-radius:10px;padding:12px;">
+          <div class="flabel" style="margin-bottom:6px;">⚠️ Nuevo lote bobina tapa</div>
+          <input class="finput" type="text" id="env-tapa-nuevo-lote" placeholder="Nº lote nueva bobina tapa" autocomplete="off" autocapitalize="characters" style="font-family:'Inconsolata',monospace;">
+          <button onclick="confirmarCambioTapa()" style="width:100%;margin-top:8px;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">✅ Confirmar cambio</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOQUE 5: PORCIONADO -->
+    <div id="env-bloque-porcionado" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
+      <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">🔪 Porcionado</div>
+      <div style="padding:14px;">
+        <div class="flabel">¿Se porciona el queso?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+          <button id="env-porciona-si" onclick="selEnvPorciona(true)" style="padding:13px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">SI</button>
+          <button id="env-porciona-no" onclick="selEnvPorciona(false)" style="padding:13px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">NO</button>
+        </div>
+        <div id="env-cunas-wrap" style="display:none;margin-top:12px;">
+          <div class="flabel" style="margin-bottom:6px;">Cuñas por queso</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button class="env-cuna-btn" onclick="selCuna(this,'1/2')">1/2</button>
+            <button class="env-cuna-btn" onclick="selCuna(this,'1/4')">1/4</button>
+            <button class="env-cuna-btn" onclick="selCuna(this,'1/6')">1/6</button>
+            <button class="env-cuna-btn" onclick="selCuna(this,'1/8')">1/8</button>
+            <button class="env-cuna-btn" onclick="selCuna(this,'1/12')">1/12</button>
+            <button class="env-cuna-btn" onclick="selCuna(this,'500gr')">500 gr.</button>
+            <button class="env-cuna-btn" onclick="selCuna(this,'380gr')">380 gr.</button>
+            <button class="env-cuna-btn" onclick="selCuna(this,'250gr')">250 gr.</button>
+            <button class="env-cuna-btn" onclick="selCuna(this,'200gr')">200 gr.</button>
+            <button class="env-cuna-btn" onclick="selCuna(this,'150gr')">150 gr.</button>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="flabel" style="margin-bottom:4px;">Total unidades (cuñas)</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button onclick="adjEnvNum('env-cunas-total',-1)" style="width:44px;height:44px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg2);font-size:1.4rem;cursor:pointer;font-weight:700;flex-shrink:0;">−</button>
+              <input type="number" id="env-cunas-total" value="0" min="0" inputmode="numeric" onclick="this.select()" oninput="validarContraetiquetas()"
+                style="flex:1;padding:12px 8px;border:2px solid var(--env);border-radius:10px;background:var(--bg2);font-family:'Karla',sans-serif;font-size:1.6rem;font-weight:800;color:var(--env);text-align:center;outline:none;">
+              <button onclick="adjEnvNum('env-cunas-total',1)" style="width:44px;height:44px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg2);font-size:1.4rem;cursor:pointer;font-weight:700;flex-shrink:0;">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOQUE 6: ETIQUETADO -->
+    <div id="env-bloque-etiquetado" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
+      <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">🏷️ Etiquetado</div>
+      <div style="padding:14px;">
+        <div class="flabel">¿Se etiqueta el queso?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+          <button id="env-etiq-si" onclick="selEnvEtiq(true)" style="padding:13px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">SI</button>
+          <button id="env-etiq-no" onclick="selEnvEtiq(false)" style="padding:13px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">NO</button>
+        </div>
+        <div id="env-etiq-wrap" style="display:none;margin-top:12px;">
+          <div class="fgrid">
+            <div class="fg full"><div class="flabel">Descripción etiqueta</div><input class="finput" type="text" id="env-etiq-desc" placeholder="Descripción de la etiqueta" autocomplete="off"></div>
+            <div class="fg"><div class="flabel">Nº etiquetas</div><input class="finput" type="number" id="env-etiq-num" placeholder="0" min="0" inputmode="numeric"></div>
+            <div class="fg"><div class="flabel">Etiquetas no conformes</div><input class="finput" type="number" id="env-etiq-nc" placeholder="0" min="0" inputmode="numeric"></div>
+          </div>
+        </div>
+        <div style="margin-top:14px;">
+          <div class="flabel">Conforme vacío y sellado</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+            <button id="env-vacio-si" onclick="selEnvVacio(true)" style="padding:13px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">SI</button>
+            <button id="env-vacio-no" onclick="selEnvVacio(false)" style="padding:13px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">NO</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOQUE 7: CONTRAETIQUETAS (solo D.O.) -->
+    <div id="env-bloque-contraetiq" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
+      <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">🔖 Contraetiquetas D.O. Manchego</div>
+      <div style="padding:14px;">
+        <div class="fgrid">
+          <div class="fg"><div class="flabel">Primera contraetiqueta nº</div><input class="finput" type="number" id="env-contra-primera" placeholder="Ej: 11326" inputmode="numeric" oninput="validarContraetiquetas()"></div>
+          <div class="fg"><div class="flabel">Última contraetiqueta nº</div><input class="finput" type="number" id="env-contra-ultima" placeholder="Ej: 12525" inputmode="numeric" oninput="validarContraetiquetas()"></div>
+        </div>
+        <div id="env-contra-resultado" style="display:none;margin-top:8px;">
+          <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:0.82rem;display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:var(--text3);">Total contraetiquetas:</span>
+            <span style="font-family:'Inconsolata',monospace;font-weight:700;font-size:1rem;" id="env-contra-total-val">—</span>
+          </div>
+        </div>
+        <div id="env-contra-ok" style="display:none;margin-top:6px;background:var(--green-bg);border:1.5px solid var(--green);border-radius:9px;padding:10px 12px;font-size:0.82rem;color:var(--green);font-weight:600;">✅ Contraetiquetas cuadran con el nº de piezas/cuñas</div>
+        <div id="env-contra-err" style="display:none;margin-top:6px;background:var(--red-bg);border:1.5px solid var(--red);border-radius:9px;padding:10px 12px;font-size:0.82rem;color:var(--red);font-weight:600;">⚠️ Las contraetiquetas no cuadran. Revisa los números.</div>
+      </div>
+    </div>
+
+    <!-- BLOQUE 8: MATERIALES AUXILIARES -->
+    <div id="env-bloque-aux" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
+      <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">🧴 Materiales auxiliares (si aplica)</div>
+      <div style="padding:14px;">
+        <div class="fgrid">
+          <div class="fg full"><div class="flabel">Lote manteca</div><input class="finput" type="text" id="env-lote-manteca" placeholder="Opcional" autocomplete="off" autocapitalize="characters"></div>
+          <div class="fg full"><div class="flabel">Lote romero</div><input class="finput" type="text" id="env-lote-romero" placeholder="Opcional" autocomplete="off" autocapitalize="characters"></div>
+          <div class="fg full"><div class="flabel">Lote pimienta</div><input class="finput" type="text" id="env-lote-pimienta" placeholder="Opcional" autocomplete="off" autocapitalize="characters"></div>
+          <div class="fg"><div class="flabel">Lote trufa</div><input class="finput" type="text" id="env-lote-trufa" placeholder="Opcional" autocomplete="off" autocapitalize="characters"></div>
+          <div class="fg"><div class="flabel">Cantidad trufa (g)</div><input class="finput" type="number" id="env-cant-trufa" placeholder="0" min="0" inputmode="numeric"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOQUE 9: CIERRE -->
+    <div id="env-bloque-cierre" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
+      <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">✅ Cierre del registro</div>
+      <div style="padding:14px;">
+        <div class="fgrid">
+          <div class="fg full">
+            <div class="flabel">Nº piezas no aptas</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button onclick="adjEnvNum('env-no-aptas',-1)" style="width:40px;height:40px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg2);font-size:1.2rem;cursor:pointer;font-weight:700;flex-shrink:0;">−</button>
+              <input type="number" id="env-no-aptas" value="0" min="0" inputmode="numeric" onclick="this.select()"
+                style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-family:'Karla',sans-serif;font-size:1.2rem;font-weight:700;text-align:center;outline:none;background:var(--bg3);">
+              <button onclick="adjEnvNum('env-no-aptas',1)" style="width:40px;height:40px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg2);font-size:1.2rem;cursor:pointer;font-weight:700;flex-shrink:0;">+</button>
+            </div>
+          </div>
+          <div class="fg full"><div class="flabel">Observaciones</div><textarea class="finput" id="env-obs" placeholder="Opcional..." style="min-height:60px;"></textarea></div>
+        </div>
+        <div class="errbanner" id="env-err-guardar"></div>
+        <button onclick="guardarEnvasado()"
+          style="width:100%;margin-top:14px;padding:16px;background:var(--env);color:#fff;border:none;border-radius:14px;font-family:'Karla',sans-serif;font-weight:800;font-size:1.05rem;cursor:pointer;box-shadow:0 4px 16px rgba(200,120,10,0.3);">
+          💾 Guardar registro
+        </button>
+        <button onclick="nuevoRegistroEnvasado()"
+          style="width:100%;margin-top:8px;padding:12px;background:var(--bg3);color:var(--text2);border:1.5px solid var(--border);border-radius:12px;font-family:'Karla',sans-serif;font-weight:600;font-size:0.9rem;cursor:pointer;">
+          ➕ Nuevo palé (mantener sesión)
+        </button>
+      </div>
+    </div>
+
+    <!-- Contador sesión -->
+    <div id="env-contador-sesion" style="display:none;text-align:center;padding:10px 0 20px;">
+      <span style="font-family:'Karla',sans-serif;font-size:1.8rem;font-weight:800;color:var(--env);" id="env-cnt">0</span>
+      <div style="font-size:0.75rem;color:var(--text3);">palés envasados esta sesión</div>
+    </div>
+    <div class="scan-log" id="env-log"></div>
+
+  </div>
+</div>
+<!-- FIN ENVASADO -->
+
 <div class="scr" id="s-qrscanner" style="background:#000;z-index:1000;">
   <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(0,0,0,0.7);z-index:10;">
     <button onclick="cerrarScanner()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:10px;padding:8px 16px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">✕ Cancelar</button>
@@ -1320,6 +1598,7 @@ function abrirSec(sec){
   else if(sec==='2ª CAPA'){initC2();ir('s-capa2');setTimeout(function(){document.getElementById('c2-qr').focus();},200);}
   else if(sec==='MOVIMIENTO'){initMov();ir('s-mov');setTimeout(function(){document.getElementById('mov-qr').focus();},200);}
   else if(sec==='PINTURA'){initPintura();ir('s-pintura');setTimeout(function(){document.getElementById('pint-qr').focus();},200);}
+  else if(sec==='ENVASADO'){initEnvasado();ir('s-envasado');}
   else toast('Sección '+sec+' próximamente','err');
 }
 
@@ -4430,6 +4709,9 @@ function entregarQR(val){
   } else if(qrTarget==='pint'){
     document.getElementById('pint-qr').value=val;
     registrarPint(val);document.getElementById('pint-qr').value='';
+  } else if(qrTarget==='env'){
+    rellenarEnvDesdePale(val);
+    var pi=document.getElementById('env-pale-input');if(pi){pi.value=val;document.getElementById('env-manual-wrap').style.display='';}
   } else if(qrTarget==='c1-lote'){
     document.getElementById('c1-nuevo-lote').value=val;
     onNuevoLoteC1(val);
@@ -4458,6 +4740,361 @@ if('serviceWorker' in navigator){
       .catch(function(err){ console.log('SW error:', err); });
   });
 }
+
+// ═══════════════════════════════════════════════════════
+// ENVASADO — lógica completa
+// ═══════════════════════════════════════════════════════
+
+// Estado de sesión envasado
+var ENV = {
+  maq: '',          // 'ELTON' | 'MECAPLASTIC'
+  provFondo: '',    // 'TOFIL' | 'ANDUFLEX'
+  loteFondo: {ELTON:{TOFIL:'',ANDUFLEX:''},MECAPLASTIC:{TOFIL:'',ANDUFLEX:''}},
+  loteTapa:  {ELTON:'',MECAPLASTIC:''},
+  porciona:  null,
+  cunasTipo: '',
+  etiqueta:  null,
+  vacio:     null,
+  cnt:       0
+};
+
+function anchoTapa(fmt){
+  if(fmt==='3 KG')return '245';
+  if(fmt==='2 KG')return '200';
+  return '330';
+}
+function anchoFondo(maq){ return maq==='ELTON'?'365':'310'; }
+
+function initEnvasado(){
+  // Recuperar últimos lotes usados desde historial (rawRows)
+  if(!ENV.maq){
+    ['ELTON','MECAPLASTIC'].forEach(function(maq){
+      ['TOFIL','ANDUFLEX'].forEach(function(prov){
+        var regs=rawRows.filter(function(r){
+          return (r['SECCIÓN']||'').toUpperCase()==='ENVASADO' &&
+                 (r['MAQUINA']||'').toUpperCase()===maq &&
+                 (r['PROVEEDOR FONDO']||'').toUpperCase()===prov &&
+                 r['LOTE FONDO'];
+        });
+        if(regs.length) ENV.loteFondo[maq][prov]=regs[regs.length-1]['LOTE FONDO']||'';
+      });
+      var regsT=rawRows.filter(function(r){
+        return (r['SECCIÓN']||'').toUpperCase()==='ENVASADO' &&
+               (r['MAQUINA']||'').toUpperCase()===maq &&
+               r['LOTE TAPA'];
+      });
+      if(regsT.length) ENV.loteTapa[maq]=regsT[regsT.length-1]['LOTE TAPA']||'';
+    });
+  }
+  document.getElementById('env-user-badge').textContent = CU?CU.n:'—';
+  // Ocultar todos los bloques
+  ['env-bloque-pale','env-bloque-fondo','env-bloque-tapa',
+   'env-bloque-porcionado','env-bloque-etiquetado','env-bloque-contraetiq',
+   'env-bloque-aux','env-bloque-cierre','env-contador-sesion'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.style.display='none';
+  });
+  if(ENV.maq) selEnvMaq(ENV.maq, true);
+}
+
+function selEnvMaq(maq, silent){
+  ENV.maq = maq;
+  document.getElementById('env-maq-elton').style.background    = maq==='ELTON'?'var(--env)':'var(--bg3)';
+  document.getElementById('env-maq-elton').style.borderColor   = maq==='ELTON'?'var(--env)':'var(--border)';
+  document.getElementById('env-maq-elton').style.color         = maq==='ELTON'?'#fff':'var(--text2)';
+  document.getElementById('env-maq-mecaplastic').style.background  = maq==='MECAPLASTIC'?'var(--env)':'var(--bg3)';
+  document.getElementById('env-maq-mecaplastic').style.borderColor = maq==='MECAPLASTIC'?'var(--env)':'var(--border)';
+  document.getElementById('env-maq-mecaplastic').style.color       = maq==='MECAPLASTIC'?'#fff':'var(--text2)';
+  // Mostrar bloque palé
+  document.getElementById('env-bloque-pale').style.display='';
+  document.getElementById('env-bloque-fondo').style.display='none'; // esperará a formato
+  document.getElementById('env-bloque-tapa').style.display='none';
+  document.getElementById('env-bloque-aux').style.display='';
+  document.getElementById('env-bloque-cierre').style.display='';
+  document.getElementById('env-contador-sesion').style.display='block';
+  // Actualizar lotes en display
+  actualizarDisplayFondo();
+  if(ENV.provFondo) selEnvProv(ENV.provFondo, true);
+  var lt=ENV.loteTapa[maq]||'—';
+  document.getElementById('env-tapa-lote-display').textContent=lt;
+  if(!silent) toast('Máquina '+maq+' seleccionada');
+}
+
+function selEnvProv(prov, silent){
+  ENV.provFondo=prov;
+  ['TOFIL','ANDUFLEX'].forEach(function(p){
+    var btn=document.getElementById('env-prov-'+(p==='TOFIL'?'tofil':'anduflex'));
+    if(btn){
+      btn.style.background   = prov===p?'var(--blue)':'var(--bg3)';
+      btn.style.borderColor  = prov===p?'var(--blue)':'var(--border)';
+      btn.style.color        = prov===p?'#fff':'var(--text2)';
+    }
+  });
+  actualizarDisplayFondo();
+  if(!silent) toast('Proveedor fondo: '+prov);
+}
+
+function actualizarDisplayFondo(){
+  if(!ENV.maq||!ENV.provFondo){
+    document.getElementById('env-fondo-lote-display').textContent='—';
+    return;
+  }
+  document.getElementById('env-fondo-lote-display').textContent=ENV.loteFondo[ENV.maq][ENV.provFondo]||'—';
+}
+
+function toggleEnvCambioFondo(){
+  var w=document.getElementById('env-fondo-cambio-wrap');
+  w.style.display=w.style.display==='none'?'':'none';
+  if(w.style.display!=='none') setTimeout(function(){document.getElementById('env-fondo-nuevo-lote').focus();},100);
+}
+function confirmarCambioFondo(){
+  var nl=document.getElementById('env-fondo-nuevo-lote').value.trim().toUpperCase();
+  if(!nl){toast('Introduce el nº de lote','err');return;}
+  if(!ENV.maq||!ENV.provFondo){toast('Selecciona máquina y proveedor primero','err');return;}
+  ENV.loteFondo[ENV.maq][ENV.provFondo]=nl;
+  actualizarDisplayFondo();
+  document.getElementById('env-fondo-nuevo-lote').value='';
+  document.getElementById('env-fondo-cambio-wrap').style.display='none';
+  // Registrar cambio de bobina como registro auxiliar
+  guardarRegistro({
+    'SECCIÓN':'ENVASADO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),
+    'MAQUINA':ENV.maq,'PROVEEDOR FONDO':ENV.provFondo,'LOTE FONDO':nl,
+    'TIPO REGISTRO':'CAMBIO BOBINA FONDO','ANCHO FONDO':anchoFondo(ENV.maq)
+  },'ENVASADO','CAMBIO-BOBINA-FONDO');
+  toast('✅ Lote fondo: '+nl);
+}
+
+function toggleEnvCambioTapa(){
+  var w=document.getElementById('env-tapa-cambio-wrap');
+  w.style.display=w.style.display==='none'?'':'none';
+  if(w.style.display!=='none') setTimeout(function(){document.getElementById('env-tapa-nuevo-lote').focus();},100);
+}
+function confirmarCambioTapa(){
+  var nl=document.getElementById('env-tapa-nuevo-lote').value.trim().toUpperCase();
+  if(!nl){toast('Introduce el nº de lote','err');return;}
+  ENV.loteTapa[ENV.maq]=nl;
+  document.getElementById('env-tapa-lote-display').textContent=nl;
+  document.getElementById('env-tapa-nuevo-lote').value='';
+  document.getElementById('env-tapa-cambio-wrap').style.display='none';
+  guardarRegistro({
+    'SECCIÓN':'ENVASADO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),
+    'MAQUINA':ENV.maq,'LOTE TAPA':nl,'TIPO REGISTRO':'CAMBIO BOBINA TAPA'
+  },'ENVASADO','CAMBIO-BOBINA-TAPA');
+  toast('✅ Lote tapa: '+nl);
+}
+
+function toggleEnvManual(){
+  var w=document.getElementById('env-manual-wrap');
+  var btn=document.getElementById('env-btn-manual');
+  var visible=w.style.display!=='none';
+  w.style.display=visible?'none':'';
+  btn.style.background=visible?'var(--bg3)':'var(--blue-bg)';
+  if(!visible){
+    document.getElementById('env-pale-data').style.display='none';
+    setTimeout(function(){document.getElementById('env-pale-input').focus();},100);
+  }
+}
+
+function onEnvPaleInput(val){
+  if(!val||val.trim().length<6){document.getElementById('env-pale-data').style.display='none';return;}
+  rellenarEnvDesdePale(val.trim());
+}
+
+function rellenarEnvDesdePale(codigo){
+  var info=parsearId(codigo);
+  document.getElementById('env-pale-data').style.display='';
+  document.getElementById('env-pale-id-txt').textContent=codigo;
+  document.getElementById('env-pale-tipo-txt').textContent=(info.tipo||'?')+(info.variedad&&info.variedad!=='—'?' · '+info.variedad:'');
+  document.getElementById('env-pale-meta-txt').textContent=(info.fmt||'—')+' · '+(info.piezas||'—')+' pzas · Lote: '+(info.lote||'—');
+  setEnvSelVal('env-tipo',    info.tipo||'');
+  setEnvSelVal('env-variedad', info.variedad&&info.variedad!=='—'?info.variedad:'');
+  setEnvSelVal('env-formato',  info.fmt&&info.fmt!=='—'?info.fmt:'');
+  document.getElementById('env-piezas').value=info.piezas||'';
+  document.getElementById('env-lote').value=info.lote||'';
+  if(info.fmt&&info.fmt!=='—') onEnvFormato(info.fmt);
+  onEnvTipoCambia();
+}
+
+function setEnvSelVal(id,val){
+  var el=document.getElementById(id);if(!el)return;
+  for(var i=0;i<el.options.length;i++){if(el.options[i].value===val){el.selectedIndex=i;return;}}
+}
+
+function onEnvTipoCambia(){
+  var tipo=document.getElementById('env-tipo').value;
+  var esDO=(tipo==='D.O. PAST.'||tipo==='D.O. CRUDA');
+  document.getElementById('env-bloque-contraetiq').style.display=esDO?'':'none';
+}
+
+function onEnvFormato(fmt){
+  if(!fmt)return;
+  var ancho=anchoTapa(fmt);
+  // Actualizar label tapa
+  document.getElementById('env-tapa-ancho-label').textContent=ancho;
+  // Actualizar lote tapa display
+  if(ENV.maq) document.getElementById('env-tapa-lote-display').textContent=ENV.loteTapa[ENV.maq]||'—';
+  // Mostrar bloques de material y porcionado
+  var anchoFondoVal=ENV.maq?anchoFondo(ENV.maq):'—';
+  document.getElementById('env-fondo-ancho-label').textContent=anchoFondoVal;
+  document.getElementById('env-bloque-fondo').style.display='';
+  document.getElementById('env-bloque-tapa').style.display='';
+  document.getElementById('env-bloque-porcionado').style.display='';
+  document.getElementById('env-bloque-etiquetado').style.display='';
+  onEnvTipoCambia();
+}
+
+function selEnvPorciona(val){
+  ENV.porciona=val;
+  var si=document.getElementById('env-porciona-si');
+  var no=document.getElementById('env-porciona-no');
+  si.style.background=val?'#3a6a2a':'var(--bg3)'; si.style.borderColor=val?'#3a6a2a':'var(--border)'; si.style.color=val?'#fff':'var(--text2)';
+  no.style.background=!val?'#8b1a1a':'var(--bg3)'; no.style.borderColor=!val?'#8b1a1a':'var(--border)'; no.style.color=!val?'#fff':'var(--text2)';
+  document.getElementById('env-cunas-wrap').style.display=val?'':'none';
+  validarContraetiquetas();
+}
+
+function selCuna(btn,tipo){
+  ENV.cunasTipo=tipo;
+  document.querySelectorAll('.env-cuna-btn').forEach(function(b){b.classList.remove('sel');});
+  btn.classList.add('sel');
+}
+
+function selEnvEtiq(val){
+  ENV.etiqueta=val;
+  var si=document.getElementById('env-etiq-si');
+  var no=document.getElementById('env-etiq-no');
+  si.style.background=val?'#3a6a2a':'var(--bg3)'; si.style.borderColor=val?'#3a6a2a':'var(--border)'; si.style.color=val?'#fff':'var(--text2)';
+  no.style.background=!val?'#8b1a1a':'var(--bg3)'; no.style.borderColor=!val?'#8b1a1a':'var(--border)'; no.style.color=!val?'#fff':'var(--text2)';
+  document.getElementById('env-etiq-wrap').style.display=val?'':'none';
+}
+
+function selEnvVacio(val){
+  ENV.vacio=val;
+  var si=document.getElementById('env-vacio-si');
+  var no=document.getElementById('env-vacio-no');
+  si.style.background=val?'#3a6a2a':'var(--bg3)'; si.style.borderColor=val?'#3a6a2a':'var(--border)'; si.style.color=val?'#fff':'var(--text2)';
+  no.style.background=!val?'#8b1a1a':'var(--bg3)'; no.style.borderColor=!val?'#8b1a1a':'var(--border)'; no.style.color=!val?'#fff':'var(--text2)';
+}
+
+function adjEnvNum(id,delta){
+  var el=document.getElementById(id);
+  var val=Math.max(0,(parseInt(el.value)||0)+delta);
+  el.value=val;
+  if(id==='env-cunas-total') validarContraetiquetas();
+}
+
+function validarContraetiquetas(){
+  var primera=parseInt(document.getElementById('env-contra-primera').value)||0;
+  var ultima=parseInt(document.getElementById('env-contra-ultima').value)||0;
+  var resDiv=document.getElementById('env-contra-resultado');
+  var okDiv=document.getElementById('env-contra-ok');
+  var errDiv=document.getElementById('env-contra-err');
+  if(!primera||!ultima){resDiv.style.display='none';okDiv.style.display='none';errDiv.style.display='none';return;}
+  var total=ultima-primera+1;
+  document.getElementById('env-contra-total-val').textContent=total;
+  resDiv.style.display='';
+  var refPzs=ENV.porciona?(parseInt(document.getElementById('env-cunas-total').value)||0):(parseInt(document.getElementById('env-piezas').value)||0);
+  if(refPzs>0&&total===refPzs){okDiv.style.display='';errDiv.style.display='none';}
+  else if(refPzs>0){okDiv.style.display='none';errDiv.style.display='';}
+  else{okDiv.style.display='none';errDiv.style.display='none';}
+}
+
+function guardarEnvasado(){
+  var errEl=document.getElementById('env-err-guardar');errEl.style.display='none';
+  if(!ENV.maq){errEl.textContent='Selecciona la máquina de envasado';errEl.style.display='';return;}
+  if(!ENV.provFondo){errEl.textContent='Selecciona el proveedor del material de fondo';errEl.style.display='';return;}
+  var tipo=document.getElementById('env-tipo').value;
+  var fmt=document.getElementById('env-formato').value;
+  var piezas=parseInt(document.getElementById('env-piezas').value)||0;
+  var lote=document.getElementById('env-lote').value.trim();
+  if(!tipo){errEl.textContent='Selecciona el tipo de queso';errEl.style.display='';return;}
+  if(!fmt){errEl.textContent='Selecciona el formato/peso';errEl.style.display='';return;}
+  if(!piezas){errEl.textContent='Introduce el número de piezas';errEl.style.display='';return;}
+  var esDO=(tipo==='D.O. PAST.'||tipo==='D.O. CRUDA');
+  if(esDO){
+    var primera=parseInt(document.getElementById('env-contra-primera').value)||0;
+    var ultima=parseInt(document.getElementById('env-contra-ultima').value)||0;
+    if(!primera||!ultima){errEl.textContent='Introduce las contraetiquetas para D.O. Manchego';errEl.style.display='';return;}
+    var totalCE=ultima-primera+1;
+    var refPzs=ENV.porciona?(parseInt(document.getElementById('env-cunas-total').value)||0):piezas;
+    if(totalCE!==refPzs&&!confirm('⚠️ Las contraetiquetas ('+totalCE+') no coinciden con piezas/cuñas ('+refPzs+'). ¿Guardar igualmente?'))return;
+  }
+  var variedad=document.getElementById('env-variedad').value;
+  var paleId=document.getElementById('env-pale-input')?document.getElementById('env-pale-input').value.trim():'';
+  if(!paleId||paleId.length<6){
+    var fc={'1 KG':'1','2 KG':'2','3 KG':'3','BARRA':'4','SUPERMINIS':'5'};
+    paleId=(lote||'000000')+'00'+(fc[fmt]||'0')+String(piezas).padStart(3,'0').slice(-3)+(variedad?'*'+variedad:'');
+  }
+  var datos={
+    'ID PALET':paleId,'SECCIÓN':'ENVASADO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),
+    'LOTE QUESO':lote,'TIPO DE QUESO':tipo,'VARIEDAD':variedad,'FORMATO/PESO':fmt,'Nº DE PIEZAS':piezas,
+    'MAQUINA':ENV.maq,'ANCHO FONDO':anchoFondo(ENV.maq),'PROVEEDOR FONDO':ENV.provFondo,
+    'LOTE FONDO':ENV.loteFondo[ENV.maq][ENV.provFondo]||'',
+    'ANCHO TAPA':anchoTapa(fmt),'LOTE TAPA':ENV.loteTapa[ENV.maq]||'',
+    'SE PORCIONA':ENV.porciona===true?'SI':ENV.porciona===false?'NO':'',
+    'TIPO CUÑA':ENV.porciona?ENV.cunasTipo:'',
+    'TOTAL UNIDADES CUÑAS':ENV.porciona?document.getElementById('env-cunas-total').value:'',
+    'SE ETIQUETA':ENV.etiqueta===true?'SI':ENV.etiqueta===false?'NO':'',
+    'DESCRIPCION ETIQUETA':ENV.etiqueta?document.getElementById('env-etiq-desc').value:'',
+    'Nº ETIQUETAS':ENV.etiqueta?document.getElementById('env-etiq-num').value:'',
+    'Nº ETIQUETAS NC':ENV.etiqueta?document.getElementById('env-etiq-nc').value:'',
+    'CONFORME VACIO SELLADO':ENV.vacio===true?'SI':ENV.vacio===false?'NO':'',
+    'PRIMERA CONTRAETIQUETA':esDO?document.getElementById('env-contra-primera').value:'',
+    'ULTIMA CONTRAETIQUETA':esDO?document.getElementById('env-contra-ultima').value:'',
+    'LOTE MANTECA':document.getElementById('env-lote-manteca').value,
+    'LOTE ROMERO':document.getElementById('env-lote-romero').value,
+    'LOTE PIMIENTA':document.getElementById('env-lote-pimienta').value,
+    'LOTE TRUFA':document.getElementById('env-lote-trufa').value,
+    'CANTIDAD TRUFA':document.getElementById('env-cant-trufa').value,
+    'Nº PIEZAS NO APTAS':document.getElementById('env-no-aptas').value||'0',
+    'OBSERVACIONES':document.getElementById('env-obs').value,
+    'SALA ORIGEN':'ENVASADO','SALA DESTINO':'ENVASADO'
+  };
+  guardarRegistro(datos,'ENVASADO',paleId);
+  ENV.cnt++;document.getElementById('env-cnt').textContent=ENV.cnt;
+  // Log visual
+  var info=parsearId(paleId);
+  var logDiv=document.getElementById('env-log');
+  var hora=new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+  logDiv.innerHTML='<div class="scan-item ok"><div><div class="scan-id">'+(info.tipo||tipo)+(variedad?' · '+variedad:'')+(fmt?' · '+fmt:'')+'</div><div style="font-size:0.7rem;color:var(--text3);font-family:monospace;">'+paleId+'</div></div><div class="scan-time">'+hora+'</div></div>'+logDiv.innerHTML;
+  toast('✅ Registro envasado guardado');
+  nuevoRegistroEnvasado();
+}
+
+function nuevoRegistroEnvasado(){
+  var pi=document.getElementById('env-pale-input');if(pi)pi.value='';
+  document.getElementById('env-pale-data').style.display='none';
+  document.getElementById('env-manual-wrap').style.display='none';
+  document.getElementById('env-btn-manual').style.background='var(--bg3)';
+  ['env-tipo','env-variedad','env-formato'].forEach(function(id){setEnvSelVal(id,'');});
+  ['env-piezas','env-lote','env-etiq-desc','env-etiq-num','env-etiq-nc',
+   'env-contra-primera','env-contra-ultima','env-obs'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.value='';
+  });
+  document.getElementById('env-cunas-total').value='0';
+  document.getElementById('env-no-aptas').value='0';
+  ['env-bloque-fondo','env-bloque-tapa','env-bloque-porcionado',
+   'env-bloque-etiquetado','env-bloque-contraetiq'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.style.display='none';
+  });
+  ENV.porciona=null;ENV.etiqueta=null;ENV.vacio=null;ENV.cunasTipo='';
+  // Reset botones SI/NO
+  ['env-porciona-si','env-porciona-no','env-etiq-si','env-etiq-no','env-vacio-si','env-vacio-no'].forEach(function(id){
+    var el=document.getElementById(id);if(!el)return;
+    el.style.background='var(--bg3)';el.style.borderColor='var(--border)';el.style.color='var(--text2)';
+  });
+  document.getElementById('env-cunas-wrap').style.display='none';
+  document.getElementById('env-etiq-wrap').style.display='none';
+  document.querySelectorAll('.env-cuna-btn').forEach(function(b){b.classList.remove('sel');});
+  document.getElementById('env-contra-resultado').style.display='none';
+  document.getElementById('env-contra-ok').style.display='none';
+  document.getElementById('env-contra-err').style.display='none';
+  document.getElementById('env-err-guardar').style.display='none';
+  var blq=document.getElementById('env-bloque-pale');
+  if(blq)blq.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function resetEnvasado(){ENV.cnt=0;nuevoRegistroEnvasado();}
+
 </script>
 </body>
 </html>
