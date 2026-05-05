@@ -5195,6 +5195,7 @@ function nuevaEtiqueta(){
 }
 
 
+
 // ═══════════════════════════════════════════════════════════
 // MATERIAL AUXILIAR — lógica completa
 // Datos en localStorage: 'tq_mat_stock', 'tq_mat_entradas', 'tq_mat_salidas'
@@ -5240,7 +5241,7 @@ function renderMatStock(){
   if(!stock.length){
     html='<div style="padding:30px;text-align:center;color:var(--text3);">'+
       '<div style="font-size:2rem;margin-bottom:10px;">📦</div>'+
-      '<div style="font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;color:var(--text);">Sin artículos en stock</div>'+
+      '<div style="font-family:Karla,sans-serif;font-weight:700;font-size:1rem;color:var(--text);">Sin artículos en stock</div>'+
       '<div style="font-size:0.82rem;margin-top:6px;">Usa "Entrada" para añadir material al stock</div>'+
       '</div>';
     document.getElementById('mat-contenido').innerHTML=html;
@@ -5256,22 +5257,22 @@ function renderMatStock(){
   });
 
   Object.keys(cats).sort().forEach(function(cat){
-    html+='<div style="font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--text2);'+
+    html+='<div style="font-family:Karla,sans-serif;font-weight:800;font-size:0.9rem;color:var(--text2);'+
       'padding:12px 14px 4px;text-transform:uppercase;letter-spacing:0.05em;">'+cat+'</div>';
     cats[cat].forEach(function(item){
       var pct=item.alertaMinimo>0?Math.min(100,Math.round(item.stockActual/item.alertaMinimo*100)):100;
       var alerta=item.alertaMinimo>0&&item.stockActual<=item.alertaMinimo;
       var color=alerta?'var(--red)':item.stockActual===0?'var(--red)':'var(--green)';
-      html+='<div onclick="verDetalleArticulo(''+encodeURIComponent(matClave(item.categoria,item.articulo,item.proveedor,item.lote))+'')" '+
+      html+='<div onclick="verDetalleArticulo('+JSON.stringify(encodeURIComponent(matClave(item.categoria,item.articulo,item.proveedor,item.lote)))+')" '+
         'style="background:var(--bg2);border:1px solid '+(alerta?'var(--red)':'var(--border)')+';border-left:4px solid '+color+';'+
         'border-radius:12px;padding:14px 16px;margin:0 14px 10px;cursor:pointer;box-shadow:var(--shadow);">'+
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'+
           '<div style="flex:1;">'+
-            '<div style="font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;color:var(--text);">'+item.articulo+'</div>'+
+            '<div style="font-family:Karla,sans-serif;font-weight:700;font-size:0.95rem;color:var(--text);">'+item.articulo+'</div>'+
             '<div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">'+item.proveedor+' · Lote: '+item.lote+'</div>'+
           '</div>'+
           '<div style="text-align:right;flex-shrink:0;margin-left:10px;">'+
-            '<div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1.4rem;color:'+color+';">'+item.stockActual+'</div>'+
+            '<div style="font-family:Karla,sans-serif;font-weight:800;font-size:1.4rem;color:'+color+';">'+item.stockActual+'</div>'+
             '<div style="font-size:0.65rem;color:var(--text3);">unidades</div>'+
           '</div>'+
         '</div>'+
@@ -5283,7 +5284,7 @@ function renderMatStock(){
   // Botón nueva entrada al final
   html+='<div style="padding:14px;">'+
     '<button onclick="irMatTab('entrada')" style="width:100%;padding:14px;background:var(--accent);color:#fff;border:none;'+
-    'border-radius:12px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;cursor:pointer;">'+
+    'border-radius:12px;font-family:Karla,sans-serif;font-weight:700;font-size:0.95rem;cursor:pointer;">'+
     '➕ Registrar nueva entrada</button></div>';
 
   document.getElementById('mat-contenido').innerHTML=html;
@@ -5302,7 +5303,7 @@ function verDetalleArticulo(claveEnc){
 
   var html='<div style="padding:14px;">'+
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow);">'+
-      '<div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1.05rem;color:var(--text);margin-bottom:10px;">'+item.articulo+'</div>'+
+      '<div style="font-family:Karla,sans-serif;font-weight:800;font-size:1.05rem;color:var(--text);margin-bottom:10px;">'+item.articulo+'</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'+
         matDetalleField('Categoría',item.categoria)+
         matDetalleField('Proveedor',item.proveedor)+
@@ -5310,23 +5311,23 @@ function verDetalleArticulo(claveEnc){
         matDetalleField('Entradas totales',item.entradasTotal)+
         matDetalleField('Consumo total',item.consumoTotal)+
         '<div style="grid-column:1/-1;background:'+(item.stockActual<=item.alertaMinimo?'var(--red-bg)':'var(--green-bg)')+';border-radius:8px;padding:10px 12px;text-align:center;">'+
-          '<div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1.6rem;color:'+(item.stockActual<=item.alertaMinimo?'var(--red)':'var(--green)')+';">'+item.stockActual+'</div>'+
+          '<div style="font-family:Karla,sans-serif;font-weight:800;font-size:1.6rem;color:'+(item.stockActual<=item.alertaMinimo?'var(--red)':'var(--green)')+';">'+item.stockActual+'</div>'+
           '<div style="font-size:0.7rem;color:var(--text3);">STOCK ACTUAL · Mínimo: '+item.alertaMinimo+'</div>'+
         '</div>'+
       '</div>'+
-      '<button onclick="editarAlertaMinimo(''+encodeURIComponent(clave)+'')" '+
+      '<button onclick="editarAlertaMinimo(\''+encodeURIComponent(clave)+'\'')" '+
         'style="width:100%;margin-top:10px;padding:10px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);'+
-        'border-radius:8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">'+
+        'border-radius:8px;font-family:Karla,sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">'+
         '⚙️ Cambiar alerta mínimo</button>'+
     '</div>';
 
   if(salidas.length){
-    html+='<div style="font-family:'Karla',sans-serif;font-weight:700;font-size:0.85rem;color:var(--text2);padding:4px 0 8px;">Últimas salidas</div>';
+    html+='<div style="font-family:Karla,sans-serif;font-weight:700;font-size:0.85rem;color:var(--text2);padding:4px 0 8px;">Últimas salidas</div>';
     salidas.forEach(function(s){
       html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">'+
         '<div><div style="font-size:0.82rem;font-weight:600;color:var(--text);">'+s.motivo+'</div>'+
         '<div style="font-size:0.7rem;color:var(--text3);">'+s.fecha+' · '+s.operario+'</div></div>'+
-        '<div style="font-family:'Inconsolata',monospace;font-weight:700;color:var(--red);">-'+s.cantidad+'</div>'+
+        '<div style="font-family:Inconsolata,monospace;font-weight:700;color:var(--red);">-'+s.cantidad+'</div>'+
       '</div>';
     });
   }
@@ -5339,8 +5340,8 @@ function verDetalleArticulo(claveEnc){
 
 function matDetalleField(label,val){
   return '<div style="background:var(--bg3);border-radius:8px;padding:8px 10px;">'+
-    '<div style="font-size:0.62rem;color:var(--text3);text-transform:uppercase;font-family:'Inconsolata',monospace;">'+label+'</div>'+
-    '<div style="font-family:'Karla',sans-serif;font-weight:600;font-size:0.88rem;color:var(--text);margin-top:2px;">'+(val||'—')+'</div>'+
+    '<div style="font-size:0.62rem;color:var(--text3);text-transform:uppercase;font-family:Inconsolata,monospace;">'+label+'</div>'+
+    '<div style="font-family:Karla,sans-serif;font-weight:600;font-size:0.88rem;color:var(--text);margin-top:2px;">'+(val||'—')+'</div>'+
   '</div>';
 }
 
@@ -5363,7 +5364,7 @@ function editarAlertaMinimo(claveEnc){
 function renderMatEntrada(){
   var html='<div style="padding:14px;">'+
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow);">'+
-      '<div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;color:var(--text);margin-bottom:14px;">📥 Nueva entrada de material</div>'+
+      '<div style="font-family:Karla,sans-serif;font-weight:800;font-size:1rem;color:var(--text);margin-bottom:14px;">📥 Nueva entrada de material</div>'+
       '<div class="fgrid">'+
         '<div class="fg full"><div class="flabel">Categoría *</div>'+
           '<select class="finput" id="mat-ent-cat" onchange="matActualizarArticulos()">'+
@@ -5399,7 +5400,7 @@ function renderMatEntrada(){
         '</div>'+
       '</div>'+
       '<div class="errbanner" id="mat-ent-err"></div>'+
-      '<button onclick="guardarMatEntrada()" style="width:100%;margin-top:14px;padding:15px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;cursor:pointer;">'+
+      '<button onclick="guardarMatEntrada()" style="width:100%;margin-top:14px;padding:15px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-family:Karla,sans-serif;font-weight:800;font-size:1rem;cursor:pointer;">'+
         '💾 Registrar entrada</button>'+
     '</div>'+
   '</div>';
