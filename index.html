@@ -365,7 +365,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v89d</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v89e</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -4214,12 +4214,6 @@ function mostrarHistorialPale(paleId){
     var rid=(r['ID PALET']||'').toString().trim();
     return rid===paleId||rid.replace(/\s/g,'')===paleId.replace(/\s/g,'');
   });
-  regs.sort(function(a,b){
-    var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);
-    if(!fa&&!fb)return 0;if(!fa)return 1;if(!fb)return -1;
-    return fa-fb;
-  });
-
   trazOpsActuales.sort(function(a,b){
     var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);
     if(!fa&&!fb)return 0;if(!fa)return 1;if(!fb)return -1;
