@@ -365,7 +365,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v89</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v89a</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -2158,7 +2158,7 @@ function renderRegs(){
         var salaId='c2sala-'+sk.replace(/[^a-zA-Z0-9]/g,'');
         html+='<div onclick="toggleSalaVolteo(\''+salaId+'\')" style="background:#2a4a7a12;border-left:4px solid #2a4a7a;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);cursor:pointer;">'
           +'<div>'
-          +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.95rem;">🏭 '+sc.label+'</div>'
+          +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.95rem;">'+ sc.label+'</div>'
           +'<div style="font-size:0.7rem;opacity:0.8;margin-top:2px;">'+sc.total+' palet'+(sc.total>1?'s':'')+' · toca para ver detalle</div>'
           +'</div>'
           +'<div style="display:flex;align-items:center;gap:8px;">'
@@ -2272,7 +2272,7 @@ function renderRegs(){
       if(cont.esSala){
         var salaId='sala-'+cont.label.replace(/[^a-zA-Z0-9]/g,'');
         html+='<div onclick="toggleSalaVolteo(\''+salaId+'\')" style="background:#3a6b3a12;border-left:4px solid #3a6b3a;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);cursor:pointer;">'
-          +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;">🏭 '+cont.label+'</span>'
+          +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;">'+cont.label+'</span>'
           +'<div style="display:flex;align-items:center;gap:8px;">'
           +'<span style="font-size:0.8rem;background:rgba(255,255,255,0.25);padding:3px 10px;border-radius:6px;font-weight:700;">'+cont.total+' palets</span>'
           +'<span id="arr-'+salaId+'" style="font-size:1rem;transition:transform 0.2s;">▼</span>'

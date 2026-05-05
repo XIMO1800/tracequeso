@@ -1,38 +1,13 @@
-const CACHE = 'tracequeso-v90f';
-const ASSETS = [
-  '/tracequeso/',
-  '/tracequeso/index.html',
-];
-
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => {})
-  );
-  self.skipWaiting();
+const CACHE = 'tracequeso-v89a';
+const ASSETS = ['/tracequeso/','/tracequeso/index.html'];
+self.addEventListener('install', function(e) {
+  e.waitUntil(caches.open(CACHE).then(function(cache) { return cache.addAll(ASSETS); }));
 });
-
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
+self.addEventListener('activate', function(e) {
+  e.waitUntil(caches.keys().then(function(keys) {
+    return Promise.all(keys.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);}));
+  }));
 });
-
-self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  if (e.request.url.includes('script.google.com')) return;
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      const net = fetch(e.request).then(res => {
-        if (res && res.status === 200) {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return res;
-      }).catch(() => cached);
-      return cached || net;
-    })
-  );
+self.addEventListener('fetch', function(e) {
+  e.respondWith(caches.match(e.request).then(function(r){return r||fetch(e.request);}));
 });
