@@ -368,7 +368,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v89i</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v90b</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -412,7 +412,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="mbtn-icon">🔍</div>
       <div><div class="mbtn-title">Trazabilidad</div><div class="mbtn-desc">Buscar por lote, historial de palés</div></div>
     </button>
-    <button class="mbtn" id="btn-materiales" onclick="toast('Próximamente','err')" style="display:none;border-left:4px solid #c8780a;">
+    <button class="mbtn" id="btn-materiales" onclick="tapFeedback(this);irMateriales()" style="display:none;border-left:4px solid #c8780a;">
       <div class="mbtn-icon">📦</div>
       <div><div class="mbtn-title">Material auxiliar</div><div class="mbtn-desc">Stock, entradas y salidas</div></div>
     </button>
@@ -1297,34 +1297,27 @@ textarea.finput{resize:vertical;min-height:60px;}
             <div class="fg"><div class="flabel">Etiquetas no conformes</div><input class="finput" type="number" id="env-etiq-nc" placeholder="0" min="0" inputmode="numeric"></div>
           </div>
         </div>
-        <div style="margin-top:14px;">
-          <div class="flabel">Conforme vacío y sellado</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-            <button id="env-vacio-si" onclick="selEnvVacio(true)" style="padding:13px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">SI</button>
-            <button id="env-vacio-no" onclick="selEnvVacio(false)" style="padding:13px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">NO</button>
+        <!-- Contraetiquetas D.O. — dentro del bloque etiquetado -->
+        <div id="env-sub-contraetiq" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+          <div style="font-family:'Karla',sans-serif;font-weight:700;font-size:0.85rem;color:var(--env);margin-bottom:8px;">🔖 Contraetiquetas D.O. Manchego</div>
+          <div class="fgrid">
+            <div class="fg"><div class="flabel">Primera contraetiqueta</div><input class="finput" type="text" id="env-contra-primera" placeholder="Ej: MI11326" autocomplete="off" autocapitalize="characters" oninput="validarContraetiquetas()"></div>
+            <div class="fg"><div class="flabel">Última contraetiqueta</div><input class="finput" type="text" id="env-contra-ultima" placeholder="Ej: MI12525" autocomplete="off" autocapitalize="characters" oninput="validarContraetiquetas()"></div>
           </div>
+          <div id="env-contra-resultado" style="display:none;margin-top:8px;">
+            <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:0.82rem;display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:var(--text3);">Total contraetiquetas:</span>
+              <span style="font-family:'Inconsolata',monospace;font-weight:700;font-size:1rem;" id="env-contra-total-val">—</span>
+            </div>
+          </div>
+          <div id="env-contra-ok" style="display:none;margin-top:6px;background:var(--green-bg);border:1.5px solid var(--green);border-radius:9px;padding:10px 12px;font-size:0.82rem;color:var(--green);font-weight:600;">✅ Contraetiquetas cuadran con el nº de piezas/cuñas</div>
+          <div id="env-contra-err" style="display:none;margin-top:6px;background:var(--red-bg);border:1.5px solid var(--red);border-radius:9px;padding:10px 12px;font-size:0.82rem;color:var(--red);font-weight:600;"></div>
         </div>
       </div>
     </div>
 
     <!-- BLOQUE 7: CONTRAETIQUETAS (solo D.O.) -->
-    <div id="env-bloque-contraetiq" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
-      <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">🔖 Contraetiquetas D.O. Manchego</div>
-      <div style="padding:14px;">
-        <div class="fgrid">
-          <div class="fg"><div class="flabel">Primera contraetiqueta</div><input class="finput" type="text" id="env-contra-primera" placeholder="Ej: MI11326" autocomplete="off" autocapitalize="characters" oninput="validarContraetiquetas()"></div>
-          <div class="fg"><div class="flabel">Última contraetiqueta</div><input class="finput" type="text" id="env-contra-ultima" placeholder="Ej: MI12525" autocomplete="off" autocapitalize="characters" oninput="validarContraetiquetas()"></div>
-        </div>
-        <div id="env-contra-resultado" style="display:none;margin-top:8px;">
-          <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:0.82rem;display:flex;justify-content:space-between;align-items:center;">
-            <span style="color:var(--text3);">Total contraetiquetas:</span>
-            <span style="font-family:'Inconsolata',monospace;font-weight:700;font-size:1rem;" id="env-contra-total-val">—</span>
-          </div>
-        </div>
-        <div id="env-contra-ok" style="display:none;margin-top:6px;background:var(--green-bg);border:1.5px solid var(--green);border-radius:9px;padding:10px 12px;font-size:0.82rem;color:var(--green);font-weight:600;">✅ Contraetiquetas cuadran con el nº de piezas/cuñas</div>
-        <div id="env-contra-err" style="display:none;margin-top:6px;background:var(--red-bg);border:1.5px solid var(--red);border-radius:9px;padding:10px 12px;font-size:0.82rem;color:var(--red);font-weight:600;">⚠️ Las contraetiquetas no cuadran. Revisa los números.</div>
-      </div>
-    </div>
+    <!-- contraetiquetas integradas en bloque etiquetado -->
 
     <!-- BLOQUE 8: MATERIALES AUXILIARES -->
     <div id="env-bloque-aux" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
@@ -1347,6 +1340,14 @@ textarea.finput{resize:vertical;min-height:60px;}
     <div id="env-bloque-cierre" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
       <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">✅ Cierre del registro</div>
       <div style="padding:14px;">
+        <!-- Conforme vacío y sellado — primera pregunta del cierre -->
+        <div style="margin-bottom:14px;">
+          <div class="flabel">Conforme vacío y sellado</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+            <button id="env-vacio-si" onclick="selEnvVacio(true)" style="padding:13px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">SI</button>
+            <button id="env-vacio-no" onclick="selEnvVacio(false)" style="padding:13px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">NO</button>
+          </div>
+        </div>
         <div class="fgrid">
           <div class="fg full">
             <div class="flabel">Nº piezas no aptas</div>
@@ -1381,6 +1382,37 @@ textarea.finput{resize:vertical;min-height:60px;}
   </div>
 </div>
 <!-- FIN ENVASADO -->
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MATERIAL AUXILIAR (solo CALIDAD/ADMIN)                 -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="scr" id="s-materiales">
+  <div class="topbar">
+    <button class="tbback" onclick="ir('s-main')">←</button>
+    <div class="tbtitle">📦 Material auxiliar</div>
+    <div class="tbright">
+      <button onclick="irMatTab('stock')" id="mat-tab-stock"
+        style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);font-family:'Karla',sans-serif;font-weight:700;font-size:0.78rem;cursor:pointer;background:var(--accent);color:#fff;">
+        Stock
+      </button>
+      <button onclick="irMatTab('entrada')" id="mat-tab-entrada"
+        style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);font-family:'Karla',sans-serif;font-weight:700;font-size:0.78rem;cursor:pointer;background:var(--bg3);color:var(--text2);">
+        Entrada
+      </button>
+    </div>
+  </div>
+  <div class="scrl" id="mat-contenido"></div>
+</div>
+
+<!-- DETALLE ARTÍCULO STOCK -->
+<div class="scr" id="s-mat-detalle">
+  <div class="topbar">
+    <button class="tbback" onclick="ir('s-materiales')">←</button>
+    <div class="tbtitle" id="mat-detalle-title">Detalle</div>
+  </div>
+  <div class="scrl" id="mat-detalle-contenido"></div>
+</div>
 
 <div class="scr" id="s-qrscanner" style="background:#000;z-index:1000;">
   <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(0,0,0,0.7);z-index:10;">
@@ -4873,6 +4905,9 @@ function confirmarCambioFondo(){
     'MAQUINA':ENV.maq,'PROVEEDOR FONDO':ENV.provFondo,'LOTE FONDO':nl,
     'TIPO REGISTRO':'CAMBIO BOBINA FONDO','ANCHO FONDO':anchoFondo(ENV.maq)
   },'ENVASADO','CAMBIO-BOBINA-FONDO');
+  // Descontar 1 bobina del stock de material auxiliar
+  var artFondo=ENV.maq==='ELTON'?'FONDO 365mm (ELTON)':'FONDO 310mm (MECAPLASTIC)';
+  matDescontarBobina('MATERIAL ENVASADO',artFondo,ENV.provFondo,nl,CU.n);
   toast('✅ Lote fondo: '+nl);
 }
 
@@ -4892,6 +4927,10 @@ function confirmarCambioTapa(){
     'SECCIÓN':'ENVASADO','OPERARIO':CU.n,'FECHA':new Date().toLocaleString('es-ES'),
     'MAQUINA':ENV.maq,'LOTE TAPA':nl,'TIPO REGISTRO':'CAMBIO BOBINA TAPA'
   },'ENVASADO','CAMBIO-BOBINA-TAPA');
+  // Descontar 1 bobina del stock de material auxiliar
+  var fmt=document.getElementById('env-formato')?document.getElementById('env-formato').value:'';
+  var artTapa=fmt==='3 KG'?'TAPA 245mm (3KG)':fmt==='2 KG'?'TAPA 200mm (2KG)':'TAPA 330mm (1KG/BARRA)';
+  matDescontarBobina('MATERIAL ENVASADO',artTapa,'',nl,CU.n);
   toast('✅ Lote tapa: '+nl);
 }
 
@@ -4935,7 +4974,9 @@ function setEnvSelVal(id,val){
 function onEnvTipoCambia(){
   var tipo=document.getElementById('env-tipo').value;
   var esDO=(tipo==='D.O. PAST.'||tipo==='D.O. CRUDA');
-  document.getElementById('env-bloque-contraetiq').style.display=esDO?'':'none';
+  // Contraetiquetas ahora están dentro del bloque etiquetado
+  var subContra=document.getElementById('env-sub-contraetiq');
+  if(subContra) subContra.style.display=esDO?'':'none';
 }
 
 function onEnvFormato(fmt){
@@ -5100,9 +5141,10 @@ function nuevoRegistroEnvasado(){
   document.getElementById('env-cunas-total').value='0';
   document.getElementById('env-no-aptas').value='0';
   ['env-bloque-fondo','env-bloque-tapa','env-bloque-porcionado',
-   'env-bloque-etiquetado','env-bloque-contraetiq'].forEach(function(id){
+   'env-bloque-etiquetado'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.style.display='none';
   });
+  var sc=document.getElementById('env-sub-contraetiq');if(sc)sc.style.display='none';
   ENV.porciona=null;ENV.etiqueta=null;ENV.vacio=null;ENV.cunasTipo='';
   // Reset botones SI/NO
   ['env-porciona-si','env-porciona-no','env-etiq-si','env-etiq-no','env-vacio-si','env-vacio-no'].forEach(function(id){
@@ -5150,6 +5192,324 @@ function nuevaEtiqueta(){
   cargarListaEtiquetas();
   document.getElementById('env-etiq-desc').value=nombre;
   toast('✅ Etiqueta "'+nombre+'" guardada');
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// MATERIAL AUXILIAR — lógica completa
+// Datos en localStorage: 'tq_mat_stock', 'tq_mat_entradas', 'tq_mat_salidas'
+// ═══════════════════════════════════════════════════════════
+
+var MAT_TAB = 'stock';
+
+// ─── Helpers de persistencia ───
+function matGetStock(){return JSON.parse(localStorage.getItem('tq_mat_stock')||'[]');}
+function matSetStock(d){localStorage.setItem('tq_mat_stock',JSON.stringify(d));}
+function matGetEntradas(){return JSON.parse(localStorage.getItem('tq_mat_entradas')||'[]');}
+function matSetEntradas(d){localStorage.setItem('tq_mat_entradas',JSON.stringify(d));}
+function matGetSalidas(){return JSON.parse(localStorage.getItem('tq_mat_salidas')||'[]');}
+function matSetSalidas(d){localStorage.setItem('tq_mat_salidas',JSON.stringify(d));}
+
+// Clave única para un artículo de stock
+function matClave(categoria,articulo,proveedor,lote){
+  return [categoria,articulo,proveedor,lote].map(function(s){return(s||'').trim().toUpperCase();}).join('|');
+}
+
+// ─── Navegación ───
+function irMateriales(){
+  MAT_TAB='stock';
+  renderMatStock();
+  ir('s-materiales');
+}
+
+function irMatTab(tab){
+  MAT_TAB=tab;
+  document.getElementById('mat-tab-stock').style.background  = tab==='stock'?'var(--accent)':'var(--bg3)';
+  document.getElementById('mat-tab-stock').style.color       = tab==='stock'?'#fff':'var(--text2)';
+  document.getElementById('mat-tab-entrada').style.background= tab==='entrada'?'var(--accent)':'var(--bg3)';
+  document.getElementById('mat-tab-entrada').style.color     = tab==='entrada'?'#fff':'var(--text2)';
+  if(tab==='stock') renderMatStock();
+  else renderMatEntrada();
+}
+
+// ─── VISTA STOCK ───
+function renderMatStock(){
+  var stock=matGetStock();
+  var html='';
+
+  if(!stock.length){
+    html='<div style="padding:30px;text-align:center;color:var(--text3);">'+
+      '<div style="font-size:2rem;margin-bottom:10px;">📦</div>'+
+      '<div style="font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;color:var(--text);">Sin artículos en stock</div>'+
+      '<div style="font-size:0.82rem;margin-top:6px;">Usa "Entrada" para añadir material al stock</div>'+
+      '</div>';
+    document.getElementById('mat-contenido').innerHTML=html;
+    return;
+  }
+
+  // Agrupar por categoría
+  var cats={};
+  stock.forEach(function(item){
+    var cat=item.categoria||'Sin categoría';
+    if(!cats[cat])cats[cat]=[];
+    cats[cat].push(item);
+  });
+
+  Object.keys(cats).sort().forEach(function(cat){
+    html+='<div style="font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--text2);'+
+      'padding:12px 14px 4px;text-transform:uppercase;letter-spacing:0.05em;">'+cat+'</div>';
+    cats[cat].forEach(function(item){
+      var pct=item.alertaMinimo>0?Math.min(100,Math.round(item.stockActual/item.alertaMinimo*100)):100;
+      var alerta=item.alertaMinimo>0&&item.stockActual<=item.alertaMinimo;
+      var color=alerta?'var(--red)':item.stockActual===0?'var(--red)':'var(--green)';
+      html+='<div onclick="verDetalleArticulo(''+encodeURIComponent(matClave(item.categoria,item.articulo,item.proveedor,item.lote))+'')" '+
+        'style="background:var(--bg2);border:1px solid '+(alerta?'var(--red)':'var(--border)')+';border-left:4px solid '+color+';'+
+        'border-radius:12px;padding:14px 16px;margin:0 14px 10px;cursor:pointer;box-shadow:var(--shadow);">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'+
+          '<div style="flex:1;">'+
+            '<div style="font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;color:var(--text);">'+item.articulo+'</div>'+
+            '<div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">'+item.proveedor+' · Lote: '+item.lote+'</div>'+
+          '</div>'+
+          '<div style="text-align:right;flex-shrink:0;margin-left:10px;">'+
+            '<div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1.4rem;color:'+color+';">'+item.stockActual+'</div>'+
+            '<div style="font-size:0.65rem;color:var(--text3);">unidades</div>'+
+          '</div>'+
+        '</div>'+
+        (alerta?'<div style="margin-top:8px;background:var(--red-bg);border-radius:6px;padding:5px 10px;font-size:0.75rem;color:var(--red);font-weight:600;">⚠️ Stock mínimo alcanzado (mín: '+item.alertaMinimo+')</div>':'')+
+      '</div>';
+    });
+  });
+
+  // Botón nueva entrada al final
+  html+='<div style="padding:14px;">'+
+    '<button onclick="irMatTab('entrada')" style="width:100%;padding:14px;background:var(--accent);color:#fff;border:none;'+
+    'border-radius:12px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;cursor:pointer;">'+
+    '➕ Registrar nueva entrada</button></div>';
+
+  document.getElementById('mat-contenido').innerHTML=html;
+}
+
+// ─── DETALLE ARTÍCULO ───
+function verDetalleArticulo(claveEnc){
+  var clave=decodeURIComponent(claveEnc);
+  var stock=matGetStock();
+  var item=stock.find(function(x){return matClave(x.categoria,x.articulo,x.proveedor,x.lote)===clave;});
+  if(!item){toast('Artículo no encontrado','err');return;}
+
+  var salidas=matGetSalidas().filter(function(s){
+    return matClave(s.categoria,s.articulo,s.proveedor,s.lote)===clave;
+  }).slice(-20).reverse();
+
+  var html='<div style="padding:14px;">'+
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow);">'+
+      '<div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1.05rem;color:var(--text);margin-bottom:10px;">'+item.articulo+'</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'+
+        matDetalleField('Categoría',item.categoria)+
+        matDetalleField('Proveedor',item.proveedor)+
+        matDetalleField('Lote',item.lote)+
+        matDetalleField('Entradas totales',item.entradasTotal)+
+        matDetalleField('Consumo total',item.consumoTotal)+
+        '<div style="grid-column:1/-1;background:'+(item.stockActual<=item.alertaMinimo?'var(--red-bg)':'var(--green-bg)')+';border-radius:8px;padding:10px 12px;text-align:center;">'+
+          '<div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1.6rem;color:'+(item.stockActual<=item.alertaMinimo?'var(--red)':'var(--green)')+';">'+item.stockActual+'</div>'+
+          '<div style="font-size:0.7rem;color:var(--text3);">STOCK ACTUAL · Mínimo: '+item.alertaMinimo+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<button onclick="editarAlertaMinimo(''+encodeURIComponent(clave)+'')" '+
+        'style="width:100%;margin-top:10px;padding:10px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);'+
+        'border-radius:8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">'+
+        '⚙️ Cambiar alerta mínimo</button>'+
+    '</div>';
+
+  if(salidas.length){
+    html+='<div style="font-family:'Karla',sans-serif;font-weight:700;font-size:0.85rem;color:var(--text2);padding:4px 0 8px;">Últimas salidas</div>';
+    salidas.forEach(function(s){
+      html+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">'+
+        '<div><div style="font-size:0.82rem;font-weight:600;color:var(--text);">'+s.motivo+'</div>'+
+        '<div style="font-size:0.7rem;color:var(--text3);">'+s.fecha+' · '+s.operario+'</div></div>'+
+        '<div style="font-family:'Inconsolata',monospace;font-weight:700;color:var(--red);">-'+s.cantidad+'</div>'+
+      '</div>';
+    });
+  }
+
+  html+='</div>';
+  document.getElementById('mat-detalle-title').textContent=item.articulo;
+  document.getElementById('mat-detalle-contenido').innerHTML=html;
+  ir('s-mat-detalle');
+}
+
+function matDetalleField(label,val){
+  return '<div style="background:var(--bg3);border-radius:8px;padding:8px 10px;">'+
+    '<div style="font-size:0.62rem;color:var(--text3);text-transform:uppercase;font-family:'Inconsolata',monospace;">'+label+'</div>'+
+    '<div style="font-family:'Karla',sans-serif;font-weight:600;font-size:0.88rem;color:var(--text);margin-top:2px;">'+(val||'—')+'</div>'+
+  '</div>';
+}
+
+function editarAlertaMinimo(claveEnc){
+  var clave=decodeURIComponent(claveEnc);
+  var stock=matGetStock();
+  var idx=stock.findIndex(function(x){return matClave(x.categoria,x.articulo,x.proveedor,x.lote)===clave;});
+  if(idx<0)return;
+  var actual=stock[idx].alertaMinimo||0;
+  var nuevo=prompt('Alerta mínimo de stock (actual: '+actual+'):',actual);
+  if(nuevo===null)return;
+  var n=parseInt(nuevo)||0;
+  stock[idx].alertaMinimo=n;
+  matSetStock(stock);
+  toast('Alerta mínimo actualizado: '+n);
+  verDetalleArticulo(claveEnc);
+}
+
+// ─── VISTA ENTRADA ───
+function renderMatEntrada(){
+  var html='<div style="padding:14px;">'+
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow);">'+
+      '<div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;color:var(--text);margin-bottom:14px;">📥 Nueva entrada de material</div>'+
+      '<div class="fgrid">'+
+        '<div class="fg full"><div class="flabel">Categoría *</div>'+
+          '<select class="finput" id="mat-ent-cat" onchange="matActualizarArticulos()">'+
+            '<option value="">— Selecciona —</option>'+
+            '<option>MATERIAL ENVASADO</option>'+
+            '<option>CARTONAJE</option>'+
+            '<option>ETIQUETAS</option>'+
+            '<option>OTROS</option>'+
+          '</select>'+
+        '</div>'+
+        '<div class="fg full"><div class="flabel">Artículo *</div>'+
+          '<select class="finput" id="mat-ent-art">'+
+            '<option value="">— Selecciona categoría primero —</option>'+
+          '</select>'+
+        '</div>'+
+        '<div class="fg full"><div class="flabel">Proveedor *</div>'+
+          '<input class="finput" type="text" id="mat-ent-prov" placeholder="Ej: TOFIL" autocomplete="off" autocapitalize="characters">'+
+        '</div>'+
+        '<div class="fg full"><div class="flabel">Lote *</div>'+
+          '<input class="finput" type="text" id="mat-ent-lote" placeholder="Nº de lote" autocomplete="off" autocapitalize="characters">'+
+        '</div>'+
+        '<div class="fg"><div class="flabel">Cantidad (unidades) *</div>'+
+          '<input class="finput" type="number" id="mat-ent-cant" placeholder="0" min="1" inputmode="numeric">'+
+        '</div>'+
+        '<div class="fg"><div class="flabel">Alerta mínimo</div>'+
+          '<input class="finput" type="number" id="mat-ent-min" placeholder="Ej: 5" min="0" inputmode="numeric">'+
+        '</div>'+
+        '<div class="fg full"><div class="flabel">Nº albarán</div>'+
+          '<input class="finput" type="text" id="mat-ent-albaran" placeholder="Nº albarán proveedor" autocomplete="off">'+
+        '</div>'+
+        '<div class="fg full"><div class="flabel">Observaciones</div>'+
+          '<textarea class="finput" id="mat-ent-obs" placeholder="Opcional..." style="min-height:50px;"></textarea>'+
+        '</div>'+
+      '</div>'+
+      '<div class="errbanner" id="mat-ent-err"></div>'+
+      '<button onclick="guardarMatEntrada()" style="width:100%;margin-top:14px;padding:15px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;cursor:pointer;">'+
+        '💾 Registrar entrada</button>'+
+    '</div>'+
+  '</div>';
+
+  document.getElementById('mat-contenido').innerHTML=html;
+}
+
+var MAT_ARTICULOS={
+  'MATERIAL ENVASADO':['FONDO 365mm (ELTON)','FONDO 310mm (MECAPLASTIC)','TAPA 245mm (3KG)','TAPA 200mm (2KG)','TAPA 330mm (1KG/BARRA)'],
+  'CARTONAJE':['CAJA CARTÓN','BANDEJA','FILM RETRÁCTIL'],
+  'ETIQUETAS':['ETIQUETA PRODUCTO','CONTRAETIQUETA D.O.','ETIQUETA PRECIO'],
+  'OTROS':['OTRO']
+};
+
+function matActualizarArticulos(){
+  var cat=document.getElementById('mat-ent-cat').value;
+  var sel=document.getElementById('mat-ent-art');
+  var arts=MAT_ARTICULOS[cat]||[];
+  sel.innerHTML='<option value="">— Selecciona artículo —</option>';
+  arts.forEach(function(a){
+    var opt=document.createElement('option');opt.value=a;opt.textContent=a;sel.appendChild(opt);
+  });
+}
+
+function guardarMatEntrada(){
+  var errEl=document.getElementById('mat-ent-err');errEl.style.display='none';
+  var cat=document.getElementById('mat-ent-cat').value.trim();
+  var art=document.getElementById('mat-ent-art').value.trim();
+  var prov=document.getElementById('mat-ent-prov').value.trim().toUpperCase();
+  var lote=document.getElementById('mat-ent-lote').value.trim().toUpperCase();
+  var cant=parseInt(document.getElementById('mat-ent-cant').value)||0;
+  var minimo=parseInt(document.getElementById('mat-ent-min').value)||0;
+  var albaran=document.getElementById('mat-ent-albaran').value.trim();
+  var obs=document.getElementById('mat-ent-obs').value.trim();
+
+  if(!cat){errEl.textContent='Selecciona la categoría';errEl.style.display='';return;}
+  if(!art){errEl.textContent='Selecciona el artículo';errEl.style.display='';return;}
+  if(!prov){errEl.textContent='Introduce el proveedor';errEl.style.display='';return;}
+  if(!lote){errEl.textContent='Introduce el lote';errEl.style.display='';return;}
+  if(!cant){errEl.textContent='Introduce la cantidad';errEl.style.display='';return;}
+
+  var fecha=new Date().toLocaleString('es-ES');
+  var clave=matClave(cat,art,prov,lote);
+
+  // Actualizar stock
+  var stock=matGetStock();
+  var idx=stock.findIndex(function(x){return matClave(x.categoria,x.articulo,x.proveedor,x.lote)===clave;});
+  if(idx>=0){
+    stock[idx].stockActual+=cant;
+    stock[idx].entradasTotal+=cant;
+    if(minimo>0)stock[idx].alertaMinimo=minimo;
+  } else {
+    stock.push({categoria:cat,articulo:art,proveedor:prov,lote:lote,
+      entradasTotal:cant,consumoTotal:0,stockActual:cant,alertaMinimo:minimo});
+  }
+  matSetStock(stock);
+
+  // Registrar entrada
+  var entradas=matGetEntradas();
+  entradas.push({id:'E-'+Date.now(),fecha:fecha,operario:CU.n,
+    categoria:cat,articulo:art,proveedor:prov,lote:lote,
+    cantidad:cant,albaran:albaran,obs:obs});
+  matSetEntradas(entradas);
+
+  // Enviar a Sheets
+  guardarRegistro({
+    'SECCIÓN':'MATERIAL AUXILIAR','TIPO REGISTRO':'ENTRADA',
+    'OPERARIO':CU.n,'FECHA':fecha,
+    'CATEGORIA':cat,'ARTICULO':art,'PROVEEDOR':prov,'LOTE':lote,
+    'CANTIDAD':cant,'ALBARAN':albaran,'OBSERVACIONES':obs
+  },'MATERIAL AUXILIAR','ENTRADA-'+lote);
+
+  toast('✅ Entrada registrada: '+cant+' uds de '+art);
+  // Limpiar y volver a stock
+  irMatTab('stock');
+}
+
+// ─── DESCUENTO AUTOMÁTICO POR CAMBIO DE BOBINA ───
+function matDescontarBobina(categoria,articulo,proveedor,lote,operario){
+  if(!lote||lote==='—')return;
+  var stock=matGetStock();
+  var clave=matClave(categoria,articulo,proveedor,lote);
+  var idx=stock.findIndex(function(x){return matClave(x.categoria,x.articulo,x.proveedor,x.lote)===clave;});
+  if(idx<0)return; // No está en stock controlado, no hace nada
+
+  stock[idx].stockActual=Math.max(0,stock[idx].stockActual-1);
+  stock[idx].consumoTotal=(stock[idx].consumoTotal||0)+1;
+  matSetStock(stock);
+
+  // Registrar salida
+  var salidas=matGetSalidas();
+  var fecha=new Date().toLocaleString('es-ES');
+  salidas.push({id:'S-'+Date.now(),fecha:fecha,operario:operario||CU.n,
+    categoria:categoria,articulo:articulo,proveedor:proveedor,lote:lote,
+    cantidad:1,motivo:'CAMBIO BOBINA ENVASADO'});
+  matSetSalidas(salidas);
+
+  // Enviar a Sheets
+  guardarRegistro({
+    'SECCIÓN':'MATERIAL AUXILIAR','TIPO REGISTRO':'SALIDA',
+    'OPERARIO':operario||CU.n,'FECHA':fecha,
+    'CATEGORIA':categoria,'ARTICULO':articulo,'PROVEEDOR':proveedor,'LOTE':lote,
+    'CANTIDAD':1,'MOTIVO':'CAMBIO BOBINA ENVASADO'
+  },'MATERIAL AUXILIAR','SALIDA-'+lote);
+
+  // Alerta si stock bajo mínimo
+  var item=stock[idx];
+  if(item.alertaMinimo>0&&item.stockActual<=item.alertaMinimo){
+    toast('⚠️ Stock mínimo: '+item.articulo+' ('+item.stockActual+' uds)','err');
+  }
 }
 
 </script>
