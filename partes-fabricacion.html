@@ -127,6 +127,28 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
 .resumen-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.88rem}
 .resumen-row:last-child{border:none}
 .resumen-row span{color:var(--text2)}
+
+/* ── Carrusel de cubas activas ── */
+.cubas-scroll{display:flex;overflow-x:auto;gap:12px;padding:4px 2px 12px;scrollbar-width:none;scroll-snap-type:x mandatory}
+.cubas-scroll::-webkit-scrollbar{display:none}
+.cuba-card{flex:0 0 82vw;max-width:320px;background:var(--card);border-radius:14px;border:2px solid var(--border);box-shadow:var(--shadow);scroll-snap-align:start;cursor:pointer;overflow:hidden;transition:border-color 0.15s}
+.cuba-card:active{border-color:var(--green2)}
+.cuba-card-header{padding:12px 14px 10px;background:var(--green);color:white;display:flex;align-items:center;justify-content:space-between}
+.cuba-card-titulo{font-size:1rem;font-weight:800}
+.cuba-card-sub{font-size:0.72rem;opacity:0.85;margin-top:2px}
+.cuba-card-num{background:rgba(255,255,255,0.25);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;flex-shrink:0}
+.cuba-card-body{padding:12px 14px}
+.cuba-card-row{display:flex;justify-content:space-between;font-size:0.82rem;padding:4px 0;border-bottom:1px solid var(--border)}
+.cuba-card-row:last-child{border:none}
+.cuba-card-row span{color:var(--text2)}
+.cuba-card-row b{color:var(--text);font-weight:700}
+.cuba-card-footer{padding:8px 14px 12px;display:flex;gap:8px}
+.cuba-nueva{flex:0 0 60vw;max-width:220px;background:var(--greenl);border-radius:14px;border:2px dashed var(--green2);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;cursor:pointer;scroll-snap-align:start;min-height:160px}
+.cuba-nueva-icon{font-size:2rem;margin-bottom:8px}
+.cuba-nueva-text{font-size:0.85rem;font-weight:700;color:var(--green);text-align:center}
+.dots-nav{display:flex;justify-content:center;gap:6px;margin-bottom:12px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:background 0.2s}
+.dot.active{background:var(--green)}
 </style>
 </head>
 <body>
@@ -148,6 +170,14 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
 </div>
 
 <div id="screen-partes" class="screen active">
+
+  <!-- Cubas activas hoy — carrusel -->
+  <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:8px">Cubas activas hoy</div>
+  <div class="cubas-scroll" id="cubas-carrusel"></div>
+  <div class="dots-nav" id="cubas-dots"></div>
+
+  <!-- Historial / filtro -->
+  <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin:8px 0">Historial</div>
   <div style="display:flex;gap:8px;margin-bottom:12px">
     <input type="date" id="filtro-fecha" style="flex:1" onchange="renderPartes()">
     <select id="filtro-tipo" style="flex:1" onchange="renderPartes()">
@@ -466,7 +496,7 @@ function init(){
   document.getElementById('np-fecha').value=hoy;
   document.getElementById('filtro-fecha').value=hoy;
   poblarSelectTipos();poblarFiltroTipos();
-  renderPartes();renderRecetas();renderLotes();renderStock();
+  renderPartes();renderCarrusel();renderRecetas();renderLotes();renderStock();
   iniciarCO2();
   // Cargar datos de Sheets en background
   cargarPartesSheets();
@@ -845,10 +875,75 @@ function limpiarParte(){
   onTipoChange();
 }
 
+function renderCarrusel(){
+  var hoy = new Date().toISOString().slice(0,10);
+  var partesHoy = PARTES.filter(function(p){
+    return p.fecha === hoy || (p.fecha && p.fecha.toString().indexOf(hoy) >= 0);
+  });
+
+  var c = document.getElementById('cubas-carrusel');
+  var dots = document.getElementById('cubas-dots');
+  if(!c) return;
+
+  var html = '';
+  partesHoy.forEach(function(p, i){
+    var totalPzas = 0;
+    if(p.piezas) Object.keys(p.piezas).forEach(function(k){ totalPzas += (p.piezas[k]||0); });
+    var colorHdr = tipoColorCarrusel(p.tipo);
+    html += '<div class="cuba-card" style="border-color:'+colorHdr+'" onclick="verParte(''+p.id+'')">'
+      + '<div class="cuba-card-header" style="background:'+colorHdr+'">'
+      +   '<div>'
+      +     '<div class="cuba-card-titulo">'+p.tipo+(p.variedad?' · '+p.variedad:'')+'</div>'
+      +     '<div class="cuba-card-sub">'+(p.operario||'—')+' · '+formatearFecha(p.fecha)+'</div>'
+      +   '</div>'
+      +   '<div class="cuba-card-num">'+p.cuba+'</div>'
+      + '</div>'
+      + '<div class="cuba-card-body">'
+      +   '<div class="cuba-card-row"><span>Litros</span><b>'+(p.litros||'—')+'</b></div>'
+      +   (p.coag&&p.coag.hadicion?'<div class="cuba-card-row"><span>Adición cuajo</span><b>'+p.coag.hadicion+'</b></div>':'')
+      +   (p.coag&&p.coag.hc?'<div class="cuba-card-row"><span>Hora corte</span><b>'+p.coag.hc+'</b></div>':'')
+      +   (p.coag&&p.coag.total?'<div class="cuba-card-row"><span>Coag. total</span><b>'+p.coag.total+' min</b></div>':'')
+      +   (totalPzas>0?'<div class="cuba-card-row"><span>Piezas</span><b>'+totalPzas+'</b></div>':'')
+      + '</div>'
+      + '</div>';
+  });
+
+  // Tarjeta "nueva cuba"
+  html += '<div class="cuba-nueva" onclick="switchTab('nuevo')">'
+    + '<div class="cuba-nueva-icon">➕</div>'
+    + '<div class="cuba-nueva-text">Nueva cuba</div>'
+    + '</div>';
+
+  c.innerHTML = html;
+
+  // Dots de navegación
+  var nDots = partesHoy.length + 1;
+  var dotsHtml = '';
+  for(var i=0; i<nDots; i++) dotsHtml += '<div class="dot'+(i===0?' active':'')+'" id="dot-'+i+'"></div>';
+  dots.innerHTML = dotsHtml;
+
+  // Actualizar dot activo al hacer scroll
+  c.onscroll = function(){
+    var idx = Math.round(c.scrollLeft / (c.offsetWidth * 0.84));
+    document.querySelectorAll('.dot').forEach(function(d,i){ d.classList.toggle('active', i===idx); });
+  };
+}
+
+function tipoColorCarrusel(tipo){
+  if(!tipo) return 'var(--green)';
+  var t = tipo.toUpperCase();
+  if(t.indexOf('D.O.')>=0) return '#B8620A';
+  if(t==='MEZCLA') return '#2E5E3E';
+  if(t==='OVEJA') return '#1E4A7A';
+  if(t==='CABRA') return '#6B3A7A';
+  return 'var(--green)';
+}
+
 function renderPartes(){
   var fecha=document.getElementById('filtro-fecha').value;
   var tipo=document.getElementById('filtro-tipo').value;
   var filtrados=PARTES.filter(function(p){if(fecha&&p.fecha!==fecha)return false;if(tipo&&(p.tipo+' · '+p.variedad)!==tipo)return false;return true;});
+  renderCarrusel();
   var c=document.getElementById('lista-partes');
   if(filtrados.length===0){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No hay partes para esta fecha</div></div>';return;}
   var h='';
