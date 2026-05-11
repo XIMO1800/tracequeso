@@ -6,12 +6,16 @@
 <title>Partes de Fabricación · El Hidalgo</title>
 <style>
 :root{
-  --bg:#F5F2EC;--bg2:#EDEAE2;--bg3:#E4E0D6;--card:#FFFFFF;--border:#D6D2C8;
-  --text:#2C2A25;--text2:#6B6860;--text3:#9B9890;
-  --green:#2E5E3E;--green2:#4A8A62;--greenl:#EAF2EC;
-  --amber:#B8620A;--amberl:#FDF3E7;--red:#9B2B2B;--redl:#FDEAEA;
-  --blue:#1E4A7A;--bluel:#EAF0FA;
-  --shadow:0 2px 12px rgba(0,0,0,0.07);
+  /* Paleta El Hidalgo - cálida basada en logo */
+  --bg:#FAF6EE;--bg2:#F2EBDC;--bg3:#E8DEC8;--card:#FFFFFF;--border:#D9CCB3;
+  --text:#3D2817;--text2:#7A5A3F;--text3:#A89175;
+  /* Primario: granate/burdeos del logo */
+  --green:#8B2A2A;--green2:#A84545;--greenl:#FBEEEC;
+  /* Secundario: ocre/dorado */
+  --amber:#C8821C;--amberl:#FDF4E3;
+  --red:#9B2B2B;--redl:#FDEAEA;
+  --blue:#5A4A1E;--bluel:#F4EFE0;
+  --shadow:0 2px 12px rgba(61,40,23,0.10);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:Georgia,'Times New Roman',serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px}
@@ -160,7 +164,7 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.0</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.3</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -488,63 +492,25 @@ var LOTES_ACTIVOS = {};
 var PARTES = [];
 var parteActual = {receta:null,litros:0,dosis_override:{},lotes_seleccionados:{}};
 
-function init(){
-  try{
-    var s=localStorage.getItem('tq_partes_demo');
-    if(s){var d=JSON.parse(s);if(d.recetas)RECETAS_DEMO=d.recetas;if(d.stock)STOCK_DEMO=d.stock;if(d.lotesActivos)LOTES_ACTIVOS=d.lotesActivos;if(d.partes)PARTES=d.partes;}
-  }catch(e){}
-  var hoy=new Date().toISOString().slice(0,10);
-  document.getElementById('hdr-fecha').textContent=formatearFecha(hoy);
-  document.getElementById('np-fecha').value=hoy;
-  document.getElementById('filtro-fecha').value=hoy;
-  _filtroFecha=hoy;
-  var p=hoy.split('-');
-  var fd=document.getElementById('filtro-fecha-display');
-  if(fd) fd.textContent=p[2]+'/'+p[1]+'/'+p[0].slice(2);
-  poblarSelectTipos();poblarFiltroTipos();
-  // Inicializar visibilidad de pantallas
-  var allScreens = document.querySelectorAll('.screen');
-  for(var i=0;i<allScreens.length;i++) allScreens[i].style.display='none';
-  var sp = document.getElementById('screen-partes');
-  if(sp) sp.style.display='block';
-  renderPartes();renderCarrusel();renderRecetas();renderLotes();renderStock();
-  iniciarCO2();
-  // Cargar datos de Sheets en background
-  cargarPartesSheets();
-  cargarRecetasSheets();
-  // Sincronizar pendientes si hay red
-  setTimeout(sincronizarPendientes, 2000);
-}
-
-function iniciarCO2(){
-  var lote = obtenerLoteActivo('CO2');
-  var chip = document.getElementById('co2-lote-chip');
-  var valEl = document.getElementById('co2-lote-val');
-  var cadEl = document.getElementById('co2-lote-cad');
-  if(!chip) return;
-  if(lote){
-    valEl.textContent = lote.lote;
-    cadEl.textContent = 'Consumo preferente: ' + formatearFecha(lote.caducidad) + ' · ' + lote.proveedor;
-    chip.classList.remove('empty');
-  } else {
-    valEl.textContent = 'Sin lote activo';
-    cadEl.textContent = '—';
-    chip.classList.add('empty');
-  }
-}
+// ═══════════════════════════════════════════════
+// FUNCIONES AUXILIARES
+// ═══════════════════════════════════════════════
 
 function persistir(){
   try{localStorage.setItem('tq_partes_demo',JSON.stringify({recetas:RECETAS_DEMO,stock:STOCK_DEMO,lotesActivos:LOTES_ACTIVOS,partes:PARTES,pendientes:SYNC_PENDIENTE}));}catch(e){}
 }
 
-function formatearFecha(iso){if(!iso)return'—';var p=iso.split('-');return p[2]+'/'+p[1]+'/'+p[0].slice(2);}
+function formatearFecha(iso){if(!iso)return'—';var p=iso.toString().split('-');if(p.length<3)return iso;return p[2].slice(0,2)+'/'+p[1]+'/'+p[0].slice(2);}
 
-function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2200);}
+function toast(msg){var t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2200);}
 
 function switchTab(tab){
-  if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  if(document.activeElement && document.activeElement.blur){try{document.activeElement.blur();}catch(e){}}
   var tabs = document.querySelectorAll('.nav-tab');
-  for(var i=0;i<tabs.length;i++) tabs[i].className = tabs[i].className.replace(' active','') + (tabs[i].dataset.tab===tab?' active':'');
+  for(var i=0;i<tabs.length;i++){
+    if(tabs[i].getAttribute('data-tab')===tab) tabs[i].className='nav-tab active';
+    else tabs[i].className='nav-tab';
+  }
   var screens = document.querySelectorAll('.screen');
   for(var i=0;i<screens.length;i++) screens[i].style.display='none';
   var target = document.getElementById('screen-'+tab);
@@ -552,63 +518,70 @@ function switchTab(tab){
   window.scrollTo(0,0);
 }
 
-function toggleSec(id){document.getElementById('body-'+id).classList.toggle('open');document.getElementById('chev-'+id).classList.toggle('open');}
+function toggleSec(id){var b=document.getElementById('body-'+id);var c=document.getElementById('chev-'+id);if(b)b.classList.toggle('open');if(c)c.classList.toggle('open');}
+
+// ═══════════════════════════════════════════════
+// NUEVO PARTE
+// ═══════════════════════════════════════════════
 
 function poblarSelectTipos(){
-  // Pobla los DOS selects de tipo y variedad
-  var selT = document.getElementById('np-tipo-sel');
-  selT.innerHTML = '<option value="">— Tipo —</option>';
-  Object.keys(TIPOS_VARIEDADES).forEach(function(t){
-    var o = document.createElement('option'); o.value=t; o.textContent=t; selT.appendChild(o);
-  });
+  var selT=document.getElementById('np-tipo-sel');
+  if(!selT)return;
+  selT.innerHTML='<option value="">— Tipo —</option>';
+  Object.keys(TIPOS_VARIEDADES).forEach(function(t){var o=document.createElement('option');o.value=t;o.textContent=t;selT.appendChild(o);});
 }
 
+function poblarFiltroTipos(){}
+
 function onTipoSelChange(){
-  var t = document.getElementById('np-tipo-sel').value;
-  var selV = document.getElementById('np-var-sel');
-  selV.innerHTML = '<option value="">— Variedad —</option>';
-  if(!t){ selV.disabled=true; document.getElementById('np-tipo').value=''; onTipoChange(); return; }
-  var vars = TIPOS_VARIEDADES[t]||[];
-  if(vars.length === 0){
-    // Sin variedad (D.O. PAST., D.O. CRUDA) → buscar receta directamente
-    selV.innerHTML = '<option value="">(sin variedad)</option>';
-    selV.disabled = true;
-    var r = RECETAS_DEMO.find(function(x){ return x.tipo===t && (!x.variedad||x.variedad===''); });
-    document.getElementById('np-tipo').value = r ? r.id : '__nueva__:'+t+':';
+  var t=document.getElementById('np-tipo-sel').value;
+  var selV=document.getElementById('np-var-sel');
+  selV.innerHTML='<option value="">— Variedad —</option>';
+  if(!t){selV.disabled=true;document.getElementById('np-tipo').value='';onTipoChange();return;}
+  var vars=TIPOS_VARIEDADES[t]||[];
+  if(vars.length===0){
+    selV.innerHTML='<option value="">(sin variedad)</option>';
+    selV.disabled=true;
+    var r=RECETAS_DEMO.find(function(x){return x.tipo===t && (!x.variedad||x.variedad==='');});
+    document.getElementById('np-tipo').value=r?r.id:'__nueva__:'+t+':';
     onTipoChange();
     return;
   }
-  vars.forEach(function(v){
-    var o=document.createElement('option'); o.value=v; o.textContent=v; selV.appendChild(o);
-  });
-  selV.disabled = false;
-  document.getElementById('np-tipo').value = '';
+  vars.forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v;selV.appendChild(o);});
+  selV.disabled=false;
+  document.getElementById('np-tipo').value='';
   onTipoChange();
 }
 
 function onVarSelChange(){
-  var t = document.getElementById('np-tipo-sel').value;
-  var v = document.getElementById('np-var-sel').value;
-  if(!t || !v){ document.getElementById('np-tipo').value=''; onTipoChange(); return; }
-  // Buscar receta que coincida
-  var r = RECETAS_DEMO.find(function(x){ return x.tipo===t && x.variedad===v; });
+  var t=document.getElementById('np-tipo-sel').value;
+  var v=document.getElementById('np-var-sel').value;
+  if(!t||!v){document.getElementById('np-tipo').value='';onTipoChange();return;}
+  var r=RECETAS_DEMO.find(function(x){return x.tipo===t&&x.variedad===v;});
   if(r){
-    document.getElementById('np-tipo').value = r.id;
-  } else {
-    document.getElementById('np-tipo').value = '__nueva__:'+t+':'+v;
-    toast('⚠ No hay receta para '+t+' · '+v+' — créala en la pestaña Recetas');
+    document.getElementById('np-tipo').value=r.id;
+  }else{
+    document.getElementById('np-tipo').value='__nueva__:'+t+':'+v;
+    parteActual.receta={id:'__nueva__',tipo:t,variedad:v,auxiliares:[],fermentos:[],cuajo:null};
+    document.getElementById('aux-sub').textContent='Sin receta — rellenar manualmente';
+    document.getElementById('ferm-sub').textContent='Sin receta — rellenar manualmente';
+    document.getElementById('coag-sub').textContent='Sin receta — rellenar manualmente';
+    document.getElementById('aux-container').innerHTML='<div style="padding:10px;font-size:0.82rem;color:var(--amber)">⚠ No hay receta para '+t+' · '+v+'<br>Puedes crear una en la pestaña <b>Recetas</b>.</div>';
+    document.getElementById('ferm-container').innerHTML='';
+    document.getElementById('coag-cuajo-container').innerHTML='';
+    document.getElementById('coag-proceso').style.display='block';
+    var esDO=(t==='D.O. PAST.'||t==='D.O. CRUDA');
+    document.getElementById('bloque-caseinas').style.display=esDO?'block':'none';
+    calcularDosis();
+    return;
   }
   onTipoChange();
 }
 
-function poblarFiltroTipos(){ /* select tipo eliminado — no hace falta */ }
-
 function onTipoChange(){
   var rid=document.getElementById('np-tipo').value;
-  var receta = null;
-  if(rid && rid.indexOf('__nueva__:')!==0){
-    receta = RECETAS_DEMO.find(function(r){return r.id===rid;});
-  }
+  var receta=null;
+  if(rid && rid.indexOf('__nueva__:')!==0) receta=RECETAS_DEMO.find(function(r){return r.id===rid;});
   parteActual.receta=receta;
   parteActual.dosis_override={};
   parteActual.lotes_seleccionados={};
@@ -622,15 +595,14 @@ function onTipoChange(){
   renderAuxiliares(receta);renderFermentos(receta);renderCuajo(receta);
   document.getElementById('coag-proceso').style.display='block';
   calcularDosis();
-  // Mostrar caseínas solo para D.O.
-  var esDO = receta && (receta.tipo==='D.O. PAST.' || receta.tipo==='D.O. CRUDA');
-  document.getElementById('bloque-caseinas').style.display = esDO ? 'block' : 'none';
+  var esDO=receta&&(receta.tipo==='D.O. PAST.'||receta.tipo==='D.O. CRUDA');
+  document.getElementById('bloque-caseinas').style.display=esDO?'block':'none';
 }
 
 function renderAuxiliares(receta){
   var c=document.getElementById('aux-container');
-  if(!receta.auxiliares||!receta.auxiliares.length){c.innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-state-text">Esta receta no tiene auxiliares</div></div>';document.getElementById('aux-sub').textContent='—';return;}
-  document.getElementById('aux-sub').textContent=receta.auxiliares.map(function(a){return a.nombre;}).join(' · ');
+  if(!receta.auxiliares||!receta.auxiliares.length){c.innerHTML='';document.getElementById('aux-sub').textContent='CO₂';return;}
+  document.getElementById('aux-sub').textContent='CO₂ · '+receta.auxiliares.map(function(a){return a.nombre;}).join(' · ');
   var h='';receta.auxiliares.forEach(function(a){h+=renderProductoCard(a);});c.innerHTML=h;
 }
 
@@ -654,7 +626,7 @@ function renderProductoCard(prod){
   var loteHTML='';
   if(lote){
     loteHTML='<div class="lote-chip"><div class="lote-chip-info"><div class="lote-chip-lote">'+lote.lote+'</div><div class="lote-chip-cad">Caducidad: '+formatearFecha(lote.caducidad)+' · '+lote.proveedor+'</div></div><button class="lote-chip-btn" onclick="abrirSelectorLote(\''+prod.nombre+'\')">Cambiar</button></div>';
-  } else {
+  }else{
     loteHTML='<div class="lote-chip empty"><div class="lote-chip-info"><div class="lote-chip-lote">⚠ Sin lote activo</div><div class="lote-chip-cad">Selecciona uno del stock</div></div><button class="lote-chip-btn" onclick="abrirSelectorLote(\''+prod.nombre+'\')">Seleccionar</button></div>';
   }
   return '<div style="margin-bottom:18px"><div class="sep-label">'+prod.nombre+'</div><div class="form-row"><label class="form-label">Dosis <span class="calc-tag">CALCULADA</span></label><div class="dosis-calc"><div><div class="dosis-calc-val" id="dosis-'+key+'">—</div><div class="dosis-calc-label">ml/g totales</div></div><div style="text-align:right"><div style="font-size:0.72rem;color:var(--blue);font-weight:700">'+prod.dosis_ml_1000L+' /1000L</div><input type="number" placeholder="Override" data-prod="'+prod.nombre+'" oninput="onDosisOverride(this)"></div></div></div><div class="form-row"><label class="form-label">Lote <span class="auto-tag">ÚLTIMO USADO</span></label>'+loteHTML+'</div></div>';
@@ -667,7 +639,8 @@ function obtenerLoteActivo(producto){
 }
 
 function onDosisOverride(input){
-  var prod=input.dataset.prod;var v=parseFloat(input.value);
+  var prod=input.dataset.prod;
+  var v=parseFloat(input.value);
   if(isNaN(v)||v<=0)delete parteActual.dosis_override[prod];
   else parteActual.dosis_override[prod]=v;
   calcularDosis();
@@ -688,11 +661,76 @@ function calcularDosis(){
   });
 }
 
+function calcCO2(){
+  var litros=parseFloat(document.getElementById('np-litros').value)||0;
+  var caudal=parseFloat(document.getElementById('co2-caudal').value)||100;
+  var phLeche=parseFloat(document.getElementById('aux-ph')?document.getElementById('aux-ph').value:'')||0;
+  var phObj=6.48;
+  var el=document.getElementById('co2-tiempo');
+  var infoEl=document.getElementById('co2-ph-actual');
+  var detEl=document.getElementById('co2-formula-detalle');
+  if(!el)return;
+  if(infoEl)infoEl.textContent=phLeche>0?phLeche.toFixed(2):'—';
+  if(litros>0&&caudal>0){
+    var seg;
+    if(phLeche>0&&phLeche>phObj){
+      seg=Math.round((litros/caudal)*3600);
+      if(detEl)detEl.innerHTML='⏳ Fórmula exacta pendiente · Cálculo provisional: <b>'+seg+' seg</b>';
+    }else if(phLeche>0&&phLeche<=phObj){
+      seg=0;
+      if(detEl)detEl.innerHTML='✅ pH leche ya en objetivo — no se necesita CO₂';
+    }else{
+      seg=Math.round((litros/caudal)*3600);
+      if(detEl)detEl.textContent='Introduce el pH de la leche para calcular el tiempo exacto';
+    }
+    el.value=seg>0?seg:'';
+  }else{el.value='';}
+}
+
+function calcCoagTotal(){
+  var ha=document.getElementById('coag-hadicion').value;
+  var hc=document.getElementById('coag-hc').value;
+  var display=document.getElementById('coag-total-display');
+  var hidden=document.getElementById('coag-total');
+  if(!ha||!hc){display.textContent='—';hidden.value='';return;}
+  var pA=ha.split(':'),pC=hc.split(':');
+  var minA=parseInt(pA[0])*60+parseInt(pA[1]);
+  var minC=parseInt(pC[0])*60+parseInt(pC[1]);
+  var diff=minC-minA;
+  if(diff<0)diff+=1440;
+  display.textContent=diff+' min';
+  hidden.value=diff;
+}
+
+function calcCaseinas(){
+  var primera=parseInt(document.getElementById('cas-primera').value)||0;
+  var ultima=parseInt(document.getElementById('cas-ultima').value)||0;
+  if(!primera||!ultima){document.getElementById('cas-resultado').style.display='none';return;}
+  var total=ultima-primera+1;
+  document.getElementById('cas-total').textContent=total;
+  document.getElementById('cas-resultado').style.display='block';
+  var piezas=(parseInt(document.getElementById('pzas-3kg').value)||0)+(parseInt(document.getElementById('pzas-2kg').value)||0)+(parseInt(document.getElementById('pzas-1kg').value)||0)+(parseInt(document.getElementById('pzas-05kg').value)||0);
+  var av=document.getElementById('cas-aviso');
+  if(!piezas){av.textContent='';return;}
+  if(total===piezas){av.textContent='✅ Cuadra con piezas';av.style.background='var(--greenl)';av.style.color='var(--green)';}
+  else{av.textContent='⚠ '+piezas+' pzas — diferencia: '+(total-piezas);av.style.background='var(--amberl)';av.style.color='var(--amber)';}
+}
+
+function iniciarCO2(){
+  var lote=obtenerLoteActivo('CO2');
+  var chip=document.getElementById('co2-lote-chip');
+  var valEl=document.getElementById('co2-lote-val');
+  var cadEl=document.getElementById('co2-lote-cad');
+  if(!chip)return;
+  if(lote){valEl.textContent=lote.lote;cadEl.textContent='Consumo preferente: '+formatearFecha(lote.caducidad)+' · '+lote.proveedor;chip.classList.remove('empty');}
+  else{valEl.textContent='Sin lote activo';cadEl.textContent='—';chip.classList.add('empty');}
+}
+
 function abrirSelectorLote(producto){
   var stock=STOCK_DEMO[producto]||[];
   var h='<div class="modal-title">Lote de '+producto+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
   if(stock.length===0){h+='<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">No hay stock disponible para '+producto+'.<br>Calidad debe registrar un albarán de entrada.</div></div>';}
-  else {
+  else{
     h+='<div style="margin-bottom:8px;font-size:0.8rem;color:var(--text2)">Lotes disponibles en stock:</div>';
     stock.forEach(function(s,i){h+='<div class="opt-row" onclick="seleccionarLote(\''+producto+'\','+i+')"><div class="opt-row-info"><div class="opt-row-lote">'+s.lote+'</div><div class="opt-row-meta">Cad: '+formatearFecha(s.caducidad)+' · '+s.proveedor+'</div></div><div class="opt-row-stock">'+s.cantidad+' '+s.unidad+'</div></div>';});
   }
@@ -708,6 +746,10 @@ function seleccionarLote(producto,idx){
   iniciarCO2();
   toast('✅ Lote '+s.lote+' seleccionado');
 }
+
+// ═══════════════════════════════════════════════
+// GUARDAR PARTE
+// ═══════════════════════════════════════════════
 
 function guardarParte(){
   if(!parteActual.receta){toast('⚠ Selecciona tipo·variedad');return;}
@@ -729,127 +771,20 @@ function guardarParte(){
     prensado:{bar1:document.getElementById('pren-bar1').value,t1:document.getElementById('pren-t1').value,bar2:document.getElementById('pren-bar2').value,t2:document.getElementById('pren-t2').value},
     desmoldeo:{formato:document.getElementById('des-formato').value,ph:document.getElementById('des-ph').value,hi:document.getElementById('des-hi').value,hf:document.getElementById('des-hf').value},
     piezas:{'3kg':parseInt(document.getElementById('pzas-3kg').value)||0,'2kg':parseInt(document.getElementById('pzas-2kg').value)||0,'1kg':parseInt(document.getElementById('pzas-1kg').value)||0,'05kg':parseInt(document.getElementById('pzas-05kg').value)||0,'barra':parseInt(document.getElementById('pzas-barra').value)||0,'gigante':parseInt(document.getElementById('pzas-gigante').value)||0},
-    caseinas:{serie:document.getElementById('cas-serie').value,primera:parseInt(document.getElementById('cas-primera').value)||0,ultima:parseInt(document.getElementById('cas-ultima').value)||0,total:(parseInt(document.getElementById('cas-ultima').value)||0)-(parseInt(document.getElementById('cas-primera').value)||0)+1},observaciones:document.getElementById('np-obs').value
+    caseinas:{serie:document.getElementById('cas-serie').value,primera:parseInt(document.getElementById('cas-primera').value)||0,ultima:parseInt(document.getElementById('cas-ultima').value)||0,total:(parseInt(document.getElementById('cas-ultima').value)||0)-(parseInt(document.getElementById('cas-primera').value)||0)+1},
+    observaciones:document.getElementById('np-obs').value
   };
-  function recogerProd(p){
-    var base=parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L;
-    var consumo=litros*base/1000;
-    var lote=obtenerLoteActivo(p.nombre);
-    return {nombre:p.nombre,dosis_1000L:base,consumo_total:consumo,lote:lote?lote.lote:'',caducidad:lote?lote.caducidad:'',proveedor:lote?lote.proveedor:''};
-  }
+  function recogerProd(p){var base=parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L;var consumo=litros*base/1000;var lote=obtenerLoteActivo(p.nombre);return {nombre:p.nombre,dosis_1000L:base,consumo_total:consumo,lote:lote?lote.lote:'',caducidad:lote?lote.caducidad:'',proveedor:lote?lote.proveedor:''};}
   (r.auxiliares||[]).forEach(function(p){parte.auxiliares.push(recogerProd(p));descontarStock(p.nombre,litros*(parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L)/1000);});
-  // CO2 y datos de leche en cuba
-  var co2lote = obtenerLoteActivo('CO2');
-  parte.co2 = {
-    lote: co2lote ? co2lote.lote : '',
-    caducidad: co2lote ? co2lote.caducidad : '',
-    tiempo_seg: parseInt(document.getElementById('co2-tiempo').value)||0,
-    caudal_lh: parseFloat(document.getElementById('co2-caudal').value)||100,
-    ph_leche: parseFloat(document.getElementById('aux-ph').value)||0,
-    temp_leche: parseFloat(document.getElementById('aux-temp').value)||0,
-    ph_objetivo: 6.48
-  };
   (r.fermentos||[]).forEach(function(p){parte.fermentos.push(recogerProd(p));descontarStock(p.nombre,litros*(parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L)/1000);});
   if(r.cuajo){parte.cuajo=recogerProd(r.cuajo);descontarStock(r.cuajo.nombre,litros*(parteActual.dosis_override[r.cuajo.nombre]||r.cuajo.dosis_ml_1000L)/1000);}
+  var co2lote=obtenerLoteActivo('CO2');
+  parte.co2={lote:co2lote?co2lote.lote:'',caducidad:co2lote?co2lote.caducidad:'',tiempo_seg:parseInt(document.getElementById('co2-tiempo').value)||0,caudal_lh:parseFloat(document.getElementById('co2-caudal').value)||100,ph_leche:parseFloat(document.getElementById('aux-ph').value)||0,temp_leche:parseFloat(document.getElementById('aux-temp').value)||0,ph_objetivo:6.48};
+
   PARTES.unshift(parte);persistir();
-
-  // Enviar a Google Sheets
   enviarParteSheets(parte);
-
   toast('✅ Parte guardado');
   limpiarParte();switchTab('partes');renderPartes();renderStock();renderLotes();
-}
-
-// ══════════════════════════════════════════════
-// CONEXIÓN CON GOOGLE SHEETS
-// ══════════════════════════════════════════════
-
-function enviarParteSheets(parte){
-  var payload = Object.assign({}, parte, {_SHEET: 'PARTES'});
-  fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify(payload)
-  }).then(function(r){ return r.json(); })
-    .then(function(d){
-      if(!d.ok) console.error('Error guardando parte en Sheets');
-    })
-    .catch(function(){
-      // Sin red: guardar en cola pendiente
-      SYNC_PENDIENTE.push({tipo:'parte', data:payload});
-      persistir();
-      toast('⚠ Sin red — se sincronizará automáticamente');
-    });
-}
-
-function enviarRecetaSheets(receta, eliminar){
-  var payload = Object.assign({}, receta, {_SHEET: 'RECETAS'});
-  if(eliminar) payload._DELETE = true;
-  fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify(payload)
-  }).catch(function(){
-    SYNC_PENDIENTE.push({tipo:'receta', data:payload});
-    persistir();
-  });
-}
-
-function cargarPartesSheets(){
-  var hoy = new Date().toISOString().slice(0,10);
-  fetch(API_URL + '?tipo=partes&fecha=' + hoy)
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if(d.ok && d.data && d.data.length > 0){
-        // Mergar partes de Sheets con los locales (Sheets tiene prioridad)
-        var idsSheets = d.data.map(function(p){ return p['ID']; });
-        // Quitar locales que ya están en Sheets
-        PARTES = PARTES.filter(function(p){ return idsSheets.indexOf(p.id) < 0; });
-        // Añadir los de Sheets convertidos
-        var deSheets = d.data.map(function(p){
-          return {
-            id: p['ID'], fecha: p['FECHA'], cuba: p['CUBA'],
-            tipo: p['TIPO DE QUESO'], variedad: p['VARIEDAD'],
-            litros: p['LITROS'], operario: p['OPERARIO'],
-            piezas: {
-              '3kg': p['PZAS 3KG']||0, '2kg': p['PZAS 2KG']||0,
-              '1kg': p['PZAS 1KG']||0, '05kg': p['PZAS 05KGS']||0,
-              'barra': p['PZAS BARRA']||0, 'gigante': p['PZAS GIGANTE']||0
-            },
-            observaciones: p['OBSERVACIONES']||''
-          };
-        });
-        PARTES = deSheets.concat(PARTES);
-        persistir();
-        renderPartes();
-      }
-    }).catch(function(){});
-}
-
-function cargarRecetasSheets(){
-  fetch(API_URL + '?tipo=recetas')
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if(d.ok && d.data && d.data.length > 0){
-        // Mergar: Sheets tiene prioridad sobre demos
-        var idsSheets = d.data.map(function(r){ return r.id; });
-        // Eliminar demos que coinciden con Sheets
-        RECETAS_DEMO = RECETAS_DEMO.filter(function(r){
-          return idsSheets.indexOf(r.id) < 0 && r.id.indexOf('r') === 0;
-        });
-        RECETAS_DEMO = d.data.concat(RECETAS_DEMO);
-        persistir();
-        renderRecetas();
-        poblarSelectTipos();
-        poblarFiltroTipos();
-      }
-    }).catch(function(){});
-}
-
-function sincronizarPendientes(){
-  if(!SYNC_PENDIENTE || !SYNC_PENDIENTE.length) return;
-  var pendiente = SYNC_PENDIENTE.shift();
-  fetch(API_URL, {method:'POST', body:JSON.stringify(pendiente.data)})
-    .then(function(){ persistir(); sincronizarPendientes(); })
-    .catch(function(){ SYNC_PENDIENTE.unshift(pendiente); });
 }
 
 function descontarStock(producto,cantidad){
@@ -864,121 +799,95 @@ function descontarStock(producto,cantidad){
 function limpiarParte(){
   ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-operario','aux-ph','aux-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','agit-hi','agit-hf','mol-hi','mol-hf','mol-ph','mol-temp','pren-bar1','pren-t1','pren-bar2','pren-t2','des-ph','des-hi','des-hf','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','cas-serie','cas-primera','cas-ultima','co2-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('np-tipo').value='';
-  document.getElementById('np-tipo-sel').value='';
-  document.getElementById('np-var-sel').innerHTML='<option value="">— Variedad —</option>';
-  document.getElementById('np-var-sel').disabled=true;
+  var ts=document.getElementById('np-tipo-sel');if(ts)ts.value='';
+  var vs=document.getElementById('np-var-sel');if(vs){vs.innerHTML='<option value="">— Variedad —</option>';vs.disabled=true;}
   document.getElementById('np-fecha').value=new Date().toISOString().slice(0,10);
   parteActual={receta:null,litros:0,dosis_override:{},lotes_seleccionados:{}};
   onTipoChange();
 }
 
-var _filtroFecha = new Date().toISOString().slice(0,10);
+// ═══════════════════════════════════════════════
+// LISTA PARTES + CARRUSEL
+// ═══════════════════════════════════════════════
 
-function cambiarDiaFiltro(delta){
-  var d = new Date(_filtroFecha + 'T12:00:00');
-  d.setDate(d.getDate() + delta);
-  _filtroFecha = d.toISOString().slice(0,10);
-  document.getElementById('filtro-fecha').value = _filtroFecha;
-  var partes = _filtroFecha.split('-');
-  document.getElementById('filtro-fecha-display').textContent = partes[2]+'/'+partes[1]+'/'+partes[0].slice(2);
-  renderPartes();
+function tipoColorCarrusel(tipo){
+  if(!tipo)return 'var(--green)';
+  var t=tipo.toUpperCase();
+  if(t.indexOf('D.O.')>=0)return '#C8821C';
+  if(t==='MEZCLA')return '#8B2A2A';
+  if(t==='OVEJA')return '#5A4A1E';
+  if(t==='CABRA')return '#7A5A3F';
+  return 'var(--green)';
 }
 
 function renderCarrusel(){
-  var hoy = new Date().toISOString().slice(0,10);
-  var partesHoy = PARTES.filter(function(p){
-    return p.fecha === hoy || (p.fecha && p.fecha.toString().indexOf(hoy) >= 0);
+  var hoy=new Date().toISOString().slice(0,10);
+  var partesHoy=PARTES.filter(function(p){return p.fecha===hoy||(p.fecha&&p.fecha.toString().indexOf(hoy)>=0);});
+  var c=document.getElementById('cubas-carrusel');
+  var dots=document.getElementById('cubas-dots');
+  if(!c)return;
+  var html='';
+  partesHoy.forEach(function(p){
+    var totalPzas=0;
+    if(p.piezas)Object.keys(p.piezas).forEach(function(k){totalPzas+=(p.piezas[k]||0);});
+    var colorHdr=tipoColorCarrusel(p.tipo);
+    html+='<div class="cuba-card" style="border-color:'+colorHdr+'" onclick="verParte(\''+p.id+'\')">'
+      +'<div class="cuba-card-header" style="background:'+colorHdr+'"><div><div class="cuba-card-titulo">'+p.tipo+(p.variedad?' · '+p.variedad:'')+'</div><div class="cuba-card-sub">'+(p.operario||'—')+'</div></div><div class="cuba-card-num">'+p.cuba+'</div></div>'
+      +'<div class="cuba-card-body">'
+      +'<div class="cuba-card-row"><span>Litros</span><b>'+(p.litros||'—')+'</b></div>'
+      +(p.coag&&p.coag.hadicion?'<div class="cuba-card-row"><span>Adición cuajo</span><b>'+p.coag.hadicion+'</b></div>':'')
+      +(p.coag&&p.coag.hc?'<div class="cuba-card-row"><span>Hora corte</span><b>'+p.coag.hc+'</b></div>':'')
+      +(totalPzas>0?'<div class="cuba-card-row"><span>Piezas</span><b>'+totalPzas+'</b></div>':'')
+      +'</div></div>';
   });
-
-  var c = document.getElementById('cubas-carrusel');
-  var dots = document.getElementById('cubas-dots');
-  if(!c) return;
-
-  var html = '';
-  partesHoy.forEach(function(p, i){
-    var totalPzas = 0;
-    if(p.piezas) Object.keys(p.piezas).forEach(function(k){ totalPzas += (p.piezas[k]||0); });
-    var colorHdr = tipoColorCarrusel(p.tipo);
-    html += '<div class="cuba-card" style="border-color:'+colorHdr+'" onclick="verParte(''+p.id+'')">'
-      + '<div class="cuba-card-header" style="background:'+colorHdr+'">'
-      +   '<div>'
-      +     '<div class="cuba-card-titulo">'+p.tipo+(p.variedad?' · '+p.variedad:'')+'</div>'
-      +     '<div class="cuba-card-sub">'+(p.operario||'—')+' · '+formatearFecha(p.fecha)+'</div>'
-      +   '</div>'
-      +   '<div class="cuba-card-num">'+p.cuba+'</div>'
-      + '</div>'
-      + '<div class="cuba-card-body">'
-      +   '<div class="cuba-card-row"><span>Litros</span><b>'+(p.litros||'—')+'</b></div>'
-      +   (p.coag&&p.coag.hadicion?'<div class="cuba-card-row"><span>Adición cuajo</span><b>'+p.coag.hadicion+'</b></div>':'')
-      +   (p.coag&&p.coag.hc?'<div class="cuba-card-row"><span>Hora corte</span><b>'+p.coag.hc+'</b></div>':'')
-      +   (p.coag&&p.coag.total?'<div class="cuba-card-row"><span>Coag. total</span><b>'+p.coag.total+' min</b></div>':'')
-      +   (totalPzas>0?'<div class="cuba-card-row"><span>Piezas</span><b>'+totalPzas+'</b></div>':'')
-      + '</div>'
-      + '</div>';
-  });
-
-  // Tarjeta "nueva cuba"
-  html += '<div class="cuba-nueva" onclick="switchTab('nuevo')">'
-    + '<div class="cuba-nueva-icon">➕</div>'
-    + '<div class="cuba-nueva-text">Nueva cuba</div>'
-    + '</div>';
-
-  c.innerHTML = html;
-
-  // Dots de navegación
-  var nDots = partesHoy.length + 1;
-  var dotsHtml = '';
-  for(var i=0; i<nDots; i++) dotsHtml += '<div class="dot'+(i===0?' active':'')+'" id="dot-'+i+'"></div>';
-  dots.innerHTML = dotsHtml;
-
-  // Actualizar dot activo al hacer scroll
-  c.onscroll = function(){
-    var idx = Math.round(c.scrollLeft / (c.offsetWidth * 0.84));
-    document.querySelectorAll('.dot').forEach(function(d,i){ d.classList.toggle('active', i===idx); });
-  };
+  html+='<div class="cuba-nueva" onclick="switchTab(\'nuevo\')"><div class="cuba-nueva-icon">➕</div><div class="cuba-nueva-text">Nueva cuba</div></div>';
+  c.innerHTML=html;
+  if(dots){
+    var nDots=partesHoy.length+1;var dh='';
+    for(var i=0;i<nDots;i++)dh+='<div class="dot'+(i===0?' active':'')+'"></div>';
+    dots.innerHTML=dh;
+  }
 }
 
-function tipoColorCarrusel(tipo){
-  if(!tipo) return 'var(--green)';
-  var t = tipo.toUpperCase();
-  if(t.indexOf('D.O.')>=0) return '#B8620A';
-  if(t==='MEZCLA') return '#2E5E3E';
-  if(t==='OVEJA') return '#1E4A7A';
-  if(t==='CABRA') return '#6B3A7A';
-  return 'var(--green)';
+function cambiarDiaFiltro(delta){
+  var d=new Date(_filtroFecha+'T12:00:00');
+  d.setDate(d.getDate()+delta);
+  _filtroFecha=d.toISOString().slice(0,10);
+  document.getElementById('filtro-fecha').value=_filtroFecha;
+  var p=_filtroFecha.split('-');
+  document.getElementById('filtro-fecha-display').textContent=p[2]+'/'+p[1]+'/'+p[0].slice(2);
+  renderPartes();
 }
+
+var _filtroFecha=new Date().toISOString().slice(0,10);
 
 function renderPartes(){
   var fecha=_filtroFecha||document.getElementById('filtro-fecha').value||'';
   var filtrados=PARTES.filter(function(p){if(fecha&&p.fecha!==fecha)return false;return true;});
   renderCarrusel();
   var c=document.getElementById('lista-partes');
+  if(!c)return;
   if(filtrados.length===0){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No hay partes para esta fecha</div></div>';return;}
   var h='';
   filtrados.forEach(function(p){
-    var totalPzas=(p.piezas['3kg']||0)+(p.piezas['2kg']||0)+(p.piezas['1kg']||0)+(p.piezas['05kg']||0)+(p.piezas['barra']||0)+(p.piezas['gigante']||0);
-    h+='<div class="parte-item" onclick="verParte(\''+p.id+'\')"><div class="parte-item-top"><div class="parte-item-tipo">'+p.tipo+' · '+p.variedad+'</div><div class="parte-item-badge">Cuba '+p.cuba+'</div></div><div class="parte-item-meta">'+formatearFecha(p.fecha)+' · '+p.litros+'L · '+totalPzas+' pzas · '+(p.operario||'—')+'</div></div>';
+    var totalPzas=0;if(p.piezas)Object.keys(p.piezas).forEach(function(k){totalPzas+=(p.piezas[k]||0);});
+    h+='<div class="parte-item" onclick="verParte(\''+p.id+'\')"><div class="parte-item-top"><div class="parte-item-tipo">'+p.tipo+(p.variedad?' · '+p.variedad:'')+'</div><div class="parte-item-badge">Cuba '+p.cuba+'</div></div><div class="parte-item-meta">'+formatearFecha(p.fecha)+' · '+p.litros+'L · '+totalPzas+' pzas · '+(p.operario||'—')+'</div></div>';
   });
   c.innerHTML=h;
 }
 
 function verParte(id){
   var p=PARTES.find(function(x){return x.id===id;});if(!p)return;
-  var h='<div class="modal-title">'+p.tipo+' · '+p.variedad+' · Cuba '+p.cuba+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
+  var h='<div class="modal-title">'+p.tipo+(p.variedad?' · '+p.variedad:'')+' · Cuba '+p.cuba+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
   h+='<div style="font-size:0.78rem;color:var(--text3);margin-bottom:14px">'+formatearFecha(p.fecha)+' · '+(p.operario||'—')+'</div>';
-  h+='<div class="resumen-row"><span>Litros totales</span><b>'+p.litros+'</b></div>';
-  h+='<div class="resumen-row"><span>L. Vaca / Cabra / Oveja</span><b>'+p.lvaca+' / '+p.lcabra+' / '+p.loveja+'</b></div>';
-  h+='<div class="resumen-row"><span>pH / Tª entrada</span><b>'+(p.ph||'—')+' / '+(p.temp||'—')+'</b></div>';
+  h+='<div class="resumen-row"><span>Litros</span><b>'+p.litros+'</b></div>';
+  if(p.coag&&p.coag.hadicion)h+='<div class="resumen-row"><span>Hora adición</span><b>'+p.coag.hadicion+'</b></div>';
+  if(p.coag&&p.coag.hc)h+='<div class="resumen-row"><span>Hora corte</span><b>'+p.coag.hc+'</b></div>';
+  if(p.coag&&p.coag.total)h+='<div class="resumen-row"><span>Coagulación</span><b>'+p.coag.total+' min</b></div>';
   function blq(t,arr){if(!arr||!arr.length)return'';var hh='<div class="sep-label" style="margin-top:14px">'+t+'</div>';arr.forEach(function(x){hh+='<div class="resumen-row"><span>'+x.nombre+'</span><b>'+x.consumo_total.toFixed(1)+' (lote '+(x.lote||'—')+')</b></div>';});return hh;}
-  if(p.coag && p.coag.hadicion) h+='<div class="resumen-row"><span>Hora adición cuajo</span><b>'+p.coag.hadicion+'</b></div>';
-  if(p.coag && p.coag.ht) h+='<div class="resumen-row"><span>Hora de toma</span><b>'+p.coag.ht+'</b></div>';
-  if(p.coag && p.coag.hc) h+='<div class="resumen-row"><span>Hora de corte</span><b>'+p.coag.hc+'</b></div>';
-  if(p.coag && p.coag.total) h+='<div class="resumen-row"><span>Coagulación total</span><b>'+p.coag.total+' min</b></div>';
   h+=blq('Auxiliares',p.auxiliares);
   h+=blq('Fermentos',p.fermentos);
   if(p.cuajo)h+=blq('Cuajo',[p.cuajo]);
-  h+='<div class="sep-label" style="margin-top:14px">Piezas fabricadas</div>';
-  Object.keys(p.piezas).forEach(function(k){if(p.piezas[k])h+='<div class="resumen-row"><span>'+k.toUpperCase()+'</span><b>'+p.piezas[k]+'</b></div>';});
   if(p.observaciones)h+='<div class="sep-label" style="margin-top:14px">Observaciones</div><div style="font-size:0.88rem;color:var(--text2)">'+p.observaciones+'</div>';
   h+='<button class="btn btn-danger" style="margin-top:16px" onclick="eliminarParte(\''+p.id+'\')">🗑️ Eliminar parte</button>';
   abrirModal(h);
@@ -986,16 +895,22 @@ function verParte(id){
 
 function eliminarParte(id){
   if(!confirm('¿Eliminar este parte?'))return;
-  PARTES=PARTES.filter(function(p){return p.id!==id;});persistir();cerrarModal();renderPartes();toast('Parte eliminado');
+  PARTES=PARTES.filter(function(p){return p.id!==id;});
+  persistir();cerrarModal();renderPartes();toast('Parte eliminado');
 }
+
+// ═══════════════════════════════════════════════
+// RECETAS
+// ═══════════════════════════════════════════════
 
 function renderRecetas(){
   var c=document.getElementById('lista-recetas');
+  if(!c)return;
   if(!RECETAS_DEMO.length){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📖</div><div class="empty-state-text">No hay recetas creadas.<br>Pulsa "Nueva receta" para empezar.</div></div>';return;}
   var h='';
   RECETAS_DEMO.forEach(function(r){
     var nIng=(r.auxiliares?r.auxiliares.length:0)+(r.fermentos?r.fermentos.length:0)+(r.cuajo?1:0);
-    h+='<div class="receta-item" onclick="abrirReceta(\''+r.id+'\')"><div class="receta-item-info"><div class="receta-item-nombre">'+r.tipo+' · '+r.variedad+'</div><div class="receta-item-sub">'+nIng+' ingredientes · cuajo: '+(r.cuajo?r.cuajo.nombre:'—')+'</div></div><span style="color:var(--text3)">›</span></div>';
+    h+='<div class="receta-item" onclick="abrirReceta(\''+r.id+'\')"><div class="receta-item-info"><div class="receta-item-nombre">'+r.tipo+(r.variedad?' · '+r.variedad:'')+'</div><div class="receta-item-sub">'+nIng+' ingredientes · cuajo: '+(r.cuajo?r.cuajo.nombre:'—')+'</div></div><span style="color:var(--text3)">›</span></div>';
   });
   c.innerHTML=h;
 }
@@ -1009,13 +924,10 @@ function abrirReceta(id){
 function renderEditorReceta(){
   var r=window._recetaEditando;
   var h='<div class="modal-title">'+(r.id?'Editar receta':'Nueva receta')+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
-  // Selects encadenados para tipo y variedad
-  var tipoOpts = '<option value="">— Tipo —</option>';
-  Object.keys(TIPOS_VARIEDADES).forEach(function(t){ tipoOpts += '<option value="'+t+'"'+(t===r.tipo?' selected':'')+'>'+t+'</option>'; });
-  var varOpts = '<option value="">— Variedad —</option>';
-  if(r.tipo && TIPOS_VARIEDADES[r.tipo]){
-    TIPOS_VARIEDADES[r.tipo].forEach(function(v){ varOpts += '<option value="'+v+'"'+(v===r.variedad?' selected':'')+'>'+v+'</option>'; });
-  }
+  var tipoOpts='<option value="">— Tipo —</option>';
+  Object.keys(TIPOS_VARIEDADES).forEach(function(t){tipoOpts+='<option value="'+t+'"'+(t===r.tipo?' selected':'')+'>'+t+'</option>';});
+  var varOpts='<option value="">— Variedad —</option>';
+  if(r.tipo&&TIPOS_VARIEDADES[r.tipo]){TIPOS_VARIEDADES[r.tipo].forEach(function(v){varOpts+='<option value="'+v+'"'+(v===r.variedad?' selected':'')+'>'+v+'</option>';});}
   h+='<div class="form-cols"><div class="form-row"><label class="form-label">Tipo</label><select id="rec-tipo" onchange="onRecTipoChange()">'+tipoOpts+'</select></div><div class="form-row"><label class="form-label">Variedad</label><select id="rec-var">'+varOpts+'</select></div></div>';
   h+='<div class="sep-label">Auxiliares</div><div id="aux-edit-list"></div><button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="addIng(\'auxiliares\')">➕ Añadir auxiliar</button>';
   h+='<div class="sep-label">Fermentos</div><div id="ferm-edit-list"></div><button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="addIng(\'fermentos\')">➕ Añadir fermento</button>';
@@ -1027,15 +939,23 @@ function renderEditorReceta(){
   abrirModal(h);refrescarIngs();
 }
 
+function onRecTipoChange(){
+  var t=document.getElementById('rec-tipo').value;
+  var selV=document.getElementById('rec-var');
+  var vars=TIPOS_VARIEDADES[t]||[];
+  if(!t||vars.length===0){selV.innerHTML='<option value="">(sin variedad)</option>';selV.disabled=true;return;}
+  selV.innerHTML='<option value="">— Variedad —</option>';
+  selV.disabled=false;
+  vars.forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v;selV.appendChild(o);});
+}
+
 function refrescarIngs(){
   var r=window._recetaEditando;
   function pintar(lista,contId,tipo){
     var c=document.getElementById(contId);if(!c)return;
     if(!lista||!lista.length){c.innerHTML='<div style="font-size:0.78rem;color:var(--text3);padding:8px 0">Sin ingredientes</div>';return;}
     var h='';
-    lista.forEach(function(p,i){
-      h+='<div class="ferm-row"><button class="ferm-row-del" onclick="delIng(\''+tipo+'\','+i+')">Eliminar</button><div class="form-row"><label class="form-label">Nombre</label><input type="text" value="'+(p.nombre||'')+'" oninput="updIng(\''+tipo+'\','+i+',\'nombre\',this.value)"></div><div class="form-row"><label class="form-label">Dosis ml/g por 1000L</label><input type="number" value="'+(p.dosis_ml_1000L||'')+'" oninput="updIng(\''+tipo+'\','+i+',\'dosis_ml_1000L\',parseFloat(this.value))"></div></div>';
-    });
+    lista.forEach(function(p,i){h+='<div class="ferm-row"><button class="ferm-row-del" onclick="delIng(\''+tipo+'\','+i+')">Eliminar</button><div class="form-row"><label class="form-label">Nombre</label><input type="text" value="'+(p.nombre||'')+'" oninput="updIng(\''+tipo+'\','+i+',\'nombre\',this.value)"></div><div class="form-row"><label class="form-label">Dosis ml/g por 1000L</label><input type="number" value="'+(p.dosis_ml_1000L||'')+'" oninput="updIng(\''+tipo+'\','+i+',\'dosis_ml_1000L\',parseFloat(this.value))"></div></div>';});
     c.innerHTML=h;
   }
   pintar(r.auxiliares,'aux-edit-list','auxiliares');
@@ -1061,123 +981,37 @@ function updIng(tipo,i,campo,val){
   if(tipo==='cuajo')r.cuajo[campo]=val;else r[tipo][i][campo]=val;
 }
 
-function calcCO2(){
-  var litros  = parseFloat(document.getElementById('np-litros').value)||0;
-  var caudal  = parseFloat(document.getElementById('co2-caudal').value)||100;
-  var phLeche = parseFloat(document.getElementById('aux-ph') ? document.getElementById('aux-ph').value : '') || 0;
-  var phObj   = 6.48; // pH objetivo fijo
-  var el      = document.getElementById('co2-tiempo');
-  var infoEl  = document.getElementById('co2-ph-actual');
-  var detEl   = document.getElementById('co2-formula-detalle');
-  if(!el) return;
-
-  // Actualizar pH actual visible
-  if(infoEl) infoEl.textContent = phLeche > 0 ? phLeche.toFixed(2) : '—';
-
-  // ── FÓRMULA PENDIENTE ──
-  // Cuando Ximo facilite la fórmula del autómata, sustituir este bloque.
-  // Por ahora: cálculo provisional solo por litros/caudal.
-  // La fórmula real usará: litros, phLeche, phObj=6.48
-  if(litros > 0 && caudal > 0){
-    var seg;
-    if(phLeche > 0 && phLeche > phObj){
-      // PENDIENTE: sustituir por fórmula real del autómata
-      // seg = formula(litros, phLeche, phObj, caudal);
-      seg = Math.round((litros / caudal) * 3600); // provisional
-      if(detEl) detEl.innerHTML = '⏳ Fórmula exacta pendiente · Cálculo provisional: <b>'+seg+' seg</b>';
-    } else if(phLeche > 0 && phLeche <= phObj){
-      seg = 0;
-      if(detEl) detEl.innerHTML = '✅ pH leche ya en objetivo — no se necesita CO₂';
-    } else {
-      seg = Math.round((litros / caudal) * 3600);
-      if(detEl) detEl.textContent = 'Introduce el pH de la leche para calcular el tiempo exacto';
-    }
-    el.value = seg > 0 ? seg : '';
-  } else {
-    el.value = '';
-  }
-}
-
-function calcCoagTotal(){
-  var ha = document.getElementById('coag-hadicion').value;
-  var hc = document.getElementById('coag-hc').value;
-  var display = document.getElementById('coag-total-display');
-  var hidden  = document.getElementById('coag-total');
-  if(!ha || !hc){ display.textContent='—'; hidden.value=''; return; }
-  var partsA = ha.split(':'); var partsC = hc.split(':');
-  var minA = parseInt(partsA[0])*60 + parseInt(partsA[1]);
-  var minC = parseInt(partsC[0])*60 + parseInt(partsC[1]);
-  var diff = minC - minA;
-  if(diff < 0) diff += 1440; // paso de medianoche
-  display.textContent = diff + ' min';
-  hidden.value = diff;
-}
-
-function calcCaseinas(){
-  var primera = parseInt(document.getElementById('cas-primera').value)||0;
-  var ultima  = parseInt(document.getElementById('cas-ultima').value)||0;
-  if(!primera || !ultima){ document.getElementById('cas-resultado').style.display='none'; return; }
-  var total = ultima - primera + 1;
-  document.getElementById('cas-total').textContent = total;
-  document.getElementById('cas-resultado').style.display = 'block';
-  // Comparar con total de piezas (3kg+2kg+1kg+1/2kg; barras y gigante no llevan caseína)
-  var piezas = (parseInt(document.getElementById('pzas-3kg').value)||0)
-             + (parseInt(document.getElementById('pzas-2kg').value)||0)
-             + (parseInt(document.getElementById('pzas-1kg').value)||0)
-             + (parseInt(document.getElementById('pzas-05kg').value)||0);
-  var av = document.getElementById('cas-aviso');
-  if(!piezas){ av.textContent=''; av.style.background=''; return; }
-  if(total === piezas){
-    av.textContent='✅ Cuadra con piezas';
-    av.style.background='var(--greenl)';av.style.color='var(--green)';
-  } else {
-    av.textContent='⚠ '+piezas+' pzas — diferencia: '+(total-piezas);
-    av.style.background='var(--amberl)';av.style.color='var(--amber)';
-  }
-}
-
-function onRecTipoChange(){
-  var t = document.getElementById('rec-tipo').value;
-  var selV = document.getElementById('rec-var');
-  var vars = TIPOS_VARIEDADES[t]||[];
-  if(!t || vars.length===0){
-    selV.innerHTML = '<option value="">(sin variedad)</option>';
-    selV.disabled = true;
-    return;
-  }
-  selV.innerHTML = '<option value="">— Variedad —</option>';
-  selV.disabled = false;
-  vars.forEach(function(v){
-    var o=document.createElement('option'); o.value=v; o.textContent=v; selV.appendChild(o);
-  });
-}
-
 function guardarReceta(){
   var r=window._recetaEditando;
   r.tipo=document.getElementById('rec-tipo').value.trim().toUpperCase();
   r.variedad=document.getElementById('rec-var').value.trim().toUpperCase();
-  if(!r.tipo||!r.variedad){toast('⚠ Tipo y variedad obligatorios');return;}
+  if(!r.tipo){toast('⚠ Tipo obligatorio');return;}
   if(!r.id){r.id='r'+Date.now();RECETAS_DEMO.push(r);}
   else{var idx=RECETAS_DEMO.findIndex(function(x){return x.id===r.id;});if(idx>=0)RECETAS_DEMO[idx]=r;}
   persistir();
-  enviarRecetaSheets(r, false);
+  enviarRecetaSheets(r,false);
   cerrarModal();renderRecetas();poblarSelectTipos();poblarFiltroTipos();toast('✅ Receta guardada');
 }
 
 function eliminarReceta(id){
   if(!confirm('¿Eliminar esta receta?'))return;
-  var recetaElim = RECETAS_DEMO.find(function(r){return r.id===id;});
+  var recetaElim=RECETAS_DEMO.find(function(r){return r.id===id;});
   RECETAS_DEMO=RECETAS_DEMO.filter(function(r){return r.id!==id;});
   persistir();
-  if(recetaElim) enviarRecetaSheets(recetaElim, true);
+  if(recetaElim)enviarRecetaSheets(recetaElim,true);
   cerrarModal();renderRecetas();poblarSelectTipos();poblarFiltroTipos();toast('Receta eliminada');
 }
 
+// ═══════════════════════════════════════════════
+// LOTES Y STOCK
+// ═══════════════════════════════════════════════
+
 function renderLotes(){
   var c=document.getElementById('lista-lotes');
+  if(!c)return;
   var productos=Object.keys(LOTES_ACTIVOS);
   if(productos.length===0)productos=Object.keys(STOCK_DEMO);
-  if(!productos.length){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">🏷️</div><div class="empty-state-text">Sin lotes registrados todavía</div></div>';return;}
+  if(!productos.length){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">🏷️</div><div class="empty-state-text">Sin lotes registrados</div></div>';return;}
   var h='';
   productos.forEach(function(prod){
     var l=obtenerLoteActivo(prod);
@@ -1189,17 +1023,17 @@ function renderLotes(){
 
 function renderStock(){
   var c=document.getElementById('lista-stock');
+  if(!c)return;
   var productos=Object.keys(STOCK_DEMO);
   if(!productos.length){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">Sin stock registrado</div></div>';return;}
   var h='';
   productos.forEach(function(prod){
     var lotes=STOCK_DEMO[prod];
     var totalCant=lotes.reduce(function(s,l){return s+l.cantidad;},0);
-    var unidad=lotes[0].unidad;
-    var minimo=5;
+    var unidad=lotes[0].unidad;var minimo=5;
     var pct=Math.min(100,(totalCant/minimo/3)*100);
     var clase=totalCant<minimo?'crit':(totalCant<minimo*2?'low':'ok');
-    h+='<div class="lote-row"><div class="lote-row-top"><div class="lote-row-producto">'+prod+'</div><div class="lote-row-lote">'+totalCant.toFixed(1)+' '+unidad+'</div></div><div class="stock-bar"><div class="stock-bar-fill '+clase+'" style="width:'+pct+'%"></div></div><div class="lote-row-meta" style="margin-top:6px">'+lotes.length+' lote'+(lotes.length>1?'s':'')+' · mín. '+minimo+' '+unidad+'</div><div style="margin-top:8px">';
+    h+='<div class="lote-row"><div class="lote-row-top"><div class="lote-row-producto">'+prod+'</div><div class="lote-row-lote">'+totalCant.toFixed(1)+' '+unidad+'</div></div><div class="stock-bar"><div class="stock-bar-fill '+clase+'" style="width:'+pct+'%"></div></div><div class="lote-row-meta" style="margin-top:6px">'+lotes.length+' lote'+(lotes.length>1?'s':'')+'</div><div style="margin-top:8px">';
     lotes.forEach(function(l){h+='<div style="font-size:0.76rem;padding:4px 0;color:var(--text2)"><span style="font-family:Courier New,monospace;font-weight:700;color:var(--text)">'+l.lote+'</span> · cad '+formatearFecha(l.caducidad)+' · <b>'+l.cantidad.toFixed(1)+' '+l.unidad+'</b></div>';});
     h+='</div></div>';
   });
@@ -1211,8 +1045,8 @@ function abrirAlbaran(){
   h+='<div class="form-row"><label class="form-label">Producto</label><input type="text" id="alb-prod" placeholder="CHYMAX, NATUREN, R-704..."></div>';
   h+='<div class="form-row"><label class="form-label">Lote</label><input type="text" id="alb-lote" placeholder="Nº de lote"></div>';
   h+='<div class="form-cols"><div class="form-row"><label class="form-label">Caducidad</label><input type="date" id="alb-cad"></div><div class="form-row"><label class="form-label">Cantidad</label><input type="number" id="alb-cant" step="0.1" inputmode="decimal"></div></div>';
-  h+='<div class="form-cols"><div class="form-row"><label class="form-label">Unidad</label><select id="alb-uni"><option>L</option><option>ml</option><option>kg</option><option>g</option></select></div><div class="form-row"><label class="form-label">Proveedor</label><input type="text" id="alb-prov" placeholder="HANSEN, DANISCO..."></div></div>';
-  h+='<button class="btn btn-primary" style="margin-top:14px" onclick="guardarAlbaran()">💾 Guardar entrada</button><button class="btn btn-secondary" style="margin-top:8px" onclick="cerrarModal()">Cancelar</button>';
+  h+='<div class="form-cols"><div class="form-row"><label class="form-label">Unidad</label><select id="alb-uni"><option>L</option><option>ml</option><option>kg</option><option>g</option></select></div><div class="form-row"><label class="form-label">Proveedor</label><input type="text" id="alb-prov"></div></div>';
+  h+='<button class="btn btn-primary" style="margin-top:14px" onclick="guardarAlbaran()">💾 Guardar</button><button class="btn btn-secondary" style="margin-top:8px" onclick="cerrarModal()">Cancelar</button>';
   abrirModal(h);
 }
 
@@ -1229,9 +1063,104 @@ function guardarAlbaran(){
   persistir();cerrarModal();renderStock();renderLotes();toast('✅ Entrada registrada');
 }
 
-function abrirModal(html){document.getElementById('modal-content').innerHTML=html;document.getElementById('modal').classList.add('open');}
-function cerrarModal(){document.getElementById('modal').classList.remove('open');}
-document.getElementById('modal').addEventListener('click',function(e){if(e.target.id==='modal')cerrarModal();});
+// ═══════════════════════════════════════════════
+// MODAL Y SHEETS
+// ═══════════════════════════════════════════════
+
+function abrirModal(html){var c=document.getElementById('modal-content');var m=document.getElementById('modal');if(c)c.innerHTML=html;if(m)m.classList.add('open');}
+function cerrarModal(){var m=document.getElementById('modal');if(m)m.classList.remove('open');}
+
+function enviarParteSheets(parte){
+  var payload=Object.assign({},parte,{_SHEET:'PARTES'});
+  fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){SYNC_PENDIENTE.push({tipo:'parte',data:payload});persistir();});
+}
+
+function enviarRecetaSheets(receta,eliminar){
+  var payload=Object.assign({},receta,{_SHEET:'RECETAS'});
+  if(eliminar)payload._DELETE=true;
+  fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){SYNC_PENDIENTE.push({tipo:'receta',data:payload});persistir();});
+}
+
+function cargarPartesSheets(){
+  var hoy=new Date().toISOString().slice(0,10);
+  fetch(API_URL+'?tipo=partes&fecha='+hoy).then(function(r){return r.json();}).then(function(d){
+    if(d.ok&&d.data&&d.data.length>0){
+      var idsSheets=d.data.map(function(p){return p['ID'];});
+      PARTES=PARTES.filter(function(p){return idsSheets.indexOf(p.id)<0;});
+      var deSheets=d.data.map(function(p){return {id:p['ID'],fecha:p['FECHA'],cuba:p['CUBA'],tipo:p['TIPO DE QUESO'],variedad:p['VARIEDAD'],litros:p['LITROS'],operario:p['OPERARIO'],piezas:{'3kg':p['PZAS 3KG']||0,'2kg':p['PZAS 2KG']||0,'1kg':p['PZAS 1KG']||0,'05kg':p['PZAS 05KGS']||0,'barra':p['PZAS BARRA']||0,'gigante':p['PZAS GIGANTE']||0},observaciones:p['OBSERVACIONES']||''};});
+      PARTES=deSheets.concat(PARTES);persistir();renderPartes();
+    }
+  }).catch(function(){});
+}
+
+function cargarRecetasSheets(){
+  fetch(API_URL+'?tipo=recetas').then(function(r){return r.json();}).then(function(d){
+    if(d.ok&&d.data&&d.data.length>0){
+      var idsSheets=d.data.map(function(r){return r.id;});
+      RECETAS_DEMO=RECETAS_DEMO.filter(function(r){return idsSheets.indexOf(r.id)<0&&r.id.indexOf('r')===0;});
+      RECETAS_DEMO=d.data.concat(RECETAS_DEMO);persistir();renderRecetas();poblarSelectTipos();
+    }
+  }).catch(function(){});
+}
+
+function sincronizarPendientes(){
+  if(!SYNC_PENDIENTE||!SYNC_PENDIENTE.length)return;
+  var pendiente=SYNC_PENDIENTE.shift();
+  fetch(API_URL,{method:'POST',body:JSON.stringify(pendiente.data)}).then(function(){persistir();sincronizarPendientes();}).catch(function(){SYNC_PENDIENTE.unshift(pendiente);});
+}
+
+
+
+function init(){
+  // 1. Cargar datos del localStorage
+  try{
+    var s = localStorage.getItem('tq_partes_demo');
+    if(s){
+      var d = JSON.parse(s);
+      if(d.recetas) RECETAS_DEMO = d.recetas;
+      if(d.stock) STOCK_DEMO = d.stock;
+      if(d.lotesActivos) LOTES_ACTIVOS = d.lotesActivos;
+      if(d.partes) PARTES = d.partes;
+      if(d.pendientes) SYNC_PENDIENTE = d.pendientes;
+    }
+  }catch(e){ console.error('localStorage error:', e); }
+
+  // 2. Fecha de hoy en header y selectores
+  var hoy = new Date().toISOString().slice(0,10);
+  var hdrFecha = document.getElementById('hdr-fecha');
+  if(hdrFecha) hdrFecha.textContent = formatearFecha(hoy);
+  var npFecha = document.getElementById('np-fecha');
+  if(npFecha) npFecha.value = hoy;
+  var ff = document.getElementById('filtro-fecha');
+  if(ff) ff.value = hoy;
+  _filtroFecha = hoy;
+  var p = hoy.split('-');
+  var fd = document.getElementById('filtro-fecha-display');
+  if(fd) fd.textContent = p[2]+'/'+p[1]+'/'+p[0].slice(2);
+
+  // 3. INICIALIZAR PANTALLAS — mostrar solo la primera
+  var allScreens = document.querySelectorAll('.screen');
+  for(var i=0; i<allScreens.length; i++) allScreens[i].style.display = 'none';
+  var primera = document.getElementById('screen-partes');
+  if(primera) primera.style.display = 'block';
+
+  // 4. Renderizar — cada render con su try/catch
+  try{ poblarSelectTipos(); }catch(e){ console.error('poblarSelectTipos:', e); }
+  try{ poblarFiltroTipos(); }catch(e){ console.error('poblarFiltroTipos:', e); }
+  try{ renderPartes(); }catch(e){ console.error('renderPartes:', e); }
+  try{ renderCarrusel(); }catch(e){ console.error('renderCarrusel:', e); }
+  try{ renderRecetas(); }catch(e){ console.error('renderRecetas:', e); }
+  try{ renderLotes(); }catch(e){ console.error('renderLotes:', e); }
+  try{ renderStock(); }catch(e){ console.error('renderStock:', e); }
+  try{ iniciarCO2(); }catch(e){ console.error('iniciarCO2:', e); }
+
+  // 5. Cargar de Sheets en segundo plano (sin bloquear)
+  setTimeout(function(){
+    try{ cargarPartesSheets(); }catch(e){}
+    try{ cargarRecetasSheets(); }catch(e){}
+    try{ sincronizarPendientes(); }catch(e){}
+  }, 1000);
+}
 
 init();
 </script>
