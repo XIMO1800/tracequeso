@@ -195,7 +195,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.8</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.8.1</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1611,9 +1611,26 @@ function guardarAlbaran(){
   var prov=document.getElementById('alb-prov').value.trim();
   if(!prod||!lote||!cant){toast('⚠ Producto, lote y cantidad obligatorios');return;}
   var cat = document.getElementById('alb-categoria') ? document.getElementById('alb-categoria').value : '';
+  if(!cat){toast('⚠ Selecciona categoría');return;}
   if(!STOCK_DEMO[prod])STOCK_DEMO[prod]=[];
   STOCK_DEMO[prod].push({lote:lote,caducidad:cad,cantidad:cant,unidad:uni,proveedor:prov,categoria:cat});
-  persistir();cerrarModal();renderStock();renderLotes();toast('✅ Entrada registrada');
+  persistir();
+  // Enviar entrada a Google Sheets (hoja ENTRADAS MATERIAL AUXILIAR)
+  var idEntrada = 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  var fechaHoy = new Date().toISOString().slice(0,10);
+  enviarEntradaSheets({
+    id: idEntrada,
+    fecha: fechaHoy,
+    albaran: '',
+    proveedor: prov,
+    categoria: cat,
+    articulo: prod,
+    lote: lote,
+    cantidad: cant,
+    unidad: uni,
+    caducidad: cad
+  });
+  cerrarModal();renderStock();renderLotes();toast('✅ Entrada guardada y enviada');
 }
 
 // ═══════════════════════════════════════════════
@@ -1632,6 +1649,11 @@ function enviarRecetaSheets(receta,eliminar){
   var payload=Object.assign({},receta,{_SHEET:'RECETAS'});
   if(eliminar)payload._DELETE=true;
   fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){SYNC_PENDIENTE.push({tipo:'receta',data:payload});persistir();});
+}
+
+function enviarEntradaSheets(entrada){
+  var payload=Object.assign({},entrada,{_SHEET:'ENTRADAS'});
+  fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){SYNC_PENDIENTE.push({tipo:'entrada',data:payload});persistir();});
 }
 
 function cargarPartesSheets(){
