@@ -1,0 +1,26 @@
+{
+  "name": "Partes de Fabricación · El Hidalgo",
+  "short_name": "Partes",
+  "description": "Registro de partes de fabricación de queso - Lácteos Cuquerella",
+  "start_url": "/tracequeso/partes-fabricacion.html",
+  "scope": "/tracequeso/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5ede0",
+  "theme_color": "#7a1f1f",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icon192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
