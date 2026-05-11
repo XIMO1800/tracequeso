@@ -195,7 +195,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.8.1</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.8.5</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -229,7 +229,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
     <div class="card-body">
       <div class="form-cols">
         <div class="form-row"><label class="form-label">Fecha</label><input type="date" id="np-fecha"></div>
-        <div class="form-row"><label class="form-label">Nº Cuba</label><select id="np-cuba"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+        <div class="form-row"><label class="form-label">Nº Cuba</label><input type="text" id="np-cuba" readonly style="background:var(--bg);font-weight:700;text-align:center;font-size:1.1rem;color:var(--brand)"></div>
       </div>
       <div class="form-cols">
         <div class="form-row">
@@ -246,7 +246,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
       </div>
       <input type="hidden" id="np-tipo">
       <div class="form-cols">
-        <div class="form-row"><label class="form-label">Litros totales</label><input type="number" id="np-litros" inputmode="numeric" oninput="calcularDosis();calcCO2()"></div>
+        <div class="form-row"><label class="form-label">Litros totales</label><input type="number" id="np-litros" inputmode="numeric" oninput="calcularDosis();calcCO2();calcPasteurizacion()"></div>
         <div class="form-row">
             <label class="form-label">Operario</label>
             <div style="display:flex;gap:6px;align-items:center">
@@ -1163,7 +1163,10 @@ function calcularDosis(){
     var base=parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L;
     var total=litros*base/1000;
     var el=document.getElementById('dosis-'+key);
-    if(el)el.textContent=litros>0?total.toFixed(1):'—';
+    if(el){
+      if(el.tagName==='INPUT') el.value=litros>0?total.toFixed(1):'';
+      else el.textContent=litros>0?total.toFixed(1):'—';
+    }
   });
 }
 
@@ -1369,6 +1372,8 @@ var _filtroFecha=new Date().toISOString().slice(0,10);
 function renderPartes(){
   var fecha=_filtroFecha||document.getElementById('filtro-fecha').value||'';
   var filtrados=PARTES.filter(function(p){if(fecha&&p.fecha!==fecha)return false;return true;});
+  // Ordenar ascendente por número de cuba (Cuba 1 arriba, Cuba N abajo)
+  filtrados.sort(function(a,b){ return (parseInt(a.cuba)||0) - (parseInt(b.cuba)||0); });
   renderCarrusel();
   var c=document.getElementById('lista-partes');
   if(!c)return;
