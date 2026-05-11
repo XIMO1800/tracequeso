@@ -160,7 +160,7 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.0</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.2</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -514,6 +514,7 @@ function init(){
   cargarRecetasSheets();
   // Sincronizar pendientes si hay red
   setTimeout(sincronizarPendientes, 2000);
+  }catch(e){console.error("init error:",e);}
 }
 
 function iniciarCO2(){
@@ -897,6 +898,16 @@ function cambiarDiaFiltro(delta){
   renderPartes();
 }
 
+function tipoColorCarrusel(tipo){
+  if(!tipo) return 'var(--green)';
+  var t = tipo.toUpperCase();
+  if(t.indexOf('D.O.')>=0) return '#B8620A';
+  if(t==='MEZCLA') return '#2E5E3E';
+  if(t==='OVEJA') return '#1E4A7A';
+  if(t==='CABRA') return '#6B3A7A';
+  return 'var(--green)';
+}
+
 function renderCarrusel(){
   var hoy = new Date().toISOString().slice(0,10);
   var partesHoy = PARTES.filter(function(p){
@@ -949,17 +960,9 @@ function renderCarrusel(){
     var idx = Math.round(c.scrollLeft / (c.offsetWidth * 0.84));
     document.querySelectorAll('.dot').forEach(function(d,i){ d.classList.toggle('active', i===idx); });
   };
+  }catch(e){ console.error("renderCarrusel error:", e); }
 }
 
-function tipoColorCarrusel(tipo){
-  if(!tipo) return 'var(--green)';
-  var t = tipo.toUpperCase();
-  if(t.indexOf('D.O.')>=0) return '#B8620A';
-  if(t==='MEZCLA') return '#2E5E3E';
-  if(t==='OVEJA') return '#1E4A7A';
-  if(t==='CABRA') return '#6B3A7A';
-  return 'var(--green)';
-}
 
 function renderPartes(){
   var fecha=_filtroFecha||document.getElementById('filtro-fecha').value||'';
