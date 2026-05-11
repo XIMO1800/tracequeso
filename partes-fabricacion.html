@@ -183,6 +183,10 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .papel-prod-cambiar{font-size:0.7rem;color:var(--green);font-weight:700;cursor:pointer;text-decoration:underline;margin-left:6px}
 .papel-prod-sinlote{color:var(--amber);font-style:italic}
 
+
+.coag-total-box{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center}
+.coag-total-val{font-size:1rem;font-weight:700;color:var(--text);line-height:1.2}
+.coag-total-lbl{font-size:0.7rem;color:var(--text2);margin-top:2px}
 </style>
 </head>
 <body>
@@ -195,7 +199,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.8.5</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.8.7</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -375,23 +379,21 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
       <div id="coag-cuajo-container"><div class="empty-state" style="padding:20px"><div class="empty-state-text">Selecciona tipo·variedad arriba</div></div></div>
       <div id="coag-proceso" style="display:none">
         <div class="sep"></div>
+        <div class="form-row"><label class="form-label">Hora adición</label><input type="time" id="coag-hadicion" oninput="calcCoagTotal()"></div>
         <div class="form-cols">
           <div class="form-row"><label class="form-label">pH coagulación</label><input type="number" id="coag-ph" step="0.01" inputmode="decimal"></div>
           <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="coag-temp" inputmode="decimal"></div>
         </div>
         <div class="form-cols">
-          <div class="form-row"><label class="form-label">Hora adición</label><input type="time" id="coag-hadicion" oninput="calcCoagTotal()"></div>
           <div class="form-row"><label class="form-label">Hora de corte</label><input type="time" id="coag-hc" oninput="calcCoagTotal()"></div>
-        </div>
-        <div class="form-row">
-          <label class="form-label">Coagulación total</label>
-          <div class="dosis-calc" style="padding:8px 12px">
-            <div>
-              <div class="dosis-calc-val" id="coag-total-display">—</div>
-              <div class="dosis-calc-label">minutos (corte − adición)</div>
+          <div class="form-row">
+            <label class="form-label">Coagulación total</label>
+            <div class="coag-total-box">
+              <div class="coag-total-val" id="coag-total-display">—</div>
+              <div class="coag-total-lbl">min (corte − adición)</div>
             </div>
+            <input type="hidden" id="coag-total">
           </div>
-          <input type="hidden" id="coag-total">
         </div>
       </div>
     </div>
@@ -406,10 +408,10 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
       <div class="sep-label">Recalentamiento</div>
       <div class="form-cols">
         <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="rec-hi"></div>
-        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="rec-hf" onchange="propagarHora('rec-hf','agit-hi')"></div>
+        <div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" id="rec-ti" inputmode="decimal"></div>
       </div>
       <div class="form-cols">
-        <div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" id="rec-ti" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="rec-hf" onchange="propagarHora('rec-hf','agit-hi')"></div>
         <div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" id="rec-tf" inputmode="decimal"></div>
       </div>
       <div class="sep-label">Agitación</div>
