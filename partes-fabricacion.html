@@ -545,13 +545,26 @@ function onVarSelChange(){
   var t = document.getElementById('np-tipo-sel').value;
   var v = document.getElementById('np-var-sel').value;
   if(!t || !v){ document.getElementById('np-tipo').value=''; onTipoChange(); return; }
-  // Buscar receta que coincida
   var r = RECETAS_DEMO.find(function(x){ return x.tipo===t && x.variedad===v; });
   if(r){
     document.getElementById('np-tipo').value = r.id;
   } else {
+    // Sin receta: crear una receta vacía temporal para que se muestren los bloques
     document.getElementById('np-tipo').value = '__nueva__:'+t+':'+v;
-    toast('⚠ No hay receta para '+t+' · '+v+' — créala en la pestaña Recetas');
+    // Receta vacía temporal — el quesero puede rellenar manualmente
+    parteActual.receta = {id:'__nueva__', tipo:t, variedad:v, auxiliares:[], fermentos:[], cuajo:null};
+    // Mostrar bloques vacíos
+    document.getElementById('aux-sub').textContent = 'Sin receta — rellenar manualmente';
+    document.getElementById('ferm-sub').textContent = 'Sin receta — rellenar manualmente';
+    document.getElementById('coag-sub').textContent = 'Sin receta — rellenar manualmente';
+    document.getElementById('aux-container').innerHTML = '<div style="padding:10px;font-size:0.82rem;color:var(--amber)">⚠ No hay receta para '+t+' · '+v+'<br>Puedes crear una en la pestaña <b>Recetas</b> para que se rellene automáticamente.</div>';
+    document.getElementById('ferm-container').innerHTML = '';
+    document.getElementById('coag-cuajo-container').innerHTML = '';
+    document.getElementById('coag-proceso').style.display='block';
+    var esDO = (t==='D.O. PAST.'||t==='D.O. CRUDA');
+    document.getElementById('bloque-caseinas').style.display = esDO?'block':'none';
+    calcularDosis();
+    return;
   }
   onTipoChange();
 }
