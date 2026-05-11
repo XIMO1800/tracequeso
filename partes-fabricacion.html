@@ -159,7 +159,7 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
     <div class="header-sub">Lácteos Cuquerella · El Hidalgo</div>
   </div>
   <div class="header-spacer"></div>
-  <div class="header-badge" id="hdr-fecha">—</div>
+  <div style="background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
 </div>
 <div class="nav-tabs">
   <div class="nav-tab active" data-tab="partes" onclick="switchTab('partes')">📋 Partes</div>
@@ -178,11 +178,8 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
 
   <!-- Historial / filtro -->
   <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin:8px 0">Historial</div>
-  <div style="display:flex;gap:8px;margin-bottom:12px">
-    <input type="date" id="filtro-fecha" style="flex:1" onchange="renderPartes()">
-    <select id="filtro-tipo" style="flex:1" onchange="renderPartes()">
-      <option value="">Todos los tipos</option>
-    </select>
+  <div style="margin-bottom:12px">
+    <input type="date" id="filtro-fecha" style="width:100%" onchange="renderPartes()">
   </div>
   <div class="card" id="lista-partes"></div>
 </div>
@@ -599,12 +596,7 @@ function onVarSelChange(){
   onTipoChange();
 }
 
-function poblarFiltroTipos(){
-  var sel=document.getElementById('filtro-tipo');
-  sel.innerHTML='<option value="">Todos los tipos</option>';
-  var vistos={};
-  RECETAS_DEMO.forEach(function(r){var tv=r.tipo+' · '+r.variedad;if(!vistos[tv]){vistos[tv]=1;var o=document.createElement('option');o.value=tv;o.textContent=tv;sel.appendChild(o);}});
-}
+function poblarFiltroTipos(){ /* select tipo eliminado — no hace falta */ }
 
 function onTipoChange(){
   var rid=document.getElementById('np-tipo').value;
@@ -941,8 +933,7 @@ function tipoColorCarrusel(tipo){
 
 function renderPartes(){
   var fecha=document.getElementById('filtro-fecha').value;
-  var tipo=document.getElementById('filtro-tipo').value;
-  var filtrados=PARTES.filter(function(p){if(fecha&&p.fecha!==fecha)return false;if(tipo&&(p.tipo+' · '+p.variedad)!==tipo)return false;return true;});
+  var filtrados=PARTES.filter(function(p){if(fecha&&p.fecha!==fecha)return false;return true;});
   renderCarrusel();
   var c=document.getElementById('lista-partes');
   if(filtrados.length===0){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No hay partes para esta fecha</div></div>';return;}
