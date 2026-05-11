@@ -170,6 +170,19 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .dots-nav{display:flex;justify-content:center;gap:6px;margin-bottom:12px}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:background 0.2s}
 .dot.active{background:var(--green)}
+
+/* ── Fila auxiliar/fermento estilo papel ── */
+.papel-prod{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.papel-prod-l1{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px;align-items:end;margin-bottom:8px}
+.papel-prod-l2{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;align-items:end;font-size:0.78rem;border-top:1px dashed var(--border);padding-top:8px}
+.papel-prod-nombre{font-weight:700;font-size:0.95rem;color:var(--text);padding-bottom:6px}
+.papel-prod-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:0.04em;margin-bottom:3px;display:block}
+.papel-prod-dosis-base{font-size:0.95rem;font-weight:700;color:var(--text);padding:6px 0}
+.papel-prod-dosis-input{width:100%;padding:6px 8px;border:1.5px solid var(--green);border-radius:6px;font-size:0.95rem;font-weight:700;background:var(--greenl);color:var(--text);text-align:center;font-family:inherit;box-sizing:border-box}
+.papel-prod-meta{color:var(--text2);font-weight:600;font-size:0.78rem;line-height:1.3}
+.papel-prod-cambiar{font-size:0.7rem;color:var(--green);font-weight:700;cursor:pointer;text-decoration:underline;margin-left:6px}
+.papel-prod-sinlote{color:var(--amber);font-style:italic}
+
 </style>
 </head>
 <body>
@@ -182,7 +195,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.7</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.8</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -225,7 +238,10 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
         </div>
         <div class="form-row">
           <label class="form-label">Variedad</label>
-          <select id="np-var-sel" onchange="onVarSelChange()" disabled><option value="">—</option></select>
+          <div style="display:flex;gap:6px;align-items:center">
+            <select id="np-var-sel" style="flex:1" onchange="onVarSelChange()" disabled><option value="">—</option></select>
+            <button onclick="anadirVariedad()" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;cursor:pointer;font-size:1.1rem;flex-shrink:0">+</button>
+          </div>
         </div>
       </div>
       <input type="hidden" id="np-tipo">
@@ -248,6 +264,50 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
       <div class="form-cols">
         <div class="form-row"><label class="form-label">pH entrada</label><input type="number" id="np-ph" step="0.01" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" inputmode="decimal"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pasteurización -->
+  <div class="seccion">
+    <div class="seccion-header" onclick="toggleSec('past')">
+      <div class="seccion-header-left"><span class="seccion-icon">🌡️</span><div><div class="seccion-label">Pasteurización</div><div class="seccion-sublabel">Válvula · Tª · Tiempo</div></div></div>
+      <span class="seccion-chevron" id="chev-past">▼</span>
+    </div>
+    <div class="seccion-body" id="body-past">
+      <div class="form-row">
+        <label class="form-label">Funcionamiento válvula desvío</label>
+        <select id="past-valvula">
+          <option value="">—</option>
+          <option value="C">Correcto</option>
+          <option value="I">Incorrecto</option>
+        </select>
+      </div>
+      <div class="form-cols">
+        <div class="form-row">
+          <label class="form-label">Temperatura (°C)</label>
+          <input type="number" id="past-temp" step="0.1" inputmode="decimal" oninput="marcarTocado('past-temp')">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Tiempo (min)</label>
+          <input type="number" id="past-tiempo" inputmode="decimal" oninput="marcarTocado('past-tiempo')">
+        </div>
+      </div>
+      <div class="form-cols">
+        <div class="form-row">
+          <label class="form-label">Cruda</label>
+          <div style="padding:9px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:10px">
+            <input type="checkbox" id="past-cruda" style="width:20px;height:20px;cursor:pointer" disabled>
+            <span style="font-size:0.78rem;color:var(--text2)">Auto si CRUDA</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Fosfatasa alcalina</label>
+          <div style="padding:9px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:10px">
+            <input type="checkbox" id="past-fosfatasa" style="width:20px;height:20px;cursor:pointer">
+            <span style="font-size:0.78rem;color:var(--text2)">Rellena calidad</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -527,10 +587,10 @@ var STOCK_DEMO = {
   'CHYMAX':[{lote:'CHX-2025-118',caducidad:'2026-11-30',cantidad:8,unidad:'L',proveedor:'CHR HANSEN'}],
   'R-704':[{lote:'376-8905',caducidad:'2026-12-12',cantidad:6,unidad:'kg',proveedor:'HANSEN'},{lote:'381-0910',caducidad:'2026-12-16',cantidad:10,unidad:'kg',proveedor:'HANSEN'}],
   'FLORA':[{lote:'486-6224',caducidad:'2026-05-03',cantidad:3,unidad:'kg',proveedor:'DANISCO'}],
-  'HANSEN':[{lote:'447-49-9248',caducidad:'2026-06-18',cantidad:8,unidad:'kg',proveedor:'HANSEN'}],
-  'GRACIA-102':[{lote:'375-1947',caducidad:'2026-08-30',cantidad:5,unidad:'kg',proveedor:'HANSEN'}],
-  'DANISCO':[{lote:'DAN-2502-A',caducidad:'2026-09-12',cantidad:4,unidad:'kg',proveedor:'DANISCO'}],
-  'CO2':[{lote:'CO2-2025-11',caducidad:'2026-11-30',cantidad:50,unidad:'kg',proveedor:'AIR LIQUIDE'}]
+  'HANSEN':[{lote:'447-49-9248',caducidad:'2026-06-18',cantidad:8,unidad:'kg',proveedor:'HANSEN',categoria:'FERMENTO'}],
+  'GRACIA-102':[{lote:'375-1947',caducidad:'2026-08-30',cantidad:5,unidad:'kg',proveedor:'HANSEN',categoria:'FERMENTO'}],
+  'DANISCO':[{lote:'DAN-2502-A',caducidad:'2026-09-12',cantidad:4,unidad:'kg',proveedor:'DANISCO',categoria:'FERMENTO'}],
+  'CO2':[{lote:'CO2-2025-11',caducidad:'2026-11-30',cantidad:50,unidad:'kg',proveedor:'AIR LIQUIDE',categoria:'AUXILIAR'}]
 };
 
 var LOTES_ACTIVOS = {};
@@ -707,6 +767,14 @@ function rellenarCampos(p){
       }, 80);
     }
   }
+  // Pasteurización
+  if(p.pasteurizacion){
+    v('past-valvula', p.pasteurizacion.valvula);
+    v('past-temp', p.pasteurizacion.temp);
+    v('past-tiempo', p.pasteurizacion.tiempo);
+    var ck = document.getElementById('past-cruda'); if(ck) ck.checked = !!p.pasteurizacion.cruda;
+    var cf = document.getElementById('past-fosfatasa'); if(cf) cf.checked = !!p.pasteurizacion.fosfatasa;
+  }
   // CO2
   if(p.co2){
     v('aux-ph', p.co2.ph_leche); v('aux-temp', p.co2.temp_leche);
@@ -814,6 +882,7 @@ function autoGuardarParte(parteId){
   p.piezas = {'3kg':gi('pzas-3kg'),'2kg':gi('pzas-2kg'),'1kg':gi('pzas-1kg'),'05kg':gi('pzas-05kg'),'barra':gi('pzas-barra'),'gigante':gi('pzas-gigante')};
   p.caseinas = {serie:g('cas-serie'), primera:gi('cas-primera'), ultima:gi('cas-ultima'), total:(gi('cas-ultima')-gi('cas-primera')+1)};
   p.co2 = {ph_leche:gn('aux-ph'), temp_leche:gn('aux-temp'), caudal_lh:gn('co2-caudal'), tiempo_seg:gi('co2-tiempo'), ph_objetivo:6.48};
+  p.pasteurizacion = {valvula:g('past-valvula'), temp:gn('past-temp'), tiempo:gn('past-tiempo'), cruda:document.getElementById('past-cruda')?document.getElementById('past-cruda').checked:false, fosfatasa:document.getElementById('past-fosfatasa')?document.getElementById('past-fosfatasa').checked:false};
   p.observaciones = g('np-obs');
   persistir();
   // Refrescar las pestañas (cambia el nombre si cambió tipo/variedad)
@@ -889,7 +958,71 @@ function poblarSelectTipos(){
 
 function poblarFiltroTipos(){}
 
+function calcPasteurizacion(){
+  var litros = parseFloat(document.getElementById('np-litros').value) || 0;
+  var tiempoEl = document.getElementById('past-tiempo');
+  var tempEl = document.getElementById('past-temp');
+  var crudaEl = document.getElementById('past-cruda');
+  if(!tiempoEl) return;
+  // Tiempo = (litros / 15000) * 60 minutos
+  if(litros > 0 && (!tiempoEl.value || tiempoEl.dataset.auto === '1')){
+    var min = (litros / 15000) * 60;
+    tiempoEl.value = min.toFixed(1);
+    tiempoEl.dataset.auto = '1';
+  }
+  // Detectar si es CRUDA en tipo o variedad
+  var tipo = document.getElementById('np-tipo-sel') ? document.getElementById('np-tipo-sel').value : '';
+  var variedad = document.getElementById('np-var-sel') ? document.getElementById('np-var-sel').value : '';
+  var esCruda = (tipo+' '+variedad).toUpperCase().indexOf('CRUDA') >= 0;
+  if(crudaEl){
+    crudaEl.checked = esCruda;
+  }
+  // Si es cruda, dejar temperatura vacía; si no, sugerir 74.5
+  if(tempEl && !tempEl.value && !tempEl.dataset.tocado){
+    tempEl.value = esCruda ? '' : '74.5';
+    tempEl.dataset.auto = '1';
+  }
+}
+
+// Cuando el usuario toca manualmente temp/tiempo, marcarlo para no sobrescribir
+function marcarTocado(elId){
+  var el = document.getElementById(elId);
+  if(el){ el.dataset.tocado = '1'; el.dataset.auto = '0'; }
+}
+
+function anadirVariedad(){
+  var t = document.getElementById('np-tipo-sel').value;
+  if(!t){ toast('⚠ Selecciona primero el Tipo'); return; }
+  var nueva = prompt('Nueva variedad para '+t+':');
+  if(!nueva) return;
+  nueva = nueva.trim().toUpperCase();
+  if(!nueva) return;
+  if(!TIPOS_VARIEDADES[t]) TIPOS_VARIEDADES[t] = [];
+  if(TIPOS_VARIEDADES[t].indexOf(nueva) >= 0){ toast('Ya existe'); return; }
+  TIPOS_VARIEDADES[t].push(nueva);
+  // Persistir
+  try{ localStorage.setItem('tq_partes_variedades', JSON.stringify(TIPOS_VARIEDADES)); }catch(e){}
+  // Refrescar select y dejarla seleccionada
+  onTipoSelChange();
+  setTimeout(function(){
+    var sel = document.getElementById('np-var-sel');
+    if(sel){ sel.value = nueva; onVarSelChange(); }
+  }, 50);
+  toast('✅ Variedad añadida');
+}
+
+function cargarVariedadesCustom(){
+  try{
+    var s = localStorage.getItem('tq_partes_variedades');
+    if(s){
+      var d = JSON.parse(s);
+      Object.keys(d).forEach(function(k){ TIPOS_VARIEDADES[k] = d[k]; });
+    }
+  }catch(e){}
+}
+
 function onTipoSelChange(){
+  setTimeout(function(){ try{ calcPasteurizacion(); }catch(e){} }, 60);
   var t=document.getElementById('np-tipo-sel').value;
   var selV=document.getElementById('np-var-sel');
   selV.innerHTML='<option value="">— Variedad —</option>';
@@ -910,6 +1043,7 @@ function onTipoSelChange(){
 }
 
 function onVarSelChange(){
+  setTimeout(function(){ try{ calcPasteurizacion(); }catch(e){} }, 60);
   var t=document.getElementById('np-tipo-sel').value;
   var v=document.getElementById('np-var-sel').value;
   if(!t||!v){document.getElementById('np-tipo').value='';onTipoChange();return;}
@@ -977,15 +1111,31 @@ function renderCuajo(receta){
 }
 
 function renderProductoCard(prod){
-  var key=prod.nombre.replace(/[^a-zA-Z0-9]/g,'_');
-  var lote=obtenerLoteActivo(prod.nombre);
-  var loteHTML='';
+  var key = prod.nombre.replace(/[^a-zA-Z0-9]/g,'_');
+  var lote = obtenerLoteActivo(prod.nombre);
+  var loteHTML, cadHTML, provHTML;
   if(lote){
-    loteHTML='<div class="lote-chip"><div class="lote-chip-info"><div class="lote-chip-lote">'+lote.lote+'</div><div class="lote-chip-cad">Caducidad: '+formatearFecha(lote.caducidad)+' · '+lote.proveedor+'</div></div><button class="lote-chip-btn" onclick="abrirSelectorLote(\''+prod.nombre+'\')">Cambiar</button></div>';
-  }else{
-    loteHTML='<div class="lote-chip empty"><div class="lote-chip-info"><div class="lote-chip-lote">⚠ Sin lote activo</div><div class="lote-chip-cad">Selecciona uno del stock</div></div><button class="lote-chip-btn" onclick="abrirSelectorLote(\''+prod.nombre+'\')">Seleccionar</button></div>';
+    loteHTML = '<span>'+lote.lote+'</span> <span class="papel-prod-cambiar" onclick="abrirSelectorLote(\''+prod.nombre+'\')">cambiar</span>';
+    cadHTML = formatearFecha(lote.caducidad);
+    provHTML = lote.proveedor || '—';
+  } else {
+    loteHTML = '<span class="papel-prod-sinlote">sin lote</span> <span class="papel-prod-cambiar" onclick="abrirSelectorLote(\''+prod.nombre+'\')">elegir</span>';
+    cadHTML = '—';
+    provHTML = '—';
   }
-  return '<div style="margin-bottom:18px"><div class="sep-label">'+prod.nombre+'</div><div class="form-row"><label class="form-label">Dosis</label><div class="dosis-calc"><div><div class="dosis-calc-val" id="dosis-'+key+'">—</div><div class="dosis-calc-label">ml/g totales</div></div><div style="text-align:right"><div style="font-size:0.72rem;color:var(--blue);font-weight:700">'+prod.dosis_ml_1000L+' /1000L</div><input type="number" placeholder="Modificar" data-prod="'+prod.nombre+'" oninput="onDosisOverride(this)"></div></div></div><div class="form-row"><label class="form-label">Lote</label>'+loteHTML+'</div></div>';
+  return ''
+    + '<div class="papel-prod">'
+    +   '<div class="papel-prod-l1">'
+    +     '<div><span class="papel-prod-label">Nombre</span><div class="papel-prod-nombre">'+prod.nombre+'</div></div>'
+    +     '<div><span class="papel-prod-label">Dosis /1000L</span><div class="papel-prod-dosis-base">'+prod.dosis_ml_1000L+'</div></div>'
+    +     '<div><span class="papel-prod-label">Dosis utilizada</span><input type="text" class="papel-prod-dosis-input" id="dosis-'+key+'" data-prod="'+prod.nombre+'" oninput="onDosisOverride(this)" placeholder="—"></div>'
+    +   '</div>'
+    +   '<div class="papel-prod-l2">'
+    +     '<div><span class="papel-prod-label">Proveedor</span><div class="papel-prod-meta">'+provHTML+'</div></div>'
+    +     '<div><span class="papel-prod-label">Lote</span><div class="papel-prod-meta">'+loteHTML+'</div></div>'
+    +     '<div><span class="papel-prod-label">Caducidad</span><div class="papel-prod-meta">'+cadHTML+'</div></div>'
+    +   '</div>'
+    + '</div>';
 }
 
 function obtenerLoteActivo(producto){
@@ -1152,7 +1302,7 @@ function descontarStock(producto,cantidad){
 }
 
 function limpiarParte(){
-  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-operario','aux-ph','aux-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','agit-hi','agit-hf','mol-hi','mol-hf','mol-ph','mol-temp','pren-e1','pren-e2','des-hi','des-ph','des-temp-i','des-hf','des-ph-f','des-temp-f','salm-hi','salm-hf','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','cas-serie','cas-primera','cas-ultima','co2-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-operario','aux-ph','aux-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','agit-hi','agit-hf','mol-hi','mol-hf','mol-ph','mol-temp','pren-e1','pren-e2','des-hi','des-ph','des-temp-i','des-hf','des-ph-f','des-temp-f','salm-hi','salm-hf','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','cas-serie','cas-primera','cas-ultima','co2-tiempo','past-valvula','past-temp','past-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('np-tipo').value='';
   var ts=document.getElementById('np-tipo-sel');if(ts)ts.value='';
   var vs=document.getElementById('np-var-sel');if(vs){vs.innerHTML='<option value="">— Variedad —</option>';vs.disabled=true;}
@@ -1304,13 +1454,48 @@ function onRecTipoChange(){
   vars.forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v;selV.appendChild(o);});
 }
 
+function getProductosStockPorCategoria(cat){
+  var resultado = [];
+  var vistos = {};
+  Object.keys(STOCK_DEMO).forEach(function(nombre){
+    var lotes = STOCK_DEMO[nombre];
+    if(!lotes || !lotes.length) return;
+    // Coger la categoría del primer lote (todos deberían tener la misma)
+    var catProd = (lotes[0].categoria || '').toUpperCase();
+    if(catProd === cat.toUpperCase() && !vistos[nombre]){
+      vistos[nombre] = true;
+      resultado.push(nombre);
+    }
+  });
+  return resultado;
+}
+
 function refrescarIngs(){
   var r=window._recetaEditando;
   function pintar(lista,contId,tipo){
     var c=document.getElementById(contId);if(!c)return;
     if(!lista||!lista.length){c.innerHTML='<div style="font-size:0.78rem;color:var(--text3);padding:8px 0">Sin ingredientes</div>';return;}
+    // Categoría del stock que filtra cada tipo
+    var catMap = {auxiliares:'AUXILIAR', fermentos:'FERMENTO', cuajo:'CUAJO'};
+    var catFiltro = catMap[tipo] || '';
+    var disponibles = catFiltro ? getProductosStockPorCategoria(catFiltro) : [];
     var h='';
-    lista.forEach(function(p,i){h+='<div class="ferm-row"><button class="ferm-row-del" onclick="delIng(\''+tipo+'\','+i+')">Eliminar</button><div class="form-row"><label class="form-label">Nombre</label><input type="text" value="'+(p.nombre||'')+'" oninput="updIng(\''+tipo+'\','+i+',\'nombre\',this.value)"></div><div class="form-row"><label class="form-label">Dosis ml/g por 1000L</label><input type="number" value="'+(p.dosis_ml_1000L||'')+'" oninput="updIng(\''+tipo+'\','+i+',\'dosis_ml_1000L\',parseFloat(this.value))"></div></div>';});
+    lista.forEach(function(p,i){
+      var opts = '<option value="">— Elige —</option>';
+      // Si el producto actual no está en stock, mostrarlo aparte
+      if(p.nombre && disponibles.indexOf(p.nombre)<0) opts += '<option value="'+p.nombre+'" selected>'+p.nombre+' (no en stock)</option>';
+      disponibles.forEach(function(nom){
+        opts += '<option value="'+nom+'"'+(nom===p.nombre?' selected':'')+'>'+nom+'</option>';
+      });
+      h+='<div class="ferm-row">'
+        + '<button class="ferm-row-del" onclick="delIng(\''+tipo+'\','+i+')">Eliminar</button>'
+        + '<div class="form-row"><label class="form-label">Producto</label>'
+        +   '<div style="display:flex;gap:6px"><select style="flex:1" onchange="updIng(\''+tipo+'\','+i+',\'nombre\',this.value)">'+opts+'</select>'
+        +   '<button onclick="nuevoProductoStock(\''+catFiltro+'\')" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer">+</button></div>'
+        + '</div>'
+        + '<div class="form-row"><label class="form-label">Dosis ml/g por 1000L</label><input type="number" value="'+(p.dosis_ml_1000L||'')+'" oninput="updIng(\''+tipo+'\','+i+',\'dosis_ml_1000L\',parseFloat(this.value))"></div>'
+        + '</div>';
+    });
     c.innerHTML=h;
   }
   pintar(r.auxiliares,'aux-edit-list','auxiliares');
@@ -1395,9 +1580,21 @@ function renderStock(){
   c.innerHTML=h;
 }
 
+function nuevoProductoStock(cat){
+  // Cerrar modal de receta y abrir albarán con categoría pre-seleccionada
+  cerrarModal();
+  setTimeout(function(){
+    abrirAlbaran();
+    setTimeout(function(){
+      var sel = document.getElementById('alb-categoria');
+      if(sel && cat){ sel.value = cat; }
+    }, 100);
+  }, 200);
+}
+
 function abrirAlbaran(){
   var h='<div class="modal-title">📥 Registrar entrada <button class="modal-close" onclick="cerrarModal()">×</button></div>';
-  h+='<div class="form-row"><label class="form-label">Producto</label><input type="text" id="alb-prod" placeholder="CHYMAX, NATUREN, R-704..."></div>';
+  h+='<div class="form-row"><label class="form-label">Categoría</label><select id="alb-categoria"><option value="">—</option><option value="AUXILIAR">Auxiliar</option><option value="FERMENTO">Fermento</option><option value="CUAJO">Cuajo</option><option value="PLASTICO">Plástico</option></select></div><div class="form-row"><label class="form-label">Producto</label><input type="text" id="alb-prod" placeholder="CHYMAX, NATUREN, R-704..."></div>';
   h+='<div class="form-row"><label class="form-label">Lote</label><input type="text" id="alb-lote" placeholder="Nº de lote"></div>';
   h+='<div class="form-cols"><div class="form-row"><label class="form-label">Caducidad</label><input type="date" id="alb-cad"></div><div class="form-row"><label class="form-label">Cantidad</label><input type="number" id="alb-cant" step="0.1" inputmode="decimal"></div></div>';
   h+='<div class="form-cols"><div class="form-row"><label class="form-label">Unidad</label><select id="alb-uni"><option>L</option><option>ml</option><option>kg</option><option>g</option></select></div><div class="form-row"><label class="form-label">Proveedor</label><input type="text" id="alb-prov"></div></div>';
@@ -1413,8 +1610,9 @@ function guardarAlbaran(){
   var uni=document.getElementById('alb-uni').value;
   var prov=document.getElementById('alb-prov').value.trim();
   if(!prod||!lote||!cant){toast('⚠ Producto, lote y cantidad obligatorios');return;}
+  var cat = document.getElementById('alb-categoria') ? document.getElementById('alb-categoria').value : '';
   if(!STOCK_DEMO[prod])STOCK_DEMO[prod]=[];
-  STOCK_DEMO[prod].push({lote:lote,caducidad:cad,cantidad:cant,unidad:uni,proveedor:prov});
+  STOCK_DEMO[prod].push({lote:lote,caducidad:cad,cantidad:cant,unidad:uni,proveedor:prov,categoria:cat});
   persistir();cerrarModal();renderStock();renderLotes();toast('✅ Entrada registrada');
 }
 
@@ -1468,7 +1666,7 @@ function sincronizarPendientes(){
 
 function init(){
   // 1. Cargar datos del localStorage
-  try{ cargarOperarios(); }catch(e){}
+  try{ cargarOperarios(); cargarVariedadesCustom(); }catch(e){}
   try{
     var s = localStorage.getItem('tq_partes_demo');
     if(s){
