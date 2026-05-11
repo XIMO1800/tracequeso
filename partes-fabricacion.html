@@ -131,6 +131,22 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
 .resumen-row:last-child{border:none}
 .resumen-row span{color:var(--text2)}
 
+/* ── Pestañas de cubas del día ── */
+.cuba-pestana{flex:0 0 auto;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px 10px 0 0;padding:8px 14px;cursor:pointer;font-weight:700;font-size:0.85rem;color:var(--text2);white-space:nowrap;border-bottom:none;position:relative;top:1px;min-width:90px;text-align:center}
+.cuba-pestana.active{background:var(--card);color:var(--green);border-color:var(--green);border-bottom:2px solid var(--card);z-index:2}
+.cuba-pestana .num-cuba{font-size:1.1rem;display:block;line-height:1}
+.cuba-pestana .info-cuba{font-size:0.65rem;opacity:0.7;margin-top:2px}
+.cuba-pestana-add{flex:0 0 auto;background:var(--green);color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-weight:800;font-size:0.9rem;align-self:flex-start;margin-left:4px}
+.cuba-pestana-add:active{opacity:0.85}
+#cubas-pestanas-wrap::-webkit-scrollbar{display:none}
+
+.parte-status{display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.7rem;font-weight:700;margin-left:8px}
+.parte-status.abierto{background:var(--amberl);color:var(--amber)}
+.parte-status.cerrado{background:var(--greenl);color:var(--green)}
+
+.btn-cerrar-parte{background:var(--green);color:white;border:none;border-radius:10px;padding:14px;font-size:1rem;font-weight:700;width:100%;cursor:pointer;margin-top:14px}
+.btn-eliminar-cuba{background:var(--redl);color:var(--red);border:1.5px solid var(--red);border-radius:10px;padding:12px;font-size:0.9rem;font-weight:700;width:100%;cursor:pointer;margin-top:8px}
+
 /* ── Carrusel de cubas activas ── */
 .cubas-scroll{display:flex;overflow-x:auto;gap:12px;padding:4px 2px 12px;scrollbar-width:none;scroll-snap-type:x mandatory}
 .cubas-scroll::-webkit-scrollbar{display:none}
@@ -164,36 +180,35 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.3</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.5</div>
   </div>
 </div>
 <div class="nav-tabs">
-  <div class="nav-tab active" data-tab="partes" onclick="switchTab('partes')">📋 Partes</div>
-  <div class="nav-tab" data-tab="nuevo" onclick="switchTab('nuevo')">➕ Nuevo</div>
-  <div class="nav-tab" data-tab="recetas" onclick="switchTab('recetas')">📖 Recetas</div>
-  <div class="nav-tab" data-tab="lotes" onclick="switchTab('lotes')">🏷️ Lotes</div>
-  <div class="nav-tab" data-tab="stock" onclick="switchTab('stock')">📦 Stock</div>
+  <div class="nav-tab active" data-tab="hoy" onclick="switchTab('hoy')">📋 HOY</div>
+  <div class="nav-tab" data-tab="historial" onclick="switchTab('historial')">📚 HISTORIAL</div>
+  <div class="nav-tab" data-tab="recetas" onclick="switchTab('recetas')">📖 RECETAS</div>
+  <div class="nav-tab" data-tab="lotes" onclick="switchTab('lotes')">🏷️ LOTES</div>
+  <div class="nav-tab" data-tab="stock" onclick="switchTab('stock')">📦 STOCK</div>
 </div>
 
-<div id="screen-partes" class="screen">
+<div id="screen-hoy" class="screen">
 
-  <!-- Cubas activas hoy — carrusel -->
-  <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:8px">Cubas activas hoy</div>
-  <div class="cubas-scroll" id="cubas-carrusel"></div>
-  <div class="dots-nav" id="cubas-dots"></div>
-
-  <!-- Historial / filtro -->
-  <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin:8px 0">Historial</div>
-  <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
-    <button onclick="cambiarDiaFiltro(-1)" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:1rem;cursor:pointer;flex-shrink:0">‹</button>
-    <div id="filtro-fecha-display" style="flex:1;text-align:center;font-weight:700;font-size:0.95rem;background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:9px"></div>
-    <button onclick="cambiarDiaFiltro(1)" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:1rem;cursor:pointer;flex-shrink:0">›</button>
-    <input type="hidden" id="filtro-fecha">
+  <!-- Pestañas de cubas del día -->
+  <div id="cubas-pestanas-wrap" style="display:flex;gap:6px;overflow-x:auto;padding:8px 0 12px;scrollbar-width:none;-webkit-overflow-scrolling:touch">
+    <!-- aquí se inyectan dinámicamente las pestañas de cuba 1, 2, 3... + nueva -->
   </div>
-  <div class="card" id="lista-partes"></div>
+
+  <!-- Panel activo: o bien el formulario de una cuba, o mensaje vacío -->
+  <div id="panel-cuba-activa">
+    <div class="empty-state" style="padding:40px 20px">
+      <div class="empty-state-icon">🥛</div>
+      <div class="empty-state-text">No hay cubas abiertas hoy.<br>Pulsa <b>+ Nueva cuba</b> para empezar.</div>
+    </div>
+  </div>
+
 </div>
 
-<div id="screen-nuevo" class="screen">
+<div id="form-parte-template" style="display:none">
   <div class="card">
     <div class="card-header"><span class="card-title">📄 Datos generales</span></div>
     <div class="card-body">
@@ -203,27 +218,34 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
       </div>
       <div class="form-cols">
         <div class="form-row">
-          <label class="form-label">Tipo <span class="auto-tag">RECETA</span></label>
+          <label class="form-label">Tipo</label>
           <select id="np-tipo-sel" onchange="onTipoSelChange()"><option value="">—</option></select>
         </div>
         <div class="form-row">
-          <label class="form-label">Variedad <span class="auto-tag">RECETA</span></label>
+          <label class="form-label">Variedad</label>
           <select id="np-var-sel" onchange="onVarSelChange()" disabled><option value="">—</option></select>
         </div>
       </div>
       <input type="hidden" id="np-tipo">
       <div class="form-cols">
-        <div class="form-row"><label class="form-label">Litros totales <span class="calc-tag">CALCULA DOSIS</span></label><input type="number" id="np-litros" placeholder="5000" inputmode="numeric" oninput="calcularDosis();calcCO2()"></div>
-        <div class="form-row"><label class="form-label">Operario</label><input type="text" id="np-operario" placeholder="Nombre"></div>
+        <div class="form-row"><label class="form-label">Litros totales</label><input type="number" id="np-litros" inputmode="numeric" oninput="calcularDosis();calcCO2()"></div>
+        <div class="form-row">
+            <label class="form-label">Operario</label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <select id="np-operario-sel" style="flex:1" onchange="onOperarioChange()"></select>
+              <button onclick="anadirOperario()" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;cursor:pointer;font-size:1.1rem;flex-shrink:0">+</button>
+            </div>
+            <input type="hidden" id="np-operario">
+          </div>
       </div>
       <div class="form-cols-3">
-        <div class="form-row"><label class="form-label">L. Vaca</label><input type="number" id="np-lvaca" placeholder="0" inputmode="numeric"></div>
-        <div class="form-row"><label class="form-label">L. Cabra</label><input type="number" id="np-lcabra" placeholder="0" inputmode="numeric"></div>
-        <div class="form-row"><label class="form-label">L. Oveja</label><input type="number" id="np-loveja" placeholder="0" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">L. Vaca</label><input type="number" id="np-lvaca" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">L. Cabra</label><input type="number" id="np-lcabra" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">L. Oveja</label><input type="number" id="np-loveja" inputmode="numeric"></div>
       </div>
       <div class="form-cols">
-        <div class="form-row"><label class="form-label">pH entrada</label><input type="number" id="np-ph" placeholder="6.70" step="0.01" inputmode="decimal"></div>
-        <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" placeholder="4" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">pH entrada</label><input type="number" id="np-ph" step="0.01" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" inputmode="decimal"></div>
       </div>
     </div>
   </div>
@@ -239,17 +261,17 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
       <div class="form-cols">
         <div class="form-row">
           <label class="form-label">pH leche</label>
-          <input type="number" id="aux-ph" placeholder="6.70" step="0.01" inputmode="decimal" oninput="calcCO2()">
+          <input type="number" id="aux-ph" step="0.01" inputmode="decimal" oninput="calcCO2()">
         </div>
         <div class="form-row">
           <label class="form-label">Tª leche (°C)</label>
-          <input type="number" id="aux-temp" placeholder="4" step="0.1" inputmode="decimal">
+          <input type="number" id="aux-temp" step="0.1" inputmode="decimal">
         </div>
       </div>
       <!-- CO2: siempre presente, independiente de receta -->
       <div class="sep-label">CO₂</div>
       <div class="form-row">
-        <label class="form-label">Lote CO₂ <span class="auto-tag">ÚLTIMO USADO</span></label>
+        <label class="form-label">Lote CO₂</label>
         <div class="lote-chip" id="co2-lote-chip">
           <div class="lote-chip-info">
             <div class="lote-chip-lote" id="co2-lote-val">Sin lote activo</div>
@@ -260,7 +282,7 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
       </div>
       <div class="form-cols">
         <div class="form-row">
-          <label class="form-label">Tiempo (seg) <span class="calc-tag">CALCULADO</span></label>
+          <label class="form-label">Tiempo (seg)</label>
           <input type="number" id="co2-tiempo" placeholder="—" inputmode="numeric" readonly class="calc-filled">
         </div>
         <div class="form-row">
@@ -268,10 +290,7 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
           <input type="number" id="co2-caudal" value="100" inputmode="numeric" oninput="calcCO2()">
         </div>
       </div>
-      <div style="background:var(--amberl);border-left:3px solid var(--amber);border-radius:6px;padding:8px 12px;margin-top:-8px;margin-bottom:14px;font-size:0.75rem;color:var(--amber)" id="co2-formula-info">
-        <b>pH objetivo:</b> 6,48 · <b>pH leche:</b> <span id="co2-ph-actual">—</span><br>
-        <span id="co2-formula-detalle">Introduce el pH de la leche para calcular el tiempo exacto</span>
-      </div>
+
       <!-- Resto auxiliares de la receta (CaCl2, Lisozima...) -->
       <div id="aux-container"></div>
     </div>
@@ -295,15 +314,15 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
       <div id="coag-proceso" style="display:none">
         <div class="sep"></div>
         <div class="form-cols">
-          <div class="form-row"><label class="form-label">pH coagulación</label><input type="number" id="coag-ph" placeholder="6.60" step="0.01" inputmode="decimal"></div>
-          <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="coag-temp" placeholder="32" inputmode="decimal"></div>
+          <div class="form-row"><label class="form-label">pH coagulación</label><input type="number" id="coag-ph" step="0.01" inputmode="decimal"></div>
+          <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="coag-temp" inputmode="decimal"></div>
         </div>
         <div class="form-cols">
           <div class="form-row"><label class="form-label">Hora adición</label><input type="time" id="coag-hadicion" oninput="calcCoagTotal()"></div>
           <div class="form-row"><label class="form-label">Hora de corte</label><input type="time" id="coag-hc" oninput="calcCoagTotal()"></div>
         </div>
         <div class="form-row">
-          <label class="form-label">Coagulación total <span class="calc-tag">CALCULADO</span></label>
+          <label class="form-label">Coagulación total</label>
           <div class="dosis-calc" style="padding:8px 12px">
             <div>
               <div class="dosis-calc-val" id="coag-total-display">—</div>
@@ -328,8 +347,8 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
         <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="rec-hf"></div>
       </div>
       <div class="form-cols">
-        <div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" id="rec-ti" placeholder="32" inputmode="decimal"></div>
-        <div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" id="rec-tf" placeholder="38" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" id="rec-ti" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" id="rec-tf" inputmode="decimal"></div>
       </div>
       <div class="sep-label">Agitación</div>
       <div class="form-cols">
@@ -351,22 +370,22 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
         <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="mol-hf"></div>
       </div>
       <div class="form-cols">
-        <div class="form-row"><label class="form-label">pH moldeo</label><input type="number" id="mol-ph" placeholder="6.09" step="0.01" inputmode="decimal"></div>
-        <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="mol-temp" placeholder="36" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">pH moldeo</label><input type="number" id="mol-ph" step="0.01" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="mol-temp" inputmode="decimal"></div>
       </div>
       <div class="sep-label">Prensado</div>
       <div class="form-cols">
-        <div class="form-row"><label class="form-label">Presión 1 (bar)</label><input type="number" id="pren-bar1" placeholder="0.15" step="0.05" inputmode="decimal"></div>
-        <div class="form-row"><label class="form-label">Tiempo 1 (min)</label><input type="number" id="pren-t1" placeholder="60" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">Presión 1 (bar)</label><input type="number" id="pren-bar1" step="0.05" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tiempo 1 (min)</label><input type="number" id="pren-t1" inputmode="numeric"></div>
       </div>
       <div class="form-cols">
-        <div class="form-row"><label class="form-label">Presión 2 (bar)</label><input type="number" id="pren-bar2" placeholder="3" step="0.5" inputmode="decimal"></div>
-        <div class="form-row"><label class="form-label">Tiempo 2 (min)</label><input type="number" id="pren-t2" placeholder="415" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">Presión 2 (bar)</label><input type="number" id="pren-bar2" step="0.5" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tiempo 2 (min)</label><input type="number" id="pren-t2" inputmode="numeric"></div>
       </div>
       <div class="sep-label">Desmoldeo</div>
       <div class="form-cols">
         <div class="form-row"><label class="form-label">Formato</label><select id="des-formato"><option>3 KG</option><option>2 KG</option><option>1 KG</option><option>1/2 KG</option><option>BARRA</option><option>GIGANTE</option></select></div>
-        <div class="form-row"><label class="form-label">pH desmoldeo</label><input type="number" id="des-ph" placeholder="5.15" step="0.01" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">pH desmoldeo</label><input type="number" id="des-ph" step="0.01" inputmode="decimal"></div>
       </div>
       <div class="form-cols">
         <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="des-hi"></div>
@@ -382,14 +401,14 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
     </div>
     <div class="seccion-body" id="body-pzas">
       <div class="form-cols-3">
-        <div class="form-row"><label class="form-label">3 KG</label><input type="number" id="pzas-3kg" placeholder="0" inputmode="numeric"></div>
-        <div class="form-row"><label class="form-label">2 KG</label><input type="number" id="pzas-2kg" placeholder="0" inputmode="numeric"></div>
-        <div class="form-row"><label class="form-label">1 KG</label><input type="number" id="pzas-1kg" placeholder="0" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">3 KG</label><input type="number" id="pzas-3kg" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">2 KG</label><input type="number" id="pzas-2kg" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">1 KG</label><input type="number" id="pzas-1kg" inputmode="numeric"></div>
       </div>
       <div class="form-cols-3">
-        <div class="form-row"><label class="form-label">1/2 KG</label><input type="number" id="pzas-05kg" placeholder="0" inputmode="numeric"></div>
-        <div class="form-row"><label class="form-label">Barra</label><input type="number" id="pzas-barra" placeholder="0" inputmode="numeric"></div>
-        <div class="form-row"><label class="form-label">Gigante</label><input type="number" id="pzas-gigante" placeholder="0" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">1/2 KG</label><input type="number" id="pzas-05kg" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">Barra</label><input type="number" id="pzas-barra" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">Gigante</label><input type="number" id="pzas-gigante" inputmode="numeric"></div>
       </div>
       <!-- Caseínas: solo visible para D.O. PAST. y D.O. CRUDA -->
       <div id="bloque-caseinas" style="display:none">
@@ -399,8 +418,8 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
           <input type="text" id="cas-serie" placeholder="Ej: AZX" style="text-transform:uppercase">
         </div>
         <div class="form-cols">
-          <div class="form-row"><label class="form-label">Primera caseína</label><input type="number" id="cas-primera" placeholder="1" inputmode="numeric" oninput="calcCaseinas()"></div>
-          <div class="form-row"><label class="form-label">Última caseína</label><input type="number" id="cas-ultima" placeholder="0" inputmode="numeric" oninput="calcCaseinas()"></div>
+          <div class="form-row"><label class="form-label">Primera caseína</label><input type="number" id="cas-primera" inputmode="numeric" oninput="calcCaseinas()"></div>
+          <div class="form-row"><label class="form-label">Última caseína</label><input type="number" id="cas-ultima" inputmode="numeric" oninput="calcCaseinas()"></div>
         </div>
         <div id="cas-resultado" style="display:none;background:var(--bluel);border:1.5px solid var(--blue);border-radius:8px;padding:10px 14px;margin-bottom:14px">
           <div style="display:flex;justify-content:space-between;align-items:center">
@@ -420,6 +439,18 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
     <button class="btn btn-primary" onclick="guardarParte()">💾 Guardar parte</button>
     <button class="btn btn-secondary" style="margin-top:8px" onclick="if(confirm('¿Cancelar el parte? Se perderán los datos.'))limpiarParte()">Cancelar</button>
   </div>
+</div>
+
+<!-- ════════════════════ HISTORIAL ════════════════════ -->
+<div id="screen-historial" class="screen">
+  <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin:8px 0">Filtrar por fecha</div>
+  <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+    <button onclick="cambiarDiaFiltro(-1)" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:1rem;cursor:pointer;flex-shrink:0">‹</button>
+    <div id="filtro-fecha-display" style="flex:1;text-align:center;font-weight:700;font-size:0.95rem;background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:9px"></div>
+    <button onclick="cambiarDiaFiltro(1)" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:1rem;cursor:pointer;flex-shrink:0">›</button>
+    <input type="hidden" id="filtro-fecha">
+  </div>
+  <div class="card" id="lista-partes"></div>
 </div>
 
 <div id="screen-recetas" class="screen">
@@ -493,6 +524,296 @@ var PARTES = [];
 var parteActual = {receta:null,litros:0,dosis_override:{},lotes_seleccionados:{}};
 
 // ═══════════════════════════════════════════════
+// OPERARIOS
+// ═══════════════════════════════════════════════
+
+var OPERARIOS = ['JORGE','JOAQUIN','PACO']; // se pueden añadir más
+var OPERARIO_ACTUAL = ''; // último usado, persiste
+
+function cargarOperarios(){
+  try{
+    var s = localStorage.getItem('tq_partes_operarios');
+    if(s){
+      var d = JSON.parse(s);
+      if(d.lista && d.lista.length) OPERARIOS = d.lista;
+      if(d.actual) OPERARIO_ACTUAL = d.actual;
+    }
+  }catch(e){}
+}
+
+function guardarOperarios(){
+  try{
+    localStorage.setItem('tq_partes_operarios', JSON.stringify({lista:OPERARIOS, actual:OPERARIO_ACTUAL}));
+  }catch(e){}
+}
+
+function poblarSelectOperario(valorSeleccionado){
+  var sel = document.getElementById('np-operario-sel');
+  if(!sel) return;
+  sel.innerHTML = '';
+  var seleccionado = valorSeleccionado || OPERARIO_ACTUAL || OPERARIOS[0] || '';
+  OPERARIOS.forEach(function(op){
+    var o = document.createElement('option');
+    o.value = op; o.textContent = op;
+    if(op === seleccionado) o.selected = true;
+    sel.appendChild(o);
+  });
+  var hidden = document.getElementById('np-operario');
+  if(hidden) hidden.value = seleccionado;
+}
+
+function onOperarioChange(){
+  var sel = document.getElementById('np-operario-sel');
+  var hidden = document.getElementById('np-operario');
+  if(sel && hidden){
+    hidden.value = sel.value;
+    OPERARIO_ACTUAL = sel.value;
+    guardarOperarios();
+  }
+}
+
+function anadirOperario(){
+  var nombre = prompt('Nombre del nuevo operario:');
+  if(!nombre) return;
+  nombre = nombre.trim().toUpperCase();
+  if(!nombre) return;
+  if(OPERARIOS.indexOf(nombre) >= 0){ toast('Ya existe'); return; }
+  OPERARIOS.push(nombre);
+  OPERARIO_ACTUAL = nombre;
+  guardarOperarios();
+  poblarSelectOperario(nombre);
+  toast('✅ Operario añadido');
+}
+
+// ═══════════════════════════════════════════════
+// PESTAÑAS DE CUBAS DEL DÍA (NUEVO MODELO)
+// ═══════════════════════════════════════════════
+
+var CUBA_ACTIVA_ID = null; // ID de la cuba que está visible en el panel
+
+function renderPestanasCubas(){
+  var hoy = new Date().toISOString().slice(0,10);
+  // Cubas de hoy QUE NO ESTÁN CERRADAS
+  var cubasHoy = PARTES.filter(function(p){
+    return (p.fecha===hoy || (p.fecha&&p.fecha.toString().indexOf(hoy)>=0)) && !p.cerrado;
+  });
+  // Ordenar por nº de cuba ascendente (1, 2, 3...) — la más nueva a la derecha
+  cubasHoy.sort(function(a,b){ return (parseInt(a.cuba)||0) - (parseInt(b.cuba)||0); });
+  var wrap = document.getElementById('cubas-pestanas-wrap');
+  if(!wrap) return;
+  var h = '';
+  cubasHoy.forEach(function(p){
+    var activa = (p.id===CUBA_ACTIVA_ID) ? ' active' : '';
+    var nombreCorto = p.tipo ? p.tipo.split(' ')[0].slice(0,4) : '—';
+    if(p.variedad) nombreCorto += ' ' + p.variedad.slice(0,4);
+    h += '<div class="cuba-pestana'+activa+'" onclick="abrirCubaPestana(\''+p.id+'\')">'
+      + '<span class="num-cuba">'+p.cuba+'</span>'
+      + '<span class="info-cuba">'+nombreCorto+'</span>'
+      + '</div>';
+  });
+  h += '<button class="cuba-pestana-add" onclick="nuevaCubaPestana()">+ Nueva</button>';
+  wrap.innerHTML = h;
+}
+
+function nuevaCubaPestana(){
+  // Crear cuba vacía con datos mínimos y abrirla en el panel
+  var hoy = new Date().toISOString().slice(0,10);
+  var cubasHoy = PARTES.filter(function(p){
+    return (p.fecha===hoy || (p.fecha&&p.fecha.toString().indexOf(hoy)>=0)) && !p.cerrado;
+  });
+  var siguienteCuba = String((cubasHoy.length+1));
+  var nueva = {
+    id: 'P-'+Date.now(),
+    fecha: hoy,
+    cuba: siguienteCuba,
+    tipo: '',
+    variedad: '',
+    litros: 0,
+    operario: OPERARIO_ACTUAL || '',
+    cerrado: false,
+    auxiliares: [], fermentos: [], cuajo: null,
+    coag:{}, desuerado:{}, moldeo:{}, prensado:{}, desmoldeo:{}, piezas:{}, caseinas:{}, co2:{}
+  };
+  PARTES.unshift(nueva);
+  persistir();
+  CUBA_ACTIVA_ID = nueva.id;
+  renderPestanasCubas();
+  cargarFormularioEnPanel(nueva);
+}
+
+function abrirCubaPestana(id){
+  var p = PARTES.find(function(x){return x.id===id;});
+  if(!p) return;
+  CUBA_ACTIVA_ID = id;
+  renderPestanasCubas();
+  cargarFormularioEnPanel(p);
+}
+
+function cargarFormularioEnPanel(p){
+  var panel = document.getElementById('panel-cuba-activa');
+  var tmpl = document.getElementById('form-parte-template');
+  if(!panel || !tmpl) return;
+  // Clonar el HTML del template dentro del panel
+  panel.innerHTML = tmpl.innerHTML;
+  // Cargar los valores del parte en los campos
+  setTimeout(function(){ rellenarCampos(p); installAutoSave(p.id); }, 50);
+}
+
+function rellenarCampos(p){
+  function v(id, val){var el=document.getElementById(id); if(el && val!==undefined && val!==null) el.value=val;}
+  v('np-fecha', p.fecha);
+  v('np-cuba', p.cuba);
+  v('np-litros', p.litros);
+  // Operario: poblar select con el valor del parte o el actual
+  poblarSelectOperario(p.operario || OPERARIO_ACTUAL);
+  v('np-operario', p.operario || OPERARIO_ACTUAL);
+  v('np-lvaca', p.lvaca); v('np-lcabra', p.lcabra); v('np-loveja', p.loveja);
+  v('np-ph', p.ph); v('np-temp', p.temp);
+  // Tipo y variedad
+  if(p.tipo){
+    var ts = document.getElementById('np-tipo-sel');
+    if(ts){ ts.value=p.tipo; onTipoSelChange(); }
+    if(p.variedad){
+      setTimeout(function(){
+        var vs = document.getElementById('np-var-sel');
+        if(vs){ vs.value=p.variedad; onVarSelChange(); }
+      }, 80);
+    }
+  }
+  // CO2
+  if(p.co2){
+    v('aux-ph', p.co2.ph_leche); v('aux-temp', p.co2.temp_leche);
+    v('co2-caudal', p.co2.caudal_lh || 100); v('co2-tiempo', p.co2.tiempo_seg);
+  }
+  // Coagulación
+  if(p.coag){
+    v('coag-hadicion', p.coag.hadicion); v('coag-hc', p.coag.hc);
+    v('coag-ph', p.coag.ph); v('coag-temp', p.coag.temp);
+    v('coag-total', p.coag.total);
+    var disp = document.getElementById('coag-total-display');
+    if(disp && p.coag.total) disp.textContent = p.coag.total+' min';
+  }
+  // Desuerado
+  if(p.desuerado){
+    v('rec-hi', p.desuerado.rec_hi); v('rec-hf', p.desuerado.rec_hf);
+    v('rec-ti', p.desuerado.rec_ti); v('rec-tf', p.desuerado.rec_tf);
+    v('agit-hi', p.desuerado.agit_hi); v('agit-hf', p.desuerado.agit_hf);
+  }
+  // Moldeo
+  if(p.moldeo){
+    v('mol-hi', p.moldeo.hi); v('mol-hf', p.moldeo.hf);
+    v('mol-ph', p.moldeo.ph); v('mol-temp', p.moldeo.temp);
+  }
+  // Prensado
+  if(p.prensado){
+    v('pren-bar1', p.prensado.bar1); v('pren-t1', p.prensado.t1);
+    v('pren-bar2', p.prensado.bar2); v('pren-t2', p.prensado.t2);
+  }
+  // Desmoldeo
+  if(p.desmoldeo){
+    v('des-formato', p.desmoldeo.formato); v('des-ph', p.desmoldeo.ph);
+    v('des-hi', p.desmoldeo.hi); v('des-hf', p.desmoldeo.hf);
+  }
+  // Piezas
+  if(p.piezas){
+    v('pzas-3kg', p.piezas['3kg']); v('pzas-2kg', p.piezas['2kg']);
+    v('pzas-1kg', p.piezas['1kg']); v('pzas-05kg', p.piezas['05kg']);
+    v('pzas-barra', p.piezas['barra']); v('pzas-gigante', p.piezas['gigante']);
+  }
+  // Caseínas
+  if(p.caseinas){
+    v('cas-serie', p.caseinas.serie);
+    v('cas-primera', p.caseinas.primera); v('cas-ultima', p.caseinas.ultima);
+  }
+  v('np-obs', p.observaciones);
+
+  // Añadir botones al final: Cerrar parte / Eliminar
+  var panel = document.getElementById('panel-cuba-activa');
+  if(panel){
+    var btnCerrar = document.createElement('button');
+    btnCerrar.className='btn-cerrar-parte';
+    btnCerrar.textContent='✓ Cerrar parte (pasa al historial)';
+    btnCerrar.onclick = function(){ cerrarParteActivo(p.id); };
+    panel.appendChild(btnCerrar);
+    var btnEliminar = document.createElement('button');
+    btnEliminar.className='btn-eliminar-cuba';
+    btnEliminar.textContent='🗑 Eliminar esta cuba';
+    btnEliminar.onclick = function(){ eliminarCubaActiva(p.id); };
+    panel.appendChild(btnEliminar);
+  }
+}
+
+function installAutoSave(parteId){
+  // En cada cambio de cualquier input, actualizar el parte y persistir
+  var panel = document.getElementById('panel-cuba-activa');
+  if(!panel) return;
+  var inputs = panel.querySelectorAll('input, select, textarea');
+  for(var i=0;i<inputs.length;i++){
+    inputs[i].addEventListener('change', function(){ autoGuardarParte(parteId); });
+    inputs[i].addEventListener('input', function(){
+      clearTimeout(window._autoSaveTimer);
+      window._autoSaveTimer = setTimeout(function(){ autoGuardarParte(parteId); }, 600);
+    });
+  }
+}
+
+function autoGuardarParte(parteId){
+  var p = PARTES.find(function(x){return x.id===parteId;});
+  if(!p) return;
+  function g(id){var el=document.getElementById(id); return el?el.value:'';}
+  function gn(id){return parseFloat(g(id))||0;}
+  function gi(id){return parseInt(g(id))||0;}
+
+  p.tipo = document.getElementById('np-tipo-sel') ? document.getElementById('np-tipo-sel').value : p.tipo;
+  p.variedad = document.getElementById('np-var-sel') ? document.getElementById('np-var-sel').value : p.variedad;
+  p.litros = gn('np-litros');
+  p.lvaca = gn('np-lvaca'); p.lcabra = gn('np-lcabra'); p.loveja = gn('np-loveja');
+  p.ph = g('np-ph'); p.temp = g('np-temp');
+  var opEl = document.getElementById('np-operario-sel');
+  p.operario = opEl ? opEl.value : g('np-operario');
+  if(p.operario) OPERARIO_ACTUAL = p.operario;
+  guardarOperarios();
+  p.cuba = g('np-cuba');
+  p.coag = {hadicion:g('coag-hadicion'), hc:g('coag-hc'), ph:g('coag-ph'), temp:g('coag-temp'), total:g('coag-total')};
+  p.desuerado = {rec_hi:g('rec-hi'), rec_hf:g('rec-hf'), rec_ti:g('rec-ti'), rec_tf:g('rec-tf'), agit_hi:g('agit-hi'), agit_hf:g('agit-hf')};
+  p.moldeo = {hi:g('mol-hi'), hf:g('mol-hf'), ph:g('mol-ph'), temp:g('mol-temp')};
+  p.prensado = {bar1:g('pren-bar1'), t1:g('pren-t1'), bar2:g('pren-bar2'), t2:g('pren-t2')};
+  p.desmoldeo = {formato:g('des-formato'), ph:g('des-ph'), hi:g('des-hi'), hf:g('des-hf')};
+  p.piezas = {'3kg':gi('pzas-3kg'),'2kg':gi('pzas-2kg'),'1kg':gi('pzas-1kg'),'05kg':gi('pzas-05kg'),'barra':gi('pzas-barra'),'gigante':gi('pzas-gigante')};
+  p.caseinas = {serie:g('cas-serie'), primera:gi('cas-primera'), ultima:gi('cas-ultima'), total:(gi('cas-ultima')-gi('cas-primera')+1)};
+  p.co2 = {ph_leche:gn('aux-ph'), temp_leche:gn('aux-temp'), caudal_lh:gn('co2-caudal'), tiempo_seg:gi('co2-tiempo'), ph_objetivo:6.48};
+  p.observaciones = g('np-obs');
+  persistir();
+  // Refrescar las pestañas (cambia el nombre si cambió tipo/variedad)
+  renderPestanasCubas();
+}
+
+function cerrarParteActivo(id){
+  if(!confirm('¿Cerrar este parte? Pasará al historial.')) return;
+  var p = PARTES.find(function(x){return x.id===id;});
+  if(!p) return;
+  p.cerrado = true;
+  persistir();
+  enviarParteSheets(p);
+  CUBA_ACTIVA_ID = null;
+  var panel = document.getElementById('panel-cuba-activa');
+  if(panel) panel.innerHTML = '<div class="empty-state" style="padding:40px 20px"><div class="empty-state-icon">✓</div><div class="empty-state-text">Parte cerrado y enviado al historial</div></div>';
+  renderPestanasCubas();
+  toast('✓ Parte cerrado');
+}
+
+function eliminarCubaActiva(id){
+  if(!confirm('¿Eliminar esta cuba? Se perderán todos los datos.')) return;
+  PARTES = PARTES.filter(function(p){return p.id!==id;});
+  persistir();
+  CUBA_ACTIVA_ID = null;
+  var panel = document.getElementById('panel-cuba-activa');
+  if(panel) panel.innerHTML = '<div class="empty-state" style="padding:40px 20px"><div class="empty-state-icon">🥛</div><div class="empty-state-text">No hay cubas abiertas hoy.<br>Pulsa <b>+ Nueva</b> para empezar.</div></div>';
+  renderPestanasCubas();
+  toast('Cuba eliminada');
+}
+
+// ═══════════════════════════════════════════════
 // FUNCIONES AUXILIARES
 // ═══════════════════════════════════════════════
 
@@ -516,6 +837,9 @@ function switchTab(tab){
   var target = document.getElementById('screen-'+tab);
   if(target) target.style.display='block';
   window.scrollTo(0,0);
+  // Refrescar contenido según pantalla
+  if(tab==='hoy'){ try{ renderPestanasCubas(); }catch(e){} }
+  if(tab==='historial'){ try{ renderPartes(); }catch(e){} }
 }
 
 function toggleSec(id){var b=document.getElementById('body-'+id);var c=document.getElementById('chev-'+id);if(b)b.classList.toggle('open');if(c)c.classList.toggle('open');}
@@ -629,7 +953,7 @@ function renderProductoCard(prod){
   }else{
     loteHTML='<div class="lote-chip empty"><div class="lote-chip-info"><div class="lote-chip-lote">⚠ Sin lote activo</div><div class="lote-chip-cad">Selecciona uno del stock</div></div><button class="lote-chip-btn" onclick="abrirSelectorLote(\''+prod.nombre+'\')">Seleccionar</button></div>';
   }
-  return '<div style="margin-bottom:18px"><div class="sep-label">'+prod.nombre+'</div><div class="form-row"><label class="form-label">Dosis <span class="calc-tag">CALCULADA</span></label><div class="dosis-calc"><div><div class="dosis-calc-val" id="dosis-'+key+'">—</div><div class="dosis-calc-label">ml/g totales</div></div><div style="text-align:right"><div style="font-size:0.72rem;color:var(--blue);font-weight:700">'+prod.dosis_ml_1000L+' /1000L</div><input type="number" placeholder="Override" data-prod="'+prod.nombre+'" oninput="onDosisOverride(this)"></div></div></div><div class="form-row"><label class="form-label">Lote <span class="auto-tag">ÚLTIMO USADO</span></label>'+loteHTML+'</div></div>';
+  return '<div style="margin-bottom:18px"><div class="sep-label">'+prod.nombre+'</div><div class="form-row"><label class="form-label">Dosis</label><div class="dosis-calc"><div><div class="dosis-calc-val" id="dosis-'+key+'">—</div><div class="dosis-calc-label">ml/g totales</div></div><div style="text-align:right"><div style="font-size:0.72rem;color:var(--blue);font-weight:700">'+prod.dosis_ml_1000L+' /1000L</div><input type="number" placeholder="Override" data-prod="'+prod.nombre+'" oninput="onDosisOverride(this)"></div></div></div><div class="form-row"><label class="form-label">Lote</label>'+loteHTML+'</div></div>';
 }
 
 function obtenerLoteActivo(producto){
@@ -670,8 +994,7 @@ function calcCO2(){
   var infoEl=document.getElementById('co2-ph-actual');
   var detEl=document.getElementById('co2-formula-detalle');
   if(!el)return;
-  if(infoEl)infoEl.textContent=phLeche>0?phLeche.toFixed(2):'—';
-  if(litros>0&&caudal>0){
+    if(litros>0&&caudal>0){
     var seg;
     if(phLeche>0&&phLeche>phObj){
       seg=Math.round((litros/caudal)*3600);
@@ -1113,6 +1436,7 @@ function sincronizarPendientes(){
 
 function init(){
   // 1. Cargar datos del localStorage
+  try{ cargarOperarios(); }catch(e){}
   try{
     var s = localStorage.getItem('tq_partes_demo');
     if(s){
@@ -1141,13 +1465,14 @@ function init(){
   // 3. INICIALIZAR PANTALLAS — mostrar solo la primera
   var allScreens = document.querySelectorAll('.screen');
   for(var i=0; i<allScreens.length; i++) allScreens[i].style.display = 'none';
-  var primera = document.getElementById('screen-partes');
+  var primera = document.getElementById('screen-hoy');
   if(primera) primera.style.display = 'block';
 
   // 4. Renderizar — cada render con su try/catch
   try{ poblarSelectTipos(); }catch(e){ console.error('poblarSelectTipos:', e); }
   try{ poblarFiltroTipos(); }catch(e){ console.error('poblarFiltroTipos:', e); }
   try{ renderPartes(); }catch(e){ console.error('renderPartes:', e); }
+  try{ renderPestanasCubas(); }catch(e){ console.error('renderPestanasCubas:', e); }
   try{ renderCarrusel(); }catch(e){ console.error('renderCarrusel:', e); }
   try{ renderRecetas(); }catch(e){ console.error('renderRecetas:', e); }
   try{ renderLotes(); }catch(e){ console.error('renderLotes:', e); }
@@ -1160,6 +1485,32 @@ function init(){
     try{ cargarRecetasSheets(); }catch(e){}
     try{ sincronizarPendientes(); }catch(e){}
   }, 1000);
+}
+
+
+// ═══════════════════════════════════════════════
+// SERVICE WORKER (cache automático versión)
+// ═══════════════════════════════════════════════
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('partes-sw.js')
+      .then(function(reg){
+        // Forzar comprobación de actualización en cada carga
+        reg.update();
+        reg.addEventListener('updatefound', function(){
+          var newSW = reg.installing;
+          newSW.addEventListener('statechange', function(){
+            if(newSW.state === 'installed' && navigator.serviceWorker.controller){
+              // Hay nueva versión disponible
+              if(confirm('Hay una versión nueva disponible. ¿Recargar ahora?')){
+                window.location.reload();
+              }
+            }
+          });
+        });
+      })
+      .catch(function(err){ console.warn('SW registro falló:', err); });
+  });
 }
 
 init();
