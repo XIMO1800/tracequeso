@@ -1,6 +1,6 @@
 // Service Worker para Partes de Fabricación
-// Versión: 1.5 - cambiar este número en cada nueva versión del HTML
-const CACHE_VERSION = 'partes-v1-5';
+// Versión: 1.7 - cambiar este número en cada nueva versión del HTML
+const CACHE_VERSION = 'partes-v1-7';
 const CACHE_FILES = [
   'partes-fabricacion.html'
 ];

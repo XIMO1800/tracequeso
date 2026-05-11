@@ -66,6 +66,8 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
 .dosis-calc-val{font-size:1.4rem;font-weight:800;color:var(--blue);line-height:1}
 .dosis-calc-label{font-size:0.68rem;color:var(--blue);margin-top:3px;opacity:0.85}
 .dosis-calc input{width:90px;font-size:0.85rem;padding:6px 8px;background:white;border-color:var(--blue);text-align:center}
+input[type=time]{font-family:inherit;font-size:1rem}
+input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .lote-chip{display:flex;align-items:center;gap:8px;background:var(--greenl);border:1.5px solid var(--green2);border-radius:8px;padding:9px 12px}
 .lote-chip.empty{background:var(--amberl);border-color:var(--amber)}
 .lote-chip-info{flex:1;min-width:0}
@@ -180,7 +182,7 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.5</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.7</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -344,7 +346,7 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
       <div class="sep-label">Recalentamiento</div>
       <div class="form-cols">
         <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="rec-hi"></div>
-        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="rec-hf"></div>
+        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="rec-hf" onchange="propagarHora('rec-hf','agit-hi')"></div>
       </div>
       <div class="form-cols">
         <div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" id="rec-ti" inputmode="decimal"></div>
@@ -353,7 +355,7 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
       <div class="sep-label">Agitación</div>
       <div class="form-cols">
         <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="agit-hi"></div>
-        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="agit-hf"></div>
+        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="agit-hf" onchange="propagarHora('agit-hf','mol-hi')"></div>
       </div>
     </div>
   </div>
@@ -365,31 +367,46 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
     </div>
     <div class="seccion-body" id="body-mol">
       <div class="sep-label">Moldeo</div>
-      <div class="form-cols">
-        <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="mol-hi"></div>
-        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="mol-hf"></div>
-      </div>
+      <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="mol-hi"></div>
       <div class="form-cols">
         <div class="form-row"><label class="form-label">pH moldeo</label><input type="number" id="mol-ph" step="0.01" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="mol-temp" inputmode="decimal"></div>
       </div>
+      <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="mol-hf"></div>
       <div class="sep-label">Prensado</div>
-      <div class="form-cols">
-        <div class="form-row"><label class="form-label">Presión 1 (bar)</label><input type="number" id="pren-bar1" step="0.05" inputmode="decimal"></div>
-        <div class="form-row"><label class="form-label">Tiempo 1 (min)</label><input type="number" id="pren-t1" inputmode="numeric"></div>
+      <div class="form-row">
+        <label class="form-label">Etapa 1</label>
+        <input type="text" id="pren-e1" placeholder="0,5–3 bar · 30+60">
       </div>
-      <div class="form-cols">
-        <div class="form-row"><label class="form-label">Presión 2 (bar)</label><input type="number" id="pren-bar2" step="0.5" inputmode="decimal"></div>
-        <div class="form-row"><label class="form-label">Tiempo 2 (min)</label><input type="number" id="pren-t2" inputmode="numeric"></div>
+      <div class="form-row">
+        <label class="form-label">Etapa 2</label>
+        <input type="text" id="pren-e2" placeholder="3–4,5 bar · 30+60">
       </div>
       <div class="sep-label">Desmoldeo</div>
-      <div class="form-cols">
-        <div class="form-row"><label class="form-label">Formato</label><select id="des-formato"><option>3 KG</option><option>2 KG</option><option>1 KG</option><option>1/2 KG</option><option>BARRA</option><option>GIGANTE</option></select></div>
-        <div class="form-row"><label class="form-label">pH desmoldeo</label><input type="number" id="des-ph" step="0.01" inputmode="decimal"></div>
+      <div class="form-row"><label class="form-label">Formato</label><select id="des-formato"><option>3 KG</option><option>2 KG</option><option>1 KG</option><option>1/2 KG</option><option>BARRA</option><option>GIGANTE</option></select></div>
+      <div class="form-cols-3">
+        <div class="form-row"><label class="form-label">Hora inicial</label><input type="time" id="des-hi"></div>
+        <div class="form-row"><label class="form-label">pH inicial</label><input type="number" id="des-ph" step="0.01" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" id="des-temp-i" inputmode="decimal"></div>
       </div>
+      <div class="form-cols-3">
+        <div class="form-row"><label class="form-label">Hora final</label><input type="time" id="des-hf"></div>
+        <div class="form-row"><label class="form-label">pH final</label><input type="number" id="des-ph-f" step="0.01" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" id="des-temp-f" inputmode="decimal"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="seccion">
+    <div class="seccion-header" onclick="toggleSec('salm')">
+      <div class="seccion-header-left"><span class="seccion-icon">🧂</span><div><div class="seccion-label">Salmuera</div><div class="seccion-sublabel">Tiempo en salmuera</div></div></div>
+      <span class="seccion-chevron" id="chev-salm">▼</span>
+    </div>
+    <div class="seccion-body" id="body-salm">
+      <div class="form-row"><label class="form-label">Formato</label><select id="salm-formato"><option>3 KG</option><option>2 KG</option><option>1 KG</option><option>1/2 KG</option><option>BARRA</option><option>GIGANTE</option></select></div>
       <div class="form-cols">
-        <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="des-hi"></div>
-        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="des-hf"></div>
+        <div class="form-row"><label class="form-label">Hora inicial</label><input type="time" id="salm-hi"></div>
+        <div class="form-row"><label class="form-label">Hora final</label><input type="time" id="salm-hf"></div>
       </div>
     </div>
   </div>
@@ -435,10 +452,7 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
     </div>
   </div>
 
-  <div style="margin-top:16px">
-    <button class="btn btn-primary" onclick="guardarParte()">💾 Guardar parte</button>
-    <button class="btn btn-secondary" style="margin-top:8px" onclick="if(confirm('¿Cancelar el parte? Se perderán los datos.'))limpiarParte()">Cancelar</button>
-  </div>
+
 </div>
 
 <!-- ════════════════════ HISTORIAL ════════════════════ -->
@@ -522,6 +536,19 @@ var STOCK_DEMO = {
 var LOTES_ACTIVOS = {};
 var PARTES = [];
 var parteActual = {receta:null,litros:0,dosis_override:{},lotes_seleccionados:{}};
+
+// Propagar valor de un input a otro (encadenar horas)
+function propagarHora(origenId, destinoId){
+  var origen = document.getElementById(origenId);
+  var destino = document.getElementById(destinoId);
+  if(!origen || !destino) return;
+  if(origen.value && !destino.value){
+    destino.value = origen.value;
+    // Disparar evento change para que el autoguardado capture el cambio
+    var ev = new Event('change', {bubbles:true});
+    destino.dispatchEvent(ev);
+  }
+}
 
 // ═══════════════════════════════════════════════
 // OPERARIOS
@@ -706,13 +733,17 @@ function rellenarCampos(p){
   }
   // Prensado
   if(p.prensado){
-    v('pren-bar1', p.prensado.bar1); v('pren-t1', p.prensado.t1);
-    v('pren-bar2', p.prensado.bar2); v('pren-t2', p.prensado.t2);
+    v('pren-e1', p.prensado.etapa1 || ''); v('pren-e2', p.prensado.etapa2 || '');
   }
   // Desmoldeo
   if(p.desmoldeo){
-    v('des-formato', p.desmoldeo.formato); v('des-ph', p.desmoldeo.ph);
-    v('des-hi', p.desmoldeo.hi); v('des-hf', p.desmoldeo.hf);
+    v('des-formato', p.desmoldeo.formato);
+    v('des-hi', p.desmoldeo.hi); v('des-ph', p.desmoldeo.ph); v('des-temp-i', p.desmoldeo.temp_i);
+    v('des-hf', p.desmoldeo.hf); v('des-ph-f', p.desmoldeo.ph_f); v('des-temp-f', p.desmoldeo.temp_f);
+  }
+  if(p.salmuera){
+    v('salm-formato', p.salmuera.formato);
+    v('salm-hi', p.salmuera.hi); v('salm-hf', p.salmuera.hf);
   }
   // Piezas
   if(p.piezas){
@@ -777,8 +808,9 @@ function autoGuardarParte(parteId){
   p.coag = {hadicion:g('coag-hadicion'), hc:g('coag-hc'), ph:g('coag-ph'), temp:g('coag-temp'), total:g('coag-total')};
   p.desuerado = {rec_hi:g('rec-hi'), rec_hf:g('rec-hf'), rec_ti:g('rec-ti'), rec_tf:g('rec-tf'), agit_hi:g('agit-hi'), agit_hf:g('agit-hf')};
   p.moldeo = {hi:g('mol-hi'), hf:g('mol-hf'), ph:g('mol-ph'), temp:g('mol-temp')};
-  p.prensado = {bar1:g('pren-bar1'), t1:g('pren-t1'), bar2:g('pren-bar2'), t2:g('pren-t2')};
-  p.desmoldeo = {formato:g('des-formato'), ph:g('des-ph'), hi:g('des-hi'), hf:g('des-hf')};
+  p.prensado = {etapa1:g('pren-e1'), etapa2:g('pren-e2')};
+  p.desmoldeo = {formato:g('des-formato'), hi:g('des-hi'), ph:g('des-ph'), temp_i:g('des-temp-i'), hf:g('des-hf'), ph_f:g('des-ph-f'), temp_f:g('des-temp-f')};
+  p.salmuera = {formato:g('salm-formato'), hi:g('salm-hi'), hf:g('salm-hf')};
   p.piezas = {'3kg':gi('pzas-3kg'),'2kg':gi('pzas-2kg'),'1kg':gi('pzas-1kg'),'05kg':gi('pzas-05kg'),'barra':gi('pzas-barra'),'gigante':gi('pzas-gigante')};
   p.caseinas = {serie:g('cas-serie'), primera:gi('cas-primera'), ultima:gi('cas-ultima'), total:(gi('cas-ultima')-gi('cas-primera')+1)};
   p.co2 = {ph_leche:gn('aux-ph'), temp_leche:gn('aux-temp'), caudal_lh:gn('co2-caudal'), tiempo_seg:gi('co2-tiempo'), ph_objetivo:6.48};
@@ -953,7 +985,7 @@ function renderProductoCard(prod){
   }else{
     loteHTML='<div class="lote-chip empty"><div class="lote-chip-info"><div class="lote-chip-lote">⚠ Sin lote activo</div><div class="lote-chip-cad">Selecciona uno del stock</div></div><button class="lote-chip-btn" onclick="abrirSelectorLote(\''+prod.nombre+'\')">Seleccionar</button></div>';
   }
-  return '<div style="margin-bottom:18px"><div class="sep-label">'+prod.nombre+'</div><div class="form-row"><label class="form-label">Dosis</label><div class="dosis-calc"><div><div class="dosis-calc-val" id="dosis-'+key+'">—</div><div class="dosis-calc-label">ml/g totales</div></div><div style="text-align:right"><div style="font-size:0.72rem;color:var(--blue);font-weight:700">'+prod.dosis_ml_1000L+' /1000L</div><input type="number" placeholder="Override" data-prod="'+prod.nombre+'" oninput="onDosisOverride(this)"></div></div></div><div class="form-row"><label class="form-label">Lote</label>'+loteHTML+'</div></div>';
+  return '<div style="margin-bottom:18px"><div class="sep-label">'+prod.nombre+'</div><div class="form-row"><label class="form-label">Dosis</label><div class="dosis-calc"><div><div class="dosis-calc-val" id="dosis-'+key+'">—</div><div class="dosis-calc-label">ml/g totales</div></div><div style="text-align:right"><div style="font-size:0.72rem;color:var(--blue);font-weight:700">'+prod.dosis_ml_1000L+' /1000L</div><input type="number" placeholder="Modificar" data-prod="'+prod.nombre+'" oninput="onDosisOverride(this)"></div></div></div><div class="form-row"><label class="form-label">Lote</label>'+loteHTML+'</div></div>';
 }
 
 function obtenerLoteActivo(producto){
@@ -1091,7 +1123,7 @@ function guardarParte(){
     coag:{hadicion:document.getElementById('coag-hadicion').value,hc:document.getElementById('coag-hc').value,ph:document.getElementById('coag-ph').value,temp:document.getElementById('coag-temp').value,total:document.getElementById('coag-total').value},
     desuerado:{rec_hi:document.getElementById('rec-hi').value,rec_hf:document.getElementById('rec-hf').value,rec_ti:document.getElementById('rec-ti').value,rec_tf:document.getElementById('rec-tf').value,agit_hi:document.getElementById('agit-hi').value,agit_hf:document.getElementById('agit-hf').value},
     moldeo:{hi:document.getElementById('mol-hi').value,hf:document.getElementById('mol-hf').value,ph:document.getElementById('mol-ph').value,temp:document.getElementById('mol-temp').value},
-    prensado:{bar1:document.getElementById('pren-bar1').value,t1:document.getElementById('pren-t1').value,bar2:document.getElementById('pren-bar2').value,t2:document.getElementById('pren-t2').value},
+    prensado:{etapa1:document.getElementById('pren-e1').value,etapa2:document.getElementById('pren-e2').value},
     desmoldeo:{formato:document.getElementById('des-formato').value,ph:document.getElementById('des-ph').value,hi:document.getElementById('des-hi').value,hf:document.getElementById('des-hf').value},
     piezas:{'3kg':parseInt(document.getElementById('pzas-3kg').value)||0,'2kg':parseInt(document.getElementById('pzas-2kg').value)||0,'1kg':parseInt(document.getElementById('pzas-1kg').value)||0,'05kg':parseInt(document.getElementById('pzas-05kg').value)||0,'barra':parseInt(document.getElementById('pzas-barra').value)||0,'gigante':parseInt(document.getElementById('pzas-gigante').value)||0},
     caseinas:{serie:document.getElementById('cas-serie').value,primera:parseInt(document.getElementById('cas-primera').value)||0,ultima:parseInt(document.getElementById('cas-ultima').value)||0,total:(parseInt(document.getElementById('cas-ultima').value)||0)-(parseInt(document.getElementById('cas-primera').value)||0)+1},
@@ -1120,7 +1152,7 @@ function descontarStock(producto,cantidad){
 }
 
 function limpiarParte(){
-  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-operario','aux-ph','aux-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','agit-hi','agit-hf','mol-hi','mol-hf','mol-ph','mol-temp','pren-bar1','pren-t1','pren-bar2','pren-t2','des-ph','des-hi','des-hf','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','cas-serie','cas-primera','cas-ultima','co2-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-operario','aux-ph','aux-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','agit-hi','agit-hf','mol-hi','mol-hf','mol-ph','mol-temp','pren-e1','pren-e2','des-hi','des-ph','des-temp-i','des-hf','des-ph-f','des-temp-f','salm-hi','salm-hf','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','cas-serie','cas-primera','cas-ultima','co2-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('np-tipo').value='';
   var ts=document.getElementById('np-tipo-sel');if(ts)ts.value='';
   var vs=document.getElementById('np-var-sel');if(vs){vs.innerHTML='<option value="">— Variedad —</option>';vs.disabled=true;}
