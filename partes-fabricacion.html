@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Partes de Fabricación · El Hidalgo</title>
+<style>
+:root{
+  --bg:#F5F2EC;--bg2:#EDEAE2;--bg3:#E4E0D6;--card:#FFFFFF;--border:#D6D2C8;
+  --text:#2C2A25;--text2:#6B6860;--text3:#9B9890;
+  --green:#2E5E3E;--green2:#4A8A62;--greenl:#EAF2EC;
+  --amber:#B8620A;--amberl:#FDF3E7;--red:#9B2B2B;--redl:#FDEAEA;
+  --blue:#1E4A7A;--bluel:#EAF0FA;
+  --shadow:0 2px 12px rgba(0,0,0,0.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:Georgia,'Times New Roman',serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px}
+.header{background:var(--green);color:white;padding:14px 16px 12px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+.header-back{background:rgba(255,255,255,0.15);border:none;color:white;width:36px;height:36px;border-radius:8px;font-size:1.2rem;cursor:pointer;flex-shrink:0}
+.header-title{font-size:1.05rem;font-weight:700}
+.header-sub{font-size:0.72rem;opacity:0.8;margin-top:1px}
+.header-spacer{flex:1}
+.header-badge{background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;font-size:0.72rem;font-weight:700}
+.nav-tabs{display:flex;background:var(--card);border-bottom:2px solid var(--border);overflow-x:auto;position:sticky;top:62px;z-index:99;scrollbar-width:none}
+.nav-tabs::-webkit-scrollbar{display:none}
+.nav-tab{padding:12px 14px;font-size:0.78rem;font-weight:700;color:var(--text2);cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-2px;letter-spacing:0.03em;text-transform:uppercase}
+.nav-tab.active{color:var(--green);border-bottom-color:var(--green)}
+.screen{display:none;padding:16px}
+.screen.active{display:block}
+.card{background:var(--card);border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px}
+.card-header{padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--text2)}
+.card-body{padding:14px 16px}
+.seccion{background:var(--card);border-radius:12px;border:1px solid var(--border);margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow)}
+.seccion-header{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.seccion-header:active{background:var(--bg2)}
+.seccion-header-left{display:flex;align-items:center;gap:10px}
+.seccion-icon{font-size:1.2rem}
+.seccion-label{font-size:0.95rem;font-weight:700;color:var(--text)}
+.seccion-sublabel{font-size:0.7rem;color:var(--text3);margin-top:1px}
+.seccion-chevron{font-size:0.85rem;color:var(--text3);transition:transform 0.2s}
+.seccion-chevron.open{transform:rotate(180deg)}
+.seccion-body{padding:14px 16px;border-top:1px solid var(--border);display:none}
+.seccion-body.open{display:block}
+.form-row{margin-bottom:14px}
+.form-row:last-child{margin-bottom:0}
+.form-label{display:block;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text2);margin-bottom:5px}
+.auto-tag,.new-tag,.calc-tag{font-size:0.62rem;padding:1px 6px;border-radius:4px;margin-left:6px;font-weight:700;vertical-align:middle;text-transform:uppercase}
+.auto-tag{background:var(--greenl);color:var(--green)}
+.calc-tag{background:var(--bluel);color:var(--blue)}
+.new-tag{background:var(--amberl);color:var(--amber)}
+input[type=text],input[type=number],input[type=date],input[type=time],select,textarea{
+  width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;
+  font-family:inherit;font-size:0.95rem;color:var(--text);background:var(--bg);
+  outline:none;-webkit-appearance:none;appearance:none
+}
+select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%236B6860' d='M6 8L0 0h12z'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+input:focus,select:focus,textarea:focus{border-color:var(--green2);background:white}
+input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--green2);color:var(--green);font-weight:700}
+.form-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-cols-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.dosis-calc{background:var(--bluel);border:1.5px solid var(--blue);border-radius:8px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dosis-calc-val{font-size:1.4rem;font-weight:800;color:var(--blue);line-height:1}
+.dosis-calc-label{font-size:0.68rem;color:var(--blue);margin-top:3px;opacity:0.85}
+.dosis-calc input{width:90px;font-size:0.85rem;padding:6px 8px;background:white;border-color:var(--blue);text-align:center}
+.lote-chip{display:flex;align-items:center;gap:8px;background:var(--greenl);border:1.5px solid var(--green2);border-radius:8px;padding:9px 12px}
+.lote-chip.empty{background:var(--amberl);border-color:var(--amber)}
+.lote-chip-info{flex:1;min-width:0}
+.lote-chip-lote{font-size:0.92rem;font-weight:700;color:var(--green);font-family:'Courier New',monospace}
+.lote-chip.empty .lote-chip-lote{color:var(--amber)}
+.lote-chip-cad{font-size:0.7rem;color:var(--text3);margin-top:2px}
+.lote-chip-btn{background:white;border:1.5px solid var(--green2);color:var(--green);border-radius:6px;padding:5px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap}
+.lote-chip.empty .lote-chip-btn{border-color:var(--amber);color:var(--amber)}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:10px;font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;text-align:center}
+.btn:active{transform:scale(0.98)}
+.btn-primary{background:var(--green);color:white}
+.btn-secondary{background:var(--bg2);color:var(--text);border:1.5px solid var(--border)}
+.btn-amber{background:var(--amber);color:white}
+.btn-danger{background:var(--red);color:white}
+.btn-sm{padding:7px 14px;font-size:0.82rem;width:auto;display:inline-block}
+.parte-item{padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer}
+.parte-item:last-child{border-bottom:none}
+.parte-item:active{background:var(--bg2)}
+.parte-item-top{display:flex;align-items:center;justify-content:space-between}
+.parte-item-tipo{font-size:0.95rem;font-weight:700;color:var(--text)}
+.parte-item-meta{font-size:0.72rem;color:var(--text3);margin-top:3px}
+.parte-item-badge{background:var(--greenl);color:var(--green);font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:20px}
+.receta-item{padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.receta-item:last-child{border-bottom:none}
+.receta-item:active{background:var(--bg2)}
+.receta-item-info{flex:1;min-width:0}
+.receta-item-nombre{font-size:0.92rem;font-weight:700;color:var(--text)}
+.receta-item-sub{font-size:0.7rem;color:var(--text3);margin-top:2px}
+.lote-row{padding:13px 16px;border-bottom:1px solid var(--border)}
+.lote-row:last-child{border-bottom:none}
+.lote-row-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.lote-row-producto{font-size:0.92rem;font-weight:700}
+.lote-row-lote{font-family:'Courier New',monospace;font-size:0.85rem;color:var(--green);font-weight:700}
+.lote-row-meta{font-size:0.7rem;color:var(--text3)}
+.sep{height:1px;background:var(--border);margin:14px 0}
+.sep-label{text-align:center;font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin:16px 0 12px}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:white;padding:10px 20px;border-radius:20px;font-size:0.85rem;font-weight:700;opacity:0;transition:all 0.3s;z-index:999;pointer-events:none;white-space:nowrap;max-width:90%}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:flex-end}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:18px 16px;animation:slideUp 0.25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-title{font-size:1rem;font-weight:800;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text3);line-height:1;padding:0 4px}
+.ferm-row{background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:8px;position:relative;border:1px solid var(--border)}
+.ferm-row-del{position:absolute;top:8px;right:8px;background:var(--redl);border:1px solid var(--red);color:var(--red);border-radius:6px;padding:3px 8px;font-size:0.72rem;font-weight:700;cursor:pointer}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-state-icon{font-size:2.5rem;margin-bottom:10px;opacity:0.5}
+.empty-state-text{font-size:0.88rem}
+.stock-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:4px}
+.stock-bar-fill{height:100%}
+.stock-bar-fill.ok{background:var(--green2)}
+.stock-bar-fill.low{background:var(--amber)}
+.stock-bar-fill.crit{background:var(--red)}
+.opt-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer}
+.opt-row:active{background:var(--bg3)}
+.opt-row-info{flex:1;min-width:0}
+.opt-row-lote{font-family:'Courier New',monospace;font-size:0.92rem;font-weight:700;color:var(--text)}
+.opt-row-meta{font-size:0.72rem;color:var(--text3);margin-top:2px}
+.opt-row-stock{font-size:0.75rem;font-weight:700;color:var(--green);background:var(--greenl);padding:3px 8px;border-radius:20px;white-space:nowrap;margin-left:8px}
+.warn-banner{background:var(--amberl);border-left:4px solid var(--amber);padding:10px 12px;border-radius:6px;margin-bottom:12px;font-size:0.82rem;color:var(--amber)}
+.resumen-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.88rem}
+.resumen-row:last-child{border:none}
+.resumen-row span{color:var(--text2)}
+</style>
+</head>
+<body>
+<div class="header">
+  <button class="header-back" onclick="alert('Volvería al menú principal de TraceQueso')">←</button>
+  <div>
+    <div class="header-title">🧀 Partes de Fabricación</div>
+    <div class="header-sub">Lácteos Cuquerella · El Hidalgo</div>
+  </div>
+  <div class="header-spacer"></div>
+  <div class="header-badge" id="hdr-fecha">—</div>
+</div>
+<div class="nav-tabs">
+  <div class="nav-tab active" data-tab="partes" onclick="switchTab('partes')">📋 Partes</div>
+  <div class="nav-tab" data-tab="nuevo" onclick="switchTab('nuevo')">➕ Nuevo</div>
+  <div class="nav-tab" data-tab="recetas" onclick="switchTab('recetas')">📖 Recetas</div>
+  <div class="nav-tab" data-tab="lotes" onclick="switchTab('lotes')">🏷️ Lotes</div>
+  <div class="nav-tab" data-tab="stock" onclick="switchTab('stock')">📦 Stock</div>
+</div>
+
+<div id="screen-partes" class="screen active">
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <input type="date" id="filtro-fecha" style="flex:1" onchange="renderPartes()">
+    <select id="filtro-tipo" style="flex:1" onchange="renderPartes()">
+      <option value="">Todos los tipos</option>
+    </select>
+  </div>
+  <div class="card" id="lista-partes"></div>
+</div>
+
+<div id="screen-nuevo" class="screen">
+  <div class="card">
+    <div class="card-header"><span class="card-title">📄 Datos generales</span></div>
+    <div class="card-body">
+      <div class="form-cols">
+        <div class="form-row"><label class="form-label">Fecha</label><input type="date" id="np-fecha"></div>
+        <div class="form-row"><label class="form-label">Nº Cuba</label><select id="np-cuba"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+      </div>
+      <div class="form-cols">
+        <div class="form-row">
+          <label class="form-label">Tipo <span class="auto-tag">RECETA</span></label>
+          <select id="np-tipo-sel" onchange="onTipoSelChange()"><option value="">—</option></select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Variedad <span class="auto-tag">RECETA</span></label>
+          <select id="np-var-sel" onchange="onVarSelChange()" disabled><option value="">—</option></select>
+        </div>
+      </div>
+      <input type="hidden" id="np-tipo">
+      <div class="form-cols">
+        <div class="form-row"><label class="form-label">Litros totales <span class="calc-tag">CALCULA DOSIS</span></label><input type="number" id="np-litros" placeholder="5000" inputmode="numeric" oninput="calcularDosis();calcCO2()"></div>
+        <div class="form-row"><label class="form-label">Operario</label><input type="text" id="np-operario" placeholder="Nombre"></div>
+      </div>
+      <div class="form-cols-3">
+        <div class="form-row"><label class="form-label">L. Vaca</label><input type="number" id="np-lvaca" placeholder="0" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">L. Cabra</label><input type="number" id="np-lcabra" placeholder="0" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">L. Oveja</label><input type="number" id="np-loveja" placeholder="0" inputmode="numeric"></div>
+      </div>
+      <div class="form-cols">
+        <div class="form-row"><label class="form-label">pH entrada</label><input type="number" id="np-ph" placeholder="6.70" step="0.01" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" placeholder="4" inputmode="decimal"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="seccion">
+    <div class="seccion-header" onclick="toggleSec('aux')">
+      <div class="seccion-header-left"><span class="seccion-icon">🧪</span><div><div class="seccion-label">Auxiliares de fabricación</div><div class="seccion-sublabel" id="aux-sub">CaCl₂ · Lisozima</div></div></div>
+      <span class="seccion-chevron open" id="chev-aux">▼</span>
+    </div>
+    <div class="seccion-body open" id="body-aux">
+      <!-- pH y Tª de la leche en el momento de adición de auxiliares -->
+      <div class="sep-label">Leche en cuba</div>
+      <div class="form-cols">
+        <div class="form-row">
+          <label class="form-label">pH leche</label>
+          <input type="number" id="aux-ph" placeholder="6.70" step="0.01" inputmode="decimal" oninput="calcCO2()">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Tª leche (°C)</label>
+          <input type="number" id="aux-temp" placeholder="4" step="0.1" inputmode="decimal">
+        </div>
+      </div>
+      <!-- CO2: siempre presente, independiente de receta -->
+      <div class="sep-label">CO₂</div>
+      <div class="form-row">
+        <label class="form-label">Lote CO₂ <span class="auto-tag">ÚLTIMO USADO</span></label>
+        <div class="lote-chip" id="co2-lote-chip">
+          <div class="lote-chip-info">
+            <div class="lote-chip-lote" id="co2-lote-val">Sin lote activo</div>
+            <div class="lote-chip-cad" id="co2-lote-cad">—</div>
+          </div>
+          <button class="lote-chip-btn" onclick="abrirSelectorLote('CO2')">Cambiar</button>
+        </div>
+      </div>
+      <div class="form-cols">
+        <div class="form-row">
+          <label class="form-label">Tiempo (seg) <span class="calc-tag">CALCULADO</span></label>
+          <input type="number" id="co2-tiempo" placeholder="—" inputmode="numeric" readonly class="calc-filled">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Caudal (L/h)</label>
+          <input type="number" id="co2-caudal" value="100" inputmode="numeric" oninput="calcCO2()">
+        </div>
+      </div>
+      <div style="background:var(--amberl);border-left:3px solid var(--amber);border-radius:6px;padding:8px 12px;margin-top:-8px;margin-bottom:14px;font-size:0.75rem;color:var(--amber)" id="co2-formula-info">
+        <b>pH objetivo:</b> 6,48 · <b>pH leche:</b> <span id="co2-ph-actual">—</span><br>
+        <span id="co2-formula-detalle">Introduce el pH de la leche para calcular el tiempo exacto</span>
+      </div>
+      <!-- Resto auxiliares de la receta (CaCl2, Lisozima...) -->
+      <div id="aux-container"></div>
+    </div>
+  </div>
+
+  <div class="seccion">
+    <div class="seccion-header" onclick="toggleSec('ferm')">
+      <div class="seccion-header-left"><span class="seccion-icon">🦠</span><div><div class="seccion-label">Fermentos lácticos</div><div class="seccion-sublabel" id="ferm-sub">—</div></div></div>
+      <span class="seccion-chevron" id="chev-ferm">▼</span>
+    </div>
+    <div class="seccion-body" id="body-ferm"><div id="ferm-container"><div class="empty-state" style="padding:20px"><div class="empty-state-text">Selecciona tipo·variedad arriba</div></div></div></div>
+  </div>
+
+  <div class="seccion">
+    <div class="seccion-header" onclick="toggleSec('coag')">
+      <div class="seccion-header-left"><span class="seccion-icon">⚗️</span><div><div class="seccion-label">Coagulación</div><div class="seccion-sublabel" id="coag-sub">Cuajo según receta</div></div></div>
+      <span class="seccion-chevron" id="chev-coag">▼</span>
+    </div>
+    <div class="seccion-body" id="body-coag">
+      <div id="coag-cuajo-container"><div class="empty-state" style="padding:20px"><div class="empty-state-text">Selecciona tipo·variedad arriba</div></div></div>
+      <div id="coag-proceso" style="display:none">
+        <div class="sep"></div>
+        <div class="form-cols">
+          <div class="form-row"><label class="form-label">pH coagulación</label><input type="number" id="coag-ph" placeholder="6.60" step="0.01" inputmode="decimal"></div>
+          <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="coag-temp" placeholder="32" inputmode="decimal"></div>
+        </div>
+        <div class="form-cols">
+          <div class="form-row"><label class="form-label">Hora adición</label><input type="time" id="coag-hadicion" oninput="calcCoagTotal()"></div>
+          <div class="form-row"><label class="form-label">Hora de corte</label><input type="time" id="coag-hc" oninput="calcCoagTotal()"></div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Coagulación total <span class="calc-tag">CALCULADO</span></label>
+          <div class="dosis-calc" style="padding:8px 12px">
+            <div>
+              <div class="dosis-calc-val" id="coag-total-display">—</div>
+              <div class="dosis-calc-label">minutos (corte − adición)</div>
+            </div>
+          </div>
+          <input type="hidden" id="coag-total">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="seccion">
+    <div class="seccion-header" onclick="toggleSec('des')">
+      <div class="seccion-header-left"><span class="seccion-icon">💧</span><div><div class="seccion-label">Desuerado en cuba</div><div class="seccion-sublabel">Recalentamiento · Agitación</div></div></div>
+      <span class="seccion-chevron" id="chev-des">▼</span>
+    </div>
+    <div class="seccion-body" id="body-des">
+      <div class="sep-label">Recalentamiento</div>
+      <div class="form-cols">
+        <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="rec-hi"></div>
+        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="rec-hf"></div>
+      </div>
+      <div class="form-cols">
+        <div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" id="rec-ti" placeholder="32" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" id="rec-tf" placeholder="38" inputmode="decimal"></div>
+      </div>
+      <div class="sep-label">Agitación</div>
+      <div class="form-cols">
+        <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="agit-hi"></div>
+        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="agit-hf"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="seccion">
+    <div class="seccion-header" onclick="toggleSec('mol')">
+      <div class="seccion-header-left"><span class="seccion-icon">🔲</span><div><div class="seccion-label">Moldeo · Prensado · Desmoldeo</div><div class="seccion-sublabel">Tiempos y presiones</div></div></div>
+      <span class="seccion-chevron" id="chev-mol">▼</span>
+    </div>
+    <div class="seccion-body" id="body-mol">
+      <div class="sep-label">Moldeo</div>
+      <div class="form-cols">
+        <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="mol-hi"></div>
+        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="mol-hf"></div>
+      </div>
+      <div class="form-cols">
+        <div class="form-row"><label class="form-label">pH moldeo</label><input type="number" id="mol-ph" placeholder="6.09" step="0.01" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="mol-temp" placeholder="36" inputmode="decimal"></div>
+      </div>
+      <div class="sep-label">Prensado</div>
+      <div class="form-cols">
+        <div class="form-row"><label class="form-label">Presión 1 (bar)</label><input type="number" id="pren-bar1" placeholder="0.15" step="0.05" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tiempo 1 (min)</label><input type="number" id="pren-t1" placeholder="60" inputmode="numeric"></div>
+      </div>
+      <div class="form-cols">
+        <div class="form-row"><label class="form-label">Presión 2 (bar)</label><input type="number" id="pren-bar2" placeholder="3" step="0.5" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tiempo 2 (min)</label><input type="number" id="pren-t2" placeholder="415" inputmode="numeric"></div>
+      </div>
+      <div class="sep-label">Desmoldeo</div>
+      <div class="form-cols">
+        <div class="form-row"><label class="form-label">Formato</label><select id="des-formato"><option>3 KG</option><option>2 KG</option><option>1 KG</option><option>1/2 KG</option><option>BARRA</option><option>GIGANTE</option></select></div>
+        <div class="form-row"><label class="form-label">pH desmoldeo</label><input type="number" id="des-ph" placeholder="5.15" step="0.01" inputmode="decimal"></div>
+      </div>
+      <div class="form-cols">
+        <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="des-hi"></div>
+        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="des-hf"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="seccion">
+    <div class="seccion-header" onclick="toggleSec('pzas')">
+      <div class="seccion-header-left"><span class="seccion-icon">🧀</span><div><div class="seccion-label">Piezas fabricadas</div><div class="seccion-sublabel">Cantidad por formato</div></div></div>
+      <span class="seccion-chevron" id="chev-pzas">▼</span>
+    </div>
+    <div class="seccion-body" id="body-pzas">
+      <div class="form-cols-3">
+        <div class="form-row"><label class="form-label">3 KG</label><input type="number" id="pzas-3kg" placeholder="0" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">2 KG</label><input type="number" id="pzas-2kg" placeholder="0" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">1 KG</label><input type="number" id="pzas-1kg" placeholder="0" inputmode="numeric"></div>
+      </div>
+      <div class="form-cols-3">
+        <div class="form-row"><label class="form-label">1/2 KG</label><input type="number" id="pzas-05kg" placeholder="0" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">Barra</label><input type="number" id="pzas-barra" placeholder="0" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">Gigante</label><input type="number" id="pzas-gigante" placeholder="0" inputmode="numeric"></div>
+      </div>
+      <!-- Caseínas: solo visible para D.O. PAST. y D.O. CRUDA -->
+      <div id="bloque-caseinas" style="display:none">
+        <div class="sep-label">Caseínas (D.O.)</div>
+        <div class="form-row">
+          <label class="form-label">Serie</label>
+          <input type="text" id="cas-serie" placeholder="Ej: AZX" style="text-transform:uppercase">
+        </div>
+        <div class="form-cols">
+          <div class="form-row"><label class="form-label">Primera caseína</label><input type="number" id="cas-primera" placeholder="1" inputmode="numeric" oninput="calcCaseinas()"></div>
+          <div class="form-row"><label class="form-label">Última caseína</label><input type="number" id="cas-ultima" placeholder="0" inputmode="numeric" oninput="calcCaseinas()"></div>
+        </div>
+        <div id="cas-resultado" style="display:none;background:var(--bluel);border:1.5px solid var(--blue);border-radius:8px;padding:10px 14px;margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:1.3rem;font-weight:800;color:var(--blue)" id="cas-total">0</div>
+              <div style="font-size:0.7rem;color:var(--blue)">caseínas = última − primera + 1</div>
+            </div>
+            <div id="cas-aviso" style="font-size:0.78rem;font-weight:700;padding:5px 10px;border-radius:6px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="form-row"><label class="form-label">Observaciones / Acciones correctoras</label><textarea id="np-obs" rows="3" placeholder="Anotar cualquier desviación..."></textarea></div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px">
+    <button class="btn btn-primary" onclick="guardarParte()">💾 Guardar parte</button>
+    <button class="btn btn-secondary" style="margin-top:8px" onclick="if(confirm('¿Cancelar el parte? Se perderán los datos.'))limpiarParte()">Cancelar</button>
+  </div>
+</div>
+
+<div id="screen-recetas" class="screen">
+  <div class="warn-banner">📖 Las recetas definen qué cuajo, fermentos y dosis usar para cada tipo·variedad. Cuando seleccionas una receta en un parte nuevo, todo se calcula automáticamente.</div>
+  <button class="btn btn-primary" style="margin-bottom:12px" onclick="abrirReceta(null)">➕ Nueva receta</button>
+  <div class="card" id="lista-recetas"></div>
+</div>
+
+<div id="screen-lotes" class="screen">
+  <div class="warn-banner">🏷️ El último lote usado de cada producto se guarda automáticamente al cerrar un parte y se pre-rellena en el siguiente.</div>
+  <div class="card" id="lista-lotes"></div>
+</div>
+
+<div id="screen-stock" class="screen">
+  <div class="warn-banner">📦 Stock de cuajos, fermentos y auxiliares. Calidad da de alta los albaranes; al cerrar un parte se descuenta automáticamente.</div>
+  <button class="btn btn-primary" style="margin-bottom:12px" onclick="abrirAlbaran()">📥 Registrar entrada de albarán</button>
+  <div class="card" id="lista-stock"></div>
+</div>
+
+<div class="modal-overlay" id="modal"><div class="modal" id="modal-content"></div></div>
+<div id="toast"></div>
+
+<script>
+// ── CATÁLOGO TIPO·VARIEDAD (sincronizado con TraceQueso) ──
+// Catálogo extraído de REGISTRO TOTAL en Google Sheets (11/05/2026)
+// D.O.: sin variedad (columna vacía en Sheets)
+// MEZCLA: variedades confirmadas en registros reales
+// OVEJA y CABRA: solo TIERNO como variedad especial; sin variedad = estándar
+var TIPOS_VARIEDADES = {
+  'D.O. PAST.':   [],          // Sin variedad
+  'D.O. CRUDA':   [],          // Sin variedad
+  'MEZCLA':       ['TIERNO','SEMICURADO','BAJO EN SAL','ACEITE','TOSTADO','BOUQUET','NEGRO','PRUEBA'],
+  'OVEJA':        ['(ESTÁNDAR)','TIERNO'],
+  'CABRA':        ['(ESTÁNDAR)','TIERNO']
+};
+var FORMATOS = ['3 KG','2 KG','1 KG','1/2 KG','BARRA','GIGANTE','SUPERMINIS'];
+
+var API_URL = 'https://script.google.com/macros/s/AKfycbzRpl0519TiKvlfVZqEK12oZDfUCn9bNrJVT4kRDyni3pCxLg7FTMKmssgeKGJMWEP0/exec';
+var SYNC_PENDIENTE = []; // registros pendientes de enviar cuando haya red
+
+var RECETAS_DEMO = [
+  {id:'r1',tipo:'MEZCLA',variedad:'SEMICURADO',
+   auxiliares:[{nombre:'CaCl2',dosis_ml_1000L:100},{nombre:'Lisozima',dosis_ml_1000L:20}],
+   fermentos:[{nombre:'R-704',dosis_ml_1000L:100},{nombre:'FLORA',dosis_ml_1000L:20}],
+   cuajo:{nombre:'NATUREN',dosis_ml_1000L:200}},
+  {id:'r2',tipo:'D.O. PAST.',variedad:'CURADO',
+   auxiliares:[{nombre:'CaCl2',dosis_ml_1000L:80}],
+   fermentos:[{nombre:'HANSEN',dosis_ml_1000L:120},{nombre:'GRACIA-102',dosis_ml_1000L:100}],
+   cuajo:{nombre:'CHYMAX',dosis_ml_1000L:180}},
+  {id:'r3',tipo:'MEZCLA',variedad:'TIERNO',
+   auxiliares:[{nombre:'CaCl2',dosis_ml_1000L:100},{nombre:'Lisozima',dosis_ml_1000L:20}],
+   fermentos:[{nombre:'R-704',dosis_ml_1000L:80},{nombre:'DANISCO',dosis_ml_1000L:50}],
+   cuajo:{nombre:'NATUREN',dosis_ml_1000L:200}}
+];
+
+var STOCK_DEMO = {
+  'CaCl2':[{lote:'24H2648IAT',caducidad:'2026-08-07',cantidad:18,unidad:'L',proveedor:'BETELGEUX'},{lote:'25A1247BCD',caducidad:'2027-01-12',cantidad:25,unidad:'L',proveedor:'BETELGEUX'}],
+  'Lisozima':[{lote:'LZ-2025-04',caducidad:'2026-12-31',cantidad:5,unidad:'L',proveedor:'HANSEN'}],
+  'NATUREN':[{lote:'377-2410',caducidad:'2026-01-24',cantidad:12,unidad:'L',proveedor:'HANSEN'},{lote:'381-2502',caducidad:'2026-08-15',cantidad:20,unidad:'L',proveedor:'HANSEN'}],
+  'CHYMAX':[{lote:'CHX-2025-118',caducidad:'2026-11-30',cantidad:8,unidad:'L',proveedor:'CHR HANSEN'}],
+  'R-704':[{lote:'376-8905',caducidad:'2026-12-12',cantidad:6,unidad:'kg',proveedor:'HANSEN'},{lote:'381-0910',caducidad:'2026-12-16',cantidad:10,unidad:'kg',proveedor:'HANSEN'}],
+  'FLORA':[{lote:'486-6224',caducidad:'2026-05-03',cantidad:3,unidad:'kg',proveedor:'DANISCO'}],
+  'HANSEN':[{lote:'447-49-9248',caducidad:'2026-06-18',cantidad:8,unidad:'kg',proveedor:'HANSEN'}],
+  'GRACIA-102':[{lote:'375-1947',caducidad:'2026-08-30',cantidad:5,unidad:'kg',proveedor:'HANSEN'}],
+  'DANISCO':[{lote:'DAN-2502-A',caducidad:'2026-09-12',cantidad:4,unidad:'kg',proveedor:'DANISCO'}],
+  'CO2':[{lote:'CO2-2025-11',caducidad:'2026-11-30',cantidad:50,unidad:'kg',proveedor:'AIR LIQUIDE'}]
+};
+
+var LOTES_ACTIVOS = {};
+var PARTES = [];
+var parteActual = {receta:null,litros:0,dosis_override:{},lotes_seleccionados:{}};
+
+function init(){
+  try{
+    var s=localStorage.getItem('tq_partes_demo');
+    if(s){var d=JSON.parse(s);if(d.recetas)RECETAS_DEMO=d.recetas;if(d.stock)STOCK_DEMO=d.stock;if(d.lotesActivos)LOTES_ACTIVOS=d.lotesActivos;if(d.partes)PARTES=d.partes;}
+  }catch(e){}
+  var hoy=new Date().toISOString().slice(0,10);
+  document.getElementById('hdr-fecha').textContent=formatearFecha(hoy);
+  document.getElementById('np-fecha').value=hoy;
+  document.getElementById('filtro-fecha').value=hoy;
+  poblarSelectTipos();poblarFiltroTipos();
+  renderPartes();renderRecetas();renderLotes();renderStock();
+  iniciarCO2();
+  // Cargar datos de Sheets en background
+  cargarPartesSheets();
+  cargarRecetasSheets();
+  // Sincronizar pendientes si hay red
+  setTimeout(sincronizarPendientes, 2000);
+}
+
+function iniciarCO2(){
+  var lote = obtenerLoteActivo('CO2');
+  var chip = document.getElementById('co2-lote-chip');
+  var valEl = document.getElementById('co2-lote-val');
+  var cadEl = document.getElementById('co2-lote-cad');
+  if(!chip) return;
+  if(lote){
+    valEl.textContent = lote.lote;
+    cadEl.textContent = 'Consumo preferente: ' + formatearFecha(lote.caducidad) + ' · ' + lote.proveedor;
+    chip.classList.remove('empty');
+  } else {
+    valEl.textContent = 'Sin lote activo';
+    cadEl.textContent = '—';
+    chip.classList.add('empty');
+  }
+}
+
+function persistir(){
+  try{localStorage.setItem('tq_partes_demo',JSON.stringify({recetas:RECETAS_DEMO,stock:STOCK_DEMO,lotesActivos:LOTES_ACTIVOS,partes:PARTES,pendientes:SYNC_PENDIENTE}));}catch(e){}
+}
+
+function formatearFecha(iso){if(!iso)return'—';var p=iso.split('-');return p[2]+'/'+p[1]+'/'+p[0].slice(2);}
+
+function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2200);}
+
+function switchTab(tab){
+  document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.toggle('active',t.dataset.tab===tab);});
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.getElementById('screen-'+tab).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function toggleSec(id){document.getElementById('body-'+id).classList.toggle('open');document.getElementById('chev-'+id).classList.toggle('open');}
+
+function poblarSelectTipos(){
+  // Pobla los DOS selects de tipo y variedad
+  var selT = document.getElementById('np-tipo-sel');
+  selT.innerHTML = '<option value="">— Tipo —</option>';
+  Object.keys(TIPOS_VARIEDADES).forEach(function(t){
+    var o = document.createElement('option'); o.value=t; o.textContent=t; selT.appendChild(o);
+  });
+}
+
+function onTipoSelChange(){
+  var t = document.getElementById('np-tipo-sel').value;
+  var selV = document.getElementById('np-var-sel');
+  selV.innerHTML = '<option value="">— Variedad —</option>';
+  if(!t){ selV.disabled=true; document.getElementById('np-tipo').value=''; onTipoChange(); return; }
+  var vars = TIPOS_VARIEDADES[t]||[];
+  if(vars.length === 0){
+    // Sin variedad (D.O. PAST., D.O. CRUDA) → buscar receta directamente
+    selV.innerHTML = '<option value="">(sin variedad)</option>';
+    selV.disabled = true;
+    var r = RECETAS_DEMO.find(function(x){ return x.tipo===t && (!x.variedad||x.variedad===''); });
+    document.getElementById('np-tipo').value = r ? r.id : '__nueva__:'+t+':';
+    onTipoChange();
+    return;
+  }
+  vars.forEach(function(v){
+    var o=document.createElement('option'); o.value=v; o.textContent=v; selV.appendChild(o);
+  });
+  selV.disabled = false;
+  document.getElementById('np-tipo').value = '';
+  onTipoChange();
+}
+
+function onVarSelChange(){
+  var t = document.getElementById('np-tipo-sel').value;
+  var v = document.getElementById('np-var-sel').value;
+  if(!t || !v){ document.getElementById('np-tipo').value=''; onTipoChange(); return; }
+  // Buscar receta que coincida
+  var r = RECETAS_DEMO.find(function(x){ return x.tipo===t && x.variedad===v; });
+  if(r){
+    document.getElementById('np-tipo').value = r.id;
+  } else {
+    document.getElementById('np-tipo').value = '__nueva__:'+t+':'+v;
+    toast('⚠ No hay receta para '+t+' · '+v+' — créala en la pestaña Recetas');
+  }
+  onTipoChange();
+}
+
+function poblarFiltroTipos(){
+  var sel=document.getElementById('filtro-tipo');
+  sel.innerHTML='<option value="">Todos los tipos</option>';
+  var vistos={};
+  RECETAS_DEMO.forEach(function(r){var tv=r.tipo+' · '+r.variedad;if(!vistos[tv]){vistos[tv]=1;var o=document.createElement('option');o.value=tv;o.textContent=tv;sel.appendChild(o);}});
+}
+
+function onTipoChange(){
+  var rid=document.getElementById('np-tipo').value;
+  var receta = null;
+  if(rid && rid.indexOf('__nueva__:')!==0){
+    receta = RECETAS_DEMO.find(function(r){return r.id===rid;});
+  }
+  parteActual.receta=receta;
+  parteActual.dosis_override={};
+  parteActual.lotes_seleccionados={};
+  if(!receta){
+    document.getElementById('aux-container').innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-state-text">Selecciona tipo·variedad arriba</div></div>';
+    document.getElementById('ferm-container').innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-state-text">Selecciona tipo·variedad arriba</div></div>';
+    document.getElementById('coag-cuajo-container').innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-state-text">Selecciona tipo·variedad arriba</div></div>';
+    document.getElementById('coag-proceso').style.display='none';
+    return;
+  }
+  renderAuxiliares(receta);renderFermentos(receta);renderCuajo(receta);
+  document.getElementById('coag-proceso').style.display='block';
+  calcularDosis();
+  // Mostrar caseínas solo para D.O.
+  var esDO = receta && (receta.tipo==='D.O. PAST.' || receta.tipo==='D.O. CRUDA');
+  document.getElementById('bloque-caseinas').style.display = esDO ? 'block' : 'none';
+}
+
+function renderAuxiliares(receta){
+  var c=document.getElementById('aux-container');
+  if(!receta.auxiliares||!receta.auxiliares.length){c.innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-state-text">Esta receta no tiene auxiliares</div></div>';document.getElementById('aux-sub').textContent='—';return;}
+  document.getElementById('aux-sub').textContent=receta.auxiliares.map(function(a){return a.nombre;}).join(' · ');
+  var h='';receta.auxiliares.forEach(function(a){h+=renderProductoCard(a);});c.innerHTML=h;
+}
+
+function renderFermentos(receta){
+  var c=document.getElementById('ferm-container');
+  if(!receta.fermentos||!receta.fermentos.length){c.innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-state-text">Esta receta no tiene fermentos</div></div>';document.getElementById('ferm-sub').textContent='—';return;}
+  document.getElementById('ferm-sub').textContent=receta.fermentos.map(function(f){return f.nombre;}).join(' · ');
+  var h='';receta.fermentos.forEach(function(f){h+=renderProductoCard(f);});c.innerHTML=h;
+}
+
+function renderCuajo(receta){
+  var c=document.getElementById('coag-cuajo-container');
+  if(!receta.cuajo){c.innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-state-text">Esta receta no define cuajo</div></div>';document.getElementById('coag-sub').textContent='—';return;}
+  document.getElementById('coag-sub').textContent='Cuajo: '+receta.cuajo.nombre;
+  c.innerHTML=renderProductoCard(receta.cuajo);
+}
+
+function renderProductoCard(prod){
+  var key=prod.nombre.replace(/[^a-zA-Z0-9]/g,'_');
+  var lote=obtenerLoteActivo(prod.nombre);
+  var loteHTML='';
+  if(lote){
+    loteHTML='<div class="lote-chip"><div class="lote-chip-info"><div class="lote-chip-lote">'+lote.lote+'</div><div class="lote-chip-cad">Caducidad: '+formatearFecha(lote.caducidad)+' · '+lote.proveedor+'</div></div><button class="lote-chip-btn" onclick="abrirSelectorLote(\''+prod.nombre+'\')">Cambiar</button></div>';
+  } else {
+    loteHTML='<div class="lote-chip empty"><div class="lote-chip-info"><div class="lote-chip-lote">⚠ Sin lote activo</div><div class="lote-chip-cad">Selecciona uno del stock</div></div><button class="lote-chip-btn" onclick="abrirSelectorLote(\''+prod.nombre+'\')">Seleccionar</button></div>';
+  }
+  return '<div style="margin-bottom:18px"><div class="sep-label">'+prod.nombre+'</div><div class="form-row"><label class="form-label">Dosis <span class="calc-tag">CALCULADA</span></label><div class="dosis-calc"><div><div class="dosis-calc-val" id="dosis-'+key+'">—</div><div class="dosis-calc-label">ml/g totales</div></div><div style="text-align:right"><div style="font-size:0.72rem;color:var(--blue);font-weight:700">'+prod.dosis_ml_1000L+' /1000L</div><input type="number" placeholder="Override" data-prod="'+prod.nombre+'" oninput="onDosisOverride(this)"></div></div></div><div class="form-row"><label class="form-label">Lote <span class="auto-tag">ÚLTIMO USADO</span></label>'+loteHTML+'</div></div>';
+}
+
+function obtenerLoteActivo(producto){
+  if(LOTES_ACTIVOS[producto])return LOTES_ACTIVOS[producto];
+  if(STOCK_DEMO[producto]&&STOCK_DEMO[producto].length)return STOCK_DEMO[producto][0];
+  return null;
+}
+
+function onDosisOverride(input){
+  var prod=input.dataset.prod;var v=parseFloat(input.value);
+  if(isNaN(v)||v<=0)delete parteActual.dosis_override[prod];
+  else parteActual.dosis_override[prod]=v;
+  calcularDosis();
+}
+
+function calcularDosis(){
+  var litros=parseFloat(document.getElementById('np-litros').value)||0;
+  parteActual.litros=litros;
+  if(!parteActual.receta)return;
+  var r=parteActual.receta;
+  var todos=(r.auxiliares||[]).concat(r.fermentos||[]).concat(r.cuajo?[r.cuajo]:[]);
+  todos.forEach(function(p){
+    var key=p.nombre.replace(/[^a-zA-Z0-9]/g,'_');
+    var base=parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L;
+    var total=litros*base/1000;
+    var el=document.getElementById('dosis-'+key);
+    if(el)el.textContent=litros>0?total.toFixed(1):'—';
+  });
+}
+
+function abrirSelectorLote(producto){
+  var stock=STOCK_DEMO[producto]||[];
+  var h='<div class="modal-title">Lote de '+producto+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
+  if(stock.length===0){h+='<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">No hay stock disponible para '+producto+'.<br>Calidad debe registrar un albarán de entrada.</div></div>';}
+  else {
+    h+='<div style="margin-bottom:8px;font-size:0.8rem;color:var(--text2)">Lotes disponibles en stock:</div>';
+    stock.forEach(function(s,i){h+='<div class="opt-row" onclick="seleccionarLote(\''+producto+'\','+i+')"><div class="opt-row-info"><div class="opt-row-lote">'+s.lote+'</div><div class="opt-row-meta">Cad: '+formatearFecha(s.caducidad)+' · '+s.proveedor+'</div></div><div class="opt-row-stock">'+s.cantidad+' '+s.unidad+'</div></div>';});
+  }
+  abrirModal(h);
+}
+
+function seleccionarLote(producto,idx){
+  var s=STOCK_DEMO[producto][idx];
+  LOTES_ACTIVOS[producto]=s;
+  parteActual.lotes_seleccionados[producto]=s.lote;
+  persistir();cerrarModal();
+  if(parteActual.receta){var rid=parteActual.receta.id;document.getElementById('np-tipo').value=rid;onTipoChange();}
+  iniciarCO2();
+  toast('✅ Lote '+s.lote+' seleccionado');
+}
+
+function guardarParte(){
+  if(!parteActual.receta){toast('⚠ Selecciona tipo·variedad');return;}
+  var litros=parseFloat(document.getElementById('np-litros').value);
+  if(!litros||litros<=0){toast('⚠ Introduce los litros totales');return;}
+  var r=parteActual.receta;
+  var parte={
+    id:'P-'+Date.now(),fecha:document.getElementById('np-fecha').value,cuba:document.getElementById('np-cuba').value,
+    tipo:r.tipo,variedad:r.variedad,receta_id:r.id,litros:litros,
+    lvaca:parseFloat(document.getElementById('np-lvaca').value)||0,
+    lcabra:parseFloat(document.getElementById('np-lcabra').value)||0,
+    loveja:parseFloat(document.getElementById('np-loveja').value)||0,
+    ph:document.getElementById('np-ph').value,temp:document.getElementById('np-temp').value,
+    operario:document.getElementById('np-operario').value,
+    auxiliares:[],fermentos:[],cuajo:null,
+    coag:{hadicion:document.getElementById('coag-hadicion').value,hc:document.getElementById('coag-hc').value,ph:document.getElementById('coag-ph').value,temp:document.getElementById('coag-temp').value,total:document.getElementById('coag-total').value},
+    desuerado:{rec_hi:document.getElementById('rec-hi').value,rec_hf:document.getElementById('rec-hf').value,rec_ti:document.getElementById('rec-ti').value,rec_tf:document.getElementById('rec-tf').value,agit_hi:document.getElementById('agit-hi').value,agit_hf:document.getElementById('agit-hf').value},
+    moldeo:{hi:document.getElementById('mol-hi').value,hf:document.getElementById('mol-hf').value,ph:document.getElementById('mol-ph').value,temp:document.getElementById('mol-temp').value},
+    prensado:{bar1:document.getElementById('pren-bar1').value,t1:document.getElementById('pren-t1').value,bar2:document.getElementById('pren-bar2').value,t2:document.getElementById('pren-t2').value},
+    desmoldeo:{formato:document.getElementById('des-formato').value,ph:document.getElementById('des-ph').value,hi:document.getElementById('des-hi').value,hf:document.getElementById('des-hf').value},
+    piezas:{'3kg':parseInt(document.getElementById('pzas-3kg').value)||0,'2kg':parseInt(document.getElementById('pzas-2kg').value)||0,'1kg':parseInt(document.getElementById('pzas-1kg').value)||0,'05kg':parseInt(document.getElementById('pzas-05kg').value)||0,'barra':parseInt(document.getElementById('pzas-barra').value)||0,'gigante':parseInt(document.getElementById('pzas-gigante').value)||0},
+    caseinas:{serie:document.getElementById('cas-serie').value,primera:parseInt(document.getElementById('cas-primera').value)||0,ultima:parseInt(document.getElementById('cas-ultima').value)||0,total:(parseInt(document.getElementById('cas-ultima').value)||0)-(parseInt(document.getElementById('cas-primera').value)||0)+1},observaciones:document.getElementById('np-obs').value
+  };
+  function recogerProd(p){
+    var base=parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L;
+    var consumo=litros*base/1000;
+    var lote=obtenerLoteActivo(p.nombre);
+    return {nombre:p.nombre,dosis_1000L:base,consumo_total:consumo,lote:lote?lote.lote:'',caducidad:lote?lote.caducidad:'',proveedor:lote?lote.proveedor:''};
+  }
+  (r.auxiliares||[]).forEach(function(p){parte.auxiliares.push(recogerProd(p));descontarStock(p.nombre,litros*(parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L)/1000);});
+  // CO2 y datos de leche en cuba
+  var co2lote = obtenerLoteActivo('CO2');
+  parte.co2 = {
+    lote: co2lote ? co2lote.lote : '',
+    caducidad: co2lote ? co2lote.caducidad : '',
+    tiempo_seg: parseInt(document.getElementById('co2-tiempo').value)||0,
+    caudal_lh: parseFloat(document.getElementById('co2-caudal').value)||100,
+    ph_leche: parseFloat(document.getElementById('aux-ph').value)||0,
+    temp_leche: parseFloat(document.getElementById('aux-temp').value)||0,
+    ph_objetivo: 6.48
+  };
+  (r.fermentos||[]).forEach(function(p){parte.fermentos.push(recogerProd(p));descontarStock(p.nombre,litros*(parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L)/1000);});
+  if(r.cuajo){parte.cuajo=recogerProd(r.cuajo);descontarStock(r.cuajo.nombre,litros*(parteActual.dosis_override[r.cuajo.nombre]||r.cuajo.dosis_ml_1000L)/1000);}
+  PARTES.unshift(parte);persistir();
+
+  // Enviar a Google Sheets
+  enviarParteSheets(parte);
+
+  toast('✅ Parte guardado');
+  limpiarParte();switchTab('partes');renderPartes();renderStock();renderLotes();
+}
+
+// ══════════════════════════════════════════════
+// CONEXIÓN CON GOOGLE SHEETS
+// ══════════════════════════════════════════════
+
+function enviarParteSheets(parte){
+  var payload = Object.assign({}, parte, {_SHEET: 'PARTES'});
+  fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }).then(function(r){ return r.json(); })
+    .then(function(d){
+      if(!d.ok) console.error('Error guardando parte en Sheets');
+    })
+    .catch(function(){
+      // Sin red: guardar en cola pendiente
+      SYNC_PENDIENTE.push({tipo:'parte', data:payload});
+      persistir();
+      toast('⚠ Sin red — se sincronizará automáticamente');
+    });
+}
+
+function enviarRecetaSheets(receta, eliminar){
+  var payload = Object.assign({}, receta, {_SHEET: 'RECETAS'});
+  if(eliminar) payload._DELETE = true;
+  fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }).catch(function(){
+    SYNC_PENDIENTE.push({tipo:'receta', data:payload});
+    persistir();
+  });
+}
+
+function cargarPartesSheets(){
+  var hoy = new Date().toISOString().slice(0,10);
+  fetch(API_URL + '?tipo=partes&fecha=' + hoy)
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.ok && d.data && d.data.length > 0){
+        // Mergar partes de Sheets con los locales (Sheets tiene prioridad)
+        var idsSheets = d.data.map(function(p){ return p['ID']; });
+        // Quitar locales que ya están en Sheets
+        PARTES = PARTES.filter(function(p){ return idsSheets.indexOf(p.id) < 0; });
+        // Añadir los de Sheets convertidos
+        var deSheets = d.data.map(function(p){
+          return {
+            id: p['ID'], fecha: p['FECHA'], cuba: p['CUBA'],
+            tipo: p['TIPO DE QUESO'], variedad: p['VARIEDAD'],
+            litros: p['LITROS'], operario: p['OPERARIO'],
+            piezas: {
+              '3kg': p['PZAS 3KG']||0, '2kg': p['PZAS 2KG']||0,
+              '1kg': p['PZAS 1KG']||0, '05kg': p['PZAS 05KGS']||0,
+              'barra': p['PZAS BARRA']||0, 'gigante': p['PZAS GIGANTE']||0
+            },
+            observaciones: p['OBSERVACIONES']||''
+          };
+        });
+        PARTES = deSheets.concat(PARTES);
+        persistir();
+        renderPartes();
+      }
+    }).catch(function(){});
+}
+
+function cargarRecetasSheets(){
+  fetch(API_URL + '?tipo=recetas')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.ok && d.data && d.data.length > 0){
+        // Mergar: Sheets tiene prioridad sobre demos
+        var idsSheets = d.data.map(function(r){ return r.id; });
+        // Eliminar demos que coinciden con Sheets
+        RECETAS_DEMO = RECETAS_DEMO.filter(function(r){
+          return idsSheets.indexOf(r.id) < 0 && r.id.indexOf('r') === 0;
+        });
+        RECETAS_DEMO = d.data.concat(RECETAS_DEMO);
+        persistir();
+        renderRecetas();
+        poblarSelectTipos();
+        poblarFiltroTipos();
+      }
+    }).catch(function(){});
+}
+
+function sincronizarPendientes(){
+  if(!SYNC_PENDIENTE || !SYNC_PENDIENTE.length) return;
+  var pendiente = SYNC_PENDIENTE.shift();
+  fetch(API_URL, {method:'POST', body:JSON.stringify(pendiente.data)})
+    .then(function(){ persistir(); sincronizarPendientes(); })
+    .catch(function(){ SYNC_PENDIENTE.unshift(pendiente); });
+}
+
+function descontarStock(producto,cantidad){
+  if(!STOCK_DEMO[producto]||!STOCK_DEMO[producto].length)return;
+  var cantL=cantidad/1000;
+  var lote=LOTES_ACTIVOS[producto]||STOCK_DEMO[producto][0];
+  for(var i=0;i<STOCK_DEMO[producto].length;i++){
+    if(STOCK_DEMO[producto][i].lote===lote.lote){STOCK_DEMO[producto][i].cantidad=Math.max(0,STOCK_DEMO[producto][i].cantidad-cantL);break;}
+  }
+}
+
+function limpiarParte(){
+  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-operario','aux-ph','aux-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','agit-hi','agit-hf','mol-hi','mol-hf','mol-ph','mol-temp','pren-bar1','pren-t1','pren-bar2','pren-t2','des-ph','des-hi','des-hf','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','cas-serie','cas-primera','cas-ultima','co2-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('np-tipo').value='';
+  document.getElementById('np-tipo-sel').value='';
+  document.getElementById('np-var-sel').innerHTML='<option value="">— Variedad —</option>';
+  document.getElementById('np-var-sel').disabled=true;
+  document.getElementById('np-fecha').value=new Date().toISOString().slice(0,10);
+  parteActual={receta:null,litros:0,dosis_override:{},lotes_seleccionados:{}};
+  onTipoChange();
+}
+
+function renderPartes(){
+  var fecha=document.getElementById('filtro-fecha').value;
+  var tipo=document.getElementById('filtro-tipo').value;
+  var filtrados=PARTES.filter(function(p){if(fecha&&p.fecha!==fecha)return false;if(tipo&&(p.tipo+' · '+p.variedad)!==tipo)return false;return true;});
+  var c=document.getElementById('lista-partes');
+  if(filtrados.length===0){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No hay partes para esta fecha</div></div>';return;}
+  var h='';
+  filtrados.forEach(function(p){
+    var totalPzas=(p.piezas['3kg']||0)+(p.piezas['2kg']||0)+(p.piezas['1kg']||0)+(p.piezas['05kg']||0)+(p.piezas['barra']||0)+(p.piezas['gigante']||0);
+    h+='<div class="parte-item" onclick="verParte(\''+p.id+'\')"><div class="parte-item-top"><div class="parte-item-tipo">'+p.tipo+' · '+p.variedad+'</div><div class="parte-item-badge">Cuba '+p.cuba+'</div></div><div class="parte-item-meta">'+formatearFecha(p.fecha)+' · '+p.litros+'L · '+totalPzas+' pzas · '+(p.operario||'—')+'</div></div>';
+  });
+  c.innerHTML=h;
+}
+
+function verParte(id){
+  var p=PARTES.find(function(x){return x.id===id;});if(!p)return;
+  var h='<div class="modal-title">'+p.tipo+' · '+p.variedad+' · Cuba '+p.cuba+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
+  h+='<div style="font-size:0.78rem;color:var(--text3);margin-bottom:14px">'+formatearFecha(p.fecha)+' · '+(p.operario||'—')+'</div>';
+  h+='<div class="resumen-row"><span>Litros totales</span><b>'+p.litros+'</b></div>';
+  h+='<div class="resumen-row"><span>L. Vaca / Cabra / Oveja</span><b>'+p.lvaca+' / '+p.lcabra+' / '+p.loveja+'</b></div>';
+  h+='<div class="resumen-row"><span>pH / Tª entrada</span><b>'+(p.ph||'—')+' / '+(p.temp||'—')+'</b></div>';
+  function blq(t,arr){if(!arr||!arr.length)return'';var hh='<div class="sep-label" style="margin-top:14px">'+t+'</div>';arr.forEach(function(x){hh+='<div class="resumen-row"><span>'+x.nombre+'</span><b>'+x.consumo_total.toFixed(1)+' (lote '+(x.lote||'—')+')</b></div>';});return hh;}
+  if(p.coag && p.coag.hadicion) h+='<div class="resumen-row"><span>Hora adición cuajo</span><b>'+p.coag.hadicion+'</b></div>';
+  if(p.coag && p.coag.ht) h+='<div class="resumen-row"><span>Hora de toma</span><b>'+p.coag.ht+'</b></div>';
+  if(p.coag && p.coag.hc) h+='<div class="resumen-row"><span>Hora de corte</span><b>'+p.coag.hc+'</b></div>';
+  if(p.coag && p.coag.total) h+='<div class="resumen-row"><span>Coagulación total</span><b>'+p.coag.total+' min</b></div>';
+  h+=blq('Auxiliares',p.auxiliares);
+  h+=blq('Fermentos',p.fermentos);
+  if(p.cuajo)h+=blq('Cuajo',[p.cuajo]);
+  h+='<div class="sep-label" style="margin-top:14px">Piezas fabricadas</div>';
+  Object.keys(p.piezas).forEach(function(k){if(p.piezas[k])h+='<div class="resumen-row"><span>'+k.toUpperCase()+'</span><b>'+p.piezas[k]+'</b></div>';});
+  if(p.observaciones)h+='<div class="sep-label" style="margin-top:14px">Observaciones</div><div style="font-size:0.88rem;color:var(--text2)">'+p.observaciones+'</div>';
+  h+='<button class="btn btn-danger" style="margin-top:16px" onclick="eliminarParte(\''+p.id+'\')">🗑️ Eliminar parte</button>';
+  abrirModal(h);
+}
+
+function eliminarParte(id){
+  if(!confirm('¿Eliminar este parte?'))return;
+  PARTES=PARTES.filter(function(p){return p.id!==id;});persistir();cerrarModal();renderPartes();toast('Parte eliminado');
+}
+
+function renderRecetas(){
+  var c=document.getElementById('lista-recetas');
+  if(!RECETAS_DEMO.length){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📖</div><div class="empty-state-text">No hay recetas creadas.<br>Pulsa "Nueva receta" para empezar.</div></div>';return;}
+  var h='';
+  RECETAS_DEMO.forEach(function(r){
+    var nIng=(r.auxiliares?r.auxiliares.length:0)+(r.fermentos?r.fermentos.length:0)+(r.cuajo?1:0);
+    h+='<div class="receta-item" onclick="abrirReceta(\''+r.id+'\')"><div class="receta-item-info"><div class="receta-item-nombre">'+r.tipo+' · '+r.variedad+'</div><div class="receta-item-sub">'+nIng+' ingredientes · cuajo: '+(r.cuajo?r.cuajo.nombre:'—')+'</div></div><span style="color:var(--text3)">›</span></div>';
+  });
+  c.innerHTML=h;
+}
+
+function abrirReceta(id){
+  var r=id?RECETAS_DEMO.find(function(x){return x.id===id;}):{id:null,tipo:'',variedad:'',auxiliares:[],fermentos:[],cuajo:null};
+  window._recetaEditando=JSON.parse(JSON.stringify(r));
+  renderEditorReceta();
+}
+
+function renderEditorReceta(){
+  var r=window._recetaEditando;
+  var h='<div class="modal-title">'+(r.id?'Editar receta':'Nueva receta')+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
+  // Selects encadenados para tipo y variedad
+  var tipoOpts = '<option value="">— Tipo —</option>';
+  Object.keys(TIPOS_VARIEDADES).forEach(function(t){ tipoOpts += '<option value="'+t+'"'+(t===r.tipo?' selected':'')+'>'+t+'</option>'; });
+  var varOpts = '<option value="">— Variedad —</option>';
+  if(r.tipo && TIPOS_VARIEDADES[r.tipo]){
+    TIPOS_VARIEDADES[r.tipo].forEach(function(v){ varOpts += '<option value="'+v+'"'+(v===r.variedad?' selected':'')+'>'+v+'</option>'; });
+  }
+  h+='<div class="form-cols"><div class="form-row"><label class="form-label">Tipo</label><select id="rec-tipo" onchange="onRecTipoChange()">'+tipoOpts+'</select></div><div class="form-row"><label class="form-label">Variedad</label><select id="rec-var">'+varOpts+'</select></div></div>';
+  h+='<div class="sep-label">Auxiliares</div><div id="aux-edit-list"></div><button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="addIng(\'auxiliares\')">➕ Añadir auxiliar</button>';
+  h+='<div class="sep-label">Fermentos</div><div id="ferm-edit-list"></div><button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="addIng(\'fermentos\')">➕ Añadir fermento</button>';
+  h+='<div class="sep-label">Cuajo</div><div id="cuajo-edit-list"></div>';
+  if(!r.cuajo)h+='<button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="addIng(\'cuajo\')">➕ Añadir cuajo</button>';
+  h+='<div style="margin-top:20px"><button class="btn btn-primary" onclick="guardarReceta()">💾 Guardar receta</button>';
+  if(r.id)h+='<button class="btn btn-danger" style="margin-top:8px" onclick="eliminarReceta(\''+r.id+'\')">🗑️ Eliminar</button>';
+  h+='<button class="btn btn-secondary" style="margin-top:8px" onclick="cerrarModal()">Cancelar</button></div>';
+  abrirModal(h);refrescarIngs();
+}
+
+function refrescarIngs(){
+  var r=window._recetaEditando;
+  function pintar(lista,contId,tipo){
+    var c=document.getElementById(contId);if(!c)return;
+    if(!lista||!lista.length){c.innerHTML='<div style="font-size:0.78rem;color:var(--text3);padding:8px 0">Sin ingredientes</div>';return;}
+    var h='';
+    lista.forEach(function(p,i){
+      h+='<div class="ferm-row"><button class="ferm-row-del" onclick="delIng(\''+tipo+'\','+i+')">Eliminar</button><div class="form-row"><label class="form-label">Nombre</label><input type="text" value="'+(p.nombre||'')+'" oninput="updIng(\''+tipo+'\','+i+',\'nombre\',this.value)"></div><div class="form-row"><label class="form-label">Dosis ml/g por 1000L</label><input type="number" value="'+(p.dosis_ml_1000L||'')+'" oninput="updIng(\''+tipo+'\','+i+',\'dosis_ml_1000L\',parseFloat(this.value))"></div></div>';
+    });
+    c.innerHTML=h;
+  }
+  pintar(r.auxiliares,'aux-edit-list','auxiliares');
+  pintar(r.fermentos,'ferm-edit-list','fermentos');
+  pintar(r.cuajo?[r.cuajo]:[],'cuajo-edit-list','cuajo');
+}
+
+function addIng(tipo){
+  var r=window._recetaEditando;
+  if(tipo==='cuajo')r.cuajo={nombre:'',dosis_ml_1000L:0};
+  else{if(!r[tipo])r[tipo]=[];r[tipo].push({nombre:'',dosis_ml_1000L:0});}
+  renderEditorReceta();
+}
+
+function delIng(tipo,i){
+  var r=window._recetaEditando;
+  if(tipo==='cuajo')r.cuajo=null;else r[tipo].splice(i,1);
+  renderEditorReceta();
+}
+
+function updIng(tipo,i,campo,val){
+  var r=window._recetaEditando;
+  if(tipo==='cuajo')r.cuajo[campo]=val;else r[tipo][i][campo]=val;
+}
+
+function calcCO2(){
+  var litros  = parseFloat(document.getElementById('np-litros').value)||0;
+  var caudal  = parseFloat(document.getElementById('co2-caudal').value)||100;
+  var phLeche = parseFloat(document.getElementById('aux-ph') ? document.getElementById('aux-ph').value : '') || 0;
+  var phObj   = 6.48; // pH objetivo fijo
+  var el      = document.getElementById('co2-tiempo');
+  var infoEl  = document.getElementById('co2-ph-actual');
+  var detEl   = document.getElementById('co2-formula-detalle');
+  if(!el) return;
+
+  // Actualizar pH actual visible
+  if(infoEl) infoEl.textContent = phLeche > 0 ? phLeche.toFixed(2) : '—';
+
+  // ── FÓRMULA PENDIENTE ──
+  // Cuando Ximo facilite la fórmula del autómata, sustituir este bloque.
+  // Por ahora: cálculo provisional solo por litros/caudal.
+  // La fórmula real usará: litros, phLeche, phObj=6.48
+  if(litros > 0 && caudal > 0){
+    var seg;
+    if(phLeche > 0 && phLeche > phObj){
+      // PENDIENTE: sustituir por fórmula real del autómata
+      // seg = formula(litros, phLeche, phObj, caudal);
+      seg = Math.round((litros / caudal) * 3600); // provisional
+      if(detEl) detEl.innerHTML = '⏳ Fórmula exacta pendiente · Cálculo provisional: <b>'+seg+' seg</b>';
+    } else if(phLeche > 0 && phLeche <= phObj){
+      seg = 0;
+      if(detEl) detEl.innerHTML = '✅ pH leche ya en objetivo — no se necesita CO₂';
+    } else {
+      seg = Math.round((litros / caudal) * 3600);
+      if(detEl) detEl.textContent = 'Introduce el pH de la leche para calcular el tiempo exacto';
+    }
+    el.value = seg > 0 ? seg : '';
+  } else {
+    el.value = '';
+  }
+}
+
+function calcCoagTotal(){
+  var ha = document.getElementById('coag-hadicion').value;
+  var hc = document.getElementById('coag-hc').value;
+  var display = document.getElementById('coag-total-display');
+  var hidden  = document.getElementById('coag-total');
+  if(!ha || !hc){ display.textContent='—'; hidden.value=''; return; }
+  var partsA = ha.split(':'); var partsC = hc.split(':');
+  var minA = parseInt(partsA[0])*60 + parseInt(partsA[1]);
+  var minC = parseInt(partsC[0])*60 + parseInt(partsC[1]);
+  var diff = minC - minA;
+  if(diff < 0) diff += 1440; // paso de medianoche
+  display.textContent = diff + ' min';
+  hidden.value = diff;
+}
+
+function calcCaseinas(){
+  var primera = parseInt(document.getElementById('cas-primera').value)||0;
+  var ultima  = parseInt(document.getElementById('cas-ultima').value)||0;
+  if(!primera || !ultima){ document.getElementById('cas-resultado').style.display='none'; return; }
+  var total = ultima - primera + 1;
+  document.getElementById('cas-total').textContent = total;
+  document.getElementById('cas-resultado').style.display = 'block';
+  // Comparar con total de piezas (3kg+2kg+1kg+1/2kg; barras y gigante no llevan caseína)
+  var piezas = (parseInt(document.getElementById('pzas-3kg').value)||0)
+             + (parseInt(document.getElementById('pzas-2kg').value)||0)
+             + (parseInt(document.getElementById('pzas-1kg').value)||0)
+             + (parseInt(document.getElementById('pzas-05kg').value)||0);
+  var av = document.getElementById('cas-aviso');
+  if(!piezas){ av.textContent=''; av.style.background=''; return; }
+  if(total === piezas){
+    av.textContent='✅ Cuadra con piezas';
+    av.style.background='var(--greenl)';av.style.color='var(--green)';
+  } else {
+    av.textContent='⚠ '+piezas+' pzas — diferencia: '+(total-piezas);
+    av.style.background='var(--amberl)';av.style.color='var(--amber)';
+  }
+}
+
+function onRecTipoChange(){
+  var t = document.getElementById('rec-tipo').value;
+  var selV = document.getElementById('rec-var');
+  var vars = TIPOS_VARIEDADES[t]||[];
+  if(!t || vars.length===0){
+    selV.innerHTML = '<option value="">(sin variedad)</option>';
+    selV.disabled = true;
+    return;
+  }
+  selV.innerHTML = '<option value="">— Variedad —</option>';
+  selV.disabled = false;
+  vars.forEach(function(v){
+    var o=document.createElement('option'); o.value=v; o.textContent=v; selV.appendChild(o);
+  });
+}
+
+function guardarReceta(){
+  var r=window._recetaEditando;
+  r.tipo=document.getElementById('rec-tipo').value.trim().toUpperCase();
+  r.variedad=document.getElementById('rec-var').value.trim().toUpperCase();
+  if(!r.tipo||!r.variedad){toast('⚠ Tipo y variedad obligatorios');return;}
+  if(!r.id){r.id='r'+Date.now();RECETAS_DEMO.push(r);}
+  else{var idx=RECETAS_DEMO.findIndex(function(x){return x.id===r.id;});if(idx>=0)RECETAS_DEMO[idx]=r;}
+  persistir();
+  enviarRecetaSheets(r, false);
+  cerrarModal();renderRecetas();poblarSelectTipos();poblarFiltroTipos();toast('✅ Receta guardada');
+}
+
+function eliminarReceta(id){
+  if(!confirm('¿Eliminar esta receta?'))return;
+  var recetaElim = RECETAS_DEMO.find(function(r){return r.id===id;});
+  RECETAS_DEMO=RECETAS_DEMO.filter(function(r){return r.id!==id;});
+  persistir();
+  if(recetaElim) enviarRecetaSheets(recetaElim, true);
+  cerrarModal();renderRecetas();poblarSelectTipos();poblarFiltroTipos();toast('Receta eliminada');
+}
+
+function renderLotes(){
+  var c=document.getElementById('lista-lotes');
+  var productos=Object.keys(LOTES_ACTIVOS);
+  if(productos.length===0)productos=Object.keys(STOCK_DEMO);
+  if(!productos.length){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">🏷️</div><div class="empty-state-text">Sin lotes registrados todavía</div></div>';return;}
+  var h='';
+  productos.forEach(function(prod){
+    var l=obtenerLoteActivo(prod);
+    if(!l)h+='<div class="lote-row"><div class="lote-row-top"><div class="lote-row-producto">'+prod+'</div></div><div class="lote-row-meta">Sin lote activo</div></div>';
+    else h+='<div class="lote-row"><div class="lote-row-top"><div class="lote-row-producto">'+prod+'</div><div class="lote-row-lote">'+l.lote+'</div></div><div class="lote-row-meta">Caducidad: '+formatearFecha(l.caducidad)+' · '+l.proveedor+'</div></div>';
+  });
+  c.innerHTML=h;
+}
+
+function renderStock(){
+  var c=document.getElementById('lista-stock');
+  var productos=Object.keys(STOCK_DEMO);
+  if(!productos.length){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">Sin stock registrado</div></div>';return;}
+  var h='';
+  productos.forEach(function(prod){
+    var lotes=STOCK_DEMO[prod];
+    var totalCant=lotes.reduce(function(s,l){return s+l.cantidad;},0);
+    var unidad=lotes[0].unidad;
+    var minimo=5;
+    var pct=Math.min(100,(totalCant/minimo/3)*100);
+    var clase=totalCant<minimo?'crit':(totalCant<minimo*2?'low':'ok');
+    h+='<div class="lote-row"><div class="lote-row-top"><div class="lote-row-producto">'+prod+'</div><div class="lote-row-lote">'+totalCant.toFixed(1)+' '+unidad+'</div></div><div class="stock-bar"><div class="stock-bar-fill '+clase+'" style="width:'+pct+'%"></div></div><div class="lote-row-meta" style="margin-top:6px">'+lotes.length+' lote'+(lotes.length>1?'s':'')+' · mín. '+minimo+' '+unidad+'</div><div style="margin-top:8px">';
+    lotes.forEach(function(l){h+='<div style="font-size:0.76rem;padding:4px 0;color:var(--text2)"><span style="font-family:Courier New,monospace;font-weight:700;color:var(--text)">'+l.lote+'</span> · cad '+formatearFecha(l.caducidad)+' · <b>'+l.cantidad.toFixed(1)+' '+l.unidad+'</b></div>';});
+    h+='</div></div>';
+  });
+  c.innerHTML=h;
+}
+
+function abrirAlbaran(){
+  var h='<div class="modal-title">📥 Registrar entrada <button class="modal-close" onclick="cerrarModal()">×</button></div>';
+  h+='<div class="form-row"><label class="form-label">Producto</label><input type="text" id="alb-prod" placeholder="CHYMAX, NATUREN, R-704..."></div>';
+  h+='<div class="form-row"><label class="form-label">Lote</label><input type="text" id="alb-lote" placeholder="Nº de lote"></div>';
+  h+='<div class="form-cols"><div class="form-row"><label class="form-label">Caducidad</label><input type="date" id="alb-cad"></div><div class="form-row"><label class="form-label">Cantidad</label><input type="number" id="alb-cant" step="0.1" inputmode="decimal"></div></div>';
+  h+='<div class="form-cols"><div class="form-row"><label class="form-label">Unidad</label><select id="alb-uni"><option>L</option><option>ml</option><option>kg</option><option>g</option></select></div><div class="form-row"><label class="form-label">Proveedor</label><input type="text" id="alb-prov" placeholder="HANSEN, DANISCO..."></div></div>';
+  h+='<button class="btn btn-primary" style="margin-top:14px" onclick="guardarAlbaran()">💾 Guardar entrada</button><button class="btn btn-secondary" style="margin-top:8px" onclick="cerrarModal()">Cancelar</button>';
+  abrirModal(h);
+}
+
+function guardarAlbaran(){
+  var prod=document.getElementById('alb-prod').value.trim().toUpperCase();
+  var lote=document.getElementById('alb-lote').value.trim();
+  var cad=document.getElementById('alb-cad').value;
+  var cant=parseFloat(document.getElementById('alb-cant').value);
+  var uni=document.getElementById('alb-uni').value;
+  var prov=document.getElementById('alb-prov').value.trim();
+  if(!prod||!lote||!cant){toast('⚠ Producto, lote y cantidad obligatorios');return;}
+  if(!STOCK_DEMO[prod])STOCK_DEMO[prod]=[];
+  STOCK_DEMO[prod].push({lote:lote,caducidad:cad,cantidad:cant,unidad:uni,proveedor:prov});
+  persistir();cerrarModal();renderStock();renderLotes();toast('✅ Entrada registrada');
+}
+
+function abrirModal(html){document.getElementById('modal-content').innerHTML=html;document.getElementById('modal').classList.add('open');}
+function cerrarModal(){document.getElementById('modal').classList.remove('open');}
+document.getElementById('modal').addEventListener('click',function(e){if(e.target.id==='modal')cerrarModal();});
+
+init();
+</script>
+</body>
+</html>
