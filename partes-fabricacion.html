@@ -47,9 +47,9 @@ body{font-family:Georgia,'Times New Roman',serif;background:var(--bg);color:var(
 .seccion-header{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
 .seccion-header:active{background:var(--bg2)}
 .seccion-header-left{display:flex;align-items:center;gap:10px}
-.seccion-icon{font-size:1.2rem}
-.seccion-label{font-size:0.95rem;font-weight:700;color:var(--text)}
-.seccion-sublabel{font-size:0.7rem;color:var(--text3);margin-top:1px}
+.seccion-icon{display:none}
+.seccion-label{font-size:0.92rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:0.04em}
+.seccion-sublabel{display:none}
 .seccion-chevron{font-size:0.85rem;color:var(--text3);transition:transform 0.2s}
 .seccion-chevron.open{transform:rotate(180deg)}
 .seccion-body{padding:14px 16px;border-top:1px solid var(--border);display:none}
@@ -113,7 +113,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .lote-row-lote{font-family:'Courier New',monospace;font-size:0.85rem;color:var(--green);font-weight:700}
 .lote-row-meta{font-size:0.7rem;color:var(--text3)}
 .sep{height:1px;background:var(--border);margin:14px 0}
-.sep-label{text-align:center;font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin:16px 0 12px}
+.sep-label{text-align:left;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#5b3a1f;margin:10px 0 6px;padding:3px 0 3px 8px;border-left:3px solid #8b5a2b;background:#f4ebd8;border-radius:3px}
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:white;padding:10px 20px;border-radius:20px;font-size:0.85rem;font-weight:700;opacity:0;transition:all 0.3s;z-index:999;pointer-events:none;white-space:nowrap;max-width:90%}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:flex-end}
@@ -222,8 +222,6 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   /* Headers de sección finos */
   .seccion-header { padding: 7px 12px; }
   .seccion-label    { font-size: 0.95rem; }
-  .seccion-sublabel { font-size: 0.7rem; margin-top: 1px; }
-  .seccion-icon     { font-size: 1.15rem; }
   .seccion-chevron  { font-size: 0.85rem; }
 
   /* Secciones casi pegadas */
@@ -324,7 +322,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.4.0</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.4.1</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -588,17 +586,8 @@ input[type="email"] {
       <div id="prensados-container"></div>
       <button type="button" class="btn-secundario" style="margin-top:4px" onclick="anadirPrensado()">+ Añadir otro prensado</button>
       <div class="sep-label">Desmoldeo</div>
-      <div class="form-row"><label class="form-label">Formato</label><select id="des-formato"><option>3 KG</option><option>2 KG</option><option>1 KG</option><option>1/2 KG</option><option>BARRA</option><option>GIGANTE</option></select></div>
-      <div class="form-cols-3">
-        <div class="form-row"><label class="form-label">Hora inicial</label><input type="time" id="des-hi"></div>
-        <div class="form-row"><label class="form-label">pH inicial</label><input type="number" id="des-ph" step="0.01" inputmode="decimal"></div>
-        <div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" id="des-temp-i" inputmode="decimal"></div>
-      </div>
-      <div class="form-cols-3">
-        <div class="form-row"><label class="form-label">Hora final</label><input type="time" id="des-hf"></div>
-        <div class="form-row"><label class="form-label">pH final</label><input type="number" id="des-ph-f" step="0.01" inputmode="decimal"></div>
-        <div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" id="des-temp-f" inputmode="decimal"></div>
-      </div>
+      <div id="desmoldeos-container"></div>
+      <button type="button" class="btn-secundario" style="margin-top:4px" onclick="anadirDesmoldeo()">+ Añadir otro desmoldeo</button>
     </div>
   </div>
 
@@ -608,11 +597,8 @@ input[type="email"] {
       <span class="seccion-chevron" id="chev-salm">▼</span>
     </div>
     <div class="seccion-body" id="body-salm">
-      <div class="form-row"><label class="form-label">Formato</label><select id="salm-formato"><option>3 KG</option><option>2 KG</option><option>1 KG</option><option>1/2 KG</option><option>BARRA</option><option>GIGANTE</option></select></div>
-      <div class="form-cols">
-        <div class="form-row"><label class="form-label">Hora inicial</label><input type="time" id="salm-hi"></div>
-        <div class="form-row"><label class="form-label">Hora final</label><input type="time" id="salm-hf"></div>
-      </div>
+      <div id="salmueras-container"></div>
+      <button type="button" class="btn-secundario" style="margin-top:4px" onclick="anadirSalmuera()">+ Añadir otro saladero</button>
     </div>
   </div>
 
@@ -1110,11 +1096,13 @@ function rellenarCampos(p){
     }
     renderPrensados(lista);
   }
-  // Desmoldeo
-  if(p.desmoldeo){
-    v('des-formato', p.desmoldeo.formato);
-    v('des-hi', p.desmoldeo.hi); v('des-ph', p.desmoldeo.ph); v('des-temp-i', p.desmoldeo.temp_i);
-    v('des-hf', p.desmoldeo.hf); v('des-ph-f', p.desmoldeo.ph_f); v('des-temp-f', p.desmoldeo.temp_f);
+  // Desmoldeo (multi-formato)
+  if (typeof renderDesmoldeos === 'function') {
+    var lstD = p.desmoldeos || [];
+    if (!lstD.length && p.desmoldeo && (p.desmoldeo.hi || p.desmoldeo.hf)) {
+      lstD = [{formato:p.desmoldeo.formato||'', hi:p.desmoldeo.hi||'', ph:p.desmoldeo.ph||'', temp_i:p.desmoldeo.temp_i||'', hf:p.desmoldeo.hf||'', ph_f:p.desmoldeo.ph_f||'', temp_f:p.desmoldeo.temp_f||''}];
+    }
+    renderDesmoldeos(lstD);
   }
   if(p.salmuera){
     v('salm-formato', p.salmuera.formato);
@@ -1189,8 +1177,8 @@ function autoGuardarParte(parteId){
   p.desuerado = {rec_hi:g('rec-hi'), rec_hf:g('rec-hf'), rec_ti:g('rec-ti'), rec_tf:g('rec-tf'), agit_hi:g('agit-hi'), agit_hf:g('agit-hf')};
   p.moldeo = {hi:g('mol-hi'), hf:g('mol-hf'), ph:g('mol-ph'), temp:g('mol-temp')};
   p.prensados = (typeof recogerPrensados === 'function') ? recogerPrensados() : [];
-  p.desmoldeo = {formato:g('des-formato'), hi:g('des-hi'), ph:g('des-ph'), temp_i:g('des-temp-i'), hf:g('des-hf'), ph_f:g('des-ph-f'), temp_f:g('des-temp-f')};
-  p.salmuera = {formato:g('salm-formato'), hi:g('salm-hi'), hf:g('salm-hf')};
+  p.desmoldeos = (typeof recogerDesmoldeos === 'function') ? recogerDesmoldeos() : [];
+  p.salmueras = (typeof recogerSalmueras === 'function') ? recogerSalmueras() : [];
   p.piezas = {'3kg':gi('pzas-3kg'),'2kg':gi('pzas-2kg'),'1kg':gi('pzas-1kg'),'05kg':gi('pzas-05kg'),'barra':gi('pzas-barra'),'gigante':gi('pzas-gigante')};
   p.caseinas = {serie:g('cas-serie'), primera:gi('cas-primera'), ultima:gi('cas-ultima'), total:(gi('cas-ultima')-gi('cas-primera')+1)};
   var co2Chk = document.getElementById('co2-aplicado');
@@ -1646,7 +1634,7 @@ function descontarStock(producto,cantidad){
 }
 
 function limpiarParte(){
-  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-operario','aux-ph','aux-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','agit-hi','agit-hf','mol-hi','mol-hf','mol-ph','mol-temp','des-hi','des-ph','des-temp-i','des-hf','des-ph-f','des-temp-f','salm-hi','salm-hf','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','cas-serie','cas-primera','cas-ultima','co2-tiempo','past-valvula','past-temp','past-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-operario','aux-ph','aux-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','agit-hi','agit-hf','mol-hi','mol-hf','mol-ph','mol-temp','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','cas-serie','cas-primera','cas-ultima','co2-tiempo','past-valvula','past-temp','past-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('np-tipo').value='';
   var ts=document.getElementById('np-tipo-sel');if(ts)ts.value='';
   var vs=document.getElementById('np-var-sel');if(vs){vs.innerHTML='<option value="">— Variedad —</option>';vs.disabled=true;}
@@ -2491,6 +2479,122 @@ function guardarConfigPrensado(){
   guardarPrensadoConfig();
   cerrarConfigPrensado();
   if (typeof toast === 'function') toast('✓ Configuración guardada');
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// SALMUERAS / DESMOLDEOS multi-card (un saladero/desmoldeo por formato)
+// ═══════════════════════════════════════════════════════════════
+function renderSalmueras(lista){
+  var cont = document.getElementById('salmueras-container');
+  if (!cont) return;
+  cont.innerHTML = '';
+  if (!lista || !lista.length) { anadirSalmuera(); return; }
+  lista.forEach(function(s){ anadirSalmuera(s); });
+}
+function anadirSalmuera(datos){
+  datos = datos || {};
+  var cont = document.getElementById('salmueras-container');
+  if (!cont) return;
+  var idx = cont.children.length;
+  var formatos = ['3 KG','2 KG','1 KG','1/2 KG','BARRA','GIGANTE'];
+  var optFmt = '<option value="">— Formato —</option>' + formatos.map(function(f){
+    return '<option value="'+f+'"'+(datos.formato===f?' selected':'')+'>'+f+'</option>';
+  }).join('');
+  var div = document.createElement('div');
+  div.className = 'pren-card';
+  div.dataset.idx = idx;
+  div.innerHTML = ''
+    + (idx > 0 ? '<button type="button" class="quitar-btn" onclick="quitarSalmuera(this)" title="Quitar">×</button>' : '')
+    + '<div class="form-cols-3">'
+    +   '<div class="form-row"><label class="form-label">Formato</label><select class="salm-formato">'+optFmt+'</select></div>'
+    +   '<div class="form-row"><label class="form-label">Hora inicial</label><input type="time" class="salm-hi" value="'+(datos.hi||'')+'"></div>'
+    +   '<div class="form-row"><label class="form-label">Hora final</label><input type="time" class="salm-hf" value="'+(datos.hf||'')+'"></div>'
+    + '</div>';
+  cont.appendChild(div);
+  div.querySelectorAll('input, select').forEach(function(inp){
+    inp.addEventListener('input',  function(){ if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID); });
+    inp.addEventListener('change', function(){ if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID); });
+  });
+}
+function quitarSalmuera(btn){
+  var card = btn.closest('.pren-card');
+  if (card) card.remove();
+  if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
+}
+function recogerSalmueras(){
+  var cards = document.querySelectorAll('#salmueras-container .pren-card');
+  var out = [];
+  cards.forEach(function(c){
+    var fmt = (c.querySelector('.salm-formato')||{}).value || '';
+    var hi  = (c.querySelector('.salm-hi')||{}).value || '';
+    var hf  = (c.querySelector('.salm-hf')||{}).value || '';
+    if (!fmt && !hi && !hf) return;
+    out.push({formato:fmt, hi:hi, hf:hf});
+  });
+  return out;
+}
+
+function renderDesmoldeos(lista){
+  var cont = document.getElementById('desmoldeos-container');
+  if (!cont) return;
+  cont.innerHTML = '';
+  if (!lista || !lista.length) { anadirDesmoldeo(); return; }
+  lista.forEach(function(d){ anadirDesmoldeo(d); });
+}
+function anadirDesmoldeo(datos){
+  datos = datos || {};
+  var cont = document.getElementById('desmoldeos-container');
+  if (!cont) return;
+  var idx = cont.children.length;
+  var formatos = ['3 KG','2 KG','1 KG','1/2 KG','BARRA','GIGANTE'];
+  var optFmt = '<option value="">— Formato —</option>' + formatos.map(function(f){
+    return '<option value="'+f+'"'+(datos.formato===f?' selected':'')+'>'+f+'</option>';
+  }).join('');
+  var div = document.createElement('div');
+  div.className = 'pren-card';
+  div.dataset.idx = idx;
+  div.innerHTML = ''
+    + (idx > 0 ? '<button type="button" class="quitar-btn" onclick="quitarDesmoldeo(this)" title="Quitar">×</button>' : '')
+    + '<div class="form-row" style="margin-bottom:6px"><label class="form-label">Formato</label><select class="des-formato">'+optFmt+'</select></div>'
+    + '<div class="form-cols-3">'
+    +   '<div class="form-row"><label class="form-label">Hora inicial</label><input type="time" class="des-hi" value="'+(datos.hi||'')+'"></div>'
+    +   '<div class="form-row"><label class="form-label">pH inicial</label><input type="number" step="0.01" class="des-ph" value="'+(datos.ph||'')+'"></div>'
+    +   '<div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" class="des-temp-i" value="'+(datos.temp_i||'')+'"></div>'
+    + '</div>'
+    + '<div class="form-cols-3" style="margin-top:4px">'
+    +   '<div class="form-row"><label class="form-label">Hora final</label><input type="time" class="des-hf" value="'+(datos.hf||'')+'"></div>'
+    +   '<div class="form-row"><label class="form-label">pH final</label><input type="number" step="0.01" class="des-ph-f" value="'+(datos.ph_f||'')+'"></div>'
+    +   '<div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" class="des-temp-f" value="'+(datos.temp_f||'')+'"></div>'
+    + '</div>';
+  cont.appendChild(div);
+  div.querySelectorAll('input, select').forEach(function(inp){
+    inp.addEventListener('input',  function(){ if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID); });
+    inp.addEventListener('change', function(){ if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID); });
+  });
+}
+function quitarDesmoldeo(btn){
+  var card = btn.closest('.pren-card');
+  if (card) card.remove();
+  if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
+}
+function recogerDesmoldeos(){
+  var cards = document.querySelectorAll('#desmoldeos-container .pren-card');
+  var out = [];
+  cards.forEach(function(c){
+    var fmt = (c.querySelector('.des-formato')||{}).value || '';
+    var hi  = (c.querySelector('.des-hi')||{}).value || '';
+    if (!fmt && !hi) return;
+    out.push({
+      formato: fmt, hi: hi,
+      ph: (c.querySelector('.des-ph')||{}).value || '',
+      temp_i: (c.querySelector('.des-temp-i')||{}).value || '',
+      hf: (c.querySelector('.des-hf')||{}).value || '',
+      ph_f: (c.querySelector('.des-ph-f')||{}).value || '',
+      temp_f: (c.querySelector('.des-temp-f')||{}).value || ''
+    });
+  });
+  return out;
 }
 
 </script>
