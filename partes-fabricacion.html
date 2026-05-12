@@ -204,32 +204,64 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
    - Aprovechar el ancho de la tablet del quesero
    ═══════════════════════════════════════════════════════════════ */
 @media (min-width: 720px) {
-  /* Más columnas */
-  .form-cols    { grid-template-columns: 1fr 1fr 1fr;       gap: 12px; }
-  .form-cols-3  { grid-template-columns: 1fr 1fr 1fr 1fr;   gap: 12px; }
+  /* === Modo TABLET COMPACTO — densidad alta tipo "papel A4" === */
 
-  /* Inputs/selects más compactos en vertical */
+  /* Más columnas por línea */
+  .form-cols    { grid-template-columns: 1fr 1fr 1fr;       gap: 10px; }
+  .form-cols-3  { grid-template-columns: 1fr 1fr 1fr 1fr;   gap: 10px; }
+
+  /* Inputs/selects muy compactos verticalmente */
   .form-row input,
   .form-row select,
-  .form-row textarea { padding: 8px 10px; font-size: 0.95rem; }
-  .form-label { font-size: 0.68rem; margin-bottom: 4px; }
+  .form-row textarea { padding: 6px 9px; font-size: 0.92rem; }
+  .form-row { margin-bottom: 0; }
+  .form-label { font-size: 0.65rem; margin-bottom: 2px; letter-spacing: 0.3px; }
 
-  /* Headers de sección menos alto */
-  .seccion-header { padding: 10px 14px; }
-  .seccion-label    { font-size: 1rem; }
-  .seccion-sublabel { font-size: 0.75rem; }
-  .seccion-icon     { font-size: 1.3rem; }
+  /* Headers de sección más finos */
+  .seccion-header { padding: 7px 12px; }
+  .seccion-label    { font-size: 0.95rem; }
+  .seccion-sublabel { font-size: 0.7rem; margin-top: 1px; }
+  .seccion-icon     { font-size: 1.15rem; }
+  .seccion-chevron  { font-size: 0.85rem; }
 
-  /* Cuerpo de sección con padding ligeramente menor */
-  .seccion-body { padding: 10px 14px 14px; }
+  /* Cuerpo de sección con padding mínimo */
+  .seccion { margin-bottom: 8px; }
+  .seccion-body { padding: 8px 12px 10px; }
 
-  /* Separadores de sub-bloque más finos */
-  .sep-label { margin: 10px 0 8px; font-size: 0.65rem; }
+  /* Separadores de sub-bloque mínimos */
+  .sep-label { margin: 6px 0 5px; font-size: 0.62rem; padding-top: 5px; }
+  .sep { margin: 8px 0; }
 
-  /* Tarjetas de producto (auxiliares estilo papel) compactas */
-  .papel-prod    { padding: 8px 12px; margin-bottom: 8px; }
-  .papel-prod-l1 { gap: 12px; margin-bottom: 6px; }
-  .papel-prod-l2 { padding-top: 6px; }
+  /* Tarjetas de producto (CaCl₂ y otros) muy compactas */
+  .papel-prod    { padding: 6px 10px; margin-bottom: 6px; }
+  .papel-prod-l1 { gap: 10px; margin-bottom: 4px; }
+  .papel-prod-l2 { padding-top: 4px; font-size: 0.78rem; }
+
+  /* Pestañas de cuba más finas */
+  .cuba-pestana { padding: 6px 14px; min-width: 70px; }
+  .num-cuba { font-size: 1.05rem; }
+  .info-cuba { font-size: 0.7rem; }
+
+  /* Container con más ancho útil */
+  .container { padding-left: 12px; padding-right: 12px; }
+
+  /* Header de la app un pelín más bajo */
+  .header { padding: 8px 12px; }
+  .header h1 { font-size: 1.05rem; }
+  .header-sub { font-size: 0.72rem; }
+
+  /* Tabs navegación más finas */
+  .nav-tab { padding: 8px 10px; font-size: 0.85rem; }
+
+  /* Botones de auxiliares opcionales compactos */
+  .opt-aux-header { padding: 6px 0; margin-top: 6px; }
+  .opt-aux-title { font-size: 0.88rem; }
+  .opt-aux-block { padding: 6px 0 3px; }
+
+  /* Coag-total-box más compacto */
+  .coag-total-box { padding: 6px 8px; }
+  .coag-total-val { font-size: 0.95rem; }
+  .coag-total-lbl { font-size: 0.65rem; }
 }
 
 /* Pantallas grandes (≥ 1000px) — aún más densidad */
@@ -280,7 +312,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.1.0</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.2.0</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -404,7 +436,7 @@ input[type="email"] {
     </div>
     <div class="seccion-body open" id="body-aux">
       <!-- pH y Tª de la leche en el momento de adición de auxiliares -->
-      <div class="sep-label">Leche en cuba</div>
+      <div class="sep-label">Leche entrada cuba</div>
       <div class="form-cols">
         <div class="form-row">
           <label class="form-label">pH leche</label>
@@ -419,7 +451,7 @@ input[type="email"] {
       <div class="opt-aux-header">
         <label class="opt-aux-label">
           <input type="checkbox" id="co2-aplicado" checked onchange="toggleCO2Aplicado()">
-          <span class="opt-aux-title">🌫️ CO₂ · Se aplicó</span>
+          <span class="opt-aux-title" id="co2-title">🌫️ CO₂</span>
         </label>
       </div>
       <div id="co2-block" class="opt-aux-block">
@@ -1024,6 +1056,11 @@ function rellenarCampos(p){
     co2Chk.checked = p.co2.aplicado;
     var co2Block = document.getElementById('co2-block');
     if (co2Block) co2Block.style.display = p.co2.aplicado ? '' : 'none';
+    var co2Title = document.getElementById('co2-title');
+    if (co2Title) {
+      co2Title.textContent = p.co2.aplicado ? '🌫️ CO₂' : '🌫️ CO₂ · NO se aplicó';
+      co2Title.style.color = p.co2.aplicado ? '' : 'var(--brand)';
+    }
   }
   // Otros auxiliares
   if (typeof restaurarOtrosAuxiliares === 'function') restaurarOtrosAuxiliares(p.otrosAuxiliares || []);
@@ -1988,7 +2025,18 @@ function init(){
     var s = localStorage.getItem('tq_partes_demo');
     if(s){
       var d = JSON.parse(s);
-      if(d.recetas) RECETAS_DEMO = d.recetas;
+      if(d.recetas) {
+        // MIGRACIÓN: quitar Lisozima de las recetas guardadas en versiones anteriores
+        // (la lisozima ya no es auxiliar fijo de la receta MEZCLA)
+        d.recetas.forEach(function(r){
+          if (r.auxiliares && r.auxiliares.length) {
+            r.auxiliares = r.auxiliares.filter(function(a){
+              return (a.nombre || '').toUpperCase() !== 'LISOZIMA';
+            });
+          }
+        });
+        RECETAS_DEMO = d.recetas;
+      }
       if(d.stock) STOCK_DEMO = d.stock;
       if(d.lotesActivos) LOTES_ACTIVOS = d.lotesActivos;
       if(d.partes) PARTES = d.partes;
@@ -2106,9 +2154,14 @@ init();
 function toggleCO2Aplicado(){
   var chk = document.getElementById('co2-aplicado');
   var bloque = document.getElementById('co2-block');
+  var titulo = document.getElementById('co2-title');
   if (!chk || !bloque) return;
   bloque.style.display = chk.checked ? '' : 'none';
-  // Disparar autoguardado para reflejar el cambio
+  // Cambiar etiqueta: solo se nota cuando NO se aplicó (caso excepcional)
+  if (titulo) {
+    titulo.textContent = chk.checked ? '🌫️ CO₂' : '🌫️ CO₂ · NO se aplicó';
+    titulo.style.color = chk.checked ? '' : 'var(--brand)';
+  }
   if (CUBA_ACTIVA_ID && typeof autoGuardarParte === 'function') autoGuardarParte(CUBA_ACTIVA_ID);
 }
 
