@@ -265,7 +265,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.9.6</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.9.9</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -827,13 +827,13 @@ function irASiguienteSeccion(p){
   var orden = ['past','aux','ferm','coag','des','mol','salm','pzas'];
   // Helper: ¿esta sección tiene algún dato relevante?
   function tieneDatos(sec){
-    if(sec==='past'){ return !!(p.pasteurizacion && (p.pasteurizacion.temp||p.pasteurizacion.tiempo||p.pasteurizacion.valvula)); }
+    if(sec==='past'){ return !!(p.pasteurizacion && ((p.pasteurizacion.temp && p.pasteurizacion.temp>0) || (p.pasteurizacion.tiempo && p.pasteurizacion.tiempo>0))); }
     if(sec==='aux'){  return !!(p.phLeche||p.tempLeche||(p.co2&&(p.co2.lote||p.co2.tiempo))||(p.auxiliares&&p.auxiliares.some(function(a){return a.dosisUtilizada;}))); }
     if(sec==='ferm'){ return !!(p.fermentos && p.fermentos.some(function(f){return f.dosisUtilizada||f.lote;})); }
     if(sec==='coag'){ return !!(p.coag && (p.coag.hadicion||p.coag.hc||p.coag.ph||p.coag.temp||(p.cuajo&&(p.cuajo.lote||p.cuajo.dosisUtilizada)))); }
     if(sec==='des'){  return !!(p.desuerado && (p.desuerado.rec_hi||p.desuerado.rec_hf||p.desuerado.rec_ti||p.desuerado.rec_tf||p.desuerado.agit_hi||p.desuerado.agit_hf)); }
-    if(sec==='mol'){  return !!(p.moldeo && (p.moldeo.hi||p.moldeo.hf||p.moldeo.ph||p.moldeo.temp)) || !!(p.prensado && (p.prensado.e1||p.prensado.e2)) || !!(p.desmoldeo && (p.desmoldeo.formato||p.desmoldeo.hi||p.desmoldeo.hf)); }
-    if(sec==='salm'){ return !!(p.salmuera && (p.salmuera.formato||p.salmuera.hi||p.salmuera.hf)); }
+    if(sec==='mol'){  return !!(p.moldeo && (p.moldeo.hi||p.moldeo.hf||p.moldeo.ph||p.moldeo.temp)) || !!(p.prensado && (p.prensado.e1||p.prensado.e2)) || !!(p.desmoldeo && (p.desmoldeo.hi||p.desmoldeo.hf)); }
+    if(sec==='salm'){ return !!(p.salmuera && (p.salmuera.hi||p.salmuera.hf)); }
     if(sec==='pzas'){ return !!(p.piezas && (p.piezas.kg3||p.piezas.kg2||p.piezas.kg1||p.piezas.kg05||p.piezas.barra||p.piezas.gigante)); }
     return false;
   }
@@ -1185,10 +1185,18 @@ function refrescarPestanaCubaActiva(){
     if (typeof CUBA_ACTIVA_ID === 'undefined' || !CUBA_ACTIVA_ID) return;
     var p = PARTES.find(function(x){return x.id===CUBA_ACTIVA_ID;});
     if (!p) return;
+    // Si se está cargando el formulario, NO machacar p.tipo/p.variedad
+    // (el DOM aún no refleja los datos del parte cargado)
+    if (window._cargandoForm) {
+      if (typeof renderPestanasCubas === 'function') renderPestanasCubas();
+      return;
+    }
     var ts = document.getElementById('np-tipo-sel');
     var vs = document.getElementById('np-var-sel');
-    if (ts) p.tipo = ts.value || '';
-    if (vs) p.variedad = vs.value || '';
+    // Solo escribir si el DOM tiene un valor NO vacío
+    // (evita pisar TOSTADO con '' cuando onTipoSelChange resetea el dropdown)
+    if (ts && ts.value) p.tipo = ts.value;
+    if (vs && vs.value) p.variedad = vs.value;
     if (typeof renderPestanasCubas === 'function') renderPestanasCubas();
   }catch(e){}
 }
