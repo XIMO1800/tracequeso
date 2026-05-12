@@ -204,64 +204,70 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
    - Aprovechar el ancho de la tablet del quesero
    ═══════════════════════════════════════════════════════════════ */
 @media (min-width: 720px) {
-  /* === Modo TABLET COMPACTO — densidad alta tipo "papel A4" === */
+  /* === Modo TABLET DENSO — máxima compactación tipo papel A4 === */
 
   /* Más columnas por línea */
-  .form-cols    { grid-template-columns: 1fr 1fr 1fr;       gap: 10px; }
-  .form-cols-3  { grid-template-columns: 1fr 1fr 1fr 1fr;   gap: 10px; }
+  .form-cols    { grid-template-columns: 1fr 1fr 1fr;       gap: 8px; }
+  .form-cols-3  { grid-template-columns: 1fr 1fr 1fr 1fr;   gap: 8px; }
 
-  /* Inputs/selects muy compactos verticalmente */
+  /* Inputs MUY compactos */
   .form-row input,
   .form-row select,
-  .form-row textarea { padding: 6px 9px; font-size: 0.92rem; }
+  .form-row textarea { padding: 4px 8px; font-size: 0.88rem; min-height: 30px; }
   .form-row { margin-bottom: 0; }
-  .form-label { font-size: 0.65rem; margin-bottom: 2px; letter-spacing: 0.3px; }
+  .form-label { font-size: 0.6rem; margin-bottom: 1px; letter-spacing: 0.2px; line-height: 1.1; }
 
-  /* Headers de sección más finos */
-  .seccion-header { padding: 7px 12px; }
-  .seccion-label    { font-size: 0.95rem; }
-  .seccion-sublabel { font-size: 0.7rem; margin-top: 1px; }
-  .seccion-icon     { font-size: 1.15rem; }
-  .seccion-chevron  { font-size: 0.85rem; }
+  /* Headers de sección MUY finos */
+  .seccion-header { padding: 4px 10px; min-height: 32px; }
+  .seccion-label    { font-size: 0.88rem; line-height: 1.15; }
+  .seccion-sublabel { font-size: 0.65rem; margin-top: 0; line-height: 1.1; }
+  .seccion-icon     { font-size: 1rem; }
+  .seccion-chevron  { font-size: 0.78rem; }
 
-  /* Cuerpo de sección con padding mínimo */
-  .seccion { margin-bottom: 8px; }
-  .seccion-body { padding: 8px 12px 10px; }
+  /* Secciones casi pegadas */
+  .seccion { margin-bottom: 5px; border-radius: 6px; }
+  .seccion-body { padding: 5px 10px 7px; }
 
-  /* Separadores de sub-bloque mínimos */
-  .sep-label { margin: 6px 0 5px; font-size: 0.62rem; padding-top: 5px; }
-  .sep { margin: 8px 0; }
+  /* Separadores casi imperceptibles */
+  .sep-label { margin: 3px 0 2px; font-size: 0.58rem; padding-top: 2px; }
+  .sep { margin: 4px 0; }
 
-  /* Tarjetas de producto (CaCl₂ y otros) muy compactas */
-  .papel-prod    { padding: 6px 10px; margin-bottom: 6px; }
-  .papel-prod-l1 { gap: 10px; margin-bottom: 4px; }
-  .papel-prod-l2 { padding-top: 4px; font-size: 0.78rem; }
+  /* Tarjetas de producto MUY compactas */
+  .papel-prod    { padding: 4px 9px; margin-bottom: 4px; border-radius: 6px; }
+  .papel-prod-l1 { gap: 8px; margin-bottom: 2px; }
+  .papel-prod-l2 { padding-top: 2px; font-size: 0.72rem; }
 
   /* Pestañas de cuba más finas */
-  .cuba-pestana { padding: 6px 14px; min-width: 70px; }
-  .num-cuba { font-size: 1.05rem; }
-  .info-cuba { font-size: 0.7rem; }
+  .cuba-pestana { padding: 4px 12px; min-width: 65px; }
+  .num-cuba { font-size: 1rem; }
+  .info-cuba { font-size: 0.65rem; line-height: 1.05; }
 
-  /* Container con más ancho útil */
-  .container { padding-left: 12px; padding-right: 12px; }
+  /* Container con padding mínimo */
+  .container { padding-left: 8px; padding-right: 8px; }
 
-  /* Header de la app un pelín más bajo */
-  .header { padding: 8px 12px; }
-  .header h1 { font-size: 1.05rem; }
-  .header-sub { font-size: 0.72rem; }
+  /* Header app reducido */
+  .header { padding: 5px 10px; }
+  .header h1 { font-size: 0.98rem; line-height: 1.15; }
+  .header-sub { font-size: 0.68rem; }
 
-  /* Tabs navegación más finas */
-  .nav-tab { padding: 8px 10px; font-size: 0.85rem; }
+  /* Tabs navegación finas */
+  .nav-tab { padding: 6px 8px; font-size: 0.82rem; }
 
-  /* Botones de auxiliares opcionales compactos */
-  .opt-aux-header { padding: 6px 0; margin-top: 6px; }
-  .opt-aux-title { font-size: 0.88rem; }
-  .opt-aux-block { padding: 6px 0 3px; }
+  /* Auxiliares opcionales compactos */
+  .opt-aux-header { padding: 3px 0; margin-top: 3px; }
+  .opt-aux-title { font-size: 0.85rem; }
+  .opt-aux-block { padding: 3px 0 2px; }
 
-  /* Coag-total-box más compacto */
-  .coag-total-box { padding: 6px 8px; }
-  .coag-total-val { font-size: 0.95rem; }
-  .coag-total-lbl { font-size: 0.65rem; }
+  /* Coag-total-box mínimo */
+  .coag-total-box { padding: 4px 6px; }
+  .coag-total-val { font-size: 0.9rem; line-height: 1.1; }
+  .coag-total-lbl { font-size: 0.6rem; }
+
+  /* Espacio entre pestañas y formulario */
+  #cubas-pestanas-wrap { padding: 4px 0 6px !important; }
+
+  /* Botones de añadir más finos */
+  .btn-secundario { padding: 6px 12px; font-size: 0.85rem; }
 }
 
 /* Pantallas grandes (≥ 1000px) — aún más densidad */
@@ -312,7 +318,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.2.0</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.2.1</div>
   </div>
 </div>
 <div class="nav-tabs">
