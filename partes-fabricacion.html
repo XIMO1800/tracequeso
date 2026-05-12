@@ -204,82 +204,62 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
    - Inputs/etiquetas/headers más compactos
    - Aprovechar el ancho de la tablet del quesero
    ═══════════════════════════════════════════════════════════════ */
-@media (min-width: 720px) {
-  /* === Modo TABLET EXTREMO — máxima densidad tipo papel A4 === */
+@media (min-width: 600px) {
+  /* === Modo TABLET: aprovechar ancho con 3-4 columnas por fila === */
 
-  /* 3-4 columnas, gap mínimo */
-  .form-cols    { grid-template-columns: 1fr 1fr 1fr;       gap: 6px; }
-  .form-cols-3  { grid-template-columns: 1fr 1fr 1fr 1fr;   gap: 6px; }
-  .form-cols-4  { grid-template-columns: 1fr 1fr 1fr 1fr;   gap: 6px; }
+  /* 3-4 columnas */
+  .form-cols    { grid-template-columns: 1fr 1fr 1fr;       gap: 10px; }
+  .form-cols-3  { grid-template-columns: 1fr 1fr 1fr;       gap: 10px; }
+  .form-cols-4  { grid-template-columns: 1fr 1fr 1fr 1fr;   gap: 10px; }
 
-  /* Inputs muy finos */
+  /* Inputs compactos pero legibles */
   .form-row input,
   .form-row select,
-  .form-row textarea { padding: 3px 6px; font-size: 0.85rem; min-height: 26px; border-radius: 5px; }
+  .form-row textarea { padding: 6px 9px; font-size: 0.92rem; }
   .form-row { margin-bottom: 0; }
-  .form-label { font-size: 0.58rem; margin-bottom: 0; letter-spacing: 0.2px; line-height: 1; }
+  .form-label { font-size: 0.65rem; margin-bottom: 2px; letter-spacing: 0.3px; }
 
-  /* Headers de sección minimal */
-  .seccion-header { padding: 3px 8px; min-height: 26px; }
-  .seccion-label    { font-size: 0.82rem; line-height: 1.05; }
-  .seccion-sublabel { font-size: 0.6rem; margin-top: 0; line-height: 1; }
-  .seccion-icon     { font-size: 0.95rem; }
-  .seccion-chevron  { font-size: 0.7rem; }
+  /* Headers de sección finos */
+  .seccion-header { padding: 7px 12px; }
+  .seccion-label    { font-size: 0.95rem; }
+  .seccion-sublabel { font-size: 0.7rem; margin-top: 1px; }
+  .seccion-icon     { font-size: 1.15rem; }
+  .seccion-chevron  { font-size: 0.85rem; }
 
   /* Secciones casi pegadas */
-  .seccion { margin-bottom: 3px; border-radius: 5px; }
-  .seccion-body { padding: 4px 8px 5px; }
+  .seccion { margin-bottom: 6px; }
+  .seccion-body { padding: 8px 12px 10px; }
 
-  /* Separadores invisibles */
-  .sep-label { margin: 2px 0 1px; font-size: 0.55rem; padding-top: 2px; }
-  .sep { margin: 3px 0; }
+  /* Separadores finos */
+  .sep-label { margin: 6px 0 5px; font-size: 0.65rem; padding-top: 5px; }
+  .sep { margin: 8px 0; }
 
-  /* Tarjetas de producto extra compactas */
-  .papel-prod    { padding: 3px 7px; margin-bottom: 3px; border-radius: 5px; }
-  .papel-prod-l1 { gap: 6px; margin-bottom: 1px; }
-  .papel-prod-l2 { padding-top: 1px; font-size: 0.68rem; }
+  /* Tarjetas de producto compactas */
+  .papel-prod    { padding: 6px 10px; margin-bottom: 6px; }
+  .papel-prod-l1 { gap: 10px; margin-bottom: 4px; }
+  .papel-prod-l2 { padding-top: 4px; font-size: 0.78rem; }
 
-  /* Pestañas de cuba muy finas */
-  .cuba-pestana { padding: 3px 10px; min-width: 60px; }
-  .num-cuba { font-size: 0.95rem; }
-  .info-cuba { font-size: 0.6rem; line-height: 1; }
+  /* Pestañas de cuba finas */
+  .cuba-pestana { padding: 5px 12px; min-width: 70px; }
+  .num-cuba { font-size: 1.05rem; }
+  .info-cuba { font-size: 0.7rem; }
 
-  /* Container padding mínimo */
-  .container { padding-left: 6px; padding-right: 6px; }
+  .container { padding-left: 10px; padding-right: 10px; }
+  .header { padding: 6px 10px; }
+  .header h1 { font-size: 1rem; }
+  .header-sub { font-size: 0.7rem; }
+  .nav-tab { padding: 7px 9px; font-size: 0.85rem; }
 
-  /* Header app al mínimo */
-  .header { padding: 4px 8px; }
-  .header h1 { font-size: 0.92rem; line-height: 1.1; }
-  .header-sub { font-size: 0.62rem; }
-  .header img, .header-logo { max-height: 30px !important; }
+  .opt-aux-header { padding: 5px 0; margin-top: 5px; }
+  .opt-aux-title { font-size: 0.88rem; }
+  .opt-aux-block { padding: 5px 0 3px; }
 
-  /* Tabs navegación finas */
-  .nav-tab { padding: 4px 6px; font-size: 0.78rem; }
-  .nav-tabs { gap: 2px; }
+  .coag-total-box { padding: 5px 8px; }
+  .coag-total-val { font-size: 0.95rem; }
+  .coag-total-lbl { font-size: 0.65rem; }
 
-  /* Auxiliares opcionales compactos */
-  .opt-aux-header { padding: 2px 0; margin-top: 2px; }
-  .opt-aux-title { font-size: 0.82rem; }
-  .opt-aux-block { padding: 2px 0 1px; }
-  .opt-aux-label input[type="checkbox"] { width: 18px; height: 18px; }
-
-  /* Coag-total-box mínimo */
-  .coag-total-box { padding: 3px 5px; }
-  .coag-total-val { font-size: 0.85rem; line-height: 1; }
-  .coag-total-lbl { font-size: 0.55rem; }
-
-  /* Pestañas wrapper */
-  #cubas-pestanas-wrap { padding: 3px 0 4px !important; gap: 4px !important; }
-
-  /* Botones finos */
-  .btn-secundario { padding: 5px 10px; font-size: 0.82rem; }
-  .btn-primario   { padding: 6px 12px; font-size: 0.85rem; }
-
-  /* Lote-chip fino */
-  .lote-chip { padding: 4px 8px; }
-  .lote-chip-lote { font-size: 0.78rem; }
-  .lote-chip-cad  { font-size: 0.65rem; }
-  .lote-chip-btn  { padding: 3px 8px; font-size: 0.7rem; }
+  #cubas-pestanas-wrap { padding: 4px 0 6px !important; }
+  .btn-secundario { padding: 6px 12px; font-size: 0.85rem; }
 }
 
 /* Pantallas grandes (≥ 1000px) — aún más densidad */
@@ -318,6 +298,20 @@ input[type="email"] {
 .otro-aux-card .quitar-btn { position: absolute; top: 6px; right: 8px; background: none; border: none; color: var(--text2); font-size: 1.1rem; cursor: pointer; padding: 4px 8px; }
 .otro-aux-card .quitar-btn:hover { color: var(--brand); }
 
+
+/* Tarjetas de prensado (una por formato producido en la cuba) */
+.pren-card{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;position:relative}
+.pren-card .quitar-btn{position:absolute;top:4px;right:6px;background:none;border:none;color:var(--text2);font-size:1.1rem;cursor:pointer;padding:3px 7px}
+.pren-card .quitar-btn:hover{color:var(--brand)}
+/* Modal config prensado */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:1000;padding:14px}
+.modal-content{background:var(--card);border-radius:10px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column}
+.modal-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-header h3{margin:0;font-size:1.05rem;color:var(--brand)}
+.modal-close{background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text2);padding:0 6px}
+.modal-body{padding:14px 16px;overflow-y:auto}
+.modal-footer{padding:10px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
 </style>
 </head>
 <body>
@@ -330,7 +324,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.3.0</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.4.0</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -409,15 +403,16 @@ input[type="email"] {
       <span class="seccion-chevron" id="chev-past">▼</span>
     </div>
     <div class="seccion-body" id="body-past">
-      <div class="form-row">
-        <label class="form-label">Funcionamiento válvula desvío</label>
-        <select id="past-valvula">
-          <option value="">—</option>
-          <option value="C">Correcto</option>
-          <option value="I">Incorrecto</option>
-        </select>
-      </div>
-      <div class="form-cols">
+      <!-- Fila 1: Válvula · Temperatura · Tiempo (3 cols) -->
+      <div class="form-cols-3">
+        <div class="form-row">
+          <label class="form-label">Func. válvula desvío</label>
+          <select id="past-valvula">
+            <option value="">—</option>
+            <option value="C">Correcto</option>
+            <option value="I">Incorrecto</option>
+          </select>
+        </div>
         <div class="form-row">
           <label class="form-label">Temperatura (°C)</label>
           <input type="number" id="past-temp" step="0.1" inputmode="decimal" oninput="marcarTocado('past-temp')">
@@ -427,19 +422,19 @@ input[type="email"] {
           <input type="number" id="past-tiempo" inputmode="decimal" oninput="marcarTocado('past-tiempo')">
         </div>
       </div>
+      <!-- Fila 2: Cruda · Fosfatasa (2 cols) - compactados a una sola línea cada uno -->
       <div class="form-cols">
         <div class="form-row">
-          <label class="form-label">Cruda</label>
-          <div style="padding:9px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:10px">
-            <input type="checkbox" id="past-cruda" style="width:20px;height:20px;cursor:pointer" disabled>
-            <span style="font-size:0.78rem;color:var(--text2)">Auto si CRUDA</span>
-          </div>
-        </div>
-        <div class="form-row">
-          <label class="form-label">Fosfatasa alcalina</label>
-          <div style="padding:9px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:10px">
-            <input type="checkbox" id="past-fosfatasa" style="width:20px;height:20px;cursor:pointer">
-            <span style="font-size:0.78rem;color:var(--text2)">Rellena calidad</span>
+          <label class="form-label">Cruda · Fosfatasa alcalina (calidad)</label>
+          <div style="padding:6px 10px;background:var(--bg);border:1.5px solid var(--border);border-radius:6px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" id="past-cruda" style="width:18px;height:18px;cursor:pointer" disabled>
+              <span style="font-size:0.78rem">Cruda (auto)</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" id="past-fosfatasa" style="width:18px;height:18px;cursor:pointer">
+              <span style="font-size:0.78rem">Fosfatasa (calidad)</span>
+            </label>
           </div>
         </div>
       </div>
@@ -557,11 +552,10 @@ input[type="email"] {
     </div>
     <div class="seccion-body" id="body-des">
       <div class="sep-label">Recalentamiento</div>
-      <div class="form-cols">
+      <!-- 4 columnas: Hora ini · Tª ini · Hora fin · Tª fin (cronológico, todo en una fila) -->
+      <div class="form-cols-4">
         <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="rec-hi"></div>
         <div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" id="rec-ti" inputmode="decimal"></div>
-      </div>
-      <div class="form-cols">
         <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="rec-hf" onchange="propagarHora('rec-hf','agit-hi')"></div>
         <div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" id="rec-tf" inputmode="decimal"></div>
       </div>
@@ -580,21 +574,19 @@ input[type="email"] {
     </div>
     <div class="seccion-body" id="body-mol">
       <div class="sep-label">Moldeo</div>
-      <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="mol-hi"></div>
-      <div class="form-cols">
+      <!-- Hora ini · pH · Tª · Hora fin (4 cols, 1 sola fila) -->
+      <div class="form-cols-4">
+        <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="mol-hi"></div>
         <div class="form-row"><label class="form-label">pH moldeo</label><input type="number" id="mol-ph" step="0.01" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="mol-temp" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="mol-hf"></div>
       </div>
-      <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="mol-hf"></div>
-      <div class="sep-label">Prensado</div>
-      <div class="form-row">
-        <label class="form-label">Etapa 1</label>
-        <input type="text" id="pren-e1" placeholder="0,5–3 bar · 30+60">
+      <div class="sep-label" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Prensado</span>
+        <button type="button" onclick="abrirConfigPrensado()" style="background:none;border:none;color:var(--brand);font-size:0.7rem;cursor:pointer;padding:2px 6px">⚙️ Configurar</button>
       </div>
-      <div class="form-row">
-        <label class="form-label">Etapa 2</label>
-        <input type="text" id="pren-e2" placeholder="3–4,5 bar · 30+60">
-      </div>
+      <div id="prensados-container"></div>
+      <button type="button" class="btn-secundario" style="margin-top:4px" onclick="anadirPrensado()">+ Añadir otro prensado</button>
       <div class="sep-label">Desmoldeo</div>
       <div class="form-row"><label class="form-label">Formato</label><select id="des-formato"><option>3 KG</option><option>2 KG</option><option>1 KG</option><option>1/2 KG</option><option>BARRA</option><option>GIGANTE</option></select></div>
       <div class="form-cols-3">
@@ -1108,9 +1100,15 @@ function rellenarCampos(p){
     v('mol-hi', p.moldeo.hi); v('mol-hf', p.moldeo.hf);
     v('mol-ph', p.moldeo.ph); v('mol-temp', p.moldeo.temp);
   }
-  // Prensado
-  if(p.prensado){
-    v('pren-e1', p.prensado.etapa1 || ''); v('pren-e2', p.prensado.etapa2 || '');
+  // Prensado (multi-formato)
+  if (typeof renderPrensados === 'function') {
+    // Compatibilidad con datos viejos (etapa1/etapa2)
+    var lista = p.prensados || [];
+    if (!lista.length && p.prensado && (p.prensado.etapa1 || p.prensado.etapa2)) {
+      // Hay datos viejos en formato etapa1/etapa2, los dejamos como información
+      lista = [];
+    }
+    renderPrensados(lista);
   }
   // Desmoldeo
   if(p.desmoldeo){
@@ -1190,7 +1188,7 @@ function autoGuardarParte(parteId){
   p.coag = {hadicion:g('coag-hadicion'), hc:g('coag-hc'), ph:g('coag-ph'), temp:g('coag-temp'), total:g('coag-total')};
   p.desuerado = {rec_hi:g('rec-hi'), rec_hf:g('rec-hf'), rec_ti:g('rec-ti'), rec_tf:g('rec-tf'), agit_hi:g('agit-hi'), agit_hf:g('agit-hf')};
   p.moldeo = {hi:g('mol-hi'), hf:g('mol-hf'), ph:g('mol-ph'), temp:g('mol-temp')};
-  p.prensado = {etapa1:g('pren-e1'), etapa2:g('pren-e2')};
+  p.prensados = (typeof recogerPrensados === 'function') ? recogerPrensados() : [];
   p.desmoldeo = {formato:g('des-formato'), hi:g('des-hi'), ph:g('des-ph'), temp_i:g('des-temp-i'), hf:g('des-hf'), ph_f:g('des-ph-f'), temp_f:g('des-temp-f')};
   p.salmuera = {formato:g('salm-formato'), hi:g('salm-hi'), hf:g('salm-hf')};
   p.piezas = {'3kg':gi('pzas-3kg'),'2kg':gi('pzas-2kg'),'1kg':gi('pzas-1kg'),'05kg':gi('pzas-05kg'),'barra':gi('pzas-barra'),'gigante':gi('pzas-gigante')};
@@ -1648,7 +1646,7 @@ function descontarStock(producto,cantidad){
 }
 
 function limpiarParte(){
-  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-operario','aux-ph','aux-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','agit-hi','agit-hf','mol-hi','mol-hf','mol-ph','mol-temp','pren-e1','pren-e2','des-hi','des-ph','des-temp-i','des-hf','des-ph-f','des-temp-f','salm-hi','salm-hf','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','cas-serie','cas-primera','cas-ultima','co2-tiempo','past-valvula','past-temp','past-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-operario','aux-ph','aux-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','agit-hi','agit-hf','mol-hi','mol-hf','mol-ph','mol-temp','des-hi','des-ph','des-temp-i','des-hf','des-ph-f','des-temp-f','salm-hi','salm-hf','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','cas-serie','cas-primera','cas-ultima','co2-tiempo','past-valvula','past-temp','past-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('np-tipo').value='';
   var ts=document.getElementById('np-tipo-sel');if(ts)ts.value='';
   var vs=document.getElementById('np-var-sel');if(vs){vs.innerHTML='<option value="">— Variedad —</option>';vs.disabled=true;}
@@ -2039,7 +2037,7 @@ function sincronizarPendientes(){
 
 function init(){
   // 1. Cargar datos del localStorage
-  try{ cargarOperarios(); cargarVariedadesCustom(); }catch(e){}
+  try{ cargarOperarios(); cargarVariedadesCustom(); cargarPrensadoConfig(); }catch(e){}
   try{
     var s = localStorage.getItem('tq_partes_demo');
     if(s){
@@ -2263,6 +2261,236 @@ function restaurarOtrosAuxiliares(arr){
   var bloque = document.getElementById('otros-aux-block');
   if (chk) chk.checked = true;
   if (bloque) bloque.style.display = '';
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// PRENSADO: configuración global de programas por formato
+// Editable por el usuario (igual que los lotes activos)
+// ═══════════════════════════════════════════════════════════════
+var PRENSADO_CONFIG_DEFAULT = {
+  '3 KG': [
+    {nombre:'Programa 1', bar_inicial:3.5, bar_final:3.0, rampa_min:30, mantenimiento_min:60},
+    {nombre:'Programa 2', bar_inicial:4.5, bar_final:0.5, rampa_min:90, mantenimiento_min:10},
+    {nombre:'Programa 3', bar_inicial:4.5, bar_final:3.0, rampa_min:30, mantenimiento_min:60},
+    {nombre:'Programa 4', bar_inicial:5.0, bar_final:3.0, rampa_min:15, mantenimiento_min:60}
+  ],
+  '2 KG': [
+    {nombre:'Programa 1', bar_inicial:4.0, bar_final:0.5, rampa_min:90, mantenimiento_min:40},
+    {nombre:'Programa 2', bar_inicial:3.2, bar_final:0.5, rampa_min:90, mantenimiento_min:40}
+  ],
+  '1 KG': [
+    {nombre:'Programa 1', bar_inicial:4.5, bar_final:0.5, rampa_min:40, mantenimiento_min:60},
+    {nombre:'Programa 2', bar_inicial:3.5, bar_final:0.5, rampa_min:40, mantenimiento_min:60}
+  ],
+  '0.5 KG': [
+    {nombre:'Programa 1', bar_inicial:4.0, bar_final:0.5, rampa_min:75, mantenimiento_min:1},
+    {nombre:'Programa 2', bar_inicial:3.5, bar_final:0.5, rampa_min:75, mantenimiento_min:1}
+  ],
+  'BARRA': [
+    {nombre:'Programa 1', bar_inicial:4.5, bar_final:0.5, rampa_min:40, mantenimiento_min:20},
+    {nombre:'Programa 2', bar_inicial:3.5, bar_final:0.5, rampa_min:40, mantenimiento_min:20},
+    {nombre:'Programa 3', bar_inicial:3.0, bar_final:0.5, rampa_min:20, mantenimiento_min:40},
+    {nombre:'Programa 4', bar_inicial:4.5, bar_final:3.0, rampa_min:20, mantenimiento_min:40}
+  ]
+};
+var PRENSADO_CONFIG = null; // Se carga de localStorage al iniciar
+
+function cargarPrensadoConfig(){
+  try {
+    var s = localStorage.getItem('tq_prensado_config');
+    if (s) PRENSADO_CONFIG = JSON.parse(s);
+  } catch(e) {}
+  if (!PRENSADO_CONFIG) PRENSADO_CONFIG = JSON.parse(JSON.stringify(PRENSADO_CONFIG_DEFAULT));
+}
+function guardarPrensadoConfig(){
+  try { localStorage.setItem('tq_prensado_config', JSON.stringify(PRENSADO_CONFIG)); } catch(e) {}
+}
+
+// Pintar las tarjetas de prensado existentes (lista de programas usados en esta cuba)
+function renderPrensados(prensados){
+  var cont = document.getElementById('prensados-container');
+  if (!cont) return;
+  cont.innerHTML = '';
+  if (!prensados || !prensados.length) {
+    // Un prensado vacío por defecto
+    anadirPrensado();
+    return;
+  }
+  prensados.forEach(function(p){ anadirPrensado(p); });
+}
+
+function anadirPrensado(datos){
+  if (!PRENSADO_CONFIG) cargarPrensadoConfig();
+  datos = datos || {};
+  var cont = document.getElementById('prensados-container');
+  if (!cont) return;
+  var idx = cont.children.length;
+  var formatos = Object.keys(PRENSADO_CONFIG);
+  var optFmt = '<option value="">— Formato —</option>' + formatos.map(function(f){
+    return '<option value="'+f+'"'+(datos.formato===f?' selected':'')+'>'+f+'</option>';
+  }).join('');
+
+  var div = document.createElement('div');
+  div.className = 'pren-card';
+  div.dataset.idx = idx;
+  div.innerHTML = ''
+    + (idx > 0 ? '<button type="button" class="quitar-btn" onclick="quitarPrensado(this)" title="Quitar">×</button>' : '')
+    + '<div class="form-cols">'
+    +   '<div class="form-row"><label class="form-label">Formato</label><select class="pren-formato" onchange="onFormatoPrensadoChange(this)">'+optFmt+'</select></div>'
+    +   '<div class="form-row"><label class="form-label">Programa</label><select class="pren-programa" onchange="onProgramaPrensadoChange(this)"><option value="">—</option></select></div>'
+    + '</div>'
+    + '<div class="form-cols-4 pren-valores" style="margin-top:6px">'
+    +   '<div class="form-row"><label class="form-label">Bar inicial</label><input type="number" class="pren-bar-ini" step="0.1" inputmode="decimal"></div>'
+    +   '<div class="form-row"><label class="form-label">Bar final</label><input type="number" class="pren-bar-fin" step="0.1" inputmode="decimal"></div>'
+    +   '<div class="form-row"><label class="form-label">Rampa (min)</label><input type="number" class="pren-rampa" inputmode="numeric"></div>'
+    +   '<div class="form-row"><label class="form-label">Manten. (min)</label><input type="number" class="pren-mant" inputmode="numeric"></div>'
+    + '</div>';
+  cont.appendChild(div);
+
+  // Si llegan datos, restaurar
+  if (datos.formato) {
+    actualizarProgramasPrensado(div, datos.formato);
+    if (datos.programa) {
+      var prSel = div.querySelector('.pren-programa');
+      if (prSel) prSel.value = datos.programa;
+    }
+    div.querySelector('.pren-bar-ini').value = datos.bar_inicial != null ? datos.bar_inicial : '';
+    div.querySelector('.pren-bar-fin').value = datos.bar_final != null ? datos.bar_final : '';
+    div.querySelector('.pren-rampa').value   = datos.rampa_min != null ? datos.rampa_min : '';
+    div.querySelector('.pren-mant').value    = datos.mantenimiento_min != null ? datos.mantenimiento_min : '';
+  }
+
+  // Listeners de autoguardado
+  div.querySelectorAll('input, select').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
+    });
+    inp.addEventListener('change', function(){
+      if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
+    });
+  });
+}
+
+function actualizarProgramasPrensado(card, formato){
+  if (!PRENSADO_CONFIG) cargarPrensadoConfig();
+  var prSel = card.querySelector('.pren-programa');
+  if (!prSel) return;
+  prSel.innerHTML = '<option value="">—</option>';
+  var progs = PRENSADO_CONFIG[formato] || [];
+  progs.forEach(function(p){
+    prSel.innerHTML += '<option value="'+p.nombre+'">'+p.nombre+'</option>';
+  });
+}
+
+function onFormatoPrensadoChange(sel){
+  var card = sel.closest('.pren-card');
+  if (!card) return;
+  var formato = sel.value;
+  actualizarProgramasPrensado(card, formato);
+  // Si el formato tiene un solo programa, elegirlo automáticamente
+  var progs = (PRENSADO_CONFIG && PRENSADO_CONFIG[formato]) || [];
+  if (progs.length === 1) {
+    var prSel = card.querySelector('.pren-programa');
+    prSel.value = progs[0].nombre;
+    onProgramaPrensadoChange(prSel);
+  } else {
+    // Limpiar valores
+    card.querySelector('.pren-bar-ini').value = '';
+    card.querySelector('.pren-bar-fin').value = '';
+    card.querySelector('.pren-rampa').value = '';
+    card.querySelector('.pren-mant').value = '';
+  }
+}
+
+function onProgramaPrensadoChange(sel){
+  var card = sel.closest('.pren-card');
+  if (!card) return;
+  var formato = card.querySelector('.pren-formato').value;
+  var progNombre = sel.value;
+  var progs = (PRENSADO_CONFIG && PRENSADO_CONFIG[formato]) || [];
+  var prog = progs.find(function(p){ return p.nombre === progNombre; });
+  if (!prog) return;
+  card.querySelector('.pren-bar-ini').value = prog.bar_inicial;
+  card.querySelector('.pren-bar-fin').value = prog.bar_final;
+  card.querySelector('.pren-rampa').value   = prog.rampa_min;
+  card.querySelector('.pren-mant').value    = prog.mantenimiento_min;
+}
+
+function quitarPrensado(btn){
+  var card = btn.closest('.pren-card');
+  if (card) card.remove();
+  if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
+}
+
+// Recoger los prensados del DOM al guardar el parte
+function recogerPrensados(){
+  var cards = document.querySelectorAll('#prensados-container .pren-card');
+  var out = [];
+  cards.forEach(function(c){
+    var fmt = (c.querySelector('.pren-formato')||{}).value || '';
+    if (!fmt) return;
+    out.push({
+      formato: fmt,
+      programa: (c.querySelector('.pren-programa')||{}).value || '',
+      bar_inicial: parseFloat((c.querySelector('.pren-bar-ini')||{}).value) || 0,
+      bar_final:   parseFloat((c.querySelector('.pren-bar-fin')||{}).value) || 0,
+      rampa_min:   parseFloat((c.querySelector('.pren-rampa')||{}).value)   || 0,
+      mantenimiento_min: parseFloat((c.querySelector('.pren-mant')||{}).value) || 0
+    });
+  });
+  return out;
+}
+
+// === CONFIGURACIÓN GLOBAL: modal para editar valores predeterminados ===
+function abrirConfigPrensado(){
+  if (!PRENSADO_CONFIG) cargarPrensadoConfig();
+  var modal = document.getElementById('modal-prensado-config');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-prensado-config';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = '<div class="modal-content" style="max-width:680px"><div class="modal-header"><h3>⚙️ Configurar programas de prensado</h3><button class="modal-close" onclick="cerrarConfigPrensado()">×</button></div><div class="modal-body" id="prensado-config-body"></div><div class="modal-footer"><button class="btn-secundario" onclick="cerrarConfigPrensado()">Cancelar</button><button class="btn-primario" onclick="guardarConfigPrensado()">Guardar</button></div></div>';
+    document.body.appendChild(modal);
+  }
+  pintarConfigPrensado();
+  modal.style.display = 'flex';
+}
+function cerrarConfigPrensado(){
+  var modal = document.getElementById('modal-prensado-config');
+  if (modal) modal.style.display = 'none';
+}
+function pintarConfigPrensado(){
+  var body = document.getElementById('prensado-config-body');
+  if (!body) return;
+  var html = '';
+  Object.keys(PRENSADO_CONFIG).forEach(function(formato){
+    html += '<div style="margin-bottom:14px;padding:10px;background:var(--bg);border-radius:6px"><div style="font-weight:700;margin-bottom:8px;color:var(--brand)">'+formato+'</div>';
+    PRENSADO_CONFIG[formato].forEach(function(prog, idx){
+      html += '<div style="margin-bottom:8px;padding:8px;background:var(--card);border:1px solid var(--border);border-radius:5px">'
+            + '<div style="font-size:0.85rem;font-weight:600;margin-bottom:4px">'+prog.nombre+'</div>'
+            + '<div class="form-cols-4" style="gap:6px">'
+            +   '<div class="form-row"><label class="form-label">Bar inicial</label><input type="number" step="0.1" data-cfg="'+formato+'|'+idx+'|bar_inicial" value="'+prog.bar_inicial+'"></div>'
+            +   '<div class="form-row"><label class="form-label">Bar final</label><input type="number" step="0.1" data-cfg="'+formato+'|'+idx+'|bar_final" value="'+prog.bar_final+'"></div>'
+            +   '<div class="form-row"><label class="form-label">Rampa (min)</label><input type="number" data-cfg="'+formato+'|'+idx+'|rampa_min" value="'+prog.rampa_min+'"></div>'
+            +   '<div class="form-row"><label class="form-label">Manten. (min)</label><input type="number" data-cfg="'+formato+'|'+idx+'|mantenimiento_min" value="'+prog.mantenimiento_min+'"></div>'
+            + '</div></div>';
+    });
+    html += '</div>';
+  });
+  body.innerHTML = html;
+}
+function guardarConfigPrensado(){
+  var inputs = document.querySelectorAll('#prensado-config-body input[data-cfg]');
+  inputs.forEach(function(inp){
+    var parts = inp.dataset.cfg.split('|');
+    var formato = parts[0], idx = parseInt(parts[1]), campo = parts[2];
+    var val = parseFloat(inp.value) || 0;
+    PRENSADO_CONFIG[formato][idx][campo] = val;
+  });
+  guardarPrensadoConfig();
+  cerrarConfigPrensado();
+  if (typeof toast === 'function') toast('✓ Configuración guardada');
 }
 
 </script>
