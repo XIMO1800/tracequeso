@@ -251,7 +251,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.9.1</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.9.2</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -805,6 +805,12 @@ function abrirCubaPestana(id){
 
 // Detecta hasta qué sección rellenó el quesero y abre+scrollea a la siguiente
 function irASiguienteSeccion(p){
+  // Si no tiene ni tipo todavía, quedarse arriba (datos generales)
+  var panel = document.getElementById('panel-cuba-activa');
+  if(!p.tipo){
+    if(panel && panel.scrollIntoView) panel.scrollIntoView({behavior:'smooth', block:'start'});
+    return;
+  }
   // Orden cronológico del proceso quesero
   var orden = ['past','aux','ferm','coag','des','mol','salm','pzas'];
   // Helper: ¿esta sección tiene algún dato relevante?
@@ -829,8 +835,10 @@ function irASiguienteSeccion(p){
   if(idxObjetivo < 0) idxObjetivo = 0; // Si no hay nada, empezar por pasteurización
   var secObjetivo = orden[idxObjetivo];
   // Abrir esa sección (desplegarla)
-  var body = document.getElementById('body-'+secObjetivo);
-  var chev = document.getElementById('chev-'+secObjetivo);
+  // Buscar SOLO dentro del panel activo (no del template oculto)
+  var panelEl = document.getElementById('panel-cuba-activa');
+  var body = panelEl ? panelEl.querySelector('#body-'+secObjetivo) : null;
+  var chev = panelEl ? panelEl.querySelector('#chev-'+secObjetivo) : null;
   if(body && !body.classList.contains('open')) body.classList.add('open');
   if(chev && !chev.classList.contains('open')) chev.classList.add('open');
   // Scroll suave hasta el header de esa sección
@@ -868,7 +876,12 @@ function rellenarCampos(p){
       setTimeout(function(){
         var vs = document.getElementById('np-var-sel');
         if(vs){ vs.value=p.variedad; onVarSelChange(); }
+        // Refrescar la pestaña UNA VEZ que la variedad está puesta
+        setTimeout(function(){ try{ refrescarPestanaCubaActiva(); }catch(e){} }, 50);
       }, 80);
+    } else {
+      // Si no hay variedad, refrescar igualmente para mostrar solo el tipo
+      setTimeout(function(){ try{ refrescarPestanaCubaActiva(); }catch(e){} }, 100);
     }
   }
   // Pasteurización
@@ -1895,6 +1908,43 @@ if('serviceWorker' in navigator){
 }
 
 init();
+
+// ═══════════════════════════════════════════════════════════════
+// #28 Swipe horizontal entre cubas (estilo "fichas")
+// Solo se activa con gesto claramente horizontal (no choca con scroll)
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  var startX=0, startY=0, swiping=false;
+  document.addEventListener('touchstart', function(e){
+    if(!CUBA_ACTIVA_ID) return;
+    var t=e.touches[0]; startX=t.clientX; startY=t.clientY; swiping=true;
+  }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if(!swiping || !CUBA_ACTIVA_ID) return;
+    swiping=false;
+    var t=e.changedTouches[0];
+    var dx = t.clientX - startX;
+    var dy = t.clientY - startY;
+    // Sólo si el gesto es claramente horizontal: |dx| > 70 px y |dx| > |dy|*2
+    if(Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy)*2) return;
+    // No swipear si el toque empezó en un input/select/button
+    var target = e.target;
+    if(target && target.closest && target.closest('input,select,textarea,button')) return;
+    // Buscar la cuba siguiente/anterior
+    var cubasHoy = PARTES.filter(function(p){
+      var hoy = (typeof obtenerFechaHoy === "function") ? obtenerFechaHoy() : new Date().toISOString().slice(0,10);
+      return p.fecha === hoy || (p.fecha && p.fecha.toString().indexOf(hoy)>=0);
+    });
+    cubasHoy.sort(function(a,b){ return (parseInt(a.cuba)||0) - (parseInt(b.cuba)||0); });
+    var idx = -1;
+    for(var i=0;i<cubasHoy.length;i++) if(cubasHoy[i].id===CUBA_ACTIVA_ID) idx=i;
+    if(idx<0) return;
+    var nuevoIdx = (dx<0) ? idx+1 : idx-1; // swipe izq → siguiente, swipe der → anterior
+    if(nuevoIdx < 0 || nuevoIdx >= cubasHoy.length) return;
+    abrirCubaPestana(cubasHoy[nuevoIdx].id);
+  }, {passive:true});
+})();
+
 </script>
 </body>
 </html>
