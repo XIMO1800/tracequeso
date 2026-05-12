@@ -253,6 +253,21 @@ input[type="date"],
 input[type="email"] {
   touch-action: pan-x pan-y;
 }
+
+/* Cabeceras de auxiliares opcionales (CO₂, Otros) */
+.opt-aux-header { padding: 10px 0; border-top: 1px dashed var(--border); margin-top: 10px; }
+.opt-aux-header:first-child { border-top: none; margin-top: 0; }
+.opt-aux-label { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+.opt-aux-label input[type="checkbox"] { width: 22px; height: 22px; cursor: pointer; accent-color: var(--brand); }
+.opt-aux-title { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+.opt-aux-block { padding: 10px 0 5px; }
+.opt-aux-block.cerrado { display: none !important; }
+
+/* Tarjeta de un "otro auxiliar" (manual) */
+.otro-aux-card { background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; position: relative; }
+.otro-aux-card .quitar-btn { position: absolute; top: 6px; right: 8px; background: none; border: none; color: var(--text2); font-size: 1.1rem; cursor: pointer; padding: 4px 8px; }
+.otro-aux-card .quitar-btn:hover { color: var(--brand); }
+
 </style>
 </head>
 <body>
@@ -265,7 +280,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.9.9</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.1.0</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -359,7 +374,7 @@ input[type="email"] {
           <input type="number" id="past-temp" step="0.1" inputmode="decimal" oninput="marcarTocado('past-temp')">
         </div>
         <div class="form-row">
-          <label class="form-label">Tiempo (min)</label>
+          <label class="form-label">Tiempo pasterización</label>
           <input type="number" id="past-tiempo" inputmode="decimal" oninput="marcarTocado('past-tiempo')">
         </div>
       </div>
@@ -384,7 +399,7 @@ input[type="email"] {
 
   <div class="seccion">
     <div class="seccion-header" onclick="toggleSec('aux')">
-      <div class="seccion-header-left"><span class="seccion-icon">🧪</span><div><div class="seccion-label">Auxiliares de fabricación</div><div class="seccion-sublabel" id="aux-sub">CaCl₂ · Lisozima</div></div></div>
+      <div class="seccion-header-left"><span class="seccion-icon">🧪</span><div><div class="seccion-label">Auxiliares de fabricación</div><div class="seccion-sublabel" id="aux-sub">CaCl₂</div></div></div>
       <span class="seccion-chevron open" id="chev-aux">▼</span>
     </div>
     <div class="seccion-body open" id="body-aux">
@@ -400,31 +415,50 @@ input[type="email"] {
           <input type="number" id="aux-temp" step="0.1" inputmode="decimal">
         </div>
       </div>
-      <!-- CO2: siempre presente, independiente de receta -->
-      <div class="sep-label">CO₂</div>
-      <div class="form-row">
-        <label class="form-label">Lote CO₂</label>
-        <div class="lote-chip" id="co2-lote-chip">
-          <div class="lote-chip-info">
-            <div class="lote-chip-lote" id="co2-lote-val">Sin lote activo</div>
-            <div class="lote-chip-cad" id="co2-lote-cad">—</div>
-          </div>
-          <button class="lote-chip-btn" onclick="abrirSelectorLote('CO2')">Cambiar</button>
-        </div>
+      <!-- CO2 con check on/off (marcado por defecto) -->
+      <div class="opt-aux-header">
+        <label class="opt-aux-label">
+          <input type="checkbox" id="co2-aplicado" checked onchange="toggleCO2Aplicado()">
+          <span class="opt-aux-title">🌫️ CO₂ · Se aplicó</span>
+        </label>
       </div>
-      <div class="form-cols">
+      <div id="co2-block" class="opt-aux-block">
         <div class="form-row">
-          <label class="form-label">Tiempo (seg)</label>
-          <input type="number" id="co2-tiempo" placeholder="—" inputmode="numeric" readonly class="calc-filled">
+          <label class="form-label">Lote CO₂</label>
+          <div class="lote-chip" id="co2-lote-chip">
+            <div class="lote-chip-info">
+              <div class="lote-chip-lote" id="co2-lote-val">Sin lote activo</div>
+              <div class="lote-chip-cad" id="co2-lote-cad">—</div>
+            </div>
+            <button class="lote-chip-btn" onclick="abrirSelectorLote('CO2')">Cambiar</button>
+          </div>
         </div>
-        <div class="form-row">
-          <label class="form-label">Caudal (L/h)</label>
-          <input type="number" id="co2-caudal" value="100" inputmode="numeric" oninput="calcCO2()">
+        <div class="form-cols">
+          <div class="form-row">
+            <label class="form-label">Tiempo (seg)</label>
+            <input type="number" id="co2-tiempo" placeholder="—" inputmode="numeric" readonly class="calc-filled">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Caudal (L/h)</label>
+            <input type="number" id="co2-caudal" value="100" inputmode="numeric" oninput="calcCO2()">
+          </div>
         </div>
       </div>
 
-      <!-- Resto auxiliares de la receta (CaCl2, Lisozima...) -->
+      <!-- Resto auxiliares de la receta (CaCl2 fijo, lo demás de receta) -->
       <div id="aux-container"></div>
+
+      <!-- Otros auxiliares opcionales (lisozima, sales antibutíricas, aceitunas...) -->
+      <div class="opt-aux-header" style="margin-top:14px">
+        <label class="opt-aux-label">
+          <input type="checkbox" id="otros-aux-on" onchange="toggleOtrosAux()">
+          <span class="opt-aux-title">➕ Otros auxiliares</span>
+        </label>
+      </div>
+      <div id="otros-aux-block" class="opt-aux-block" style="display:none">
+        <div id="otros-aux-container"></div>
+        <button type="button" class="btn-secundario" style="margin-top:8px" onclick="anadirOtroAuxiliar()">+ Añadir otro</button>
+      </div>
     </div>
   </div>
 
@@ -635,7 +669,7 @@ var SYNC_PENDIENTE = []; // registros pendientes de enviar cuando haya red
 
 var RECETAS_DEMO = [
   {id:'r1',tipo:'MEZCLA',variedad:'SEMICURADO',
-   auxiliares:[{nombre:'CaCl2',dosis_ml_1000L:100},{nombre:'Lisozima',dosis_ml_1000L:20}],
+   auxiliares:[{nombre:'CaCl2',dosis_ml_1000L:100}],
    fermentos:[{nombre:'R-704',dosis_ml_1000L:100},{nombre:'FLORA',dosis_ml_1000L:20}],
    cuajo:{nombre:'NATUREN',dosis_ml_1000L:200}},
   {id:'r2',tipo:'D.O. PAST.',variedad:'CURADO',
@@ -643,7 +677,7 @@ var RECETAS_DEMO = [
    fermentos:[{nombre:'HANSEN',dosis_ml_1000L:120},{nombre:'GRACIA-102',dosis_ml_1000L:100}],
    cuajo:{nombre:'CHYMAX',dosis_ml_1000L:180}},
   {id:'r3',tipo:'MEZCLA',variedad:'TIERNO',
-   auxiliares:[{nombre:'CaCl2',dosis_ml_1000L:100},{nombre:'Lisozima',dosis_ml_1000L:20}],
+   auxiliares:[{nombre:'CaCl2',dosis_ml_1000L:100}],
    fermentos:[{nombre:'R-704',dosis_ml_1000L:80},{nombre:'DANISCO',dosis_ml_1000L:50}],
    cuajo:{nombre:'NATUREN',dosis_ml_1000L:200}}
 ];
@@ -821,43 +855,98 @@ function abrirCubaPestana(id){
 
 // Detecta hasta qué sección rellenó el quesero y abre+scrollea a la siguiente
 function irASiguienteSeccion(p){
-  // REGLA: sólo desplazar hacia abajo si HAY al menos una sección posterior
-  // con datos rellenados. Si la cuba solo tiene datos generales (tipo,
-  // variedad, litros...), QUEDARSE ARRIBA — es lo natural.
-  var orden = ['past','aux','ferm','coag','des','mol','salm','pzas'];
-  // Helper: ¿esta sección tiene algún dato relevante?
-  function tieneDatos(sec){
-    if(sec==='past'){ return !!(p.pasteurizacion && ((p.pasteurizacion.temp && p.pasteurizacion.temp>0) || (p.pasteurizacion.tiempo && p.pasteurizacion.tiempo>0))); }
-    if(sec==='aux'){  return !!(p.phLeche||p.tempLeche||(p.co2&&(p.co2.lote||p.co2.tiempo))||(p.auxiliares&&p.auxiliares.some(function(a){return a.dosisUtilizada;}))); }
-    if(sec==='ferm'){ return !!(p.fermentos && p.fermentos.some(function(f){return f.dosisUtilizada||f.lote;})); }
-    if(sec==='coag'){ return !!(p.coag && (p.coag.hadicion||p.coag.hc||p.coag.ph||p.coag.temp||(p.cuajo&&(p.cuajo.lote||p.cuajo.dosisUtilizada)))); }
-    if(sec==='des'){  return !!(p.desuerado && (p.desuerado.rec_hi||p.desuerado.rec_hf||p.desuerado.rec_ti||p.desuerado.rec_tf||p.desuerado.agit_hi||p.desuerado.agit_hf)); }
-    if(sec==='mol'){  return !!(p.moldeo && (p.moldeo.hi||p.moldeo.hf||p.moldeo.ph||p.moldeo.temp)) || !!(p.prensado && (p.prensado.e1||p.prensado.e2)) || !!(p.desmoldeo && (p.desmoldeo.hi||p.desmoldeo.hf)); }
-    if(sec==='salm'){ return !!(p.salmuera && (p.salmuera.hi||p.salmuera.hf)); }
-    if(sec==='pzas'){ return !!(p.piezas && (p.piezas.kg3||p.piezas.kg2||p.piezas.kg1||p.piezas.kg05||p.piezas.barra||p.piezas.gigante)); }
-    return false;
-  }
-  // Buscar la última sección con datos
-  var idxUltima = -1;
-  for(var i=0;i<orden.length;i++){
-    if(tieneDatos(orden[i])) idxUltima = i;
-  }
-  // Si no hay NINGUNA sección rellena, no mover scroll (queda arriba en datos generales)
-  if(idxUltima < 0) return;
-  // La siguiente sección por hacer (o la última si ya completó todo)
-  var idxObjetivo = (idxUltima < orden.length-1) ? idxUltima + 1 : idxUltima;
-  var secObjetivo = orden[idxObjetivo];
-  // Abrir esa sección (desplegarla)
-  // Buscar SOLO dentro del panel activo (no del template oculto)
+  // SCROLL INTELIGENTE: va al primer campo OBLIGATORIO sin rellenar
+  // (ignora campos del laboratorio: litros vaca/cabra/oveja, fosfatasa)
+  // Lista de campos obligatorios en orden cronológico
   var panelEl = document.getElementById('panel-cuba-activa');
-  var body = panelEl ? panelEl.querySelector('#body-'+secObjetivo) : null;
-  var chev = panelEl ? panelEl.querySelector('#chev-'+secObjetivo) : null;
-  if(body && !body.classList.contains('open')) body.classList.add('open');
-  if(chev && !chev.classList.contains('open')) chev.classList.add('open');
-  // Scroll suave hasta el header de esa sección
+  if (!panelEl) return;
+
+  // Espera 100ms para que el DOM esté completamente listo
+  var camposOblig = [
+    // Datos generales (ya rellenos por p, no como campos a verificar visualmente,
+    // pero los chequeamos por si están vacíos)
+    {id:'np-tipo-sel',     sec:null, check:'select'},
+    {id:'np-var-sel',      sec:null, check:'select-opcional'}, // solo si hay variedades
+    {id:'np-litros',       sec:null, check:'numero-mayor-cero'},
+    {id:'np-operario-sel', sec:null, check:'no-vacio'},
+    {id:'np-ph',           sec:null, check:'no-vacio'},
+    {id:'np-temp',         sec:null, check:'no-vacio'},
+    // Pasteurización
+    {id:'past-valvula',    sec:'past', check:'no-vacio'},
+    {id:'past-temp',       sec:'past', check:'numero-mayor-cero'},
+    {id:'past-tiempo',     sec:'past', check:'numero-mayor-cero'},
+    // Leche en cuba
+    {id:'aux-ph',          sec:'aux',  check:'numero-mayor-cero'},
+    {id:'aux-temp',        sec:'aux',  check:'numero-mayor-cero'},
+    // Coagulación
+    {id:'coag-hadicion',   sec:'coag', check:'no-vacio'},
+    {id:'coag-ph',         sec:'coag', check:'numero-mayor-cero'},
+    {id:'coag-temp',       sec:'coag', check:'numero-mayor-cero'},
+    {id:'coag-hc',         sec:'coag', check:'no-vacio'},
+    // Desuerado - Recalentamiento
+    {id:'rec-hi',          sec:'des',  check:'no-vacio'},
+    {id:'rec-ti',          sec:'des',  check:'numero-mayor-cero'},
+    {id:'rec-hf',          sec:'des',  check:'no-vacio'},
+    {id:'rec-tf',          sec:'des',  check:'numero-mayor-cero'},
+    // Desuerado - Agitación
+    {id:'agit-hi',         sec:'des',  check:'no-vacio'},
+    {id:'agit-hf',         sec:'des',  check:'no-vacio'},
+    // Moldeo
+    {id:'mol-hi',          sec:'mol',  check:'no-vacio'},
+    {id:'mol-ph',          sec:'mol',  check:'numero-mayor-cero'},
+    {id:'mol-temp',        sec:'mol',  check:'numero-mayor-cero'},
+    {id:'mol-hf',          sec:'mol',  check:'no-vacio'}
+    // Desmoldeo / salmuera / piezas = operarios de tarde, no urgente
+  ];
+
+  // Función auxiliar: ¿está vacío el campo según su tipo?
+  function vacio(el, check){
+    if (!el) return false; // si el campo no existe, no lo cuento como vacío
+    var v = el.value;
+    if (check === 'numero-mayor-cero') return !(parseFloat(v) > 0);
+    if (check === 'select-opcional') {
+      // Solo cuenta como vacío si el select está habilitado y tiene opciones
+      if (el.disabled) return false;
+      if (el.options.length <= 1) return false; // solo el placeholder
+      return !v;
+    }
+    return !v || v.trim() === '';
+  }
+
+  // Buscar el primer campo obligatorio vacío
+  var primerVacio = null;
+  for (var i = 0; i < camposOblig.length; i++) {
+    var campo = camposOblig[i];
+    var el = panelEl.querySelector('#' + campo.id);
+    if (vacio(el, campo.check)) {
+      primerVacio = campo;
+      break;
+    }
+  }
+
+  // Si todo está relleno, queda arriba (todo OK)
+  if (!primerVacio) {
+    try{ window.scrollTo(0,0); }catch(e){}
+    return;
+  }
+
+  // Si el primer campo vacío está en datos generales, queda arriba
+  if (!primerVacio.sec) {
+    try{ window.scrollTo(0,0); }catch(e){}
+    // Foco al campo concreto
+    var el = panelEl.querySelector('#' + primerVacio.id);
+    if (el && el.focus) try { el.focus({preventScroll:true}); } catch(e) {}
+    return;
+  }
+
+  // Si está en una sección, abrir la sección y scrollear a ella
+  var body = panelEl.querySelector('#body-' + primerVacio.sec);
+  var chev = panelEl.querySelector('#chev-' + primerVacio.sec);
+  if (body && !body.classList.contains('open')) body.classList.add('open');
+  if (chev && !chev.classList.contains('open')) chev.classList.add('open');
   var header = body ? body.previousElementSibling : null;
-  if(header && header.scrollIntoView){
-      header.scrollIntoView({behavior:'smooth', block:'start'});
+  if (header && header.scrollIntoView) {
+    header.scrollIntoView({behavior:'smooth', block:'start'});
   }
 }
 
@@ -893,6 +982,8 @@ function rellenarCampos(p){
   if(p.tipo){
     var ts = document.getElementById('np-tipo-sel');
     if(ts){ ts.value=p.tipo; onTipoSelChange(); }
+    // Recalcular tiempo pasteurización tras cargar (los litros ya están puestos por v() arriba)
+    setTimeout(function(){ try{ calcPasteurizacion(); }catch(e){} }, 200);
     if(p.variedad){
       // Reintenta hasta que la opción exista en el dropdown
       // (onTipoSelChange regenera <option> de forma asíncrona)
@@ -927,7 +1018,17 @@ function rellenarCampos(p){
     var ck = document.getElementById('past-cruda'); if(ck) ck.checked = !!p.pasteurizacion.cruda;
     var cf = document.getElementById('past-fosfatasa'); if(cf) cf.checked = !!p.pasteurizacion.fosfatasa;
   }
-  // CO2
+  // CO2 (check y campos)
+  var co2Chk = document.getElementById('co2-aplicado');
+  if (co2Chk && p.co2 && typeof p.co2.aplicado === 'boolean') {
+    co2Chk.checked = p.co2.aplicado;
+    var co2Block = document.getElementById('co2-block');
+    if (co2Block) co2Block.style.display = p.co2.aplicado ? '' : 'none';
+  }
+  // Otros auxiliares
+  if (typeof restaurarOtrosAuxiliares === 'function') restaurarOtrosAuxiliares(p.otrosAuxiliares || []);
+
+  // CO2 campos
   if(p.co2){
     v('aux-ph', p.co2.ph_leche); v('aux-temp', p.co2.temp_leche);
     v('co2-caudal', p.co2.caudal_lh || 100); v('co2-tiempo', p.co2.tiempo_seg);
@@ -1038,7 +1139,9 @@ function autoGuardarParte(parteId){
   p.salmuera = {formato:g('salm-formato'), hi:g('salm-hi'), hf:g('salm-hf')};
   p.piezas = {'3kg':gi('pzas-3kg'),'2kg':gi('pzas-2kg'),'1kg':gi('pzas-1kg'),'05kg':gi('pzas-05kg'),'barra':gi('pzas-barra'),'gigante':gi('pzas-gigante')};
   p.caseinas = {serie:g('cas-serie'), primera:gi('cas-primera'), ultima:gi('cas-ultima'), total:(gi('cas-ultima')-gi('cas-primera')+1)};
-  p.co2 = {ph_leche:gn('aux-ph'), temp_leche:gn('aux-temp'), caudal_lh:gn('co2-caudal'), tiempo_seg:gi('co2-tiempo'), ph_objetivo:6.48};
+  var co2Chk = document.getElementById('co2-aplicado');
+  p.co2 = {aplicado: co2Chk ? co2Chk.checked : true, ph_leche:gn('aux-ph'), temp_leche:gn('aux-temp'), caudal_lh:gn('co2-caudal'), tiempo_seg:gi('co2-tiempo'), ph_objetivo:6.48};
+  p.otrosAuxiliares = (typeof recogerOtrosAuxiliares === 'function') ? recogerOtrosAuxiliares() : [];
   p.pasteurizacion = {valvula:g('past-valvula'), temp:gn('past-temp'), tiempo:gn('past-tiempo'), cruda:document.getElementById('past-cruda')?document.getElementById('past-cruda').checked:false, fosfatasa:document.getElementById('past-fosfatasa')?document.getElementById('past-fosfatasa').checked:false};
   p.observaciones = g('np-obs');
   persistir();
@@ -1122,7 +1225,9 @@ function calcPasteurizacion(){
   var crudaEl = document.getElementById('past-cruda');
   if(!tiempoEl) return;
   // Tiempo = (litros / 15000) * 60 minutos
-  if(litros > 0 && (!tiempoEl.value || tiempoEl.dataset.auto === '1')){
+  // Recalcular si: hay litros, Y (tiempo está vacío O es 0 O fue autocalculado antes)
+  var valActual = parseFloat(tiempoEl.value) || 0;
+  if(litros > 0 && (valActual === 0 || tiempoEl.dataset.auto === '1')){
     var min = (litros / 15000) * 60;
     tiempoEl.value = min.toFixed(1);
     tiempoEl.dataset.auto = '1';
@@ -1992,6 +2097,101 @@ init();
     abrirCubaPestana(cubasHoy[nuevoIdx].id);
   }, {passive:true});
 })();
+
+
+
+// ═══════════════════════════════════════════════════════════════
+// AUXILIARES OPCIONALES (CO₂ on/off, Otros auxiliares manuales)
+// ═══════════════════════════════════════════════════════════════
+function toggleCO2Aplicado(){
+  var chk = document.getElementById('co2-aplicado');
+  var bloque = document.getElementById('co2-block');
+  if (!chk || !bloque) return;
+  bloque.style.display = chk.checked ? '' : 'none';
+  // Disparar autoguardado para reflejar el cambio
+  if (CUBA_ACTIVA_ID && typeof autoGuardarParte === 'function') autoGuardarParte(CUBA_ACTIVA_ID);
+}
+
+function toggleOtrosAux(){
+  var chk = document.getElementById('otros-aux-on');
+  var bloque = document.getElementById('otros-aux-block');
+  if (!chk || !bloque) return;
+  bloque.style.display = chk.checked ? '' : 'none';
+  // Si lo marca y no hay ninguno aún, añadir el primero automáticamente
+  if (chk.checked) {
+    var cont = document.getElementById('otros-aux-container');
+    if (cont && cont.children.length === 0) anadirOtroAuxiliar();
+  }
+  if (CUBA_ACTIVA_ID && typeof autoGuardarParte === 'function') autoGuardarParte(CUBA_ACTIVA_ID);
+}
+
+function anadirOtroAuxiliar(datos){
+  datos = datos || {};
+  var cont = document.getElementById('otros-aux-container');
+  if (!cont) return;
+  var idx = cont.children.length;
+  var div = document.createElement('div');
+  div.className = 'otro-aux-card';
+  div.dataset.idx = idx;
+  div.innerHTML = ''
+    + '<button type="button" class="quitar-btn" onclick="quitarOtroAuxiliar(this)" title="Quitar">×</button>'
+    + '<div class="form-row"><label class="form-label">Nombre / Descripción</label><input type="text" class="oaux-nombre" placeholder="Ej: Lisozima, Sales antibutíricas..." value="'+(datos.nombre||'')+'"></div>'
+    + '<div class="form-cols">'
+    +   '<div class="form-row"><label class="form-label">Lote</label><input type="text" class="oaux-lote" value="'+(datos.lote||'')+'"></div>'
+    +   '<div class="form-row"><label class="form-label">Caducidad</label><input type="date" class="oaux-cad" value="'+(datos.caducidad||'')+'"></div>'
+    + '</div>'
+    + '<div class="form-cols">'
+    +   '<div class="form-row"><label class="form-label">Proveedor</label><input type="text" class="oaux-prov" value="'+(datos.proveedor||'')+'"></div>'
+    +   '<div class="form-row"><label class="form-label">Dosis utilizada</label><input type="text" class="oaux-dosis" placeholder="ej: 500 ml" value="'+(datos.dosis||'')+'"></div>'
+    + '</div>'
+    + '<div class="form-row"><label class="form-label">Observaciones</label><input type="text" class="oaux-obs" placeholder="Opcional" value="'+(datos.obs||'')+'"></div>';
+  cont.appendChild(div);
+  // Enganchar listeners de autoguardado
+  div.querySelectorAll('input').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
+    });
+  });
+}
+
+function quitarOtroAuxiliar(btn){
+  var card = btn.closest('.otro-aux-card');
+  if (card) card.remove();
+  if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
+}
+
+// Recoger los "otros auxiliares" del DOM al guardar el parte
+function recogerOtrosAuxiliares(){
+  var cards = document.querySelectorAll('#otros-aux-container .otro-aux-card');
+  var out = [];
+  cards.forEach(function(c){
+    var nom = (c.querySelector('.oaux-nombre')||{}).value || '';
+    if (!nom) return; // si no tiene nombre, ignorar
+    out.push({
+      nombre: nom,
+      lote: (c.querySelector('.oaux-lote')||{}).value || '',
+      caducidad: (c.querySelector('.oaux-cad')||{}).value || '',
+      proveedor: (c.querySelector('.oaux-prov')||{}).value || '',
+      dosis: (c.querySelector('.oaux-dosis')||{}).value || '',
+      obs: (c.querySelector('.oaux-obs')||{}).value || ''
+    });
+  });
+  return out;
+}
+
+// Restaurar "otros auxiliares" en el DOM al cargar un parte
+function restaurarOtrosAuxiliares(arr){
+  var cont = document.getElementById('otros-aux-container');
+  if (!cont) return;
+  cont.innerHTML = '';
+  if (!arr || !arr.length) return;
+  arr.forEach(function(d){ anadirOtroAuxiliar(d); });
+  // Activar el check si hay datos
+  var chk = document.getElementById('otros-aux-on');
+  var bloque = document.getElementById('otros-aux-block');
+  if (chk) chk.checked = true;
+  if (bloque) bloque.style.display = '';
+}
 
 </script>
 </body>
