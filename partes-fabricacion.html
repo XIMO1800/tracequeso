@@ -265,7 +265,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.9.4</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.9.5</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -865,10 +865,18 @@ function cargarFormularioEnPanel(p){
   var panel = document.getElementById('panel-cuba-activa');
   var tmpl = document.getElementById('form-parte-template');
   if(!panel || !tmpl) return;
+  // Activar bandera: no autoguardar mientras se pinta el formulario
+  window._cargandoForm = true;
   // Clonar el HTML del template dentro del panel
   panel.innerHTML = tmpl.innerHTML;
   // Cargar los valores del parte en los campos
-  setTimeout(function(){ rellenarCampos(p); installAutoSave(p.id); }, 50);
+  setTimeout(function(){
+    rellenarCampos(p);
+    installAutoSave(p.id);
+    // Desactivar bandera DESPUÉS de que todos los setTimeout internos
+    // de rellenarCampos hayan tenido tiempo de ejecutarse (variedad usa 80ms)
+    setTimeout(function(){ window._cargandoForm = false; }, 400);
+  }, 50);
 }
 
 function rellenarCampos(p){
@@ -987,8 +995,13 @@ function installAutoSave(parteId){
 }
 
 function autoGuardarParte(parteId){
+  // No persistir mientras se carga el formulario (evita pisar datos con vacíos)
+  if (window._cargandoForm) return;
   var p = PARTES.find(function(x){return x.id===parteId;});
   if(!p) return;
+  // Solo guardar en el parte si la cuba actualmente visible es ese parteId
+  // (si el usuario ya cambió de pestaña, no machacar)
+  if (CUBA_ACTIVA_ID && CUBA_ACTIVA_ID !== parteId) return;
   function g(id){var el=document.getElementById(id); return el?el.value:'';}
   function gn(id){return parseFloat(g(id))||0;}
   function gi(id){return parseInt(g(id))||0;}
