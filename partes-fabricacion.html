@@ -310,6 +310,34 @@ input[type="email"] {
 .modal-body{padding:14px 16px;overflow-y:auto}
 .modal-footer{padding:10px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
 
+
+/* Botones discretos en cabecera de subsección (+ Añadir, ⚙️ Configurar) */
+.sep-action-btn{
+  background:none;
+  border:none;
+  color:var(--brand);
+  font-size:0.72rem;
+  font-weight:600;
+  cursor:pointer;
+  padding:2px 6px;
+  text-transform:none;
+  letter-spacing:0;
+  font-family:inherit;
+}
+.sep-action-btn:hover{
+  background:rgba(122,31,31,0.08);
+  border-radius:4px;
+}
+
+
+/* Tarjeta CO₂ compacta */
+.co2-card{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:4px}
+.co2-card .co2-lote-val{font-size:0.88rem;font-weight:700;color:var(--text);padding:5px 0}
+.co2-card .co2-lote-cad{font-size:0.82rem;color:var(--text2);padding:5px 0}
+.co2-card .co2-lote-prov{font-size:0.82rem;color:var(--text2);padding:5px 0;font-weight:600}
+.co2-cambiar-btn{background:var(--bg2);border:1.5px solid var(--border);color:var(--text);padding:5px 10px;border-radius:6px;font-size:0.78rem;cursor:pointer;font-family:inherit;width:100%}
+.co2-cambiar-btn:hover{background:var(--brand);color:white;border-color:var(--brand)}
+
 </style>
 </head>
 <body>
@@ -322,7 +350,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.4.1</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.4.6</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -364,10 +392,7 @@ input[type="email"] {
         </div>
         <div class="form-row">
           <label class="form-label">Variedad</label>
-          <div style="display:flex;gap:4px;align-items:center">
-            <select id="np-var-sel" style="flex:1" onchange="onVarSelChange()" disabled><option value="">—</option></select>
-            <button onclick="anadirVariedad()" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:1rem;flex-shrink:0">+</button>
-          </div>
+          <select id="np-var-sel" onchange="onVarSelChange()" disabled><option value="">—</option></select>
         </div>
       </div>
       <input type="hidden" id="np-tipo">
@@ -420,21 +445,16 @@ input[type="email"] {
           <input type="number" id="past-tiempo" inputmode="decimal" oninput="marcarTocado('past-tiempo')">
         </div>
       </div>
-      <!-- Fila 2: Cruda · Fosfatasa (2 cols) - compactados a una sola línea cada uno -->
-      <div class="form-cols">
-        <div class="form-row">
-          <label class="form-label">Cruda · Fosfatasa alcalina (calidad)</label>
-          <div style="padding:6px 10px;background:var(--bg);border:1.5px solid var(--border);border-radius:6px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-              <input type="checkbox" id="past-cruda" style="width:18px;height:18px;cursor:pointer" disabled>
-              <span style="font-size:0.78rem">Cruda (auto)</span>
-            </label>
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-              <input type="checkbox" id="past-fosfatasa" style="width:18px;height:18px;cursor:pointer">
-              <span style="font-size:0.78rem">Fosfatasa (calidad)</span>
-            </label>
-          </div>
-        </div>
+      <!-- Cruda + Fosfatasa en una sola línea, discreto -->
+      <div style="display:flex;align-items:center;gap:24px;margin-top:6px;padding:4px 2px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.82rem;color:var(--text2)">
+          <input type="checkbox" id="past-cruda" style="width:18px;height:18px;cursor:pointer" disabled>
+          <span>Cruda (auto)</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.82rem;color:var(--text2)">
+          <input type="checkbox" id="past-fosfatasa" style="width:18px;height:18px;cursor:pointer">
+          <span>Fosfatasa alcalina (calidad)</span>
+        </label>
       </div>
     </div>
   </div>
@@ -442,9 +462,9 @@ input[type="email"] {
   <div class="seccion">
     <div class="seccion-header" onclick="toggleSec('aux')">
       <div class="seccion-header-left"><span class="seccion-icon">🧪</span><div><div class="seccion-label">Auxiliares de fabricación</div><div class="seccion-sublabel" id="aux-sub">CaCl₂</div></div></div>
-      <span class="seccion-chevron open" id="chev-aux">▼</span>
+      <span class="seccion-chevron" id="chev-aux">▼</span>
     </div>
-    <div class="seccion-body open" id="body-aux">
+    <div class="seccion-body" id="body-aux">
       <!-- pH y Tª de la leche en el momento de adición de auxiliares -->
       <div class="sep-label">Leche entrada cuba</div>
       <div class="form-cols">
@@ -465,24 +485,33 @@ input[type="email"] {
         </label>
       </div>
       <div id="co2-block" class="opt-aux-block">
-        <div class="form-row">
-          <label class="form-label">Lote CO₂</label>
-          <div class="lote-chip" id="co2-lote-chip">
-            <div class="lote-chip-info">
-              <div class="lote-chip-lote" id="co2-lote-val">Sin lote activo</div>
-              <div class="lote-chip-cad" id="co2-lote-cad">—</div>
+        <div class="co2-card">
+          <div class="form-cols-3" style="margin-bottom:6px">
+            <div class="form-row">
+              <label class="form-label">Lote</label>
+              <div class="co2-lote-val" id="co2-lote-val">Sin lote</div>
             </div>
-            <button class="lote-chip-btn" onclick="abrirSelectorLote('CO2')">Cambiar</button>
+            <div class="form-row">
+              <label class="form-label">Caducidad</label>
+              <div class="co2-lote-cad" id="co2-lote-cad">—</div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Proveedor</label>
+              <div class="co2-lote-prov" id="co2-lote-prov">—</div>
+            </div>
           </div>
-        </div>
-        <div class="form-cols">
-          <div class="form-row">
-            <label class="form-label">Tiempo (seg)</label>
-            <input type="number" id="co2-tiempo" placeholder="—" inputmode="numeric" readonly class="calc-filled">
-          </div>
-          <div class="form-row">
-            <label class="form-label">Caudal (L/h)</label>
-            <input type="number" id="co2-caudal" value="100" inputmode="numeric" oninput="calcCO2()">
+          <div class="form-cols-3">
+            <div class="form-row">
+              <label class="form-label">Tiempo (seg)</label>
+              <input type="number" id="co2-tiempo" placeholder="—" inputmode="numeric" readonly class="calc-filled">
+            </div>
+            <div class="form-row">
+              <label class="form-label">Caudal (L/h)</label>
+              <input type="number" id="co2-caudal" value="100" inputmode="numeric" oninput="calcCO2()">
+            </div>
+            <div class="form-row" style="display:flex;align-items:end">
+              <button class="lote-chip-btn co2-cambiar-btn" onclick="abrirSelectorLote('CO2')">Cambiar lote</button>
+            </div>
           </div>
         </div>
       </div>
@@ -581,13 +610,17 @@ input[type="email"] {
       </div>
       <div class="sep-label" style="display:flex;justify-content:space-between;align-items:center">
         <span>Prensado</span>
-        <button type="button" onclick="abrirConfigPrensado()" style="background:none;border:none;color:var(--brand);font-size:0.7rem;cursor:pointer;padding:2px 6px">⚙️ Configurar</button>
+        <span style="display:flex;gap:10px">
+          <button type="button" onclick="anadirPrensado()" class="sep-action-btn">+ Añadir</button>
+          <button type="button" onclick="abrirConfigPrensado()" class="sep-action-btn">⚙️ Configurar</button>
+        </span>
       </div>
       <div id="prensados-container"></div>
-      <button type="button" class="btn-secundario" style="margin-top:4px" onclick="anadirPrensado()">+ Añadir otro prensado</button>
-      <div class="sep-label">Desmoldeo</div>
+      <div class="sep-label" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Desmoldeo</span>
+        <button type="button" onclick="anadirDesmoldeo()" class="sep-action-btn">+ Añadir</button>
+      </div>
       <div id="desmoldeos-container"></div>
-      <button type="button" class="btn-secundario" style="margin-top:4px" onclick="anadirDesmoldeo()">+ Añadir otro desmoldeo</button>
     </div>
   </div>
 
@@ -597,8 +630,10 @@ input[type="email"] {
       <span class="seccion-chevron" id="chev-salm">▼</span>
     </div>
     <div class="seccion-body" id="body-salm">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:4px">
+        <button type="button" onclick="anadirSalmuera()" class="sep-action-btn">+ Añadir saladero</button>
+      </div>
       <div id="salmueras-container"></div>
-      <button type="button" class="btn-secundario" style="margin-top:4px" onclick="anadirSalmuera()">+ Añadir otro saladero</button>
     </div>
   </div>
 
@@ -1385,7 +1420,7 @@ function onVarSelChange(){
     document.getElementById('aux-sub').textContent='Sin receta — rellenar manualmente';
     document.getElementById('ferm-sub').textContent='Sin receta — rellenar manualmente';
     document.getElementById('coag-sub').textContent='Sin receta — rellenar manualmente';
-    document.getElementById('aux-container').innerHTML='<div style="padding:10px;font-size:0.82rem;color:var(--amber)">⚠ No hay receta para '+t+' · '+v+'<br>Puedes crear una en la pestaña <b>Recetas</b>.</div>';
+    document.getElementById('aux-container').innerHTML='';
     document.getElementById('ferm-container').innerHTML='';
     document.getElementById('coag-cuajo-container').innerHTML='';
     document.getElementById('coag-proceso').style.display='block';
@@ -1405,7 +1440,7 @@ function onTipoChange(){
   parteActual.dosis_override={};
   parteActual.lotes_seleccionados={};
   if(!receta){
-    document.getElementById('aux-container').innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-state-text">Selecciona tipo·variedad arriba</div></div>';
+    document.getElementById('aux-container').innerHTML='';
     document.getElementById('ferm-container').innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-state-text">Selecciona tipo·variedad arriba</div></div>';
     document.getElementById('coag-cuajo-container').innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-state-text">Selecciona tipo·variedad arriba</div></div>';
     document.getElementById('coag-proceso').style.display='none';
