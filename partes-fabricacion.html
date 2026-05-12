@@ -338,6 +338,20 @@ input[type="email"] {
 .co2-cambiar-btn{background:var(--bg2);border:1.5px solid var(--border);color:var(--text);padding:5px 10px;border-radius:6px;font-size:0.78rem;cursor:pointer;font-family:inherit;width:100%}
 .co2-cambiar-btn:hover{background:var(--brand);color:white;border-color:var(--brand)}
 
+
+/* Tabla compacta de fermentos (en vez de fichas separadas) */
+.ferm-tabla{background:var(--card);border:1.5px solid var(--border);border-radius:8px;overflow:hidden}
+.ferm-tabla-cab{display:grid;grid-template-columns:1.3fr 0.8fr 0.9fr 1fr 1.1fr 0.9fr;gap:8px;padding:6px 10px;background:#f4ebd8;border-bottom:1.5px solid var(--border)}
+.ferm-tabla-cab span{font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#5b3a1f;line-height:1.1}
+.ferm-tabla-fila{display:grid;grid-template-columns:1.3fr 0.8fr 0.9fr 1fr 1.1fr 0.9fr;gap:8px;padding:6px 10px;border-bottom:1px dashed var(--border);align-items:center}
+.ferm-tabla-fila:last-child{border-bottom:none}
+.ferm-tabla-fila .nombre{font-weight:700;font-size:0.88rem;color:var(--text)}
+.ferm-tabla-fila .dosis-base{font-size:0.85rem;font-weight:700;color:var(--text);text-align:center}
+.ferm-tabla-fila .dosis-input{width:100%;padding:4px 6px;border:1.5px solid var(--green);border-radius:5px;font-size:0.85rem;font-weight:700;background:var(--greenl);color:var(--text);text-align:center;font-family:inherit;box-sizing:border-box}
+.ferm-tabla-fila .meta{color:var(--text2);font-weight:600;font-size:0.78rem;line-height:1.2;overflow:hidden;text-overflow:ellipsis}
+.ferm-tabla-fila .sinlote{color:var(--amber);font-style:italic;font-size:0.78rem}
+.ferm-tabla-fila .cambiar-lnk{font-size:0.7rem;color:var(--green);font-weight:700;cursor:pointer;text-decoration:underline;margin-left:4px}
+
 </style>
 </head>
 <body>
@@ -350,7 +364,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.4.6</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.4.7</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1462,9 +1476,46 @@ function renderAuxiliares(receta){
 
 function renderFermentos(receta){
   var c=document.getElementById('ferm-container');
-  if(!receta.fermentos||!receta.fermentos.length){c.innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-state-text">Esta receta no tiene fermentos</div></div>';document.getElementById('ferm-sub').textContent='—';return;}
-  document.getElementById('ferm-sub').textContent=receta.fermentos.map(function(f){return f.nombre;}).join(' · ');
-  var h='';receta.fermentos.forEach(function(f){h+=renderProductoCard(f);});c.innerHTML=h;
+  if(!receta.fermentos||!receta.fermentos.length){
+    c.innerHTML='';
+    var sub=document.getElementById('ferm-sub'); if(sub) sub.textContent='—';
+    return;
+  }
+  var sub=document.getElementById('ferm-sub'); if(sub) sub.textContent=receta.fermentos.map(function(f){return f.nombre;}).join(' · ');
+  // Renderizar como tabla compacta
+  var h = '<div class="ferm-tabla">';
+  h += '<div class="ferm-tabla-cab">'
+     + '<span>Nombre</span>'
+     + '<span>Dosis /1000L</span>'
+     + '<span>Dosis utilizada</span>'
+     + '<span>Proveedor</span>'
+     + '<span>Lote</span>'
+     + '<span>Caducidad</span>'
+     + '</div>';
+  receta.fermentos.forEach(function(f){
+    var key = f.nombre.replace(/[^a-zA-Z0-9]/g,'_');
+    var lote = obtenerLoteActivo(f.nombre);
+    var loteHTML, cadHTML, provHTML;
+    if(lote){
+      loteHTML = '<span>'+lote.lote+'</span> <span class="cambiar-lnk" onclick="abrirSelectorLote(\''+f.nombre+'\')">cambiar</span>';
+      cadHTML = formatearFecha(lote.caducidad);
+      provHTML = lote.proveedor || '—';
+    } else {
+      loteHTML = '<span class="sinlote">sin lote</span> <span class="cambiar-lnk" onclick="abrirSelectorLote(\''+f.nombre+'\')">elegir</span>';
+      cadHTML = '—';
+      provHTML = '—';
+    }
+    h += '<div class="ferm-tabla-fila">'
+       + '<div class="nombre">'+f.nombre+'</div>'
+       + '<div class="dosis-base">'+f.dosis_ml_1000L+'</div>'
+       + '<div><input type="text" class="dosis-input" id="dosis-'+key+'" data-prod="'+f.nombre+'" oninput="onDosisOverride(this)" placeholder="—"></div>'
+       + '<div class="meta">'+provHTML+'</div>'
+       + '<div class="meta">'+loteHTML+'</div>'
+       + '<div class="meta">'+cadHTML+'</div>'
+       + '</div>';
+  });
+  h += '</div>';
+  c.innerHTML = h;
 }
 
 function renderCuajo(receta){
