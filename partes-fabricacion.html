@@ -239,6 +239,20 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   .form-cols-3 { grid-template-columns: 1fr 1fr 1fr 1fr 1fr; }
 }
 
+
+/* FIX scroll sobre inputs: permitir pan en ambos ejes para que el dedo
+   pueda hacer scroll vertical Y swipe horizontal incluso si arranca
+   sobre un campo. Mantiene la interacción normal al hacer tap (focus, etc). */
+.form-row input,
+.form-row select,
+.form-row textarea,
+input[type="text"],
+input[type="number"],
+input[type="time"],
+input[type="date"],
+input[type="email"] {
+  touch-action: pan-x pan-y;
+}
 </style>
 </head>
 <body>
@@ -251,7 +265,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.9.2</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.9.4</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -799,19 +813,17 @@ function abrirCubaPestana(id){
   CUBA_ACTIVA_ID = id;
   renderPestanasCubas();
   cargarFormularioEnPanel(p);
-  // Tras cargar el form, hacer scroll a la siguiente sección por rellenar
-  setTimeout(function(){ irASiguienteSeccion(p); }, 200);
+  // SIEMPRE forzar scroll al top primero (datos generales arriba)
+  try{ window.scrollTo(0,0); }catch(e){}
+  // Tras cargar el form, intentar ir a la siguiente sección SÓLO si tiene sentido
+  setTimeout(function(){ irASiguienteSeccion(p); }, 250);
 }
 
 // Detecta hasta qué sección rellenó el quesero y abre+scrollea a la siguiente
 function irASiguienteSeccion(p){
-  // Si no tiene ni tipo todavía, quedarse arriba (datos generales)
-  var panel = document.getElementById('panel-cuba-activa');
-  if(!p.tipo){
-    if(panel && panel.scrollIntoView) panel.scrollIntoView({behavior:'smooth', block:'start'});
-    return;
-  }
-  // Orden cronológico del proceso quesero
+  // REGLA: sólo desplazar hacia abajo si HAY al menos una sección posterior
+  // con datos rellenados. Si la cuba solo tiene datos generales (tipo,
+  // variedad, litros...), QUEDARSE ARRIBA — es lo natural.
   var orden = ['past','aux','ferm','coag','des','mol','salm','pzas'];
   // Helper: ¿esta sección tiene algún dato relevante?
   function tieneDatos(sec){
@@ -830,9 +842,10 @@ function irASiguienteSeccion(p){
   for(var i=0;i<orden.length;i++){
     if(tieneDatos(orden[i])) idxUltima = i;
   }
+  // Si no hay NINGUNA sección rellena, no mover scroll (queda arriba en datos generales)
+  if(idxUltima < 0) return;
   // La siguiente sección por hacer (o la última si ya completó todo)
   var idxObjetivo = (idxUltima < orden.length-1) ? idxUltima + 1 : idxUltima;
-  if(idxObjetivo < 0) idxObjetivo = 0; // Si no hay nada, empezar por pasteurización
   var secObjetivo = orden[idxObjetivo];
   // Abrir esa sección (desplegarla)
   // Buscar SOLO dentro del panel activo (no del template oculto)
