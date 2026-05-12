@@ -71,6 +71,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--green2);background:wh
 input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--green2);color:var(--green);font-weight:700}
 .form-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .form-cols-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.form-cols-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
 .dosis-calc{background:var(--bluel);border:1.5px solid var(--blue);border-radius:8px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .dosis-calc-val{font-size:1.4rem;font-weight:800;color:var(--blue);line-height:1}
 .dosis-calc-label{font-size:0.68rem;color:var(--blue);margin-top:3px;opacity:0.85}
@@ -204,70 +205,81 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
    - Aprovechar el ancho de la tablet del quesero
    ═══════════════════════════════════════════════════════════════ */
 @media (min-width: 720px) {
-  /* === Modo TABLET DENSO — máxima compactación tipo papel A4 === */
+  /* === Modo TABLET EXTREMO — máxima densidad tipo papel A4 === */
 
-  /* Más columnas por línea */
-  .form-cols    { grid-template-columns: 1fr 1fr 1fr;       gap: 8px; }
-  .form-cols-3  { grid-template-columns: 1fr 1fr 1fr 1fr;   gap: 8px; }
+  /* 3-4 columnas, gap mínimo */
+  .form-cols    { grid-template-columns: 1fr 1fr 1fr;       gap: 6px; }
+  .form-cols-3  { grid-template-columns: 1fr 1fr 1fr 1fr;   gap: 6px; }
+  .form-cols-4  { grid-template-columns: 1fr 1fr 1fr 1fr;   gap: 6px; }
 
-  /* Inputs MUY compactos */
+  /* Inputs muy finos */
   .form-row input,
   .form-row select,
-  .form-row textarea { padding: 4px 8px; font-size: 0.88rem; min-height: 30px; }
+  .form-row textarea { padding: 3px 6px; font-size: 0.85rem; min-height: 26px; border-radius: 5px; }
   .form-row { margin-bottom: 0; }
-  .form-label { font-size: 0.6rem; margin-bottom: 1px; letter-spacing: 0.2px; line-height: 1.1; }
+  .form-label { font-size: 0.58rem; margin-bottom: 0; letter-spacing: 0.2px; line-height: 1; }
 
-  /* Headers de sección MUY finos */
-  .seccion-header { padding: 4px 10px; min-height: 32px; }
-  .seccion-label    { font-size: 0.88rem; line-height: 1.15; }
-  .seccion-sublabel { font-size: 0.65rem; margin-top: 0; line-height: 1.1; }
-  .seccion-icon     { font-size: 1rem; }
-  .seccion-chevron  { font-size: 0.78rem; }
+  /* Headers de sección minimal */
+  .seccion-header { padding: 3px 8px; min-height: 26px; }
+  .seccion-label    { font-size: 0.82rem; line-height: 1.05; }
+  .seccion-sublabel { font-size: 0.6rem; margin-top: 0; line-height: 1; }
+  .seccion-icon     { font-size: 0.95rem; }
+  .seccion-chevron  { font-size: 0.7rem; }
 
   /* Secciones casi pegadas */
-  .seccion { margin-bottom: 5px; border-radius: 6px; }
-  .seccion-body { padding: 5px 10px 7px; }
+  .seccion { margin-bottom: 3px; border-radius: 5px; }
+  .seccion-body { padding: 4px 8px 5px; }
 
-  /* Separadores casi imperceptibles */
-  .sep-label { margin: 3px 0 2px; font-size: 0.58rem; padding-top: 2px; }
-  .sep { margin: 4px 0; }
+  /* Separadores invisibles */
+  .sep-label { margin: 2px 0 1px; font-size: 0.55rem; padding-top: 2px; }
+  .sep { margin: 3px 0; }
 
-  /* Tarjetas de producto MUY compactas */
-  .papel-prod    { padding: 4px 9px; margin-bottom: 4px; border-radius: 6px; }
-  .papel-prod-l1 { gap: 8px; margin-bottom: 2px; }
-  .papel-prod-l2 { padding-top: 2px; font-size: 0.72rem; }
+  /* Tarjetas de producto extra compactas */
+  .papel-prod    { padding: 3px 7px; margin-bottom: 3px; border-radius: 5px; }
+  .papel-prod-l1 { gap: 6px; margin-bottom: 1px; }
+  .papel-prod-l2 { padding-top: 1px; font-size: 0.68rem; }
 
-  /* Pestañas de cuba más finas */
-  .cuba-pestana { padding: 4px 12px; min-width: 65px; }
-  .num-cuba { font-size: 1rem; }
-  .info-cuba { font-size: 0.65rem; line-height: 1.05; }
+  /* Pestañas de cuba muy finas */
+  .cuba-pestana { padding: 3px 10px; min-width: 60px; }
+  .num-cuba { font-size: 0.95rem; }
+  .info-cuba { font-size: 0.6rem; line-height: 1; }
 
-  /* Container con padding mínimo */
-  .container { padding-left: 8px; padding-right: 8px; }
+  /* Container padding mínimo */
+  .container { padding-left: 6px; padding-right: 6px; }
 
-  /* Header app reducido */
-  .header { padding: 5px 10px; }
-  .header h1 { font-size: 0.98rem; line-height: 1.15; }
-  .header-sub { font-size: 0.68rem; }
+  /* Header app al mínimo */
+  .header { padding: 4px 8px; }
+  .header h1 { font-size: 0.92rem; line-height: 1.1; }
+  .header-sub { font-size: 0.62rem; }
+  .header img, .header-logo { max-height: 30px !important; }
 
   /* Tabs navegación finas */
-  .nav-tab { padding: 6px 8px; font-size: 0.82rem; }
+  .nav-tab { padding: 4px 6px; font-size: 0.78rem; }
+  .nav-tabs { gap: 2px; }
 
   /* Auxiliares opcionales compactos */
-  .opt-aux-header { padding: 3px 0; margin-top: 3px; }
-  .opt-aux-title { font-size: 0.85rem; }
-  .opt-aux-block { padding: 3px 0 2px; }
+  .opt-aux-header { padding: 2px 0; margin-top: 2px; }
+  .opt-aux-title { font-size: 0.82rem; }
+  .opt-aux-block { padding: 2px 0 1px; }
+  .opt-aux-label input[type="checkbox"] { width: 18px; height: 18px; }
 
   /* Coag-total-box mínimo */
-  .coag-total-box { padding: 4px 6px; }
-  .coag-total-val { font-size: 0.9rem; line-height: 1.1; }
-  .coag-total-lbl { font-size: 0.6rem; }
+  .coag-total-box { padding: 3px 5px; }
+  .coag-total-val { font-size: 0.85rem; line-height: 1; }
+  .coag-total-lbl { font-size: 0.55rem; }
 
-  /* Espacio entre pestañas y formulario */
-  #cubas-pestanas-wrap { padding: 4px 0 6px !important; }
+  /* Pestañas wrapper */
+  #cubas-pestanas-wrap { padding: 3px 0 4px !important; gap: 4px !important; }
 
-  /* Botones de añadir más finos */
-  .btn-secundario { padding: 6px 12px; font-size: 0.85rem; }
+  /* Botones finos */
+  .btn-secundario { padding: 5px 10px; font-size: 0.82rem; }
+  .btn-primario   { padding: 6px 12px; font-size: 0.85rem; }
+
+  /* Lote-chip fino */
+  .lote-chip { padding: 4px 8px; }
+  .lote-chip-lote { font-size: 0.78rem; }
+  .lote-chip-cad  { font-size: 0.65rem; }
+  .lote-chip-btn  { padding: 3px 8px; font-size: 0.7rem; }
 }
 
 /* Pantallas grandes (≥ 1000px) — aún más densidad */
@@ -318,7 +330,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.2.1</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.3.0</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -350,43 +362,42 @@ input[type="email"] {
   <div class="card">
     <div class="card-header"><span class="card-title">📄 Datos generales</span></div>
     <div class="card-body">
-      <div class="form-cols">
+      <!-- Fila 1: Fecha · Nº Cuba · Tipo · Variedad -->
+      <div class="form-cols-4">
         <div class="form-row"><label class="form-label">Fecha</label><input type="date" id="np-fecha"></div>
-        <div class="form-row"><label class="form-label">Nº Cuba</label><input type="text" id="np-cuba" readonly style="background:var(--bg);font-weight:700;text-align:center;font-size:1.1rem;color:var(--brand)"></div>
-      </div>
-      <div class="form-cols">
+        <div class="form-row"><label class="form-label">Nº Cuba</label><input type="text" id="np-cuba" readonly style="background:var(--bg);font-weight:700;text-align:center;font-size:1.05rem;color:var(--brand)"></div>
         <div class="form-row">
           <label class="form-label">Tipo</label>
           <select id="np-tipo-sel" onchange="onTipoSelChange()"><option value="">—</option></select>
         </div>
         <div class="form-row">
           <label class="form-label">Variedad</label>
-          <div style="display:flex;gap:6px;align-items:center">
+          <div style="display:flex;gap:4px;align-items:center">
             <select id="np-var-sel" style="flex:1" onchange="onVarSelChange()" disabled><option value="">—</option></select>
-            <button onclick="anadirVariedad()" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;cursor:pointer;font-size:1.1rem;flex-shrink:0">+</button>
+            <button onclick="anadirVariedad()" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:1rem;flex-shrink:0">+</button>
           </div>
         </div>
       </div>
       <input type="hidden" id="np-tipo">
-      <div class="form-cols">
+      <!-- Fila 2: Litros · Operario · pH entrada · Tª entrada -->
+      <div class="form-cols-4">
         <div class="form-row"><label class="form-label">Litros totales</label><input type="number" id="np-litros" inputmode="numeric" oninput="calcularDosis();calcCO2();calcPasteurizacion()"></div>
         <div class="form-row">
-            <label class="form-label">Operario</label>
-            <div style="display:flex;gap:6px;align-items:center">
-              <select id="np-operario-sel" style="flex:1" onchange="onOperarioChange()"></select>
-              <button onclick="anadirOperario()" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;cursor:pointer;font-size:1.1rem;flex-shrink:0">+</button>
-            </div>
-            <input type="hidden" id="np-operario">
+          <label class="form-label">Operario</label>
+          <div style="display:flex;gap:4px;align-items:center">
+            <select id="np-operario-sel" style="flex:1" onchange="onOperarioChange()"></select>
+            <button onclick="anadirOperario()" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:1rem;flex-shrink:0">+</button>
           </div>
+          <input type="hidden" id="np-operario">
+        </div>
+        <div class="form-row"><label class="form-label">pH entrada</label><input type="number" id="np-ph" step="0.01" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" inputmode="decimal"></div>
       </div>
+      <!-- Fila 3: L. Vaca · L. Cabra · L. Oveja (laboratorio) -->
       <div class="form-cols-3">
         <div class="form-row"><label class="form-label">L. Vaca</label><input type="number" id="np-lvaca" inputmode="numeric"></div>
         <div class="form-row"><label class="form-label">L. Cabra</label><input type="number" id="np-lcabra" inputmode="numeric"></div>
         <div class="form-row"><label class="form-label">L. Oveja</label><input type="number" id="np-loveja" inputmode="numeric"></div>
-      </div>
-      <div class="form-cols">
-        <div class="form-row"><label class="form-label">pH entrada</label><input type="number" id="np-ph" step="0.01" inputmode="decimal"></div>
-        <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" inputmode="decimal"></div>
       </div>
     </div>
   </div>
@@ -517,11 +528,13 @@ input[type="email"] {
       <div id="coag-cuajo-container"><div class="empty-state" style="padding:20px"><div class="empty-state-text">Selecciona tipo·variedad arriba</div></div></div>
       <div id="coag-proceso" style="display:none">
         <div class="sep"></div>
-        <div class="form-row"><label class="form-label">Hora adición</label><input type="time" id="coag-hadicion" oninput="calcCoagTotal()"></div>
-        <div class="form-cols">
+        <!-- Fila 1: Hora adición · pH · Tª (3 columnas) -->
+        <div class="form-cols-3">
+          <div class="form-row"><label class="form-label">Hora adición</label><input type="time" id="coag-hadicion" oninput="calcCoagTotal()"></div>
           <div class="form-row"><label class="form-label">pH coagulación</label><input type="number" id="coag-ph" step="0.01" inputmode="decimal"></div>
           <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="coag-temp" inputmode="decimal"></div>
         </div>
+        <!-- Fila 2: Hora corte · Coag total -->
         <div class="form-cols">
           <div class="form-row"><label class="form-label">Hora de corte</label><input type="time" id="coag-hc" oninput="calcCoagTotal()"></div>
           <div class="form-row">
