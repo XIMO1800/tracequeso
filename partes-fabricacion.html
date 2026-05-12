@@ -196,6 +196,49 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .coag-total-box{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center}
 .coag-total-val{font-size:1rem;font-weight:700;color:var(--text);line-height:1.2}
 .coag-total-lbl{font-size:0.7rem;color:var(--text2);margin-top:2px}
+
+/* ═══════════════════════════════════════════════════════════════
+   OPTIMIZACIÓN TABLET (#25) — pantallas ≥ 720px
+   - Más columnas en horizontal para reducir scroll vertical
+   - Inputs/etiquetas/headers más compactos
+   - Aprovechar el ancho de la tablet del quesero
+   ═══════════════════════════════════════════════════════════════ */
+@media (min-width: 720px) {
+  /* Más columnas */
+  .form-cols    { grid-template-columns: 1fr 1fr 1fr;       gap: 12px; }
+  .form-cols-3  { grid-template-columns: 1fr 1fr 1fr 1fr;   gap: 12px; }
+
+  /* Inputs/selects más compactos en vertical */
+  .form-row input,
+  .form-row select,
+  .form-row textarea { padding: 8px 10px; font-size: 0.95rem; }
+  .form-label { font-size: 0.68rem; margin-bottom: 4px; }
+
+  /* Headers de sección menos alto */
+  .seccion-header { padding: 10px 14px; }
+  .seccion-label    { font-size: 1rem; }
+  .seccion-sublabel { font-size: 0.75rem; }
+  .seccion-icon     { font-size: 1.3rem; }
+
+  /* Cuerpo de sección con padding ligeramente menor */
+  .seccion-body { padding: 10px 14px 14px; }
+
+  /* Separadores de sub-bloque más finos */
+  .sep-label { margin: 10px 0 8px; font-size: 0.65rem; }
+
+  /* Tarjetas de producto (auxiliares estilo papel) compactas */
+  .papel-prod    { padding: 8px 12px; margin-bottom: 8px; }
+  .papel-prod-l1 { gap: 12px; margin-bottom: 6px; }
+  .papel-prod-l2 { padding-top: 6px; }
+}
+
+/* Pantallas grandes (≥ 1000px) — aún más densidad */
+@media (min-width: 1000px) {
+  .container { max-width: 960px; }
+  .form-cols   { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .form-cols-3 { grid-template-columns: 1fr 1fr 1fr 1fr 1fr; }
+}
+
 </style>
 </head>
 <body>
@@ -208,7 +251,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.8.9</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.9.1</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -702,11 +745,22 @@ function renderPestanasCubas(){
   var h = '';
   cubasHoy.forEach(function(p){
     var activa = (p.id===CUBA_ACTIVA_ID) ? ' active' : '';
-    var nombreCorto = p.tipo ? p.tipo.split(' ')[0].slice(0,4) : '—';
-    if(p.variedad) nombreCorto += ' ' + p.variedad.slice(0,4);
+    // Etiqueta debajo del nº de cuba: tipo y, si cabe, variedad
+    var etiqueta = '';
+    if (p.tipo) {
+      // Acortar "D.O. PAST." → "PAST" / "D.O. CRUDA" → "CRUDA"
+      var tipoCorto = p.tipo.replace('D.O. ','').trim();
+      etiqueta = tipoCorto;
+      if (p.variedad) {
+        // Si hay variedad, mostrarla en una segunda línea pequeña
+        etiqueta += '<br><span style="font-size:0.85em;opacity:0.8">'+p.variedad+'</span>';
+      }
+    } else {
+      etiqueta = '—';
+    }
     h += '<div class="cuba-pestana'+activa+'" onclick="abrirCubaPestana(\''+p.id+'\')">'
       + '<span class="num-cuba">'+p.cuba+'</span>'
-      + '<span class="info-cuba">'+nombreCorto+'</span>'
+      + '<span class="info-cuba">'+etiqueta+'</span>'
       + '</div>';
   });
   h += '<button class="cuba-pestana-add" onclick="nuevaCubaPestana()">+ Nueva</button>';
@@ -745,6 +799,45 @@ function abrirCubaPestana(id){
   CUBA_ACTIVA_ID = id;
   renderPestanasCubas();
   cargarFormularioEnPanel(p);
+  // Tras cargar el form, hacer scroll a la siguiente sección por rellenar
+  setTimeout(function(){ irASiguienteSeccion(p); }, 200);
+}
+
+// Detecta hasta qué sección rellenó el quesero y abre+scrollea a la siguiente
+function irASiguienteSeccion(p){
+  // Orden cronológico del proceso quesero
+  var orden = ['past','aux','ferm','coag','des','mol','salm','pzas'];
+  // Helper: ¿esta sección tiene algún dato relevante?
+  function tieneDatos(sec){
+    if(sec==='past'){ return !!(p.pasteurizacion && (p.pasteurizacion.temp||p.pasteurizacion.tiempo||p.pasteurizacion.valvula)); }
+    if(sec==='aux'){  return !!(p.phLeche||p.tempLeche||(p.co2&&(p.co2.lote||p.co2.tiempo))||(p.auxiliares&&p.auxiliares.some(function(a){return a.dosisUtilizada;}))); }
+    if(sec==='ferm'){ return !!(p.fermentos && p.fermentos.some(function(f){return f.dosisUtilizada||f.lote;})); }
+    if(sec==='coag'){ return !!(p.coag && (p.coag.hadicion||p.coag.hc||p.coag.ph||p.coag.temp||(p.cuajo&&(p.cuajo.lote||p.cuajo.dosisUtilizada)))); }
+    if(sec==='des'){  return !!(p.desuerado && (p.desuerado.rec_hi||p.desuerado.rec_hf||p.desuerado.rec_ti||p.desuerado.rec_tf||p.desuerado.agit_hi||p.desuerado.agit_hf)); }
+    if(sec==='mol'){  return !!(p.moldeo && (p.moldeo.hi||p.moldeo.hf||p.moldeo.ph||p.moldeo.temp)) || !!(p.prensado && (p.prensado.e1||p.prensado.e2)) || !!(p.desmoldeo && (p.desmoldeo.formato||p.desmoldeo.hi||p.desmoldeo.hf)); }
+    if(sec==='salm'){ return !!(p.salmuera && (p.salmuera.formato||p.salmuera.hi||p.salmuera.hf)); }
+    if(sec==='pzas'){ return !!(p.piezas && (p.piezas.kg3||p.piezas.kg2||p.piezas.kg1||p.piezas.kg05||p.piezas.barra||p.piezas.gigante)); }
+    return false;
+  }
+  // Buscar la última sección con datos
+  var idxUltima = -1;
+  for(var i=0;i<orden.length;i++){
+    if(tieneDatos(orden[i])) idxUltima = i;
+  }
+  // La siguiente sección por hacer (o la última si ya completó todo)
+  var idxObjetivo = (idxUltima < orden.length-1) ? idxUltima + 1 : idxUltima;
+  if(idxObjetivo < 0) idxObjetivo = 0; // Si no hay nada, empezar por pasteurización
+  var secObjetivo = orden[idxObjetivo];
+  // Abrir esa sección (desplegarla)
+  var body = document.getElementById('body-'+secObjetivo);
+  var chev = document.getElementById('chev-'+secObjetivo);
+  if(body && !body.classList.contains('open')) body.classList.add('open');
+  if(chev && !chev.classList.contains('open')) chev.classList.add('open');
+  // Scroll suave hasta el header de esa sección
+  var header = body ? body.previousElementSibling : null;
+  if(header && header.scrollIntoView){
+    header.scrollIntoView({behavior:'smooth', block:'start'});
+  }
 }
 
 function cargarFormularioEnPanel(p){
@@ -1032,6 +1125,21 @@ function cargarVariedadesCustom(){
   }catch(e){}
 }
 
+
+// Actualiza la cuba activa con el tipo/variedad actuales y refresca pestañas
+function refrescarPestanaCubaActiva(){
+  try{
+    if (typeof CUBA_ACTIVA_ID === 'undefined' || !CUBA_ACTIVA_ID) return;
+    var p = PARTES.find(function(x){return x.id===CUBA_ACTIVA_ID;});
+    if (!p) return;
+    var ts = document.getElementById('np-tipo-sel');
+    var vs = document.getElementById('np-var-sel');
+    if (ts) p.tipo = ts.value || '';
+    if (vs) p.variedad = vs.value || '';
+    if (typeof renderPestanasCubas === 'function') renderPestanasCubas();
+  }catch(e){}
+}
+
 function onTipoSelChange(){
   setTimeout(function(){ try{ calcPasteurizacion(); }catch(e){} }, 60);
   var t=document.getElementById('np-tipo-sel').value;
@@ -1051,10 +1159,12 @@ function onTipoSelChange(){
   selV.disabled=false;
   document.getElementById('np-tipo').value='';
   onTipoChange();
+  refrescarPestanaCubaActiva();
 }
 
 function onVarSelChange(){
-  setTimeout(function(){ try{ calcPasteurizacion(); }catch(e){} }, 60);
+  setTimeout(function(){ try{ calcPasteurizacion();   refrescarPestanaCubaActiva();
+}catch(e){} }, 60);
   var t=document.getElementById('np-tipo-sel').value;
   var v=document.getElementById('np-var-sel').value;
   if(!t||!v){document.getElementById('np-tipo').value='';onTipoChange();return;}
