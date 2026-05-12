@@ -208,7 +208,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.8.8</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.8.9</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1611,6 +1611,7 @@ function nuevoProductoStock(cat){
 function abrirAlbaran(){
   var h='<div class="modal-title">📥 Registrar entrada <button class="modal-close" onclick="cerrarModal()">×</button></div>';
   h+='<div class="form-row"><label class="form-label">Categoría</label><select id="alb-categoria"><option value="">—</option><option value="AUXILIAR">Auxiliar</option><option value="FERMENTO">Fermento</option><option value="CUAJO">Cuajo</option><option value="PLASTICO">Plástico</option></select></div><div class="form-row"><label class="form-label">Producto</label><input type="text" id="alb-prod" placeholder="CHYMAX, NATUREN, R-704..."></div>';
+  h+='<div class="form-row"><label class="form-label">Nº Albarán</label><input type="text" id="alb-albaran" placeholder="Opcional"></div>';
   h+='<div class="form-row"><label class="form-label">Lote</label><input type="text" id="alb-lote" placeholder="Nº de lote"></div>';
   h+='<div class="form-cols"><div class="form-row"><label class="form-label">Caducidad</label><input type="date" id="alb-cad"></div><div class="form-row"><label class="form-label">Cantidad</label><input type="number" id="alb-cant" step="0.1" inputmode="decimal"></div></div>';
   h+='<div class="form-cols"><div class="form-row"><label class="form-label">Unidad</label><select id="alb-uni"><option>L</option><option>ml</option><option>kg</option><option>g</option></select></div><div class="form-row"><label class="form-label">Proveedor</label><input type="text" id="alb-prov"></div></div>';
@@ -1625,6 +1626,8 @@ function guardarAlbaran(){
   var cant=parseFloat(document.getElementById('alb-cant').value);
   var uni=document.getElementById('alb-uni').value;
   var prov=document.getElementById('alb-prov').value.trim();
+  var albEl = document.getElementById('alb-albaran');
+  var albaran = albEl ? albEl.value.trim() : '';
   if(!prod||!lote||!cant){toast('⚠ Producto, lote y cantidad obligatorios');return;}
   var cat = document.getElementById('alb-categoria') ? document.getElementById('alb-categoria').value : '';
   if(!cat){toast('⚠ Selecciona categoría');return;}
@@ -1637,7 +1640,7 @@ function guardarAlbaran(){
   enviarEntradaSheets({
     id: idEntrada,
     fecha: fechaHoy,
-    albaran: '',
+    albaran: albaran,
     proveedor: prov,
     categoria: cat,
     articulo: prod,
