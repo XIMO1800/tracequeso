@@ -265,7 +265,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.9.5</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v1.9.6</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -857,7 +857,7 @@ function irASiguienteSeccion(p){
   // Scroll suave hasta el header de esa sección
   var header = body ? body.previousElementSibling : null;
   if(header && header.scrollIntoView){
-    header.scrollIntoView({behavior:'smooth', block:'start'});
+      header.scrollIntoView({behavior:'smooth', block:'start'});
   }
 }
 
@@ -894,14 +894,28 @@ function rellenarCampos(p){
     var ts = document.getElementById('np-tipo-sel');
     if(ts){ ts.value=p.tipo; onTipoSelChange(); }
     if(p.variedad){
-      setTimeout(function(){
+      // Reintenta hasta que la opción exista en el dropdown
+      // (onTipoSelChange regenera <option> de forma asíncrona)
+      var variedadDestino = p.variedad;
+      var intentos = 0;
+      function intentarPonerVariedad(){
+        intentos++;
         var vs = document.getElementById('np-var-sel');
-        if(vs){ vs.value=p.variedad; onVarSelChange(); }
-        // Refrescar la pestaña UNA VEZ que la variedad está puesta
-        setTimeout(function(){ try{ refrescarPestanaCubaActiva(); }catch(e){} }, 50);
-      }, 80);
+        if (!vs) { if (intentos < 20) setTimeout(intentarPonerVariedad, 50); return; }
+        var existe = false;
+        for (var i = 0; i < vs.options.length; i++) {
+          if (vs.options[i].value === variedadDestino) { existe = true; break; }
+        }
+        if (existe) {
+          vs.value = variedadDestino;
+          onVarSelChange();
+          setTimeout(function(){ try{ refrescarPestanaCubaActiva(); }catch(e){} }, 50);
+        } else if (intentos < 20) {
+          setTimeout(intentarPonerVariedad, 50);
+        }
+      }
+      setTimeout(intentarPonerVariedad, 80);
     } else {
-      // Si no hay variedad, refrescar igualmente para mostrar solo el tipo
       setTimeout(function(){ try{ refrescarPestanaCubaActiva(); }catch(e){} }, 100);
     }
   }
@@ -1000,8 +1014,8 @@ function autoGuardarParte(parteId){
   var p = PARTES.find(function(x){return x.id===parteId;});
   if(!p) return;
   // Solo guardar en el parte si la cuba actualmente visible es ese parteId
-  // (si el usuario ya cambió de pestaña, no machacar)
   if (CUBA_ACTIVA_ID && CUBA_ACTIVA_ID !== parteId) return;
+  var varDOM = document.getElementById('np-var-sel') ? document.getElementById('np-var-sel').value : '(no existe)';
   function g(id){var el=document.getElementById(id); return el?el.value:'';}
   function gn(id){return parseFloat(g(id))||0;}
   function gi(id){return parseInt(g(id))||0;}
