@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.14</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.16</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -390,12 +390,7 @@ input[type="email"] {
   </div>
 
   <!-- Panel activo: o bien el formulario de una cuba, o mensaje vacío -->
-  <div id="panel-cuba-activa" style="padding:10px 12px">
-    <div class="empty-state" style="padding:40px 20px">
-      <div class="empty-state-icon">🥛</div>
-      <div class="empty-state-text">No hay cubas abiertas hoy.<br>Pulsa <b>+ Nueva cuba</b> para empezar.</div>
-    </div>
-  </div>
+  <div id="panel-cuba-activa" style="padding:10px 12px"></div>
 
 </div>
   </div>
@@ -1552,6 +1547,10 @@ function onTipoChange(){
   parteActual.receta=receta;
   parteActual.dosis_override={};
   parteActual.lotes_seleccionados={};
+  // Caseínas: mostrar siempre que sea D.O., independientemente de si hay receta
+  var tipoCas = document.getElementById('np-tipo-sel') ? document.getElementById('np-tipo-sel').value : '';
+  var esDO = (tipoCas==='D.O. PAST.'||tipoCas==='D.O. CRUDA');
+  document.getElementById('bloque-caseinas').style.display = esDO ? 'block' : 'none';
   if(!receta){
     document.getElementById('aux-container').innerHTML='';
     document.getElementById('ferm-container').innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-state-text">Selecciona tipo·variedad arriba</div></div>';
@@ -1562,8 +1561,6 @@ function onTipoChange(){
   renderAuxiliares(receta);renderFermentos(receta);renderCuajo(receta);
   document.getElementById('coag-proceso').style.display='block';
   calcularDosis();
-  var esDO=receta&&(receta.tipo==='D.O. PAST.'||receta.tipo==='D.O. CRUDA');
-  document.getElementById('bloque-caseinas').style.display=esDO?'block':'none';
 }
 
 function renderAuxiliares(receta){
