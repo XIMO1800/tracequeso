@@ -188,7 +188,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .papel-prod-nombre{font-weight:700;font-size:0.95rem;color:var(--text);padding-bottom:6px}
 .papel-prod-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:0.04em;margin-bottom:3px;display:block}
 .papel-prod-dosis-base{font-size:0.95rem;font-weight:700;color:var(--text);padding:6px 0}
-.papel-prod-dosis-input{width:100%;padding:6px 8px;border:1.5px solid var(--green);border-radius:6px;font-size:0.95rem;font-weight:700;background:var(--greenl);color:var(--text);text-align:center;font-family:inherit;box-sizing:border-box}
+.papel-prod-dosis-input{width:100%;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:0.95rem;font-weight:700;background:var(--bg2);color:var(--text);text-align:center;font-family:inherit;box-sizing:border-box}
 .papel-prod-meta{color:var(--text2);font-weight:600;font-size:0.78rem;line-height:1.3}
 .papel-prod-cambiar{font-size:0.7rem;color:var(--green);font-weight:700;cursor:pointer;text-decoration:underline;margin-left:6px}
 .papel-prod-sinlote{color:var(--amber);font-style:italic}
@@ -347,7 +347,7 @@ input[type="email"] {
 .ferm-tabla-fila:last-child{border-bottom:none}
 .ferm-tabla-fila .nombre{font-weight:700;font-size:0.88rem;color:var(--text)}
 .ferm-tabla-fila .dosis-base{font-size:0.85rem;font-weight:700;color:var(--text);text-align:center}
-.ferm-tabla-fila .dosis-input{width:100%;padding:4px 6px;border:1.5px solid var(--green);border-radius:5px;font-size:0.85rem;font-weight:700;background:var(--greenl);color:var(--text);text-align:center;font-family:inherit;box-sizing:border-box}
+.ferm-tabla-fila .dosis-input{width:100%;padding:4px 6px;border:1.5px solid var(--border);border-radius:5px;font-size:0.85rem;font-weight:700;background:var(--bg2);color:var(--text);text-align:center;font-family:inherit;box-sizing:border-box}
 .ferm-tabla-fila .meta{color:var(--text2);font-weight:600;font-size:0.78rem;line-height:1.2;overflow:hidden;text-overflow:ellipsis}
 .ferm-tabla-fila .sinlote{color:var(--amber);font-style:italic;font-size:0.78rem}
 .ferm-tabla-fila .cambiar-lnk{font-size:0.7rem;color:var(--green);font-weight:700;cursor:pointer;text-decoration:underline;margin-left:4px}
@@ -364,7 +364,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.1</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.2</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -422,8 +422,8 @@ input[type="email"] {
       <div class="form-cols-4">
         <div class="form-row"><label class="form-label">Litros totales</label><input type="number" id="np-litros" inputmode="numeric" oninput="calcularDosis();calcCO2();calcPasteurizacion()"></div>
         <div class="form-row"><label class="form-label">pH entrada</label><input type="number" id="np-ph" step="0.01" inputmode="decimal"></div>
-        <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">°D leche</label><input type="number" id="np-dornic" step="0.1" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" inputmode="decimal"></div>
       </div>
       <!-- Fila 3: L. Vaca · L. Cabra · L. Oveja -->
       <div class="form-cols-3">
@@ -562,10 +562,8 @@ input[type="email"] {
       <span class="seccion-chevron" id="chev-coag">▼</span>
     </div>
     <div class="seccion-body" id="body-coag">
-      <div id="coag-cuajo-container"><div class="empty-state" style="padding:20px"><div class="empty-state-text">Selecciona tipo·variedad arriba</div></div></div>
-      <div id="coag-proceso" style="display:none">
-        <div class="sep"></div>
-        <!-- Fila 1: Hora adición · pH · Tª (3 columnas) -->
+      <div id="coag-proceso">
+        <!-- Fila 1: Hora adición · pH · Tª -->
         <div class="form-cols-3">
           <div class="form-row"><label class="form-label">Hora adición</label><input type="time" id="coag-hadicion" oninput="calcCoagTotal()"></div>
           <div class="form-row"><label class="form-label">pH coagulación</label><input type="number" id="coag-ph" step="0.01" inputmode="decimal"></div>
@@ -583,7 +581,9 @@ input[type="email"] {
             <input type="hidden" id="coag-total">
           </div>
         </div>
+        <div class="sep"></div>
       </div>
+      <div id="coag-cuajo-container"><div class="empty-state" style="padding:20px"><div class="empty-state-text">Selecciona tipo·variedad arriba</div></div></div>
     </div>
   </div>
 
