@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.16</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.17</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2882,13 +2882,16 @@ function anadirSalmuera(datos){
   var selFmt = div.querySelector('.salm-formato');
   var inpHi  = div.querySelector('.salm-hi');
   var inpHf  = div.querySelector('.salm-hf');
-  function recalcHf(){
-    if (selFmt.value && inpHi.value && !inpHf.value) {
+  function recalcHorasSalm(){
+    // Si no hay hora entrada, intentar calcularla del desmoldeo
+    if (!inpHi.value) inpHi.value = calcHoraIniSalmuera();
+    // Si hay formato y hora entrada, calcular hora salida
+    if (selFmt.value && inpHi.value) {
       inpHf.value = calcHoraFinSalmuera(selFmt.value, inpHi.value);
     }
     if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
   }
-  selFmt.addEventListener('change', recalcHf);
+  selFmt.addEventListener('change', recalcHorasSalm);
   inpHi.addEventListener('change', function(){
     if (selFmt.value) inpHf.value = calcHoraFinSalmuera(selFmt.value, inpHi.value);
     if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
