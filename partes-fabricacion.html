@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.12</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.14</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -686,11 +686,12 @@ input[type="email"] {
 
   <div class="seccion">
     <div class="seccion-header" onclick="toggleSec('salm')">
-      <div class="seccion-header-left"><span class="seccion-icon">🧂</span><div><div class="seccion-label">Salmuera</div><div class="seccion-sublabel">Tiempo en salmuera</div></div></div>
+      <div class="seccion-header-left"><span class="seccion-icon">🧂</span><div><div class="seccion-label">Salmuera</div><div class="seccion-sublabel">Tiempo en salmuera por formato</div></div></div>
       <span class="seccion-chevron" id="chev-salm">▼</span>
     </div>
     <div class="seccion-body" id="body-salm">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:4px">
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:4px">
+        <button type="button" onclick="abrirConfigSalmuera()" class="sep-action-btn">⚙️ Configurar</button>
         <button type="button" onclick="anadirSalmuera()" class="sep-action-btn">+ Añadir saladero</button>
       </div>
       <div id="salmueras-container"></div>
@@ -1900,18 +1901,153 @@ function renderPartes(){
 
 function verParte(id){
   var p=PARTES.find(function(x){return x.id===id;});if(!p)return;
-  var h='<div class="modal-title">'+p.tipo+(p.variedad?' · '+p.variedad:'')+' · Cuba '+p.cuba+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
-  h+='<div style="font-size:0.78rem;color:var(--text3);margin-bottom:14px">'+formatearFecha(p.fecha)+' · '+(p.operario||'—')+'</div>';
-  h+='<div class="resumen-row"><span>Litros</span><b>'+p.litros+'</b></div>';
-  if(p.coag&&p.coag.hadicion)h+='<div class="resumen-row"><span>Hora adición</span><b>'+p.coag.hadicion+'</b></div>';
-  if(p.coag&&p.coag.hc)h+='<div class="resumen-row"><span>Hora corte</span><b>'+p.coag.hc+'</b></div>';
-  if(p.coag&&p.coag.total)h+='<div class="resumen-row"><span>Coagulación</span><b>'+p.coag.total+' min</b></div>';
-  function blq(t,arr){if(!arr||!arr.length)return'';var hh='<div class="sep-label" style="margin-top:14px">'+t+'</div>';arr.forEach(function(x){hh+='<div class="resumen-row"><span>'+x.nombre+'</span><b>'+x.consumo_total.toFixed(1)+' (lote '+(x.lote||'—')+')</b></div>';});return hh;}
-  h+=blq('Auxiliares',p.auxiliares);
-  h+=blq('Fermentos',p.fermentos);
-  if(p.cuajo)h+=blq('Cuajo',[p.cuajo]);
-  if(p.observaciones)h+='<div class="sep-label" style="margin-top:14px">Observaciones</div><div style="font-size:0.88rem;color:var(--text2)">'+p.observaciones+'</div>';
-  h+='<button class="btn btn-danger" style="margin-top:16px" onclick="eliminarParte(\''+p.id+'\')">🗑️ Eliminar parte</button>';
+
+  function fila(label, valor){
+    if(!valor && valor!==0) return '';
+    return '<div class="resumen-row"><span>'+label+'</span><b>'+valor+'</b></div>';
+  }
+  function bloque(titulo, contenido){
+    if(!contenido) return '';
+    return '<div class="sep-label" style="margin-top:14px;margin-bottom:6px">'+titulo+'</div>'+contenido;
+  }
+
+  var h = '<div class="modal-title">'+p.tipo+(p.variedad?' · '+p.variedad:'')+' · Cuba '+p.cuba;
+  h += ' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
+  h += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:14px">'+formatearFecha(p.fecha)+' · '+(p.operario||'—')+'</div>';
+
+  // Datos generales
+  var dg = '';
+  dg += fila('Litros totales', p.litros);
+  dg += fila('L. Vaca', p.lvaca); dg += fila('L. Cabra', p.lcabra); dg += fila('L. Oveja', p.loveja);
+  dg += fila('pH entrada', p.ph); dg += fila('°D leche', p.dornic_leche); dg += fila('Tª entrada', p.temp ? p.temp+'°C' : '');
+  h += bloque('📋 Datos generales', dg);
+
+  // Pasteurización
+  if(p.pasteurizacion){
+    var pa='';
+    pa += fila('Válvula desvío', p.pasteurizacion.valvula);
+    pa += fila('Temperatura', p.pasteurizacion.temp ? p.pasteurizacion.temp+'°C' : '');
+    pa += fila('Tiempo', p.pasteurizacion.tiempo ? p.pasteurizacion.tiempo+' s' : '');
+    pa += fila('Cruda', p.pasteurizacion.cruda ? 'Sí' : '');
+    pa += fila('Fosfatasa', p.pasteurizacion.fosfatasa ? 'Sí' : '');
+    if(pa) h += bloque('🌡️ Pasteurización', pa);
+  }
+
+  // CO2
+  if(p.co2 && p.co2.aplicado){
+    var co='';
+    co += fila('Lote', p.co2.lote); co += fila('Caducidad', p.co2.caducidad);
+    co += fila('pH leche', p.co2.ph_leche); co += fila('Tª leche', p.co2.temp_leche ? p.co2.temp_leche+'°C' : '');
+    co += fila('Tiempo', p.co2.tiempo_seg ? p.co2.tiempo_seg+' s' : '');
+    co += fila('Caudal', p.co2.caudal_lh ? p.co2.caudal_lh+' L/h' : '');
+    if(co) h += bloque('🌫️ CO₂', co);
+  }
+
+  // Auxiliares
+  if(p.auxiliares && p.auxiliares.length){
+    var au='';
+    p.auxiliares.forEach(function(x){
+      au += '<div class="resumen-row"><span>'+x.nombre+'</span><b>'+(x.consumo_total||x.dosis_utilizada||'—')+' ml · lote '+(x.lote||'—')+'</b></div>';
+    });
+    h += bloque('🧪 Auxiliares', au);
+  }
+
+  // Fermentos
+  if(p.fermentos && p.fermentos.length){
+    var fe='';
+    p.fermentos.forEach(function(x){
+      fe += '<div class="resumen-row"><span>'+x.nombre+'</span><b>'+(x.consumo_total||x.dosis_utilizada||'—')+' · lote '+(x.lote||'—')+'</b></div>';
+    });
+    h += bloque('🦠 Fermentos', fe);
+  }
+
+  // Cuajo
+  if(p.cuajo){
+    var cu = fila(p.cuajo.nombre||'Cuajo', (p.cuajo.consumo_total||p.cuajo.dosis_utilizada||'—')+' · lote '+(p.cuajo.lote||'—'));
+    h += bloque('⚗️ Cuajo', cu);
+  }
+
+  // Coagulación
+  if(p.coag){
+    var cg='';
+    cg += fila('Hora adición', p.coag.hadicion); cg += fila('pH', p.coag.ph); cg += fila('Tª', p.coag.temp ? p.coag.temp+'°C' : '');
+    cg += fila('Hora corte', p.coag.hc); cg += fila('Total', p.coag.total ? p.coag.total+' min' : '');
+    if(cg) h += bloque('⏱️ Coagulación', cg);
+  }
+
+  // Desuerado
+  if(p.desuerado){
+    var de='';
+    de += fila('Recal. inicio', p.desuerado.rec_hi); de += fila('Tª inicial', p.desuerado.rec_ti ? p.desuerado.rec_ti+'°C' : '');
+    de += fila('pH suero', p.desuerado.rec_ph); de += fila('°D suero', p.desuerado.rec_dornic);
+    de += fila('Recal. fin', p.desuerado.rec_hf); de += fila('Tª final', p.desuerado.rec_tf ? p.desuerado.rec_tf+'°C' : '');
+    if(p.desuerado.lavado_aplicado){
+      de += fila('Lavado cuajada', (p.desuerado.lavado_metodo||'pasteurizador'));
+      de += fila('Lavado inicio', p.desuerado.lavado_hi); de += fila('Lavado fin', p.desuerado.lavado_hf);
+      de += fila('Tª agua', p.desuerado.lavado_temp ? p.desuerado.lavado_temp+'°C' : '');
+    }
+    de += fila('Agit. inicio', p.desuerado.agit_hi); de += fila('Agit. fin', p.desuerado.agit_hf);
+    de += fila('Agit. total', p.desuerado.agit_total ? p.desuerado.agit_total+' min' : '');
+    if(de) h += bloque('🌊 Desuerado en cuba', de);
+  }
+
+  // Moldeo
+  if(p.moldeo){
+    var mo='';
+    mo += fila('Hora inicio', p.moldeo.hi); mo += fila('pH', p.moldeo.ph);
+    mo += fila('Tª', p.moldeo.temp ? p.moldeo.temp+'°C' : ''); mo += fila('Hora fin', p.moldeo.hf);
+    if(mo) h += bloque('🧱 Moldeo', mo);
+  }
+
+  // Prensado
+  if(p.prensados && p.prensados.length){
+    var pr='';
+    p.prensados.forEach(function(x,i){
+      pr += '<div style="font-size:0.8rem;font-weight:700;color:var(--text2);margin-top:6px">'+x.formato+' · '+x.programa+'</div>';
+      pr += fila('Barras', (x.bar_inicial||'—')+' → '+(x.bar_final||'—')+' bar');
+      pr += fila('Rampa', x.rampa_min ? x.rampa_min+' min' : '');
+      pr += fila('Mantenimiento', x.mantenimiento_min ? x.mantenimiento_min+' min' : '');
+    });
+    if(pr) h += bloque('🔩 Prensado', pr);
+  }
+
+  // Desmoldeo
+  if(p.desmoldeos && p.desmoldeos.length){
+    var dm='';
+    p.desmoldeos.forEach(function(x){
+      dm += '<div style="font-size:0.8rem;font-weight:700;color:var(--text2);margin-top:6px">'+x.formato+'</div>';
+      dm += fila('Hora inicio', x.hi); dm += fila('pH inicial', x.ph); dm += fila('Tª inicial', x.temp ? x.temp+'°C' : '');
+      dm += fila('Hora fin', x.hf); dm += fila('pH final', x.ph_final); dm += fila('Tª final', x.temp_final ? x.temp_final+'°C' : '');
+    });
+    if(dm) h += bloque('📦 Desmoldeo', dm);
+  }
+
+  // Salmuera
+  if(p.salmueras && p.salmueras.length){
+    var sa='';
+    p.salmueras.forEach(function(x){
+      sa += '<div class="resumen-row"><span>'+x.formato+'</span><b>'+(x.hi||'—')+' → '+(x.hf||'—')+'</b></div>';
+    });
+    if(sa) h += bloque('🧂 Salmuera', sa);
+  }
+
+  // Piezas fabricadas
+  if(p.piezas){
+    var pi='';
+    if(p.piezas['3kg'])  pi += fila('3 KG',   p.piezas['3kg']+' pzas');
+    if(p.piezas['2kg'])  pi += fila('2 KG',   p.piezas['2kg']+' pzas');
+    if(p.piezas['1kg'])  pi += fila('1 KG',   p.piezas['1kg']+' pzas');
+    if(p.piezas['05kg']) pi += fila('1/2 KG', p.piezas['05kg']+' pzas');
+    if(p.piezas['barra'])pi += fila('Barra',  p.piezas['barra']+' pzas');
+    if(p.piezas['gigante'])pi += fila('Gigante', p.piezas['gigante']+' pzas');
+    if(p.caseinas && p.caseinas.total) pi += fila('Caseínas', p.caseinas.primera+' → '+p.caseinas.ultima+' ('+p.caseinas.total+')');
+    if(pi) h += bloque('🧀 Piezas fabricadas', pi);
+  }
+
+  // Observaciones
+  if(p.observaciones) h += bloque('📝 Observaciones', '<div style="font-size:0.88rem;color:var(--text2)">'+p.observaciones+'</div>');
+
+  h += '<button class="btn btn-danger" style="margin-top:16px" onclick="eliminarParte(\''+p.id+'\')">🗑️ Eliminar parte</button>';
   abrirModal(h);
 }
 
@@ -2717,10 +2853,19 @@ function renderSalmueras(lista){
   lista.forEach(function(s){ anadirSalmuera(s); });
 }
 function anadirSalmuera(datos){
+  if (!SALMUERA_CONFIG) cargarSalmueraConfig();
   datos = datos || {};
   var cont = document.getElementById('salmueras-container');
   if (!cont) return;
   var idx = cont.children.length;
+  // Hora inicio: si es primera fila y no hay datos, calcular media desmoldeo
+  if (idx === 0 && !datos.hi) {
+    datos.hi = calcHoraIniSalmuera();
+  }
+  // Hora fin: si no hay datos y hay formato e hi, calcular
+  if (!datos.hf && datos.formato && datos.hi) {
+    datos.hf = calcHoraFinSalmuera(datos.formato, datos.hi);
+  }
   var formatos = ['3 KG','2 KG','1 KG','1/2 KG','BARRA','GIGANTE'];
   var optFmt = '<option value="">— Formato —</option>' + formatos.map(function(f){
     return '<option value="'+f+'"'+(datos.formato===f?' selected':'')+'>'+f+'</option>';
@@ -2732,14 +2877,26 @@ function anadirSalmuera(datos){
     + (idx > 0 ? '<button type="button" class="quitar-btn" onclick="quitarSalmuera(this)" title="Quitar">×</button>' : '')
     + '<div class="form-cols-3">'
     +   '<div class="form-row"><label class="form-label">Formato</label><select class="salm-formato">'+optFmt+'</select></div>'
-    +   '<div class="form-row"><label class="form-label">Hora inicial</label><input type="time" class="salm-hi" value="'+(datos.hi||'')+'"></div>'
-    +   '<div class="form-row"><label class="form-label">Hora final</label><input type="time" class="salm-hf" value="'+(datos.hf||'')+'"></div>'
+    +   '<div class="form-row"><label class="form-label">Hora entrada</label><input type="time" class="salm-hi" value="'+(datos.hi||'')+'"></div>'
+    +   '<div class="form-row"><label class="form-label">Hora salida</label><input type="time" class="salm-hf" value="'+(datos.hf||'')+'"></div>'
     + '</div>';
   cont.appendChild(div);
-  div.querySelectorAll('input, select').forEach(function(inp){
-    inp.addEventListener('input',  function(){ if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID); });
-    inp.addEventListener('change', function(){ if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID); });
+  // Al cambiar formato → recalcular hora fin
+  var selFmt = div.querySelector('.salm-formato');
+  var inpHi  = div.querySelector('.salm-hi');
+  var inpHf  = div.querySelector('.salm-hf');
+  function recalcHf(){
+    if (selFmt.value && inpHi.value && !inpHf.value) {
+      inpHf.value = calcHoraFinSalmuera(selFmt.value, inpHi.value);
+    }
+    if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
+  }
+  selFmt.addEventListener('change', recalcHf);
+  inpHi.addEventListener('change', function(){
+    if (selFmt.value) inpHf.value = calcHoraFinSalmuera(selFmt.value, inpHi.value);
+    if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
   });
+  inpHf.addEventListener('input', function(){ if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID); });
 }
 function quitarSalmuera(btn){
   var card = btn.closest('.pren-card');
@@ -2757,6 +2914,108 @@ function recogerSalmueras(){
     out.push({formato:fmt, hi:hi, hf:hf});
   });
   return out;
+}
+
+// ═══════════════════════════════════════════════
+// SALMUERA CONFIG
+// ═══════════════════════════════════════════════
+var SALMUERA_CONFIG_DEFAULT = {
+  '3 KG':   {horas_normal: 21, horas_bajosal: 5},
+  '2 KG':   {horas_normal: 14, horas_bajosal: 0},
+  '1 KG':   {horas_normal: 10, horas_bajosal: 2},
+  '1/2 KG': {horas_normal: 2,  horas_bajosal: 2},
+  'BARRA':  {horas_normal: 14, horas_bajosal: 0},
+  'GIGANTE':{horas_normal: 0,  horas_bajosal: 0}
+};
+var SALMUERA_CONFIG = null;
+
+function cargarSalmueraConfig(){
+  try {
+    var s = localStorage.getItem('tq_salmuera_config');
+    if (s) SALMUERA_CONFIG = JSON.parse(s);
+  } catch(e) {}
+  if (!SALMUERA_CONFIG) SALMUERA_CONFIG = JSON.parse(JSON.stringify(SALMUERA_CONFIG_DEFAULT));
+}
+function guardarSalmueraConfig(){
+  try { localStorage.setItem('tq_salmuera_config', JSON.stringify(SALMUERA_CONFIG)); } catch(e) {}
+}
+
+// Calcular hora media del desmoldeo activo → hora inicio salmuera
+function calcHoraIniSalmuera(){
+  // Buscar primera tarjeta de desmoldeo con hi y hf
+  var hiEl = document.querySelector('#desmoldeos-container .desm-hi');
+  var hfEl = document.querySelector('#desmoldeos-container .desm-hf');
+  if (!hiEl || !hfEl || !hiEl.value || !hfEl.value) return '';
+  var hi = hiEl.value.split(':').map(Number);
+  var hf = hfEl.value.split(':').map(Number);
+  var miniHi = hi[0]*60 + hi[1];
+  var minHf  = hf[0]*60 + hf[1];
+  if (minHf < miniHi) minHf += 24*60; // cruce medianoche
+  var media = Math.round((miniHi + minHf) / 2);
+  return String(Math.floor(media/60)).padStart(2,'0') + ':' + String(media%60).padStart(2,'0');
+}
+
+// Calcular hora fin según formato y hora inicio
+function calcHoraFinSalmuera(formato, horaIni){
+  if (!SALMUERA_CONFIG) cargarSalmueraConfig();
+  var cfg = SALMUERA_CONFIG[formato];
+  if (!cfg || !horaIni) return '';
+  // Detectar si es bajo en sal por el tipo de queso activo
+  var tipo = (document.getElementById('np-tipo-sel')||{}).value || '';
+  var esBajoSal = tipo.toUpperCase().indexOf('BAJO') >= 0 || tipo.toUpperCase().indexOf('SAL') >= 0;
+  var horas = esBajoSal && cfg.horas_bajosal > 0 ? cfg.horas_bajosal : cfg.horas_normal;
+  if (!horas) return '';
+  var partes = horaIni.split(':').map(Number);
+  var minutos = partes[0]*60 + partes[1] + Math.round(horas*60);
+  minutos = minutos % (24*60);
+  return String(Math.floor(minutos/60)).padStart(2,'0') + ':' + String(minutos%60).padStart(2,'0');
+}
+
+function abrirConfigSalmuera(){
+  if (!SALMUERA_CONFIG) cargarSalmueraConfig();
+  var modal = document.getElementById('modal-salmuera-config');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'modal-salmuera-config';
+    modal.innerHTML = '<div class="modal-content" style="max-width:560px"><div class="modal-header"><h3>⚙️ Configurar tiempos de salmuera</h3><button class="modal-close" onclick="cerrarConfigSalmuera()">×</button></div><div class="modal-body" id="salmuera-config-body"></div><div class="modal-footer"><button class="btn-secundario" onclick="cerrarConfigSalmuera()">Cancelar</button><button class="btn-primario" onclick="guardarConfigSalmueraModal()">Guardar</button></div></div>';
+    document.body.appendChild(modal);
+  }
+  var body = document.getElementById('salmuera-config-body');
+  var html = '<p style="font-size:0.82rem;color:var(--text2);margin-bottom:12px">Horas en salmuera por formato. Se usa para calcular la hora de salida automáticamente.</p>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:0.85rem">';
+  html += '<thead><tr style="background:var(--bg2)"><th style="padding:7px 10px;text-align:left">Formato</th><th style="padding:7px 10px;text-align:center">Horas normal</th><th style="padding:7px 10px;text-align:center">Horas bajo en sal</th></tr></thead><tbody>';
+  Object.keys(SALMUERA_CONFIG).forEach(function(fmt){
+    var cfg = SALMUERA_CONFIG[fmt];
+    html += '<tr style="border-bottom:1px solid var(--border)">';
+    html += '<td style="padding:8px 10px;font-weight:700">'+fmt+'</td>';
+    html += '<td style="padding:8px 10px;text-align:center"><input type="number" step="0.5" min="0" max="72" value="'+(cfg.horas_normal||0)+'" data-cfg-fmt="'+fmt+'" data-cfg-tipo="normal" style="width:70px;padding:5px;text-align:center;border:1.5px solid var(--border);border-radius:6px;font-size:0.9rem"></td>';
+    html += '<td style="padding:8px 10px;text-align:center"><input type="number" step="0.5" min="0" max="72" value="'+(cfg.horas_bajosal||0)+'" data-cfg-fmt="'+fmt+'" data-cfg-tipo="bajosal" style="width:70px;padding:5px;text-align:center;border:1.5px solid var(--border);border-radius:6px;font-size:0.9rem"></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  body.innerHTML = html;
+  modal.style.display = 'flex';
+}
+
+function cerrarConfigSalmuera(){
+  var modal = document.getElementById('modal-salmuera-config');
+  if (modal) modal.style.display = 'none';
+}
+
+function guardarConfigSalmueraModal(){
+  if (!SALMUERA_CONFIG) cargarSalmueraConfig();
+  document.querySelectorAll('#salmuera-config-body input[data-cfg-fmt]').forEach(function(inp){
+    var fmt  = inp.dataset.cfgFmt;
+    var tipo = inp.dataset.cfgTipo;
+    var val  = parseFloat(inp.value) || 0;
+    if (!SALMUERA_CONFIG[fmt]) SALMUERA_CONFIG[fmt] = {horas_normal:0, horas_bajosal:0};
+    if (tipo === 'normal')  SALMUERA_CONFIG[fmt].horas_normal  = val;
+    if (tipo === 'bajosal') SALMUERA_CONFIG[fmt].horas_bajosal = val;
+  });
+  guardarSalmueraConfig();
+  cerrarConfigSalmuera();
+  toast('✅ Configuración de salmuera guardada');
 }
 
 function renderDesmoldeos(lista){
