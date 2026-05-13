@@ -364,7 +364,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.2</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.4</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -380,6 +380,15 @@ input[type="email"] {
   <!-- Pestañas de cubas del día -->
   <div id="cubas-pestanas-wrap" style="display:flex;gap:6px;overflow-x:auto;padding:8px 0 12px;scrollbar-width:none;-webkit-overflow-scrolling:touch">
     <!-- aquí se inyectan dinámicamente las pestañas de cuba 1, 2, 3... + nueva -->
+  </div>
+
+  <!-- Barra sticky: contexto de la cuba activa -->
+  <div id="cuba-sticky-bar" style="display:none;position:sticky;top:0;z-index:90;background:var(--card);border-bottom:2px solid var(--green);padding:8px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 6px rgba(0,0,0,0.08)">
+    <div style="background:var(--green);color:white;border-radius:8px;padding:4px 10px;font-size:0.75rem;font-weight:800;white-space:nowrap" id="cuba-sticky-num">CUBA 1</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:0.85rem;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="cuba-sticky-tipo">—</div>
+      <div style="font-size:0.7rem;color:var(--text3)" id="cuba-sticky-estado">Abierto</div>
+    </div>
   </div>
 
   <!-- Panel activo: o bien el formulario de una cuba, o mensaje vacío -->
@@ -953,10 +962,26 @@ function abrirCubaPestana(id){
   CUBA_ACTIVA_ID = id;
   renderPestanasCubas();
   cargarFormularioEnPanel(p);
+  // Actualizar barra sticky
+  actualizarCubaStickyBar(p);
   // SIEMPRE forzar scroll al top primero (datos generales arriba)
   try{ window.scrollTo(0,0); }catch(e){}
   // Tras cargar el form, intentar ir a la siguiente sección SÓLO si tiene sentido
   setTimeout(function(){ irASiguienteSeccion(p); }, 250);
+}
+
+function actualizarCubaStickyBar(p){
+  var bar   = document.getElementById('cuba-sticky-bar');
+  var num   = document.getElementById('cuba-sticky-num');
+  var tipo  = document.getElementById('cuba-sticky-tipo');
+  var est   = document.getElementById('cuba-sticky-estado');
+  if(!bar) return;
+  if(!p){ bar.style.display='none'; return; }
+  bar.style.display = 'flex';
+  num.textContent  = 'CUBA ' + (p.cuba || '—');
+  var tipoTxt = [p.tipo, p.variedad].filter(Boolean).join(' · ') || '—';
+  tipo.textContent = tipoTxt;
+  est.textContent  = p.cerrado ? '🔒 Cerrado' : '✏️ En curso';
 }
 
 // Detecta hasta qué sección rellenó el quesero y abre+scrollea a la siguiente
@@ -1302,7 +1327,7 @@ function cerrarParteActivo(id){
   p.cerrado = true;
   persistir();
   enviarParteSheets(p);
-  CUBA_ACTIVA_ID = null;
+  CUBA_ACTIVA_ID = null; var _bar=document.getElementById("cuba-sticky-bar"); if(_bar) _bar.style.display="none";
   var panel = document.getElementById('panel-cuba-activa');
   if(panel) panel.innerHTML = '<div class="empty-state" style="padding:40px 20px"><div class="empty-state-icon">✓</div><div class="empty-state-text">Parte cerrado y enviado al historial</div></div>';
   renderPestanasCubas();
@@ -1475,7 +1500,14 @@ function onTipoSelChange(){
 }
 
 function onVarSelChange(){
-  setTimeout(function(){ try{ calcPasteurizacion();   refrescarPestanaCubaActiva();
+  setTimeout(function(){ try{ calcPasteurizacion(); refrescarPestanaCubaActiva();
+    // Actualizar sticky bar con tipo·variedad nuevo
+    var p = PARTES.find(function(x){return x.id===CUBA_ACTIVA_ID;});
+    if(p){
+      p.tipo = document.getElementById('np-tipo-sel').value;
+      p.variedad = document.getElementById('np-var-sel').value;
+      actualizarCubaStickyBar(p);
+    }
 }catch(e){} }, 60);
   var t=document.getElementById('np-tipo-sel').value;
   var v=document.getElementById('np-var-sel').value;
@@ -1641,28 +1673,27 @@ function calcularDosis(){
 }
 
 function calcCO2(){
-  var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  var caudal=parseFloat(document.getElementById('co2-caudal').value)||100;
-  var phLeche=parseFloat(document.getElementById('aux-ph')?document.getElementById('aux-ph').value:'')||0;
-  var phObj=6.48;
-  var el=document.getElementById('co2-tiempo');
-  var infoEl=document.getElementById('co2-ph-actual');
-  var detEl=document.getElementById('co2-formula-detalle');
-  if(!el)return;
-    if(litros>0&&caudal>0){
-    var seg;
-    if(phLeche>0&&phLeche>phObj){
-      seg=Math.round((litros/caudal)*3600);
-      if(detEl)detEl.innerHTML='⏳ Fórmula exacta pendiente · Cálculo provisional: <b>'+seg+' seg</b>';
-    }else if(phLeche>0&&phLeche<=phObj){
-      seg=0;
-      if(detEl)detEl.innerHTML='✅ pH leche ya en objetivo — no se necesita CO₂';
-    }else{
-      seg=Math.round((litros/caudal)*3600);
-      if(detEl)detEl.textContent='Introduce el pH de la leche para calcular el tiempo exacto';
+  var litros  = parseFloat(document.getElementById('np-litros').value) || 0;
+  var phLeche = parseFloat(document.getElementById('aux-ph') ? document.getElementById('aux-ph').value : '') || 0;
+  var phObj   = 6.48;
+  var el      = document.getElementById('co2-tiempo');
+  var detEl   = document.getElementById('co2-formula-detalle');
+  if (!el) return;
+
+  if (litros > 0 && phLeche > 0) {
+    if (phLeche <= phObj) {
+      el.value = '';
+      if (detEl) detEl.innerHTML = '✅ pH leche ya en objetivo (≤ 6,48) — no se necesita CO₂';
+    } else {
+      // Fórmula confirmada: Tiempo(s) = (PHI - 6,48) × Litros × 0,3
+      var seg = Math.round((phLeche - phObj) * litros * 0.3);
+      el.value = seg > 0 ? seg : '';
+      if (detEl) detEl.innerHTML = '🧮 (' + phLeche.toFixed(2) + ' − 6,48) × ' + litros + ' × 0,3 = <b>' + seg + ' s</b>';
     }
-    el.value=seg>0?seg:'';
-  }else{el.value='';}
+  } else {
+    el.value = '';
+    if (detEl) detEl.textContent = litros > 0 ? 'Introduce el pH de la leche para calcular' : 'Introduce los litros y el pH para calcular';
+  }
 }
 
 function calcCoagTotal(){
