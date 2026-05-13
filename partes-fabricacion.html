@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.17</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.18</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2037,7 +2037,7 @@ function verParte(id){
     if(p.piezas['05kg']) pi += fila('1/2 KG', p.piezas['05kg']+' pzas');
     if(p.piezas['barra'])pi += fila('Barra',  p.piezas['barra']+' pzas');
     if(p.piezas['gigante'])pi += fila('Gigante', p.piezas['gigante']+' pzas');
-    if(p.caseinas && p.caseinas.total) pi += fila('Caseínas', p.caseinas.primera+' → '+p.caseinas.ultima+' ('+p.caseinas.total+')');
+    if(p.caseinas && p.caseinas.total) pi += fila('Caseínas', (p.caseinas.serie ? p.caseinas.serie+' · ' : '') + p.caseinas.primera+' → '+p.caseinas.ultima+' ('+p.caseinas.total+')');
     if(pi) h += bloque('🧀 Piezas fabricadas', pi);
   }
 
@@ -2943,8 +2943,8 @@ function guardarSalmueraConfig(){
 // Calcular hora media del desmoldeo activo → hora inicio salmuera
 function calcHoraIniSalmuera(){
   // Buscar primera tarjeta de desmoldeo con hi y hf
-  var hiEl = document.querySelector('#desmoldeos-container .desm-hi');
-  var hfEl = document.querySelector('#desmoldeos-container .desm-hf');
+  var hiEl = document.querySelector('#desmoldeos-container .des-hi');
+  var hfEl = document.querySelector('#desmoldeos-container .des-hf');
   if (!hiEl || !hfEl || !hiEl.value || !hfEl.value) return '';
   var hi = hiEl.value.split(':').map(Number);
   var hf = hfEl.value.split(':').map(Number);
