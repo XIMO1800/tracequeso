@@ -364,7 +364,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.4.7</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.1</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -396,10 +396,9 @@ input[type="email"] {
   <div class="card">
     <div class="card-header"><span class="card-title">📄 Datos generales</span></div>
     <div class="card-body">
-      <!-- Fila 1: Fecha · Nº Cuba · Tipo · Variedad -->
+      <!-- Fila 1: Fecha · Tipo · Variedad · Operario -->
       <div class="form-cols-4">
         <div class="form-row"><label class="form-label">Fecha</label><input type="date" id="np-fecha"></div>
-        <div class="form-row"><label class="form-label">Nº Cuba</label><input type="text" id="np-cuba" readonly style="background:var(--bg);font-weight:700;text-align:center;font-size:1.05rem;color:var(--brand)"></div>
         <div class="form-row">
           <label class="form-label">Tipo</label>
           <select id="np-tipo-sel" onchange="onTipoSelChange()"><option value="">—</option></select>
@@ -408,11 +407,6 @@ input[type="email"] {
           <label class="form-label">Variedad</label>
           <select id="np-var-sel" onchange="onVarSelChange()" disabled><option value="">—</option></select>
         </div>
-      </div>
-      <input type="hidden" id="np-tipo">
-      <!-- Fila 2: Litros · Operario · pH entrada · Tª entrada -->
-      <div class="form-cols-4">
-        <div class="form-row"><label class="form-label">Litros totales</label><input type="number" id="np-litros" inputmode="numeric" oninput="calcularDosis();calcCO2();calcPasteurizacion()"></div>
         <div class="form-row">
           <label class="form-label">Operario</label>
           <div style="display:flex;gap:4px;align-items:center">
@@ -421,10 +415,17 @@ input[type="email"] {
           </div>
           <input type="hidden" id="np-operario">
         </div>
+      </div>
+      <input type="hidden" id="np-tipo">
+      <input type="hidden" id="np-cuba">
+      <!-- Fila 2: Litros · pH entrada · Tª entrada · °D leche -->
+      <div class="form-cols-4">
+        <div class="form-row"><label class="form-label">Litros totales</label><input type="number" id="np-litros" inputmode="numeric" oninput="calcularDosis();calcCO2();calcPasteurizacion()"></div>
         <div class="form-row"><label class="form-label">pH entrada</label><input type="number" id="np-ph" step="0.01" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">°D leche</label><input type="number" id="np-dornic" step="0.1" inputmode="decimal"></div>
       </div>
-      <!-- Fila 3: L. Vaca · L. Cabra · L. Oveja (laboratorio) -->
+      <!-- Fila 3: L. Vaca · L. Cabra · L. Oveja -->
       <div class="form-cols-3">
         <div class="form-row"><label class="form-label">L. Vaca</label><input type="number" id="np-lvaca" inputmode="numeric"></div>
         <div class="form-row"><label class="form-label">L. Cabra</label><input type="number" id="np-lcabra" inputmode="numeric"></div>
@@ -588,22 +589,49 @@ input[type="email"] {
 
   <div class="seccion">
     <div class="seccion-header" onclick="toggleSec('des')">
-      <div class="seccion-header-left"><span class="seccion-icon">💧</span><div><div class="seccion-label">Desuerado en cuba</div><div class="seccion-sublabel">Recalentamiento · Agitación</div></div></div>
+      <div class="seccion-header-left"><span class="seccion-icon">💧</span><div><div class="seccion-label">Desuerado en cuba</div><div class="seccion-sublabel">Recalentamiento · Agitación · Lavado</div></div></div>
       <span class="seccion-chevron" id="chev-des">▼</span>
     </div>
     <div class="seccion-body" id="body-des">
       <div class="sep-label">Recalentamiento</div>
-      <!-- 4 columnas: Hora ini · Tª ini · Hora fin · Tª fin (cronológico, todo en una fila) -->
+      <!-- Fila inicio: Hora ini · Tª ini · pH suero · °D suero -->
       <div class="form-cols-4">
         <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="rec-hi"></div>
         <div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" id="rec-ti" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">pH suero</label><input type="number" id="rec-ph" step="0.01" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">°D suero</label><input type="number" id="rec-dornic" step="0.1" inputmode="decimal"></div>
+      </div>
+      <!-- Fila fin: Hora fin · Tª final -->
+      <div class="form-cols">
         <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="rec-hf" onchange="propagarHora('rec-hf','agit-hi')"></div>
         <div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" id="rec-tf" inputmode="decimal"></div>
       </div>
+      <!-- Lavado cuajada (entre recalentamiento y agitación) -->
+      <div class="opt-aux-header" style="margin-top:14px">
+        <label class="opt-aux-label">
+          <input type="checkbox" id="lavado-aplicado" onchange="toggleLavadoAplicado()">
+          <span class="opt-aux-title" id="lavado-title">💧 Lavado de cuajada</span>
+        </label>
+      </div>
+      <div id="lavado-block" class="opt-aux-block cerrado">
+        <div class="form-row" style="margin-bottom:8px">
+          <label class="form-label">Método</label>
+          <select id="lavado-metodo" onchange="toggleLavadoMetodo()" style="width:100%;padding:8px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg2);font-size:0.95rem">
+            <option value="pasteurizador">Pasteurizador</option>
+            <option value="manguera">Manguera</option>
+          </select>
+        </div>
+        <div class="form-cols-3">
+          <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="lavado-hi"></div>
+          <div class="form-row" id="lavado-hf-row"><label class="form-label">Hora fin</label><input type="time" id="lavado-hf"></div>
+          <div class="form-row" id="lavado-temp-row"><label class="form-label">Tª agua (°C)</label><input type="number" id="lavado-temp" inputmode="decimal" step="0.1"></div>
+        </div>
+      </div>
       <div class="sep-label">Agitación</div>
-      <div class="form-cols">
+      <div class="form-cols-3">
         <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="agit-hi"></div>
-        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="agit-hf" onchange="propagarHora('agit-hf','mol-hi')"></div>
+        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="agit-hf" onchange="calcAgitTotal()"></div>
+        <div class="form-row"><label class="form-label">Total (min)</label><input type="number" id="agit-total" inputmode="numeric" readonly style="background:var(--bg2);color:var(--text2)"></div>
       </div>
     </div>
   </div>
@@ -1055,7 +1083,7 @@ function rellenarCampos(p){
   poblarSelectOperario(p.operario || OPERARIO_ACTUAL);
   v('np-operario', p.operario || OPERARIO_ACTUAL);
   v('np-lvaca', p.lvaca); v('np-lcabra', p.lcabra); v('np-loveja', p.loveja);
-  v('np-ph', p.ph); v('np-temp', p.temp);
+  v('np-ph', p.ph); v('np-temp', p.temp); v('np-dornic', p.dornic_leche);
   // Tipo y variedad
   if(p.tipo){
     var ts = document.getElementById('np-tipo-sel');
@@ -1128,7 +1156,29 @@ function rellenarCampos(p){
   if(p.desuerado){
     v('rec-hi', p.desuerado.rec_hi); v('rec-hf', p.desuerado.rec_hf);
     v('rec-ti', p.desuerado.rec_ti); v('rec-tf', p.desuerado.rec_tf);
+    v('rec-ph', p.desuerado.rec_ph); v('rec-dornic', p.desuerado.rec_dornic);
     v('agit-hi', p.desuerado.agit_hi); v('agit-hf', p.desuerado.agit_hf);
+    v('agit-total', p.desuerado.agit_total);
+    // Lavado de cuajada
+    var lavChk = document.getElementById('lavado-aplicado');
+    if(lavChk){
+      var lavAplicado = !!p.desuerado.lavado_aplicado;
+      lavChk.checked = lavAplicado;
+      var lavBlock = document.getElementById('lavado-block');
+      var lavTitle = document.getElementById('lavado-title');
+      if(lavBlock) lavBlock.style.display = lavAplicado ? '' : 'none';
+      if(lavBlock) lavBlock.classList.toggle('cerrado', !lavAplicado);
+      if(lavTitle) lavTitle.textContent = lavAplicado ? '💧 Lavado de cuajada' : '💧 Lavado de cuajada · NO se realizó';
+      // Restaurar método y ocultar campos si manguera
+      if(lavAplicado && p.desuerado.lavado_metodo){
+        var sel = document.getElementById('lavado-metodo');
+        if(sel) sel.value = p.desuerado.lavado_metodo;
+        toggleLavadoMetodo();
+      }
+    }
+    v('lavado-hi', p.desuerado.lavado_hi);
+    v('lavado-hf', p.desuerado.lavado_hf);
+    v('lavado-temp', p.desuerado.lavado_temp);
   }
   // Moldeo
   if(p.moldeo){
@@ -1216,14 +1266,19 @@ function autoGuardarParte(parteId){
   p.variedad = document.getElementById('np-var-sel') ? document.getElementById('np-var-sel').value : p.variedad;
   p.litros = gn('np-litros');
   p.lvaca = gn('np-lvaca'); p.lcabra = gn('np-lcabra'); p.loveja = gn('np-loveja');
-  p.ph = g('np-ph'); p.temp = g('np-temp');
+  p.ph = g('np-ph'); p.temp = g('np-temp'); p.dornic_leche = g('np-dornic');
   var opEl = document.getElementById('np-operario-sel');
   p.operario = opEl ? opEl.value : g('np-operario');
   if(p.operario) OPERARIO_ACTUAL = p.operario;
   guardarOperarios();
   p.cuba = g('np-cuba');
   p.coag = {hadicion:g('coag-hadicion'), hc:g('coag-hc'), ph:g('coag-ph'), temp:g('coag-temp'), total:g('coag-total')};
-  p.desuerado = {rec_hi:g('rec-hi'), rec_hf:g('rec-hf'), rec_ti:g('rec-ti'), rec_tf:g('rec-tf'), agit_hi:g('agit-hi'), agit_hf:g('agit-hf')};
+  p.desuerado = {rec_hi:g('rec-hi'), rec_hf:g('rec-hf'), rec_ti:g('rec-ti'), rec_tf:g('rec-tf'),
+    rec_ph:g('rec-ph'), rec_dornic:g('rec-dornic'),
+    agit_hi:g('agit-hi'), agit_hf:g('agit-hf'), agit_total:g('agit-total'),
+    lavado_aplicado: document.getElementById('lavado-aplicado') ? document.getElementById('lavado-aplicado').checked : false,
+    lavado_metodo: g('lavado-metodo'),
+    lavado_hi:g('lavado-hi'), lavado_hf:g('lavado-hf'), lavado_temp:g('lavado-temp')};
   p.moldeo = {hi:g('mol-hi'), hf:g('mol-hf'), ph:g('mol-ph'), temp:g('mol-temp')};
   p.prensados = (typeof recogerPrensados === 'function') ? recogerPrensados() : [];
   p.desmoldeos = (typeof recogerDesmoldeos === 'function') ? recogerDesmoldeos() : [];
@@ -1685,11 +1740,11 @@ function guardarParte(){
     lvaca:parseFloat(document.getElementById('np-lvaca').value)||0,
     lcabra:parseFloat(document.getElementById('np-lcabra').value)||0,
     loveja:parseFloat(document.getElementById('np-loveja').value)||0,
-    ph:document.getElementById('np-ph').value,temp:document.getElementById('np-temp').value,
+    ph:document.getElementById('np-ph').value,temp:document.getElementById('np-temp').value,dornic_leche:document.getElementById('np-dornic').value,
     operario:document.getElementById('np-operario').value,
     auxiliares:[],fermentos:[],cuajo:null,
     coag:{hadicion:document.getElementById('coag-hadicion').value,hc:document.getElementById('coag-hc').value,ph:document.getElementById('coag-ph').value,temp:document.getElementById('coag-temp').value,total:document.getElementById('coag-total').value},
-    desuerado:{rec_hi:document.getElementById('rec-hi').value,rec_hf:document.getElementById('rec-hf').value,rec_ti:document.getElementById('rec-ti').value,rec_tf:document.getElementById('rec-tf').value,agit_hi:document.getElementById('agit-hi').value,agit_hf:document.getElementById('agit-hf').value},
+    desuerado:{rec_hi:document.getElementById('rec-hi').value,rec_hf:document.getElementById('rec-hf').value,rec_ti:document.getElementById('rec-ti').value,rec_tf:document.getElementById('rec-tf').value,rec_ph:document.getElementById('rec-ph').value,rec_dornic:document.getElementById('rec-dornic').value,agit_hi:document.getElementById('agit-hi').value,agit_hf:document.getElementById('agit-hf').value,agit_total:document.getElementById('agit-total').value,lavado_aplicado:document.getElementById('lavado-aplicado').checked,lavado_metodo:document.getElementById('lavado-metodo')?document.getElementById('lavado-metodo').value:'',lavado_hi:document.getElementById('lavado-hi').value,lavado_hf:document.getElementById('lavado-hf').value,lavado_temp:document.getElementById('lavado-temp').value},
     moldeo:{hi:document.getElementById('mol-hi').value,hf:document.getElementById('mol-hf').value,ph:document.getElementById('mol-ph').value,temp:document.getElementById('mol-temp').value},
     prensado:{etapa1:document.getElementById('pren-e1').value,etapa2:document.getElementById('pren-e2').value},
     desmoldeo:{formato:document.getElementById('des-formato').value,ph:document.getElementById('des-ph').value,hi:document.getElementById('des-hi').value,hf:document.getElementById('des-hf').value},
@@ -1720,7 +1775,7 @@ function descontarStock(producto,cantidad){
 }
 
 function limpiarParte(){
-  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-operario','aux-ph','aux-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','agit-hi','agit-hf','mol-hi','mol-hf','mol-ph','mol-temp','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','cas-serie','cas-primera','cas-ultima','co2-tiempo','past-valvula','past-temp','past-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-dornic','np-operario','aux-ph','aux-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','rec-ph','rec-dornic','agit-hi','agit-hf','agit-total','lavado-hi','lavado-hf','lavado-temp','mol-hi','mol-hf','mol-ph','mol-temp','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','cas-serie','cas-primera','cas-ultima','co2-tiempo','past-valvula','past-temp','past-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('np-tipo').value='';
   var ts=document.getElementById('np-tipo-sel');if(ts)ts.value='';
   var vs=document.getElementById('np-var-sel');if(vs){vs.innerHTML='<option value="">— Variedad —</option>';vs.disabled=true;}
@@ -2253,6 +2308,47 @@ function toggleCO2Aplicado(){
     titulo.textContent = chk.checked ? '🌫️ CO₂' : '🌫️ CO₂ · NO se aplicó';
     titulo.style.color = chk.checked ? '' : 'var(--brand)';
   }
+  if (CUBA_ACTIVA_ID && typeof autoGuardarParte === 'function') autoGuardarParte(CUBA_ACTIVA_ID);
+}
+
+function toggleLavadoAplicado(){
+  var chk = document.getElementById('lavado-aplicado');
+  var bloque = document.getElementById('lavado-block');
+  var titulo = document.getElementById('lavado-title');
+  if (!chk || !bloque) return;
+  bloque.style.display = chk.checked ? '' : 'none';
+  bloque.classList.toggle('cerrado', !chk.checked);
+  if (titulo) {
+    titulo.textContent = chk.checked ? '💧 Lavado de cuajada' : '💧 Lavado de cuajada · NO se realizó';
+    titulo.style.color = chk.checked ? '' : 'var(--brand)';
+  }
+  if (CUBA_ACTIVA_ID && typeof autoGuardarParte === 'function') autoGuardarParte(CUBA_ACTIVA_ID);
+}
+
+function toggleLavadoMetodo(){
+  var sel = document.getElementById('lavado-metodo');
+  var hfRow = document.getElementById('lavado-hf-row');
+  var tempRow = document.getElementById('lavado-temp-row');
+  if (!sel) return;
+  var esManguera = sel.value === 'manguera';
+  if(hfRow)   hfRow.style.display   = esManguera ? 'none' : '';
+  if(tempRow) tempRow.style.display = esManguera ? 'none' : '';
+  if (CUBA_ACTIVA_ID && typeof autoGuardarParte === 'function') autoGuardarParte(CUBA_ACTIVA_ID);
+}
+
+function calcAgitTotal(){
+  var hi = document.getElementById('agit-hi');
+  var hf = document.getElementById('agit-hf');
+  var tot = document.getElementById('agit-total');
+  if (!hi || !hf || !tot) return;
+  if (hi.value && hf.value) {
+    var ini = hi.value.split(':').map(Number);
+    var fin = hf.value.split(':').map(Number);
+    var minutos = (fin[0]*60+fin[1]) - (ini[0]*60+ini[1]);
+    if (minutos < 0) minutos += 24*60;
+    tot.value = minutos;
+  }
+  propagarHora('agit-hf','mol-hi');
   if (CUBA_ACTIVA_ID && typeof autoGuardarParte === 'function') autoGuardarParte(CUBA_ACTIVA_ID);
 }
 
