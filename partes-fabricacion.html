@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.11</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.12</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1238,10 +1238,8 @@ function rellenarCampos(p){
     }
     renderDesmoldeos(lstD);
   }
-  if(p.salmuera){
-    v('salm-formato', p.salmuera.formato);
-    v('salm-hi', p.salmuera.hi); v('salm-hf', p.salmuera.hf);
-  }
+  // Salmuera — siempre arranca con al menos una fila
+  renderSalmueras(p.salmueras && p.salmueras.length ? p.salmueras : (p.salmuera ? [{formato:p.salmuera.formato||'', hi:p.salmuera.hi||'', hf:p.salmuera.hf||''}] : []));
   // Piezas
   if(p.piezas){
     v('pzas-3kg', p.piezas['3kg']); v('pzas-2kg', p.piezas['2kg']);
