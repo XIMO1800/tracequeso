@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.18</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.19</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -787,33 +787,9 @@ var FORMATOS = ['3 KG','2 KG','1 KG','1/2 KG','BARRA','GIGANTE','SUPERMINIS'];
 var API_URL = 'https://script.google.com/macros/s/AKfycbzRpl0519TiKvlfVZqEK12oZDfUCn9bNrJVT4kRDyni3pCxLg7FTMKmssgeKGJMWEP0/exec';
 var SYNC_PENDIENTE = []; // registros pendientes de enviar cuando haya red
 
-var RECETAS_DEMO = [
-  {id:'r1',tipo:'MEZCLA',variedad:'SEMICURADO',
-   auxiliares:[{nombre:'CaCl2',dosis_ml_1000L:100}],
-   fermentos:[{nombre:'R-704',dosis_ml_1000L:100},{nombre:'FLORA',dosis_ml_1000L:20}],
-   cuajo:{nombre:'NATUREN',dosis_ml_1000L:200}},
-  {id:'r2',tipo:'D.O. PAST.',variedad:'CURADO',
-   auxiliares:[{nombre:'CaCl2',dosis_ml_1000L:80}],
-   fermentos:[{nombre:'HANSEN',dosis_ml_1000L:120},{nombre:'GRACIA-102',dosis_ml_1000L:100}],
-   cuajo:{nombre:'CHYMAX',dosis_ml_1000L:180}},
-  {id:'r3',tipo:'MEZCLA',variedad:'TIERNO',
-   auxiliares:[{nombre:'CaCl2',dosis_ml_1000L:100}],
-   fermentos:[{nombre:'R-704',dosis_ml_1000L:80},{nombre:'DANISCO',dosis_ml_1000L:50}],
-   cuajo:{nombre:'NATUREN',dosis_ml_1000L:200}}
-];
+var RECETAS_DEMO = [];
 
-var STOCK_DEMO = {
-  'CaCl2':[{lote:'24H2648IAT',caducidad:'2026-08-07',cantidad:18,unidad:'L',proveedor:'BETELGEUX'},{lote:'25A1247BCD',caducidad:'2027-01-12',cantidad:25,unidad:'L',proveedor:'BETELGEUX'}],
-  'Lisozima':[{lote:'LZ-2025-04',caducidad:'2026-12-31',cantidad:5,unidad:'L',proveedor:'HANSEN'}],
-  'NATUREN':[{lote:'377-2410',caducidad:'2026-01-24',cantidad:12,unidad:'L',proveedor:'HANSEN'},{lote:'381-2502',caducidad:'2026-08-15',cantidad:20,unidad:'L',proveedor:'HANSEN'}],
-  'CHYMAX':[{lote:'CHX-2025-118',caducidad:'2026-11-30',cantidad:8,unidad:'L',proveedor:'CHR HANSEN'}],
-  'R-704':[{lote:'376-8905',caducidad:'2026-12-12',cantidad:6,unidad:'kg',proveedor:'HANSEN'},{lote:'381-0910',caducidad:'2026-12-16',cantidad:10,unidad:'kg',proveedor:'HANSEN'}],
-  'FLORA':[{lote:'486-6224',caducidad:'2026-05-03',cantidad:3,unidad:'kg',proveedor:'DANISCO'}],
-  'HANSEN':[{lote:'447-49-9248',caducidad:'2026-06-18',cantidad:8,unidad:'kg',proveedor:'HANSEN',categoria:'FERMENTO'}],
-  'GRACIA-102':[{lote:'375-1947',caducidad:'2026-08-30',cantidad:5,unidad:'kg',proveedor:'HANSEN',categoria:'FERMENTO'}],
-  'DANISCO':[{lote:'DAN-2502-A',caducidad:'2026-09-12',cantidad:4,unidad:'kg',proveedor:'DANISCO',categoria:'FERMENTO'}],
-  'CO2':[{lote:'CO2-2025-11',caducidad:'2026-11-30',cantidad:50,unidad:'kg',proveedor:'AIR LIQUIDE',categoria:'AUXILIAR'}]
-};
+var STOCK_DEMO = {};
 
 var LOTES_ACTIVOS = {};
 var PARTES = [];
@@ -2342,6 +2318,16 @@ function sincronizarPendientes(){
 function init(){
   // 1. Cargar datos del localStorage
   try{ cargarOperarios(); cargarVariedadesCustom(); cargarPrensadoConfig(); }catch(e){}
+
+  // MIGRACIÓN v2.6.19: limpiar datos demo (R-704, NATUREN ficticio, etc.)
+  // Solo se ejecuta una vez por dispositivo
+  try {
+    if (!localStorage.getItem('tq_limpio_demo_v1')) {
+      localStorage.removeItem('tq_partes_demo');
+      localStorage.setItem('tq_limpio_demo_v1', '1');
+    }
+  } catch(e) {}
+
   try{
     var s = localStorage.getItem('tq_partes_demo');
     if(s){
