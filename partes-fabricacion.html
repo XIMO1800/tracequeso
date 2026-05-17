@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.24</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.25</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2146,15 +2146,33 @@ function updIng(tipo,i,campo,val){
 }
 
 function guardarReceta(){
-  var r=window._recetaEditando;
-  r.tipo=document.getElementById('rec-tipo').value.trim().toUpperCase();
-  r.variedad=document.getElementById('rec-var').value.trim().toUpperCase();
-  if(!r.tipo){toast('⚠ Tipo obligatorio');return;}
-  if(!r.id){r.id='r'+Date.now();RECETAS_DEMO.push(r);}
-  else{var idx=RECETAS_DEMO.findIndex(function(x){return x.id===r.id;});if(idx>=0)RECETAS_DEMO[idx]=r;}
-  persistir();
-  enviarRecetaSheets(r,false);
-  cerrarModal();renderRecetas();poblarSelectTipos();poblarFiltroTipos();toast('✅ Receta guardada');
+  try {
+    var r=window._recetaEditando;
+    if(!r){ toast('⚠ Error: receta no inicializada'); return; }
+    var tipoEl = document.getElementById('rec-tipo');
+    var varEl  = document.getElementById('rec-var');
+    if(!tipoEl){ toast('⚠ Error: campo Tipo no encontrado'); return; }
+    r.tipo     = (tipoEl.value||'').trim().toUpperCase();
+    r.variedad = varEl ? (varEl.value||'').trim().toUpperCase() : '';
+    if(!r.tipo){toast('⚠ Selecciona un Tipo de queso');return;}
+    if(!r.variedad){toast('⚠ Selecciona una Variedad');return;}
+    // Limpiar ingredientes vacíos (filas con nombre en blanco)
+    if(r.auxiliares) r.auxiliares = r.auxiliares.filter(function(x){ return x && x.nombre; });
+    if(r.fermentos)  r.fermentos  = r.fermentos.filter(function(x){ return x && x.nombre; });
+    if(r.cuajo && !r.cuajo.nombre) r.cuajo = null;
+    if(!r.id){r.id='r'+Date.now();RECETAS_DEMO.push(r);}
+    else{var idx=RECETAS_DEMO.findIndex(function(x){return x.id===r.id;});if(idx>=0)RECETAS_DEMO[idx]=r;else RECETAS_DEMO.push(r);}
+    try{ persistir(); }catch(e){ console.error('persistir:',e); }
+    try{ enviarRecetaSheets(r,false); }catch(e){ console.error('enviar:',e); }
+    cerrarModal();
+    try{ renderRecetas(); }catch(e){ console.error('renderRecetas:',e); }
+    try{ poblarSelectTipos(); }catch(e){}
+    try{ poblarFiltroTipos(); }catch(e){}
+    toast('✅ Receta guardada');
+  } catch(err) {
+    console.error('guardarReceta error:', err);
+    toast('⚠ Error guardando: ' + (err.message||err));
+  }
 }
 
 function eliminarReceta(id){
@@ -2426,7 +2444,7 @@ function init(){
   // 1. Cargar datos del localStorage
   try{ cargarOperarios(); cargarVariedadesCustom(); cargarPrensadoConfig(); }catch(e){}
 
-  // MIGRACIÓN v2.6.24: limpiar datos demo (R-704, NATUREN ficticio, etc.)
+  // MIGRACIÓN v2.6.25: limpiar datos demo (R-704, NATUREN ficticio, etc.)
   // Solo se ejecuta una vez por dispositivo
   try {
     if (!localStorage.getItem('tq_limpio_demo_v1')) {
