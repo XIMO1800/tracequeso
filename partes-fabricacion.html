@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.21</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.22</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -761,7 +761,7 @@ input[type="email"] {
 </div>
 
 <div id="screen-stock" class="screen">
-  <div class="warn-banner">📦 Stock de cuajos, fermentos, auxiliares y otros materiales. Solo lectura — Calidad gestiona las entradas desde TraceQueso.</div>
+  <div class="warn-banner">📦 Stock de fermentos, cuajos y auxiliares. Solo lectura — Calidad gestiona las entradas desde TraceQueso.</div>
   <div class="card" id="lista-stock"></div>
 </div>
 
@@ -2210,22 +2210,23 @@ function iconoCategoria(cat){
 }
 
 // ── Pestaña LOTES: lotes activos por artículo (solo lectura) ──
+// Solo categorías relacionadas con fabricación de cuba: FERMENTO, AUXILIAR, CUAJO
 function renderLotes(){
   var c=document.getElementById('lista-lotes');
   if(!c) return;
   var stock = (STOCK_REMOTO && STOCK_REMOTO.stock) ? STOCK_REMOTO.stock.map(normRowStock) : [];
-  // Solo lotes activos (con stock > 0)
-  var activos = stock.filter(function(r){ return r.stockActual > 0; });
+  var CATS_FABRI = ['FERMENTO','AUXILIAR','CUAJO'];
+  // Solo lotes activos (con stock > 0) y de categorías de fabricación
+  var activos = stock.filter(function(r){
+    return r.stockActual > 0 && CATS_FABRI.indexOf((r.categoria||'').toUpperCase()) >= 0;
+  });
   if(!activos.length){
-    c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏷️</div><div class="empty-state-text">Sin lotes activos</div><div style="margin-top:6px;font-size:0.78rem;color:var(--text3)">Calidad debe registrar entradas desde TraceQueso</div></div>';
+    c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏷️</div><div class="empty-state-text">Sin lotes activos de fabricación</div><div style="margin-top:6px;font-size:0.78rem;color:var(--text3)">Calidad debe registrar fermentos, cuajos y auxiliares desde TraceQueso</div></div>';
     return;
   }
-  // Agrupar por artículo (saltando categoría PLASTICO para que el quesero se centre en lo de cuba)
-  var foco = activos.filter(function(r){ var c=(r.categoria||'').toUpperCase(); return c==='FERMENTO'||c==='AUXILIAR'||c==='CUAJO'; });
-  if(!foco.length) foco = activos;
 
   var porArt = {};
-  foco.forEach(function(r){
+  activos.forEach(function(r){
     var k = (r.categoria||'?').toUpperCase()+'|'+(r.articulo||'?');
     if(!porArt[k]) porArt[k] = { categoria:r.categoria, articulo:r.articulo, lotes:[] };
     porArt[k].lotes.push(r);
@@ -2265,12 +2266,18 @@ function renderLotes(){
 }
 
 // ── Pestaña STOCK: stock total por artículo, agrupado por categoría (solo lectura) ──
+// Solo categorías relacionadas con fabricación de cuba: FERMENTO, AUXILIAR, CUAJO
 function renderStock(){
   var c=document.getElementById('lista-stock');
   if(!c) return;
-  var stock = (STOCK_REMOTO && STOCK_REMOTO.stock) ? STOCK_REMOTO.stock.map(normRowStock) : [];
+  var stockTodo = (STOCK_REMOTO && STOCK_REMOTO.stock) ? STOCK_REMOTO.stock.map(normRowStock) : [];
+  // Filtrar solo categorías de fabricación (no plástico, cartonaje, etiquetas, etc.)
+  var CATS_FABRI = ['FERMENTO','AUXILIAR','CUAJO'];
+  var stock = stockTodo.filter(function(r){
+    return CATS_FABRI.indexOf((r.categoria||'').toUpperCase()) >= 0;
+  });
   if(!stock.length){
-    c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">Sin stock registrado</div><div style="margin-top:6px;font-size:0.78rem;color:var(--text3)">Calidad debe registrar entradas desde TraceQueso</div></div>';
+    c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">Sin stock de fabricación</div><div style="margin-top:6px;font-size:0.78rem;color:var(--text3)">Calidad debe registrar fermentos, cuajos y auxiliares desde TraceQueso</div></div>';
     return;
   }
   // Agrupar por categoría
@@ -2408,7 +2415,7 @@ function init(){
   // 1. Cargar datos del localStorage
   try{ cargarOperarios(); cargarVariedadesCustom(); cargarPrensadoConfig(); }catch(e){}
 
-  // MIGRACIÓN v2.6.21: limpiar datos demo (R-704, NATUREN ficticio, etc.)
+  // MIGRACIÓN v2.6.22: limpiar datos demo (R-704, NATUREN ficticio, etc.)
   // Solo se ejecuta una vez por dispositivo
   try {
     if (!localStorage.getItem('tq_limpio_demo_v1')) {
