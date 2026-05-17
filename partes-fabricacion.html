@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.23</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.24</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2107,8 +2107,8 @@ function refrescarIngs(){
     var h='';
     lista.forEach(function(p,i){
       var opts = '<option value="">— Elige —</option>';
-      // Si el producto actual no está en stock, mostrarlo aparte
-      if(p.nombre && disponibles.indexOf(p.nombre)<0) opts += '<option value="'+p.nombre+'" selected>'+p.nombre+' (no en stock)</option>';
+      // Si el producto guardado no existe en stock real, mostramos solo la lista limpia
+      // (el usuario debe elegir uno válido de la lista)
       disponibles.forEach(function(nom){
         opts += '<option value="'+nom+'"'+(nom===p.nombre?' selected':'')+'>'+nom+'</option>';
       });
@@ -2426,7 +2426,7 @@ function init(){
   // 1. Cargar datos del localStorage
   try{ cargarOperarios(); cargarVariedadesCustom(); cargarPrensadoConfig(); }catch(e){}
 
-  // MIGRACIÓN v2.6.23: limpiar datos demo (R-704, NATUREN ficticio, etc.)
+  // MIGRACIÓN v2.6.24: limpiar datos demo (R-704, NATUREN ficticio, etc.)
   // Solo se ejecuta una vez por dispositivo
   try {
     if (!localStorage.getItem('tq_limpio_demo_v1')) {
