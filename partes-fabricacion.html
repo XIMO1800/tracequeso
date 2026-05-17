@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.19</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.21</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -756,13 +756,12 @@ input[type="email"] {
 </div>
 
 <div id="screen-lotes" class="screen">
-  <div class="warn-banner">🏷️ El último lote usado de cada producto se guarda automáticamente al cerrar un parte y se pre-rellena en el siguiente.</div>
+  <div class="warn-banner">🏷️ Lotes activos por producto. Solo lectura — Calidad mantiene los datos desde TraceQueso.</div>
   <div class="card" id="lista-lotes"></div>
 </div>
 
 <div id="screen-stock" class="screen">
-  <div class="warn-banner">📦 Stock de cuajos, fermentos y auxiliares. Calidad da de alta los albaranes; al cerrar un parte se descuenta automáticamente.</div>
-  <button class="btn btn-primary" style="margin-bottom:12px" onclick="abrirAlbaran()">📥 Registrar entrada de albarán</button>
+  <div class="warn-banner">📦 Stock de cuajos, fermentos, auxiliares y otros materiales. Solo lectura — Calidad gestiona las entradas desde TraceQueso.</div>
   <div class="card" id="lista-stock"></div>
 </div>
 
@@ -2081,19 +2080,8 @@ function onRecTipoChange(){
 }
 
 function getProductosStockPorCategoria(cat){
-  var resultado = [];
-  var vistos = {};
-  Object.keys(STOCK_DEMO).forEach(function(nombre){
-    var lotes = STOCK_DEMO[nombre];
-    if(!lotes || !lotes.length) return;
-    // Coger la categoría del primer lote (todos deberían tener la misma)
-    var catProd = (lotes[0].categoria || '').toUpperCase();
-    if(catProd === cat.toUpperCase() && !vistos[nombre]){
-      vistos[nombre] = true;
-      resultado.push(nombre);
-    }
-  });
-  return resultado;
+  // Lee de los datos reales de Sheets (STOCK_REMOTO)
+  return articulosDeCategoria(cat);
 }
 
 function refrescarIngs(){
@@ -2116,8 +2104,7 @@ function refrescarIngs(){
       h+='<div class="ferm-row">'
         + '<button class="ferm-row-del" onclick="delIng(\''+tipo+'\','+i+')">Eliminar</button>'
         + '<div class="form-row"><label class="form-label">Producto</label>'
-        +   '<div style="display:flex;gap:6px"><select style="flex:1" onchange="updIng(\''+tipo+'\','+i+',\'nombre\',this.value)">'+opts+'</select>'
-        +   '<button onclick="nuevoProductoStock(\''+catFiltro+'\')" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer">+</button></div>'
+        +   '<select onchange="updIng(\''+tipo+'\','+i+',\'nombre\',this.value)">'+opts+'</select>'
         + '</div>'
         + '<div class="form-row"><label class="form-label">Dosis ml/g por 1000L</label><input type="number" value="'+(p.dosis_ml_1000L||'')+'" oninput="updIng(\''+tipo+'\','+i+',\'dosis_ml_1000L\',parseFloat(this.value))"></div>'
         + '</div>';
@@ -2172,94 +2159,183 @@ function eliminarReceta(id){
 // LOTES Y STOCK
 // ═══════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════
+// STOCK Y LOTES - SOLO LECTURA (datos desde TraceQueso/Sheets)
+// ═══════════════════════════════════════════════
+
+// Helper: convertir fechas Sheets a YYYY-MM-DD
+function fechaISO(v){
+  if(!v) return '';
+  if(typeof v === 'string'){
+    var m1=v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m1) return m1[1]+'-'+m1[2]+'-'+m1[3];
+    var m2=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if(m2) return m2[3]+'-'+('0'+m2[2]).slice(-2)+'-'+('0'+m2[1]).slice(-2);
+    var d=new Date(v);
+    if(!isNaN(d.getTime())) return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+    return '';
+  }
+  if(v instanceof Date && !isNaN(v.getTime())){
+    return v.getFullYear()+'-'+('0'+(v.getMonth()+1)).slice(-2)+'-'+('0'+v.getDate()).slice(-2);
+  }
+  return '';
+}
+
+// Normaliza una fila de STOCK (cabeceras vienen en MAYÚSCULAS)
+function normRowStock(r){
+  return {
+    categoria:    String(r.CATEGORIA||r.categoria||r['CATEGORÍA']||'').trim(),
+    articulo:     String(r.ARTICULO||r.articulo||r['ARTÍCULO']||'').trim(),
+    proveedor:    String(r.PROVEEDOR||r.proveedor||'').trim(),
+    lote:         String(r.LOTE||r.lote||'').trim(),
+    entradas:     parseFloat(r.ENTRADAS||r.entradas||0)||0,
+    consumo:      parseFloat(r.CONSUMO||r.consumo||0)||0,
+    stockActual:  parseFloat(r['STOCK ACTUAL']||r.stockActual||0)||0,
+    alertaMinimo: parseFloat(r['ALERTA MINIMO']||r['ALERTA MÍNIMO']||r.alertaMinimo||0)||0,
+    unidad:       String(r.UNIDAD||r.unidad||'').trim(),
+    caducidad:    fechaISO(r.CADUCIDAD||r.caducidad)
+  };
+}
+
+// Icono según categoría
+function iconoCategoria(cat){
+  var c=(cat||'').toUpperCase();
+  if(c.indexOf('FERMENTO')>=0) return '🦠';
+  if(c.indexOf('AUXILIAR')>=0) return '🧪';
+  if(c.indexOf('CUAJO')>=0)    return '⚗️';
+  if(c.indexOf('PLASTICO')>=0||c.indexOf('PLÁSTICO')>=0||c.indexOf('ENVASADO')>=0) return '🎞️';
+  if(c.indexOf('CARTON')>=0||c.indexOf('CARTÓN')>=0||c.indexOf('CAJA')>=0) return '📦';
+  if(c.indexOf('ETIQUETA')>=0) return '🏷️';
+  return '📦';
+}
+
+// ── Pestaña LOTES: lotes activos por artículo (solo lectura) ──
 function renderLotes(){
   var c=document.getElementById('lista-lotes');
-  if(!c)return;
-  var productos=Object.keys(LOTES_ACTIVOS);
-  if(productos.length===0)productos=Object.keys(STOCK_DEMO);
-  if(!productos.length){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">🏷️</div><div class="empty-state-text">Sin lotes registrados</div></div>';return;}
-  var h='';
-  productos.forEach(function(prod){
-    var l=obtenerLoteActivo(prod);
-    if(!l)h+='<div class="lote-row"><div class="lote-row-top"><div class="lote-row-producto">'+prod+'</div></div><div class="lote-row-meta">Sin lote activo</div></div>';
-    else h+='<div class="lote-row"><div class="lote-row-top"><div class="lote-row-producto">'+prod+'</div><div class="lote-row-lote">'+l.lote+'</div></div><div class="lote-row-meta">Caducidad: '+formatearFecha(l.caducidad)+' · '+l.proveedor+'</div></div>';
+  if(!c) return;
+  var stock = (STOCK_REMOTO && STOCK_REMOTO.stock) ? STOCK_REMOTO.stock.map(normRowStock) : [];
+  // Solo lotes activos (con stock > 0)
+  var activos = stock.filter(function(r){ return r.stockActual > 0; });
+  if(!activos.length){
+    c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏷️</div><div class="empty-state-text">Sin lotes activos</div><div style="margin-top:6px;font-size:0.78rem;color:var(--text3)">Calidad debe registrar entradas desde TraceQueso</div></div>';
+    return;
+  }
+  // Agrupar por artículo (saltando categoría PLASTICO para que el quesero se centre en lo de cuba)
+  var foco = activos.filter(function(r){ var c=(r.categoria||'').toUpperCase(); return c==='FERMENTO'||c==='AUXILIAR'||c==='CUAJO'; });
+  if(!foco.length) foco = activos;
+
+  var porArt = {};
+  foco.forEach(function(r){
+    var k = (r.categoria||'?').toUpperCase()+'|'+(r.articulo||'?');
+    if(!porArt[k]) porArt[k] = { categoria:r.categoria, articulo:r.articulo, lotes:[] };
+    porArt[k].lotes.push(r);
   });
-  c.innerHTML=h;
+  // Ordenar por caducidad ascendente (más antiguo primero = el que toca consumir)
+  Object.keys(porArt).forEach(function(k){
+    porArt[k].lotes.sort(function(a,b){
+      if(!a.caducidad) return 1;
+      if(!b.caducidad) return -1;
+      return a.caducidad.localeCompare(b.caducidad);
+    });
+  });
+
+  var html='';
+  Object.keys(porArt).sort().forEach(function(k){
+    var a = porArt[k];
+    var icono = iconoCategoria(a.categoria);
+    html += '<div style="margin-bottom:14px;padding:10px;background:var(--bg2);border-radius:10px;border:1px solid var(--border)">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:1.1rem">'+icono+'</span><b>'+a.articulo+'</b><span style="font-size:0.7rem;color:var(--text3)">·'+a.categoria+'</span></div>';
+    a.lotes.forEach(function(l, idx){
+      var esFifo = idx===0;
+      var color = esFifo ? 'var(--accent)' : 'var(--text3)';
+      var marca = esFifo ? '🟢 USAR PRIMERO' : '';
+      html += '<div style="font-size:0.78rem;padding:6px 8px;margin:3px 0;color:var(--text2);border-radius:6px;background:var(--bg);border-left:3px solid '+color+'">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+      html += '<span><span style="font-family:Courier New,monospace;font-weight:700;color:var(--text)">'+l.lote+'</span>'+(l.proveedor?' · '+l.proveedor:'')+'</span>';
+      html += '<b>'+l.stockActual+' '+(l.unidad||'')+'</b>';
+      html += '</div>';
+      if(l.caducidad || marca){
+        html += '<div style="margin-top:3px;font-size:0.7rem;color:var(--text3)">'+(l.caducidad?'Cad: '+l.caducidad:'')+(marca?' · <b style="color:var(--accent)">'+marca+'</b>':'')+'</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+  c.innerHTML = html;
 }
 
+// ── Pestaña STOCK: stock total por artículo, agrupado por categoría (solo lectura) ──
 function renderStock(){
   var c=document.getElementById('lista-stock');
-  if(!c)return;
-  var productos=Object.keys(STOCK_DEMO);
-  if(!productos.length){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">Sin stock registrado</div></div>';return;}
-  var h='';
-  productos.forEach(function(prod){
-    var lotes=STOCK_DEMO[prod];
-    var totalCant=lotes.reduce(function(s,l){return s+l.cantidad;},0);
-    var unidad=lotes[0].unidad;var minimo=5;
-    var pct=Math.min(100,(totalCant/minimo/3)*100);
-    var clase=totalCant<minimo?'crit':(totalCant<minimo*2?'low':'ok');
-    h+='<div class="lote-row"><div class="lote-row-top"><div class="lote-row-producto">'+prod+'</div><div class="lote-row-lote">'+totalCant.toFixed(1)+' '+unidad+'</div></div><div class="stock-bar"><div class="stock-bar-fill '+clase+'" style="width:'+pct+'%"></div></div><div class="lote-row-meta" style="margin-top:6px">'+lotes.length+' lote'+(lotes.length>1?'s':'')+'</div><div style="margin-top:8px">';
-    lotes.forEach(function(l){h+='<div style="font-size:0.76rem;padding:4px 0;color:var(--text2)"><span style="font-family:Courier New,monospace;font-weight:700;color:var(--text)">'+l.lote+'</span> · cad '+formatearFecha(l.caducidad)+' · <b>'+l.cantidad.toFixed(1)+' '+l.unidad+'</b></div>';});
-    h+='</div></div>';
+  if(!c) return;
+  var stock = (STOCK_REMOTO && STOCK_REMOTO.stock) ? STOCK_REMOTO.stock.map(normRowStock) : [];
+  if(!stock.length){
+    c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">Sin stock registrado</div><div style="margin-top:6px;font-size:0.78rem;color:var(--text3)">Calidad debe registrar entradas desde TraceQueso</div></div>';
+    return;
+  }
+  // Agrupar por categoría
+  var porCat = {};
+  stock.forEach(function(r){
+    var c = r.categoria || 'OTROS';
+    if(!porCat[c]) porCat[c] = [];
+    porCat[c].push(r);
   });
-  c.innerHTML=h;
-}
-
-function nuevoProductoStock(cat){
-  // Cerrar modal de receta y abrir albarán con categoría pre-seleccionada
-  cerrarModal();
-  setTimeout(function(){
-    abrirAlbaran();
-    setTimeout(function(){
-      var sel = document.getElementById('alb-categoria');
-      if(sel && cat){ sel.value = cat; }
-    }, 100);
-  }, 200);
-}
-
-function abrirAlbaran(){
-  var h='<div class="modal-title">📥 Registrar entrada <button class="modal-close" onclick="cerrarModal()">×</button></div>';
-  h+='<div class="form-row"><label class="form-label">Categoría</label><select id="alb-categoria"><option value="">—</option><option value="AUXILIAR">Auxiliar</option><option value="FERMENTO">Fermento</option><option value="CUAJO">Cuajo</option><option value="PLASTICO">Plástico</option></select></div><div class="form-row"><label class="form-label">Producto</label><input type="text" id="alb-prod" placeholder="CHYMAX, NATUREN, R-704..."></div>';
-  h+='<div class="form-row"><label class="form-label">Nº Albarán</label><input type="text" id="alb-albaran" placeholder="Opcional"></div>';
-  h+='<div class="form-row"><label class="form-label">Lote</label><input type="text" id="alb-lote" placeholder="Nº de lote"></div>';
-  h+='<div class="form-cols"><div class="form-row"><label class="form-label">Caducidad</label><input type="date" id="alb-cad"></div><div class="form-row"><label class="form-label">Cantidad</label><input type="number" id="alb-cant" step="0.1" inputmode="decimal"></div></div>';
-  h+='<div class="form-cols"><div class="form-row"><label class="form-label">Unidad</label><select id="alb-uni"><option>L</option><option>ml</option><option>kg</option><option>g</option></select></div><div class="form-row"><label class="form-label">Proveedor</label><input type="text" id="alb-prov"></div></div>';
-  h+='<button class="btn btn-primary" style="margin-top:14px" onclick="guardarAlbaran()">💾 Guardar</button><button class="btn btn-secondary" style="margin-top:8px" onclick="cerrarModal()">Cancelar</button>';
-  abrirModal(h);
-}
-
-function guardarAlbaran(){
-  var prod=document.getElementById('alb-prod').value.trim().toUpperCase();
-  var lote=document.getElementById('alb-lote').value.trim();
-  var cad=document.getElementById('alb-cad').value;
-  var cant=parseFloat(document.getElementById('alb-cant').value);
-  var uni=document.getElementById('alb-uni').value;
-  var prov=document.getElementById('alb-prov').value.trim();
-  var albEl = document.getElementById('alb-albaran');
-  var albaran = albEl ? albEl.value.trim() : '';
-  if(!prod||!lote||!cant){toast('⚠ Producto, lote y cantidad obligatorios');return;}
-  var cat = document.getElementById('alb-categoria') ? document.getElementById('alb-categoria').value : '';
-  if(!cat){toast('⚠ Selecciona categoría');return;}
-  if(!STOCK_DEMO[prod])STOCK_DEMO[prod]=[];
-  STOCK_DEMO[prod].push({lote:lote,caducidad:cad,cantidad:cant,unidad:uni,proveedor:prov,categoria:cat});
-  persistir();
-  // Enviar entrada a Google Sheets (hoja ENTRADAS MATERIAL AUXILIAR)
-  var idEntrada = 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
-  var fechaHoy = new Date().toISOString().slice(0,10);
-  enviarEntradaSheets({
-    id: idEntrada,
-    fecha: fechaHoy,
-    albaran: albaran,
-    proveedor: prov,
-    categoria: cat,
-    articulo: prod,
-    lote: lote,
-    cantidad: cant,
-    unidad: uni,
-    caducidad: cad
+  var html='';
+  Object.keys(porCat).sort().forEach(function(cat){
+    var items = porCat[cat];
+    // Agrupar por artículo dentro de cada categoría
+    var porArt = {};
+    items.forEach(function(r){
+      var k = r.articulo || '?';
+      if(!porArt[k]) porArt[k] = { articulo:r.articulo, lotes:[], total:0, unidad:'' };
+      porArt[k].lotes.push(r);
+      porArt[k].total += r.stockActual;
+      if(!porArt[k].unidad && r.unidad) porArt[k].unidad = r.unidad;
+    });
+    var icono = iconoCategoria(cat);
+    html += '<div style="margin-bottom:18px">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 4px"><span style="font-size:1.3rem">'+icono+'</span><b style="font-size:0.95rem">'+cat+'</b><span style="font-size:0.72rem;color:var(--text3)">· '+Object.keys(porArt).length+' artículo'+(Object.keys(porArt).length!==1?'s':'')+'</span></div>';
+    Object.keys(porArt).sort().forEach(function(art){
+      var a = porArt[art];
+      var color = a.total<=0 ? 'crit' : (a.total<5 ? 'low' : 'ok');
+      html += '<div class="lote-row">';
+      html += '<div class="lote-row-top"><div class="lote-row-producto">'+a.articulo+'</div><div class="lote-row-lote">'+a.total+(a.unidad?' '+a.unidad:'')+'</div></div>';
+      html += '<div class="lote-row-meta">'+a.lotes.length+' lote'+(a.lotes.length!==1?'s':'')+'</div>';
+      html += '<div style="margin-top:6px">';
+      a.lotes.forEach(function(l){
+        var agotado = l.stockActual <= 0;
+        html += '<div style="font-size:0.74rem;padding:5px 8px;margin:2px 0;color:var(--text2);border-radius:6px;background:var(--bg2);'+(agotado?'opacity:0.55;':'')+'">';
+        html += '<span style="font-family:Courier New,monospace;font-weight:700;color:var(--text)">'+l.lote+'</span>';
+        if(l.proveedor) html += ' · '+l.proveedor;
+        html += ' · <b>'+l.stockActual+' '+(l.unidad||'')+'</b>';
+        if(l.caducidad) html += ' · cad '+l.caducidad;
+        html += '</div>';
+      });
+      html += '</div></div>';
+    });
+    html += '</div>';
   });
-  cerrarModal();renderStock();renderLotes();toast('✅ Entrada guardada y enviada');
+  c.innerHTML = html;
+}
+
+// ── Desplegables de RECETAS: poblar artículos disponibles desde STOCK_REMOTO ──
+function poblarFermentosDesdeStock(){
+  if(typeof renderRecetas !== 'function') return;
+  // Si hay un modal de receta abierto, refrescamos los desplegables de productos
+  // (la próxima vez que se abra el modal, leerá de STOCK_REMOTO automáticamente)
+}
+
+// Devuelve la lista de artículos disponibles para una categoría (usado por RECETAS)
+function articulosDeCategoria(cat){
+  var stock = (STOCK_REMOTO && STOCK_REMOTO.stock) ? STOCK_REMOTO.stock.map(normRowStock) : [];
+  var c = (cat||'').toUpperCase();
+  var arts = {};
+  stock.forEach(function(r){
+    if((r.categoria||'').toUpperCase() === c && r.articulo){
+      arts[r.articulo] = true;
+    }
+  });
+  return Object.keys(arts).sort();
 }
 
 // ═══════════════════════════════════════════════
@@ -2307,6 +2383,19 @@ function cargarRecetasSheets(){
   }).catch(function(){});
 }
 
+// Stock material auxiliar (lectura desde TraceQueso · Sheets)
+var STOCK_REMOTO = { stock: [], entradas: [], salidas: [] };
+function cargarStockMaterial(){
+  fetch(API_URL+'?tipo=matAux').then(function(r){return r.json();}).then(function(d){
+    if(d && d.ok && d.data){
+      STOCK_REMOTO = d.data;
+      try{ renderStock(); }catch(e){ console.error('renderStock:',e); }
+      try{ renderLotes(); }catch(e){ console.error('renderLotes:',e); }
+      try{ poblarFermentosDesdeStock(); }catch(e){ console.error('poblarFermentos:',e); }
+    }
+  }).catch(function(e){ console.error('cargarStockMaterial:',e); });
+}
+
 function sincronizarPendientes(){
   if(!SYNC_PENDIENTE||!SYNC_PENDIENTE.length)return;
   var pendiente=SYNC_PENDIENTE.shift();
@@ -2319,7 +2408,7 @@ function init(){
   // 1. Cargar datos del localStorage
   try{ cargarOperarios(); cargarVariedadesCustom(); cargarPrensadoConfig(); }catch(e){}
 
-  // MIGRACIÓN v2.6.19: limpiar datos demo (R-704, NATUREN ficticio, etc.)
+  // MIGRACIÓN v2.6.21: limpiar datos demo (R-704, NATUREN ficticio, etc.)
   // Solo se ejecuta una vez por dispositivo
   try {
     if (!localStorage.getItem('tq_limpio_demo_v1')) {
@@ -2385,6 +2474,7 @@ function init(){
   setTimeout(function(){
     try{ cargarPartesSheets(); }catch(e){}
     try{ cargarRecetasSheets(); }catch(e){}
+    try{ cargarStockMaterial(); }catch(e){}
     try{ sincronizarPendientes(); }catch(e){}
   }, 1000);
 }
