@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.25</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.27</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1533,6 +1533,11 @@ function onTipoChange(){
     document.getElementById('coag-proceso').style.display='none';
     return;
   }
+  // Si el stock no está cargado, lo cargamos (en background) para poder
+  // autorrellenar lote/proveedor/caducidad en cuanto llegue
+  if(!STOCK_REMOTO || !STOCK_REMOTO.stock || !STOCK_REMOTO.stock.length){
+    try{ cargarStockMaterial(); }catch(e){}
+  }
   renderAuxiliares(receta);renderFermentos(receta);renderCuajo(receta);
   document.getElementById('coag-proceso').style.display='block';
   calcularDosis();
@@ -1625,9 +1630,54 @@ function renderProductoCard(prod){
 }
 
 function obtenerLoteActivo(producto){
-  if(LOTES_ACTIVOS[producto])return LOTES_ACTIVOS[producto];
-  if(STOCK_DEMO[producto]&&STOCK_DEMO[producto].length)return STOCK_DEMO[producto][0];
+  if(!producto) return null;
+  // 1) Si el usuario seleccionó manualmente un lote para este producto, lo respetamos
+  if(LOTES_ACTIVOS[producto]) return LOTES_ACTIVOS[producto];
+  // 2) Buscar en el stock real de Sheets (STOCK_REMOTO)
+  if(STOCK_REMOTO && STOCK_REMOTO.stock && STOCK_REMOTO.stock.length){
+    var nombreUp = String(producto).trim().toUpperCase();
+    var candidatos = STOCK_REMOTO.stock
+      .map(normRowStock)
+      .filter(function(r){
+        return String(r.articulo||'').trim().toUpperCase() === nombreUp && r.stockActual > 0;
+      });
+    if(candidatos.length){
+      // Ordenar por caducidad ascendente (FIFO: el más antiguo primero)
+      candidatos.sort(function(a,b){
+        if(!a.caducidad) return 1;
+        if(!b.caducidad) return -1;
+        return a.caducidad.localeCompare(b.caducidad);
+      });
+      var c = candidatos[0];
+      return {
+        lote: c.lote,
+        caducidad: c.caducidad,
+        proveedor: c.proveedor,
+        cantidad: c.stockActual,
+        unidad: c.unidad
+      };
+    }
+  }
+  // 3) Fallback al stock demo antiguo (por compatibilidad, vacío en la práctica)
+  if(STOCK_DEMO[producto] && STOCK_DEMO[producto].length) return STOCK_DEMO[producto][0];
   return null;
+}
+
+// Devuelve TODOS los lotes activos de un producto (para mostrar lista o permitir cambiar)
+function obtenerLotesDelProducto(producto){
+  if(!producto || !STOCK_REMOTO || !STOCK_REMOTO.stock) return [];
+  var nombreUp = String(producto).trim().toUpperCase();
+  var lotes = STOCK_REMOTO.stock
+    .map(normRowStock)
+    .filter(function(r){
+      return String(r.articulo||'').trim().toUpperCase() === nombreUp && r.stockActual > 0;
+    });
+  lotes.sort(function(a,b){
+    if(!a.caducidad) return 1;
+    if(!b.caducidad) return -1;
+    return a.caducidad.localeCompare(b.caducidad);
+  });
+  return lotes;
 }
 
 function onDosisOverride(input){
@@ -1720,19 +1770,37 @@ function iniciarCO2(){
 }
 
 function abrirSelectorLote(producto){
-  var stock=STOCK_DEMO[producto]||[];
+  var stock=obtenerLotesDelProducto(producto);
   var h='<div class="modal-title">Lote de '+producto+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
-  if(stock.length===0){h+='<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">No hay stock disponible para '+producto+'.<br>Calidad debe registrar un albarán de entrada.</div></div>';}
-  else{
-    h+='<div style="margin-bottom:8px;font-size:0.8rem;color:var(--text2)">Lotes disponibles en stock:</div>';
-    stock.forEach(function(s,i){h+='<div class="opt-row" onclick="seleccionarLote(\''+producto+'\','+i+')"><div class="opt-row-info"><div class="opt-row-lote">'+s.lote+'</div><div class="opt-row-meta">Cad: '+formatearFecha(s.caducidad)+' · '+s.proveedor+'</div></div><div class="opt-row-stock">'+s.cantidad+' '+s.unidad+'</div></div>';});
+  if(stock.length===0){
+    h+='<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">No hay lotes activos de '+producto+' en stock.<br>Calidad debe registrar un albarán de entrada desde TraceQueso.</div></div>';
+  } else {
+    h+='<div style="margin-bottom:8px;font-size:0.8rem;color:var(--text2)">Lotes disponibles (ordenados por caducidad, más antiguo primero):</div>';
+    stock.forEach(function(s,i){
+      var marca = (i===0) ? ' · 🟢 USAR PRIMERO' : '';
+      h+='<div class="opt-row" onclick="seleccionarLote(\''+producto+'\','+i+')">'
+        +'<div class="opt-row-info">'
+        +  '<div class="opt-row-lote">'+s.lote+marca+'</div>'
+        +  '<div class="opt-row-meta">Cad: '+(s.caducidad?formatearFecha(s.caducidad):'—')+(s.proveedor?' · '+s.proveedor:'')+'</div>'
+        +'</div>'
+        +'<div class="opt-row-stock">'+s.cantidad+' '+(s.unidad||'')+'</div>'
+        +'</div>';
+    });
   }
   abrirModal(h);
 }
 
 function seleccionarLote(producto,idx){
-  var s=STOCK_DEMO[producto][idx];
-  LOTES_ACTIVOS[producto]=s;
+  var lotes=obtenerLotesDelProducto(producto);
+  if(!lotes[idx]) return;
+  var s=lotes[idx];
+  LOTES_ACTIVOS[producto]={
+    lote:s.lote,
+    caducidad:s.caducidad,
+    proveedor:s.proveedor,
+    cantidad:s.cantidad,
+    unidad:s.unidad
+  };
   parteActual.lotes_seleccionados[producto]=s.lote;
   persistir();cerrarModal();
   if(parteActual.receta){var rid=parteActual.receta.id;document.getElementById('np-tipo').value=rid;onTipoChange();}
@@ -2069,7 +2137,7 @@ function renderEditorReceta(){
   Object.keys(TIPOS_VARIEDADES).forEach(function(t){tipoOpts+='<option value="'+t+'"'+(t===r.tipo?' selected':'')+'>'+t+'</option>';});
   var varOpts='<option value="">— Variedad —</option>';
   if(r.tipo&&TIPOS_VARIEDADES[r.tipo]){TIPOS_VARIEDADES[r.tipo].forEach(function(v){varOpts+='<option value="'+v+'"'+(v===r.variedad?' selected':'')+'>'+v+'</option>';});}
-  h+='<div class="form-cols"><div class="form-row"><label class="form-label">Tipo</label><select id="rec-tipo" onchange="onRecTipoChange()">'+tipoOpts+'</select></div><div class="form-row"><label class="form-label">Variedad</label><select id="rec-var">'+varOpts+'</select></div></div>';
+  h+='<div class="form-cols"><div class="form-row"><label class="form-label">Tipo</label><select id="rec-tipo" onchange="onRecTipoChange()">'+tipoOpts+'</select></div><div class="form-row"><label class="form-label">Variedad</label><select id="rec-var" onchange="onRecVarChange()">'+varOpts+'</select></div></div>';
   h+='<div class="sep-label">Auxiliares</div><div id="aux-edit-list"></div><button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="addIng(\'auxiliares\')">➕ Añadir auxiliar</button>';
   h+='<div class="sep-label">Fermentos</div><div id="ferm-edit-list"></div><button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="addIng(\'fermentos\')">➕ Añadir fermento</button>';
   h+='<div class="sep-label">Cuajo</div><div id="cuajo-edit-list"></div>';
@@ -2080,14 +2148,23 @@ function renderEditorReceta(){
   abrirModal(h);refrescarIngs();
 }
 
+function onRecVarChange(){
+  var r=window._recetaEditando;
+  var vEl=document.getElementById('rec-var');
+  if(r && vEl) r.variedad = (vEl.value||'').trim().toUpperCase();
+}
+
 function onRecTipoChange(){
+  var r=window._recetaEditando;
   var t=document.getElementById('rec-tipo').value;
+  if(r) r.tipo = (t||'').trim().toUpperCase();
   var selV=document.getElementById('rec-var');
   var vars=TIPOS_VARIEDADES[t]||[];
-  if(!t||vars.length===0){selV.innerHTML='<option value="">(sin variedad)</option>';selV.disabled=true;return;}
+  if(!t||vars.length===0){selV.innerHTML='<option value="">(sin variedad)</option>';selV.disabled=true;if(r) r.variedad='';return;}
   selV.innerHTML='<option value="">— Variedad —</option>';
   selV.disabled=false;
   vars.forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v;selV.appendChild(o);});
+  if(r) r.variedad='';
 }
 
 function getProductosStockPorCategoria(cat){
@@ -2129,6 +2206,9 @@ function refrescarIngs(){
 
 function addIng(tipo){
   var r=window._recetaEditando;
+  // Guardar tipo/variedad actuales del DOM antes de repintar
+  var tEl=document.getElementById('rec-tipo'); if(tEl) r.tipo=(tEl.value||'').trim().toUpperCase();
+  var vEl=document.getElementById('rec-var');  if(vEl) r.variedad=(vEl.value||'').trim().toUpperCase();
   if(tipo==='cuajo')r.cuajo={nombre:'',dosis_ml_1000L:0};
   else{if(!r[tipo])r[tipo]=[];r[tipo].push({nombre:'',dosis_ml_1000L:0});}
   renderEditorReceta();
@@ -2136,6 +2216,9 @@ function addIng(tipo){
 
 function delIng(tipo,i){
   var r=window._recetaEditando;
+  // Guardar tipo/variedad actuales del DOM antes de repintar
+  var tEl=document.getElementById('rec-tipo'); if(tEl) r.tipo=(tEl.value||'').trim().toUpperCase();
+  var vEl=document.getElementById('rec-var');  if(vEl) r.variedad=(vEl.value||'').trim().toUpperCase();
   if(tipo==='cuajo')r.cuajo=null;else r[tipo].splice(i,1);
   renderEditorReceta();
 }
@@ -2428,6 +2511,15 @@ function cargarStockMaterial(){
       try{ renderStock(); }catch(e){ console.error('renderStock:',e); }
       try{ renderLotes(); }catch(e){ console.error('renderLotes:',e); }
       try{ poblarFermentosDesdeStock(); }catch(e){ console.error('poblarFermentos:',e); }
+      // Si hay un parte abierto con receta cargada, refrescar los ingredientes
+      // para que muestren lote/proveedor/caducidad desde Sheets
+      try{
+        if(parteActual && parteActual.receta){
+          renderAuxiliares(parteActual.receta);
+          renderFermentos(parteActual.receta);
+          renderCuajo(parteActual.receta);
+        }
+      }catch(e){ console.error('refrescar parte:',e); }
     }
   }).catch(function(e){ console.error('cargarStockMaterial:',e); });
 }
@@ -2444,7 +2536,7 @@ function init(){
   // 1. Cargar datos del localStorage
   try{ cargarOperarios(); cargarVariedadesCustom(); cargarPrensadoConfig(); }catch(e){}
 
-  // MIGRACIÓN v2.6.25: limpiar datos demo (R-704, NATUREN ficticio, etc.)
+  // MIGRACIÓN v2.6.27: limpiar datos demo (R-704, NATUREN ficticio, etc.)
   // Solo se ejecuta una vez por dispositivo
   try {
     if (!localStorage.getItem('tq_limpio_demo_v1')) {
