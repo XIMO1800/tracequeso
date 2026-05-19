@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.30</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.31</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -431,18 +431,28 @@ input[type="email"] {
       </div>
       <input type="hidden" id="np-tipo">
       <input type="hidden" id="np-cuba">
-      <!-- Fila 2: Litros · pH entrada · Tª entrada · °D leche -->
+      <!-- Fila 2: Litros · Tanque · pH entrada · Tª entrada · °D leche -->
       <div class="form-cols-4">
         <div class="form-row"><label class="form-label">Litros totales</label><input type="number" id="np-litros" inputmode="numeric" oninput="calcularDosis();calcCO2();calcPasteurizacion()"></div>
+        <div class="form-row"><label class="form-label">Tanque procedencia</label><input type="text" id="np-tanque" placeholder="ej: 4 ó 3+4"></div>
         <div class="form-row"><label class="form-label">pH entrada</label><input type="number" id="np-ph" step="0.01" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">°D leche</label><input type="number" id="np-dornic" step="0.1" inputmode="decimal"></div>
-        <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" inputmode="decimal"></div>
       </div>
-      <!-- Fila 3: L. Vaca · L. Cabra · L. Oveja -->
+      <div class="form-cols-4">
+        <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" inputmode="decimal"></div>
+        <div></div><div></div><div></div>
+      </div>
+      <!-- Fila 3: L. Vaca + Tanque · L. Cabra + Tanque · L. Oveja + Tanque -->
+      <div style="font-size:0.7rem;color:var(--text3);margin:6px 0 4px">Para queso puro usa "Tanque procedencia" arriba. Para MEZCLA, rellena litros y tanque por cada tipo de leche.</div>
       <div class="form-cols-3">
         <div class="form-row"><label class="form-label">L. Vaca</label><input type="number" id="np-lvaca" inputmode="numeric"></div>
         <div class="form-row"><label class="form-label">L. Cabra</label><input type="number" id="np-lcabra" inputmode="numeric"></div>
         <div class="form-row"><label class="form-label">L. Oveja</label><input type="number" id="np-loveja" inputmode="numeric"></div>
+      </div>
+      <div class="form-cols-3">
+        <div class="form-row"><label class="form-label">Tanque vaca</label><input type="text" id="np-tanque-vaca" placeholder="2"></div>
+        <div class="form-row"><label class="form-label">Tanque cabra</label><input type="text" id="np-tanque-cabra" placeholder="1"></div>
+        <div class="form-row"><label class="form-label">Tanque oveja</label><input type="text" id="np-tanque-oveja" placeholder="4"></div>
       </div>
     </div>
   </div>
@@ -1090,6 +1100,11 @@ function rellenarCampos(p){
   v('np-operario', p.operario || OPERARIO_ACTUAL);
   v('np-lvaca', p.lvaca); v('np-lcabra', p.lcabra); v('np-loveja', p.loveja);
   v('np-ph', p.ph); v('np-temp', p.temp); v('np-dornic', p.dornic_leche);
+  // Tanques de procedencia
+  v('np-tanque', p.tanque);
+  v('np-tanque-vaca', p.tanque_vaca);
+  v('np-tanque-cabra', p.tanque_cabra);
+  v('np-tanque-oveja', p.tanque_oveja);
   // Tipo y variedad
   if(p.tipo){
     var ts = document.getElementById('np-tipo-sel');
@@ -1271,6 +1286,11 @@ function autoGuardarParte(parteId){
   p.litros = gn('np-litros');
   p.lvaca = gn('np-lvaca'); p.lcabra = gn('np-lcabra'); p.loveja = gn('np-loveja');
   p.ph = g('np-ph'); p.temp = g('np-temp'); p.dornic_leche = g('np-dornic');
+  // Tanques de procedencia
+  p.tanque        = g('np-tanque');
+  p.tanque_vaca   = g('np-tanque-vaca');
+  p.tanque_cabra  = g('np-tanque-cabra');
+  p.tanque_oveja  = g('np-tanque-oveja');
   var opEl = document.getElementById('np-operario-sel');
   p.operario = opEl ? opEl.value : g('np-operario');
   if(p.operario) OPERARIO_ACTUAL = p.operario;
@@ -1459,9 +1479,39 @@ function refrescarPestanaCubaActiva(){
   }catch(e){}
 }
 
+// Devuelve el tanque por defecto según el tipo de queso
+// Cabra=1, Vaca=2, Manchega=3, Oveja=4 (incluye D.O.)
+function _tanquePorDefecto(tipo){
+  var t = (tipo||'').toUpperCase();
+  if(t==='CABRA') return '1';
+  if(t==='VACA')  return '2';
+  if(t==='MANCHEGA' || t==='MANCHIGA') return '3';
+  if(t==='OVEJA' || t.indexOf('D.O.')>=0) return '4';
+  return '';
+}
+
+// Autocompleta los tanques en el formulario "Nueva cuba" si estaban vacíos
+function _rellenarTanquesDefaultSiVacios(tipo){
+  var t = (tipo||'').toUpperCase();
+  var esMezcla = (t==='MEZCLA');
+  function setIfEmpty(id, val){
+    var el = document.getElementById(id);
+    if(el && !el.value && val) el.value = val;
+  }
+  if(esMezcla){
+    setIfEmpty('np-tanque-vaca',  _tanquePorDefecto('VACA'));
+    setIfEmpty('np-tanque-cabra', _tanquePorDefecto('CABRA'));
+    setIfEmpty('np-tanque-oveja', _tanquePorDefecto('OVEJA'));
+  } else {
+    setIfEmpty('np-tanque', _tanquePorDefecto(t));
+  }
+}
+
 function onTipoSelChange(){
   setTimeout(function(){ try{ calcPasteurizacion(); }catch(e){} }, 60);
   var t=document.getElementById('np-tipo-sel').value;
+  // Autocompletar tanque por defecto si los campos están vacíos
+  _rellenarTanquesDefaultSiVacios(t);
   var selV=document.getElementById('np-var-sel');
   selV.innerHTML='<option value="">— Variedad —</option>';
   if(!t){selV.disabled=true;document.getElementById('np-tipo').value='';onTipoChange();return;}
@@ -3153,7 +3203,7 @@ function init(){
   // 1. Cargar datos del localStorage
   try{ cargarOperarios(); cargarVariedadesCustom(); cargarPrensadoConfig(); }catch(e){}
 
-  // MIGRACIÓN v2.6.30: limpiar datos demo (R-704, NATUREN ficticio, etc.)
+  // MIGRACIÓN v2.6.31: limpiar datos demo (R-704, NATUREN ficticio, etc.)
   // Solo se ejecuta una vez por dispositivo
   try {
     if (!localStorage.getItem('tq_limpio_demo_v1')) {
