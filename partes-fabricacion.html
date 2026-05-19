@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.31</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.32</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -431,19 +431,19 @@ input[type="email"] {
       </div>
       <input type="hidden" id="np-tipo">
       <input type="hidden" id="np-cuba">
-      <!-- Fila 2: Litros · Tanque · pH entrada · Tª entrada · °D leche -->
+      <!-- Fila 1: Litros · pH · Tª · °D (todo lo principal de un vistazo) -->
       <div class="form-cols-4">
         <div class="form-row"><label class="form-label">Litros totales</label><input type="number" id="np-litros" inputmode="numeric" oninput="calcularDosis();calcCO2();calcPasteurizacion()"></div>
-        <div class="form-row"><label class="form-label">Tanque procedencia</label><input type="text" id="np-tanque" placeholder="ej: 4 ó 3+4"></div>
         <div class="form-row"><label class="form-label">pH entrada</label><input type="number" id="np-ph" step="0.01" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">°D leche</label><input type="number" id="np-dornic" step="0.1" inputmode="decimal"></div>
       </div>
+      <!-- Fila 2: Distribución por tanques -->
+      <div style="font-size:0.7rem;color:var(--text3);margin:8px 0 4px"><b>Distribución por tanques</b> — Para queso puro usa "Tanque procedencia". Para MEZCLA, rellena litros y tanque por tipo.</div>
       <div class="form-cols-4">
-        <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tanque procedencia</label><input type="text" id="np-tanque" placeholder="ej: 4 ó 3+4"></div>
         <div></div><div></div><div></div>
       </div>
-      <!-- Fila 3: L. Vaca + Tanque · L. Cabra + Tanque · L. Oveja + Tanque -->
-      <div style="font-size:0.7rem;color:var(--text3);margin:6px 0 4px">Para queso puro usa "Tanque procedencia" arriba. Para MEZCLA, rellena litros y tanque por cada tipo de leche.</div>
       <div class="form-cols-3">
         <div class="form-row"><label class="form-label">L. Vaca</label><input type="number" id="np-lvaca" inputmode="numeric"></div>
         <div class="form-row"><label class="form-label">L. Cabra</label><input type="number" id="np-lcabra" inputmode="numeric"></div>
@@ -1323,6 +1323,8 @@ function cerrarParteActivo(id){
   if(!confirm('¿Cerrar este parte? Pasará al historial.')) return;
   var p = PARTES.find(function(x){return x.id===id;});
   if(!p) return;
+  // Antes de cerrar, capturar los auxiliares/fermentos/cuajo aplicados con sus lotes reales
+  _capturarAuxFermCuajoEnParte(p);
   p.cerrado = true;
   persistir();
   enviarParteSheets(p);
@@ -1331,6 +1333,68 @@ function cerrarParteActivo(id){
   if(panel) panel.innerHTML = '<div class="empty-state" style="padding:40px 20px"><div class="empty-state-icon">✓</div><div class="empty-state-text">Parte cerrado y enviado al historial</div></div>';
   renderPestanasCubas();
   toast('✓ Parte cerrado');
+}
+
+// Captura en el parte los auxiliares, fermentos y cuajo aplicados con sus lotes/proveedores/caducidades reales
+// para que queden auto-contenidos y se puedan ver/editar en el historial
+function _capturarAuxFermCuajoEnParte(p){
+  if(!p) return;
+  var receta = p.receta || (parteActual && parteActual.receta);
+  if(!receta) return;
+  var litros = parseFloat(p.litros) || 0;
+  function lote(prod){ try{ return obtenerLoteActivo(prod) || {}; }catch(e){ return {}; } }
+  function dosisUtil(dosis_1000L){
+    var override = (p.dosis_override && parteActual && parteActual===p && parteActual.dosis_override) ? parteActual.dosis_override : null;
+    var d = parseFloat(dosis_1000L) || 0;
+    return Math.round((litros * d / 1000) * 10) / 10;
+  }
+  // Auxiliares
+  p.auxiliares = (receta.auxiliares||[]).map(function(a){
+    var L = lote(a.nombre);
+    return {
+      nombre:        a.nombre,
+      dosis_ml_1000L: a.dosis_ml_1000L || 0,
+      consumo_total: dosisUtil(a.dosis_ml_1000L),
+      proveedor:     L.proveedor || '',
+      lote:          L.lote || '',
+      caducidad:     L.caducidad || '',
+      unidad:        L.unidad || ''
+    };
+  });
+  // Fermentos
+  p.fermentos = (receta.fermentos||[]).map(function(f){
+    var L = lote(f.nombre);
+    return {
+      nombre:        f.nombre,
+      dosis_ml_1000L: f.dosis_ml_1000L || 0,
+      consumo_total: dosisUtil(f.dosis_ml_1000L),
+      proveedor:     L.proveedor || '',
+      lote:          L.lote || '',
+      caducidad:     L.caducidad || '',
+      unidad:        L.unidad || ''
+    };
+  });
+  // Cuajo (es uno solo)
+  if(receta.cuajo && receta.cuajo.nombre){
+    var Lc = lote(receta.cuajo.nombre);
+    p.cuajo = {
+      nombre:        receta.cuajo.nombre,
+      dosis_ml_1000L: receta.cuajo.dosis_ml_1000L || 0,
+      consumo_total: dosisUtil(receta.cuajo.dosis_ml_1000L),
+      proveedor:     Lc.proveedor || '',
+      lote:          Lc.lote || '',
+      caducidad:     Lc.caducidad || '',
+      unidad:        Lc.unidad || ''
+    };
+  }
+  // CO2: si está dado de alta en stock como artículo "CO2", se autorrelleno desde allí
+  var LCO2 = lote('CO2');
+  if(LCO2 && (LCO2.lote || LCO2.proveedor)){
+    if(!p.co2) p.co2 = {};
+    if(!p.co2.lote)      p.co2.lote      = LCO2.lote || '';
+    if(!p.co2.caducidad) p.co2.caducidad = LCO2.caducidad || '';
+    p.co2.proveedor = LCO2.proveedor || p.co2.proveedor || '';
+  }
 }
 
 function eliminarCubaActiva(id){
@@ -2292,25 +2356,27 @@ function renderEpForm(){
   h += _ep1('Fecha', _epInp('ep-fecha', p.fecha, 'date'));
   h += _ep1('Lote del queso', _epInp('ep-lote-queso', p.lote_queso||''));
 
-  // ── LITROS Y TANQUES (depende de si es mezcla o queso puro) ──
+  // ── DATOS GENERALES DE LECHE (lo más importante: cuántos litros tengo y en qué estado) ──
   var esMezcla = (p.tipo||'').toUpperCase() === 'MEZCLA';
-  h += _epSep(esMezcla ? '🥛 Litros por tipo y tanques de procedencia' : '🥛 Litros y tanque de procedencia');
+  h += _epSep('🥛 Leche');
+  // Línea 1: Litros · pH · Tª · °D (todo lo principal en una vista de un solo golpe)
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px">'
+    + '<div>'+_epLbl('Litros totales')+_epInp('ep-litros', p.litros||0, 'number')+'</div>'
+    + '<div>'+_epLbl('pH')+_epInp('ep-ph', p.ph, 'number')+'</div>'
+    + '<div>'+_epLbl('Tª (°C)')+_epInp('ep-temp', p.temp, 'number')+'</div>'
+    + '<div>'+_epLbl('°D')+_epInp('ep-dornic', p.dornic_leche, 'number')+'</div>'
+    + '</div>';
 
+  // Línea 2: Distribución por tanques (subordinada a los datos generales)
   if(esMezcla){
-    // Tres filas vaca/cabra/oveja, cada una con litros + tanque
-    h += '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:6px">El total se calcula automáticamente. Editable a mano si hace falta.</div>';
+    h += '<div style="font-size:0.7rem;color:var(--text3);margin:8px 0 4px"><b>Distribución por tanques</b> · El total debe coincidir con los litros totales.</div>';
     h += _epTanqueMezclaRow('vaca',   'L. Vaca',  p.lvaca||0,  p.tanque_vaca   || _tanqueDefault('VACA'));
     h += _epTanqueMezclaRow('cabra',  'L. Cabra', p.lcabra||0, p.tanque_cabra  || _tanqueDefault('CABRA'));
     h += _epTanqueMezclaRow('oveja',  'L. Oveja', p.loveja||0, p.tanque_oveja  || _tanqueDefault('OVEJA'));
-    h += _ep1('Litros totales', _epInp('ep-litros', p.litros||0, 'number'));
   } else {
-    h += _ep2('Litros totales', _epInp('ep-litros', p.litros||0, 'number'),
-             'Tanque procedencia', _epInp('ep-tanque', p.tanque || _tanqueDefault(p.tipo)));
+    h += _ep1('Tanque procedencia', _epInp('ep-tanque', p.tanque || _tanqueDefault(p.tipo)));
     h += '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px">Por defecto: cabra=1, vaca=2, manchega=3, oveja=4. Editable si hay excepción. Para varios tanques, escribe ej: "3+4".</div>';
   }
-
-  h += _ep2('pH leche', _epInp('ep-ph', p.ph, 'number'), 'Tª leche (°C)', _epInp('ep-temp', p.temp, 'number'));
-  h += _ep1('°D leche', _epInp('ep-dornic', p.dornic_leche, 'number'));
 
   // ── PASTEURIZACIÓN ──
   h += _epSep('🌡️ Pasteurización');
@@ -2320,17 +2386,22 @@ function renderEpForm(){
            'Tiempo (seg)', _epInp('ep-past-tiempo', p.pasteurizacion.tiempo, 'number'));
   h += _ep1('Fosfatasa alcalina', '<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem"><input type="checkbox" id="ep-past-fosf"'+(p.pasteurizacion.fosfatasa?' checked':'')+'> Sí</label>');
 
-  // ── CO₂ ──
-  h += _epSep('🌫️ CO₂');
-  h += _ep2('Lote CO₂', _epInp('ep-co2-lote', p.co2.lote),
-           'Caducidad CO₂', _epInp('ep-co2-cad', p.co2.caducidad, 'date'));
-  h += _ep2('Tiempo (seg)', _epInp('ep-co2-seg', p.co2.tiempo_seg, 'number'),
-           'Caudal (L/h)', _epInp('ep-co2-caudal', p.co2.caudal_lh, 'number'));
-
   // ── AUXILIARES (siempre visibles, lista editable) ──
-  h += _epSep('🧪 Auxiliares');
+  // Incluye CO₂ como una fila especial dentro del bloque
+  h += _epSep('🧪 Auxiliares de fabricación');
+  // Fila especial CO₂ (siempre visible, con campos propios: tiempo/caudal + lote/proveedor/caducidad)
+  h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px;border-left:3px solid #5A8AA8">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:0.85rem">🌫️ CO₂</b><span style="font-size:0.7rem;color:var(--text3)">Caudal fijo 100 L/h · Tiempo calculado</span></div>';
+  h += _ep2('Tiempo (seg)', _epInp('ep-co2-seg', p.co2.tiempo_seg, 'number'),
+           'Caudal (L/h)', _epInp('ep-co2-caudal', p.co2.caudal_lh||100, 'number'));
+  h += _ep2('Proveedor', _epInp('ep-co2-prov', (p.co2.proveedor||'')),
+           'Lote CO₂', _epInp('ep-co2-lote', p.co2.lote));
+  h += _ep1('Caducidad', _epInp('ep-co2-cad', p.co2.caducidad, 'date'));
+  h += '</div>';
+
+  // Resto de auxiliares
   if(p.auxiliares.length===0){
-    h += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:6px;padding:6px 8px;background:var(--bg2);border-radius:6px">Sin auxiliares registrados. Pulsa para añadir si el quesero olvidó alguno.</div>';
+    h += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:6px;padding:6px 8px;background:var(--bg2);border-radius:6px">Sin otros auxiliares registrados. Pulsa para añadir si el quesero olvidó alguno.</div>';
   }
   p.auxiliares.forEach(function(a, i){
     h += _epItemEditable('aux', i, a);
@@ -2588,6 +2659,7 @@ function _epRecogerEnEstado(){
   if(!p.co2) p.co2 = {};
   if(v('ep-co2-lote')!==undefined)   p.co2.lote = v('ep-co2-lote');
   if(v('ep-co2-cad')!==undefined)    p.co2.caducidad = v('ep-co2-cad');
+  if(v('ep-co2-prov')!==undefined)   p.co2.proveedor = v('ep-co2-prov');
   if(i('ep-co2-seg')!==undefined)    p.co2.tiempo_seg = i('ep-co2-seg');
   if(n('ep-co2-caudal')!==undefined) p.co2.caudal_lh = n('ep-co2-caudal');
 
@@ -3203,7 +3275,7 @@ function init(){
   // 1. Cargar datos del localStorage
   try{ cargarOperarios(); cargarVariedadesCustom(); cargarPrensadoConfig(); }catch(e){}
 
-  // MIGRACIÓN v2.6.31: limpiar datos demo (R-704, NATUREN ficticio, etc.)
+  // MIGRACIÓN v2.6.32: limpiar datos demo (R-704, NATUREN ficticio, etc.)
   // Solo se ejecuta una vez por dispositivo
   try {
     if (!localStorage.getItem('tq_limpio_demo_v1')) {
