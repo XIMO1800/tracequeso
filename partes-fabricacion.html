@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.29</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.30</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2010,8 +2010,12 @@ function verParte(id){
 
   // Datos generales
   var dg = '';
+  if(p.lote_queso) dg += fila('Lote queso', p.lote_queso);
   dg += fila('Litros totales', p.litros);
-  dg += fila('L. Vaca', p.lvaca); dg += fila('L. Cabra', p.lcabra); dg += fila('L. Oveja', p.loveja);
+  if(p.tanque)        dg += fila('Tanque procedencia', p.tanque);
+  dg += fila('L. Vaca',  p.lvaca  ? p.lvaca  +(p.tanque_vaca  ? ' (tanque '+p.tanque_vaca +')' : '') : '');
+  dg += fila('L. Cabra', p.lcabra ? p.lcabra +(p.tanque_cabra ? ' (tanque '+p.tanque_cabra+')' : '') : '');
+  dg += fila('L. Oveja', p.loveja ? p.loveja +(p.tanque_oveja ? ' (tanque '+p.tanque_oveja+')' : '') : '');
   dg += fila('pH entrada', p.ph); dg += fila('°D leche', p.dornic_leche); dg += fila('Tª entrada', p.temp ? p.temp+'°C' : '');
   h += bloque('📋 Datos generales', dg);
 
@@ -2097,7 +2101,7 @@ function verParte(id){
     var pr='';
     p.prensados.forEach(function(x,i){
       pr += '<div style="font-size:0.8rem;font-weight:700;color:var(--text2);margin-top:6px">'+x.formato+' · '+x.programa+'</div>';
-      pr += fila('Barras', (x.bar_inicial||'—')+' → '+(x.bar_final||'—')+' bar');
+      pr += fila('Presión (bar)', (x.bar_inicial||'—')+' → '+(x.bar_final||'—'));
       pr += fila('Rampa', x.rampa_min ? x.rampa_min+' min' : '');
       pr += fila('Mantenimiento', x.mantenimiento_min ? x.mantenimiento_min+' min' : '');
     });
@@ -2151,147 +2155,57 @@ function verParte(id){
 // EDITAR PARTE COMPLETO (calidad puede modificar todo)
 // ═══════════════════════════════════════════════
 
+// Tanques por defecto según tipo de queso
+function _tanqueDefault(tipo){
+  var t = (tipo||'').toUpperCase();
+  if(t==='CABRA') return '1';
+  if(t==='VACA')  return '2';
+  if(t==='MANCHEGA' || t==='MANCHIGA') return '3';
+  if(t==='OVEJA' || t.indexOf('D.O.')>=0) return '4';
+  return '';
+}
+
+function _formatosQueso(){ return ['3 KG','2 KG','1 KG','1/2 KG','BARRA','GIGANTE']; }
+
 function editarParteCompleto(id){
   var p = PARTES.find(function(x){return x.id===id;});
   if(!p){ toast('Parte no encontrado','err'); return; }
 
-  // Tipos y variedades disponibles
+  // Asegurar que existan los arrays/objetos para que siempre haya algo que editar
+  if(!p.auxiliares) p.auxiliares = [];
+  if(!p.fermentos)  p.fermentos  = [];
+  if(!p.cuajo)      p.cuajo      = {nombre:'',consumo_total:0,proveedor:'',lote:'',caducidad:''};
+  if(!p.co2)        p.co2        = {lote:'',caducidad:'',tiempo_seg:0,caudal_lh:0,ph_leche:0,temp_leche:0};
+  if(!p.coag)       p.coag       = {hadicion:'',hc:'',ph:'',temp:'',total:''};
+  if(!p.desuerado)  p.desuerado  = {rec_hi:'',rec_hf:'',rec_ti:'',rec_tf:'',rec_ph:'',rec_dornic:'',agit_hi:'',agit_hf:''};
+  if(!p.moldeo)     p.moldeo     = {hi:'',hf:'',ph:'',temp:''};
+  if(!p.prensados)  p.prensados  = [];
+  if(!p.desmoldeos) p.desmoldeos = [];
+  if(!p.salmueras)  p.salmueras  = [];
+  if(!p.piezas)     p.piezas     = {'3kg':0,'2kg':0,'1kg':0,'05kg':0,'barra':0,'gigante':0};
+  if(!p.caseinas)   p.caseinas   = {serie:'',primera:0,ultima:0,total:0};
+  if(!p.pasteurizacion) p.pasteurizacion = {valvula:'',temp:'',tiempo:'',cruda:false,fosfatasa:false};
+  // Tanques por defecto si no existen
+  if(!p.tanque)        p.tanque        = _tanqueDefault(p.tipo);
+  if(!p.tanque_vaca)   p.tanque_vaca   = '';
+  if(!p.tanque_cabra)  p.tanque_cabra  = '';
+  if(!p.tanque_oveja)  p.tanque_oveja  = '';
+
+  window._parteEditando = p;
+
   var tipos = Object.keys(TIPOS_VARIEDADES);
   var tipoOpts = '<option value="">— Tipo —</option>';
   tipos.forEach(function(t){
     tipoOpts += '<option value="'+t+'"'+(t===p.tipo?' selected':'')+'>'+t+'</option>';
   });
 
-  function inp(id, val, tipo, ph){
-    tipo = tipo || 'text';
-    return '<input type="'+tipo+'" id="'+id+'" value="'+(val!==undefined&&val!==null?String(val).replace(/"/g,'&quot;'):'')+'" placeholder="'+(ph||'')+'" style="width:100%;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;background:var(--bg)">';
-  }
-  function lbl(t){ return '<label style="font-size:0.7rem;color:var(--text3);font-weight:700;letter-spacing:0.5px;text-transform:uppercase">'+t+'</label>'; }
-  function row(label, html){
-    return '<div style="margin-bottom:8px">'+lbl(label)+html+'</div>';
-  }
-  function dosrow(l1,h1,l2,h2){
-    return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
-      +  '<div>'+lbl(l1)+h1+'</div>'
-      +  '<div>'+lbl(l2)+h2+'</div>'
-      +'</div>';
-  }
-  function sep(t){
-    return '<div class="sep-label" style="margin-top:14px;margin-bottom:6px">'+t+'</div>';
-  }
-
   var h = '<div class="modal-title">✏️ Editar parte · Cuba '+p.cuba+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
-  h += '<div style="font-size:0.75rem;color:var(--text3);margin-bottom:14px">'+formatearFecha(p.fecha)+' · '+(p.operario||'—')+' · ID: '+p.id+'</div>';
+  h += '<div style="font-size:0.75rem;color:var(--text3);margin-bottom:10px">'+formatearFecha(p.fecha)+' · '+(p.operario||'—')+' · ID: '+p.id+'</div>';
+  h += '<div style="background:#fff8e1;border-left:4px solid #f0b400;padding:8px 10px;border-radius:6px;font-size:0.78rem;color:#5a4500;margin-bottom:14px">📝 Calidad puede modificar cualquier campo. Si el quesero olvidó algo, añade/edita las filas aquí.</div>';
 
-  // Cabecera: tipo, variedad, cuba, operario
-  h += '<div style="background:#fff8e1;border-left:4px solid #f0b400;padding:8px 10px;border-radius:6px;font-size:0.78rem;color:#5a4500;margin-bottom:12px">📝 Calidad puede modificar cualquier campo, incluyendo TIPO (OVEJA → D.O. PAST.), VARIEDAD, temperaturas, dosis y lotes.</div>';
+  h += '<div id="ep-form"></div>';
 
-  h += sep('📋 Cabecera');
-  h += dosrow('Tipo',
-              '<select id="ep-tipo" style="width:100%;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;background:var(--bg)" onchange="onEpTipoChange()">'+tipoOpts+'</select>',
-              'Variedad',
-              '<select id="ep-variedad" style="width:100%;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;background:var(--bg)"></select>');
-  h += dosrow('Cuba', inp('ep-cuba', p.cuba), 'Operario', inp('ep-operario', p.operario));
-  h += row('Fecha', inp('ep-fecha', p.fecha, 'date'));
-
-  // Datos generales
-  h += sep('🥛 Datos generales');
-  h += dosrow('Litros totales', inp('ep-litros', p.litros, 'number'), 'pH leche', inp('ep-ph', p.ph, 'number'));
-  h += dosrow('Tª leche (°C)', inp('ep-temp', p.temp, 'number'), '°Dornic leche', inp('ep-dornic', p.dornic_leche, 'number'));
-  h += dosrow('L. Vaca', inp('ep-lvaca', p.lvaca, 'number'), 'L. Cabra', inp('ep-lcabra', p.lcabra, 'number'));
-  h += row('L. Oveja', inp('ep-loveja', p.loveja, 'number'));
-
-  // CO2
-  if(p.co2){
-    h += sep('🌫️ CO₂');
-    h += dosrow('Lote CO₂', inp('ep-co2-lote', p.co2.lote||''), 'Caducidad', inp('ep-co2-cad', p.co2.caducidad||'', 'date'));
-    h += dosrow('Tiempo (seg)', inp('ep-co2-seg', p.co2.tiempo_seg, 'number'), 'Caudal (L/h)', inp('ep-co2-caudal', p.co2.caudal_lh, 'number'));
-  }
-
-  // Auxiliares (lotes editables)
-  if(p.auxiliares && p.auxiliares.length){
-    h += sep('🧪 Auxiliares');
-    p.auxiliares.forEach(function(a, i){
-      h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px">';
-      h += '<div style="font-weight:700;font-size:0.85rem;margin-bottom:6px">'+a.nombre+'</div>';
-      h += dosrow('Dosis utilizada', inp('ep-aux-cons-'+i, a.consumo_total||a.dosis_utilizada||0, 'number'),
-                  'Proveedor', inp('ep-aux-prov-'+i, a.proveedor||''));
-      h += dosrow('Lote', inp('ep-aux-lote-'+i, a.lote||''),
-                  'Caducidad', inp('ep-aux-cad-'+i, a.caducidad||'', 'date'));
-      h += '</div>';
-    });
-  }
-
-  // Fermentos
-  if(p.fermentos && p.fermentos.length){
-    h += sep('🦠 Fermentos');
-    p.fermentos.forEach(function(f, i){
-      h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px">';
-      h += '<div style="font-weight:700;font-size:0.85rem;margin-bottom:6px">'+f.nombre+'</div>';
-      h += dosrow('Dosis utilizada', inp('ep-fer-cons-'+i, f.consumo_total||f.dosis_utilizada||0, 'number'),
-                  'Proveedor', inp('ep-fer-prov-'+i, f.proveedor||''));
-      h += dosrow('Lote', inp('ep-fer-lote-'+i, f.lote||''),
-                  'Caducidad', inp('ep-fer-cad-'+i, f.caducidad||'', 'date'));
-      h += '</div>';
-    });
-  }
-
-  // Cuajo
-  if(p.cuajo){
-    h += sep('⚗️ Cuajo');
-    h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px">';
-    h += '<div style="font-weight:700;font-size:0.85rem;margin-bottom:6px">'+(p.cuajo.nombre||'Cuajo')+'</div>';
-    h += dosrow('Dosis utilizada', inp('ep-cuajo-cons', p.cuajo.consumo_total||p.cuajo.dosis_utilizada||0, 'number'),
-                'Proveedor', inp('ep-cuajo-prov', p.cuajo.proveedor||''));
-    h += dosrow('Lote', inp('ep-cuajo-lote', p.cuajo.lote||''),
-                'Caducidad', inp('ep-cuajo-cad', p.cuajo.caducidad||'', 'date'));
-    h += '</div>';
-  }
-
-  // Coagulación
-  if(p.coag){
-    h += sep('⏱️ Coagulación');
-    h += dosrow('Hora adición', inp('ep-coag-had', p.coag.hadicion, 'time'), 'Hora corte', inp('ep-coag-hc', p.coag.hc, 'time'));
-    h += dosrow('pH coagulación', inp('ep-coag-ph', p.coag.ph, 'number'), 'Tª coagulación (°C)', inp('ep-coag-temp', p.coag.temp, 'number'));
-    h += row('Total (min)', inp('ep-coag-total', p.coag.total, 'number'));
-  }
-
-  // Desuerado
-  if(p.desuerado){
-    h += sep('🌊 Desuerado');
-    h += dosrow('Recal. inicio', inp('ep-rec-hi', p.desuerado.rec_hi, 'time'), 'Recal. fin', inp('ep-rec-hf', p.desuerado.rec_hf, 'time'));
-    h += dosrow('Tª inicio (°C)', inp('ep-rec-ti', p.desuerado.rec_ti, 'number'), 'Tª fin (°C)', inp('ep-rec-tf', p.desuerado.rec_tf, 'number'));
-    h += dosrow('pH suero', inp('ep-rec-ph', p.desuerado.rec_ph, 'number'), '°Dornic suero', inp('ep-rec-dor', p.desuerado.rec_dornic, 'number'));
-    h += dosrow('Agit. inicio', inp('ep-agit-hi', p.desuerado.agit_hi, 'time'), 'Agit. fin', inp('ep-agit-hf', p.desuerado.agit_hf, 'time'));
-  }
-
-  // Moldeo
-  if(p.moldeo){
-    h += sep('🧱 Moldeo');
-    h += dosrow('Hora inicio', inp('ep-mol-hi', p.moldeo.hi, 'time'), 'Hora fin', inp('ep-mol-hf', p.moldeo.hf, 'time'));
-    h += dosrow('pH moldeo', inp('ep-mol-ph', p.moldeo.ph, 'number'), 'Tª moldeo (°C)', inp('ep-mol-temp', p.moldeo.temp, 'number'));
-  }
-
-  // Piezas
-  if(p.piezas){
-    h += sep('🧀 Piezas fabricadas');
-    h += dosrow('3 KG', inp('ep-pz-3', p.piezas['3kg']||0, 'number'), '2 KG', inp('ep-pz-2', p.piezas['2kg']||0, 'number'));
-    h += dosrow('1 KG', inp('ep-pz-1', p.piezas['1kg']||0, 'number'), '1/2 KG', inp('ep-pz-05', p.piezas['05kg']||0, 'number'));
-    h += dosrow('Barra', inp('ep-pz-bar', p.piezas['barra']||0, 'number'), 'Gigante', inp('ep-pz-gig', p.piezas['gigante']||0, 'number'));
-  }
-
-  // Caseínas
-  if(p.caseinas){
-    h += sep('🏷️ Caseínas (D.O.)');
-    h += row('Serie', inp('ep-cas-serie', p.caseinas.serie||''));
-    h += dosrow('Primera', inp('ep-cas-pri', p.caseinas.primera||0, 'number'), 'Última', inp('ep-cas-ult', p.caseinas.ultima||0, 'number'));
-  }
-
-  // Observaciones
-  h += sep('📝 Observaciones');
-  h += '<textarea id="ep-obs" style="width:100%;min-height:60px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;background:var(--bg);font-family:inherit;resize:vertical">'+(p.observaciones||'')+'</textarea>';
-
-  // Botones
+  // Botones fijos abajo
   h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">';
   h += '<button class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>';
   h += '<button id="btn-ep-guardar" class="btn btn-primary" onclick="guardarParteEditado(\''+p.id+'\')">💾 Guardar cambios</button>';
@@ -2299,158 +2213,470 @@ function editarParteCompleto(id){
 
   abrirModal(h);
 
-  // Poblar variedades según tipo seleccionado y preservar la variedad del parte
-  setTimeout(function(){
-    var vEl = document.getElementById('ep-variedad');
-    if(!vEl) return;
-    var vars = TIPOS_VARIEDADES[p.tipo]||[];
-    vEl.innerHTML = '<option value="">— Variedad —</option>';
-    vars.forEach(function(v){
-      var sel = (v===p.variedad)?' selected':'';
-      vEl.innerHTML += '<option value="'+v+'"'+sel+'>'+v+'</option>';
-    });
-    if(vars.length===0){ vEl.disabled = true; } else { vEl.disabled = false; }
-  }, 50);
+  // Pintar el formulario completo
+  renderEpForm();
 }
 
-// Cuando el usuario cambia el TIPO en el editor, repoblar las variedades disponibles
-function onEpTipoChange(){
-  var tEl = document.getElementById('ep-tipo');
-  var vEl = document.getElementById('ep-variedad');
-  if(!tEl || !vEl) return;
-  var t = tEl.value;
-  var vars = TIPOS_VARIEDADES[t]||[];
-  vEl.innerHTML = '<option value="">— Variedad —</option>';
-  vars.forEach(function(v){
-    vEl.innerHTML += '<option value="'+v+'">'+v+'</option>';
+// Renderiza todo el formulario del editor de parte
+function renderEpForm(){
+  // Recoger valores actuales del DOM ANTES de repintar (para no perderlos)
+  _epRecogerEnEstado();
+
+  var p = window._parteEditando;
+  if(!p) return;
+
+  var tipos = Object.keys(TIPOS_VARIEDADES);
+  var tipoOpts = '<option value="">— Tipo —</option>';
+  tipos.forEach(function(t){
+    tipoOpts += '<option value="'+t+'"'+(t===p.tipo?' selected':'')+'>'+t+'</option>';
   });
-  vEl.disabled = (vars.length===0);
+
+  var h = '';
+
+  // ── CABECERA ──
+  h += _epSep('📋 Cabecera');
+  h += _ep2('Tipo', _epSel('ep-tipo', tipoOpts, 'onEpTipoChange()'),
+           'Variedad', '<select id="ep-variedad" style="'+_epStyle()+'"></select>');
+  h += _ep2('Cuba', _epInp('ep-cuba', p.cuba),
+           'Operario', _epInp('ep-operario', p.operario));
+  h += _ep1('Fecha', _epInp('ep-fecha', p.fecha, 'date'));
+  h += _ep1('Lote del queso', _epInp('ep-lote-queso', p.lote_queso||''));
+
+  // ── LITROS Y TANQUES (depende de si es mezcla o queso puro) ──
+  var esMezcla = (p.tipo||'').toUpperCase() === 'MEZCLA';
+  h += _epSep(esMezcla ? '🥛 Litros por tipo y tanques de procedencia' : '🥛 Litros y tanque de procedencia');
+
+  if(esMezcla){
+    // Tres filas vaca/cabra/oveja, cada una con litros + tanque
+    h += '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:6px">El total se calcula automáticamente. Editable a mano si hace falta.</div>';
+    h += _epTanqueMezclaRow('vaca',   'L. Vaca',  p.lvaca||0,  p.tanque_vaca   || _tanqueDefault('VACA'));
+    h += _epTanqueMezclaRow('cabra',  'L. Cabra', p.lcabra||0, p.tanque_cabra  || _tanqueDefault('CABRA'));
+    h += _epTanqueMezclaRow('oveja',  'L. Oveja', p.loveja||0, p.tanque_oveja  || _tanqueDefault('OVEJA'));
+    h += _ep1('Litros totales', _epInp('ep-litros', p.litros||0, 'number'));
+  } else {
+    h += _ep2('Litros totales', _epInp('ep-litros', p.litros||0, 'number'),
+             'Tanque procedencia', _epInp('ep-tanque', p.tanque || _tanqueDefault(p.tipo)));
+    h += '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px">Por defecto: cabra=1, vaca=2, manchega=3, oveja=4. Editable si hay excepción. Para varios tanques, escribe ej: "3+4".</div>';
+  }
+
+  h += _ep2('pH leche', _epInp('ep-ph', p.ph, 'number'), 'Tª leche (°C)', _epInp('ep-temp', p.temp, 'number'));
+  h += _ep1('°D leche', _epInp('ep-dornic', p.dornic_leche, 'number'));
+
+  // ── PASTEURIZACIÓN ──
+  h += _epSep('🌡️ Pasteurización');
+  h += _ep2('Válvula desvío (C/I)', _epInp('ep-past-valv', p.pasteurizacion.valvula||''),
+           'Condiciones', '<select id="ep-past-cond" style="'+_epStyle()+'"><option value=""></option><option value="CRUDA"'+(p.pasteurizacion.cruda?' selected':'')+'>CRUDA</option><option value="PAST"'+(!p.pasteurizacion.cruda&&p.pasteurizacion.temp?' selected':'')+'>PASTEURIZADA</option></select>');
+  h += _ep2('Tª pasteurización (°C)', _epInp('ep-past-temp', p.pasteurizacion.temp, 'number'),
+           'Tiempo (seg)', _epInp('ep-past-tiempo', p.pasteurizacion.tiempo, 'number'));
+  h += _ep1('Fosfatasa alcalina', '<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem"><input type="checkbox" id="ep-past-fosf"'+(p.pasteurizacion.fosfatasa?' checked':'')+'> Sí</label>');
+
+  // ── CO₂ ──
+  h += _epSep('🌫️ CO₂');
+  h += _ep2('Lote CO₂', _epInp('ep-co2-lote', p.co2.lote),
+           'Caducidad CO₂', _epInp('ep-co2-cad', p.co2.caducidad, 'date'));
+  h += _ep2('Tiempo (seg)', _epInp('ep-co2-seg', p.co2.tiempo_seg, 'number'),
+           'Caudal (L/h)', _epInp('ep-co2-caudal', p.co2.caudal_lh, 'number'));
+
+  // ── AUXILIARES (siempre visibles, lista editable) ──
+  h += _epSep('🧪 Auxiliares');
+  if(p.auxiliares.length===0){
+    h += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:6px;padding:6px 8px;background:var(--bg2);border-radius:6px">Sin auxiliares registrados. Pulsa para añadir si el quesero olvidó alguno.</div>';
+  }
+  p.auxiliares.forEach(function(a, i){
+    h += _epItemEditable('aux', i, a);
+  });
+  h += '<button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="_epAdd(\'auxiliares\')">+ Añadir auxiliar</button>';
+
+  // ── FERMENTOS ──
+  h += _epSep('🦠 Fermentos');
+  if(p.fermentos.length===0){
+    h += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:6px;padding:6px 8px;background:var(--bg2);border-radius:6px">Sin fermentos registrados.</div>';
+  }
+  p.fermentos.forEach(function(f, i){
+    h += _epItemEditable('fer', i, f);
+  });
+  h += '<button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="_epAdd(\'fermentos\')">+ Añadir fermento</button>';
+
+  // ── CUAJO ──
+  h += _epSep('⚗️ Cuajo');
+  h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px">';
+  h += _ep2('Nombre', _epInp('ep-cuajo-nom', p.cuajo.nombre||''),
+           'Dosis utilizada', _epInp('ep-cuajo-cons', p.cuajo.consumo_total||p.cuajo.dosis_utilizada||0, 'number'));
+  h += _ep2('Proveedor', _epInp('ep-cuajo-prov', p.cuajo.proveedor||''),
+           'Lote', _epInp('ep-cuajo-lote', p.cuajo.lote||''));
+  h += _ep1('Caducidad', _epInp('ep-cuajo-cad', p.cuajo.caducidad||'', 'date'));
+  h += '</div>';
+
+  // ── COAGULACIÓN ──
+  h += _epSep('⏱️ Coagulación');
+  h += _ep2('Hora adición', _epInp('ep-coag-had', p.coag.hadicion, 'time'),
+           'Hora corte', _epInp('ep-coag-hc', p.coag.hc, 'time'));
+  h += _ep2('pH coagulación', _epInp('ep-coag-ph', p.coag.ph, 'number'),
+           'Tª coagulación (°C)', _epInp('ep-coag-temp', p.coag.temp, 'number'));
+  h += _ep1('Total (min)', _epInp('ep-coag-total', p.coag.total, 'number'));
+
+  // ── DESUERADO ──
+  h += _epSep('🌊 Desuerado en cuba');
+  h += _ep2('Recal. inicio', _epInp('ep-rec-hi', p.desuerado.rec_hi, 'time'),
+           'Recal. fin', _epInp('ep-rec-hf', p.desuerado.rec_hf, 'time'));
+  h += _ep2('Tª inicio (°C)', _epInp('ep-rec-ti', p.desuerado.rec_ti, 'number'),
+           'Tª fin (°C)', _epInp('ep-rec-tf', p.desuerado.rec_tf, 'number'));
+  h += _ep2('pH suero', _epInp('ep-rec-ph', p.desuerado.rec_ph, 'number'),
+           '°Dornic suero', _epInp('ep-rec-dor', p.desuerado.rec_dornic, 'number'));
+  h += _ep2('Agit. inicio', _epInp('ep-agit-hi', p.desuerado.agit_hi, 'time'),
+           'Agit. fin', _epInp('ep-agit-hf', p.desuerado.agit_hf, 'time'));
+
+  // ── MOLDEO ──
+  h += _epSep('🧱 Moldeo');
+  h += _ep2('Hora inicio', _epInp('ep-mol-hi', p.moldeo.hi, 'time'),
+           'Hora fin', _epInp('ep-mol-hf', p.moldeo.hf, 'time'));
+  h += _ep2('pH moldeo', _epInp('ep-mol-ph', p.moldeo.ph, 'number'),
+           'Tª moldeo (°C)', _epInp('ep-mol-temp', p.moldeo.temp, 'number'));
+
+  // ── PRENSADO (programas múltiples) ──
+  h += _epSep('🔩 Prensado');
+  if(p.prensados.length===0){
+    h += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:6px;padding:6px 8px;background:var(--bg2);border-radius:6px">Sin programas de prensado registrados.</div>';
+  }
+  var formatosOpts = _formatosQueso().map(function(f){ return '<option value="'+f+'">'+f+'</option>'; }).join('');
+  p.prensados.forEach(function(pr, i){
+    var foOpts = '<option value="">— Formato —</option>';
+    _formatosQueso().forEach(function(f){
+      foOpts += '<option value="'+f+'"'+(f===pr.formato?' selected':'')+'>'+f+'</option>';
+    });
+    h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px;border-left:3px solid var(--accent)">';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:0.85rem">Programa '+(i+1)+'</b><button class="ferm-row-del" onclick="_epDel(\'prensados\','+i+')">Eliminar</button></div>';
+    h += _ep2('Formato', '<select id="ep-pren-fmt-'+i+'" style="'+_epStyle()+'">'+foOpts+'</select>',
+             'Programa nº', _epInp('ep-pren-prog-'+i, pr.programa||(i+1)));
+    h += _ep2('Presión inicial (bar)', _epInp('ep-pren-bi-'+i, pr.bar_inicial||0, 'number'),
+             'Presión final (bar)', _epInp('ep-pren-bf-'+i, pr.bar_final||0, 'number'));
+    h += _ep2('Rampa (min)', _epInp('ep-pren-rmp-'+i, pr.rampa_min||0, 'number'),
+             'Mantenimiento (min)', _epInp('ep-pren-mnt-'+i, pr.mantenimiento_min||0, 'number'));
+    h += '</div>';
+  });
+  h += '<button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="_epAdd(\'prensados\')">+ Añadir programa de prensado</button>';
+
+  // ── DESMOLDEO (uno por formato) ──
+  h += _epSep('📦 Desmoldeo');
+  if(p.desmoldeos.length===0){
+    h += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:6px;padding:6px 8px;background:var(--bg2);border-radius:6px">Sin desmoldeos registrados.</div>';
+  }
+  p.desmoldeos.forEach(function(d, i){
+    var foOpts = '<option value="">— Formato —</option>';
+    _formatosQueso().forEach(function(f){
+      foOpts += '<option value="'+f+'"'+(f===d.formato?' selected':'')+'>'+f+'</option>';
+    });
+    h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px;border-left:3px solid #7A5A3F">';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:0.85rem">Desmoldeo '+(i+1)+'</b><button class="ferm-row-del" onclick="_epDel(\'desmoldeos\','+i+')">Eliminar</button></div>';
+    h += _ep1('Formato', '<select id="ep-des-fmt-'+i+'" style="'+_epStyle()+'">'+foOpts+'</select>');
+    h += _ep2('Hora inicio', _epInp('ep-des-hi-'+i, d.hi, 'time'), 'Hora fin', _epInp('ep-des-hf-'+i, d.hf, 'time'));
+    h += _ep2('pH inicial', _epInp('ep-des-phi-'+i, d.ph, 'number'), 'Tª inicial (°C)', _epInp('ep-des-ti-'+i, d.temp, 'number'));
+    h += _ep2('pH final', _epInp('ep-des-phf-'+i, d.ph_final, 'number'), 'Tª final (°C)', _epInp('ep-des-tf-'+i, d.temp_final, 'number'));
+    h += '</div>';
+  });
+  h += '<button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="_epAdd(\'desmoldeos\')">+ Añadir desmoldeo</button>';
+
+  // ── SALMUERA (uno por formato) ──
+  h += _epSep('🧂 Salmuera');
+  if(p.salmueras.length===0){
+    h += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:6px;padding:6px 8px;background:var(--bg2);border-radius:6px">Sin salmueras registradas.</div>';
+  }
+  p.salmueras.forEach(function(s, i){
+    var foOpts = '<option value="">— Formato —</option>';
+    _formatosQueso().forEach(function(f){
+      foOpts += '<option value="'+f+'"'+(f===s.formato?' selected':'')+'>'+f+'</option>';
+    });
+    h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px;border-left:3px solid #5A8AA8">';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:0.85rem">Salmuera '+(i+1)+'</b><button class="ferm-row-del" onclick="_epDel(\'salmueras\','+i+')">Eliminar</button></div>';
+    h += _ep1('Formato', '<select id="ep-sal-fmt-'+i+'" style="'+_epStyle()+'">'+foOpts+'</select>');
+    h += _ep2('Hora inicio', _epInp('ep-sal-hi-'+i, s.hi, 'time'), 'Hora fin', _epInp('ep-sal-hf-'+i, s.hf, 'time'));
+    h += '</div>';
+  });
+  h += '<button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="_epAdd(\'salmueras\')">+ Añadir salmuera</button>';
+
+  // ── PIEZAS ──
+  h += _epSep('🧀 Piezas fabricadas');
+  h += _ep2('3 KG', _epInp('ep-pz-3', p.piezas['3kg']||0, 'number'), '2 KG', _epInp('ep-pz-2', p.piezas['2kg']||0, 'number'));
+  h += _ep2('1 KG', _epInp('ep-pz-1', p.piezas['1kg']||0, 'number'), '1/2 KG', _epInp('ep-pz-05', p.piezas['05kg']||0, 'number'));
+  h += _ep2('BARRA', _epInp('ep-pz-bar', p.piezas['barra']||0, 'number'), 'GIGANTE', _epInp('ep-pz-gig', p.piezas['gigante']||0, 'number'));
+
+  // ── CASEÍNAS ──
+  h += _epSep('🏷️ Caseínas (D.O.)');
+  h += _ep1('Serie', _epInp('ep-cas-serie', p.caseinas.serie||''));
+  h += _ep2('Primera', _epInp('ep-cas-pri', p.caseinas.primera||0, 'number'),
+           'Última', _epInp('ep-cas-ult', p.caseinas.ultima||0, 'number'));
+
+  // ── OBSERVACIONES ──
+  h += _epSep('📝 Observaciones');
+  h += '<textarea id="ep-obs" style="width:100%;min-height:60px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;background:var(--bg);font-family:inherit;resize:vertical">'+(p.observaciones||'').replace(/</g,'&lt;')+'</textarea>';
+
+  document.getElementById('ep-form').innerHTML = h;
+
+  // Tras pintar, repoblar selects que tienen value seleccionado
+  setTimeout(function(){
+    // Variedades según tipo
+    var vEl = document.getElementById('ep-variedad');
+    if(vEl){
+      var vars = TIPOS_VARIEDADES[p.tipo]||[];
+      vEl.innerHTML = '<option value="">— Variedad —</option>';
+      vars.forEach(function(v){
+        vEl.innerHTML += '<option value="'+v+'"'+(v===p.variedad?' selected':'')+'>'+v+'</option>';
+      });
+      vEl.disabled = (vars.length===0);
+    }
+  }, 30);
 }
 
-function _val(id){ var el=document.getElementById(id); return el?el.value:''; }
-function _num(id){ var v=parseFloat(_val(id)); return isNaN(v)?0:v; }
-function _int(id){ var v=parseInt(_val(id)); return isNaN(v)?0:v; }
+// Helpers de UI del editor
+function _epStyle(){ return 'width:100%;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;background:var(--bg)'; }
+function _epLbl(t){ return '<label style="font-size:0.7rem;color:var(--text3);font-weight:700;letter-spacing:0.5px;text-transform:uppercase;display:block;margin-bottom:2px">'+t+'</label>'; }
+function _epInp(id, val, tipo, ph){
+  tipo = tipo || 'text';
+  var v = (val===undefined||val===null) ? '' : String(val).replace(/"/g,'&quot;');
+  return '<input type="'+tipo+'" id="'+id+'" value="'+v+'" placeholder="'+(ph||'')+'" style="'+_epStyle()+'">';
+}
+function _epSel(id, opts, onchange){
+  return '<select id="'+id+'" style="'+_epStyle()+'"'+(onchange?' onchange="'+onchange+'"':'')+'>'+opts+'</select>';
+}
+function _epSep(t){ return '<div class="sep-label" style="margin-top:14px;margin-bottom:6px">'+t+'</div>'; }
+function _ep1(label, html){
+  return '<div style="margin-bottom:8px">'+_epLbl(label)+html+'</div>';
+}
+function _ep2(l1, h1, l2, h2){
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
+    + '<div>'+_epLbl(l1)+h1+'</div>'
+    + '<div>'+_epLbl(l2)+h2+'</div>'
+    + '</div>';
+}
+function _epItemEditable(prefix, i, item){
+  var h = '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+  h += '<b style="font-size:0.85rem">'+(prefix==='aux'?'Auxiliar':'Fermento')+' '+(i+1)+'</b>';
+  h += '<button class="ferm-row-del" onclick="_epDel(\''+(prefix==='aux'?'auxiliares':'fermentos')+'\','+i+')">Eliminar</button>';
+  h += '</div>';
+  h += _ep2('Nombre', _epInp('ep-'+prefix+'-nom-'+i, item.nombre||''),
+          'Dosis utilizada', _epInp('ep-'+prefix+'-cons-'+i, item.consumo_total||item.dosis_utilizada||0, 'number'));
+  h += _ep2('Proveedor', _epInp('ep-'+prefix+'-prov-'+i, item.proveedor||''),
+          'Lote', _epInp('ep-'+prefix+'-lote-'+i, item.lote||''));
+  h += _ep1('Caducidad', _epInp('ep-'+prefix+'-cad-'+i, item.caducidad||'', 'date'));
+  h += '</div>';
+  return h;
+}
+function _epTanqueMezclaRow(tipoLeche, label, litros, tanque){
+  return '<div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px;padding:6px;background:var(--bg2);border-radius:6px">'
+    + '<div>'+_epLbl(label)+_epInp('ep-l-'+tipoLeche, litros, 'number')+'</div>'
+    + '<div>'+_epLbl('Tanque')+_epInp('ep-tanque-'+tipoLeche, tanque)+'</div>'
+    + '</div>';
+}
+
+// Añadir / eliminar elementos a las listas del parte
+function _epAdd(lista){
+  _epRecogerEnEstado();
+  var p = window._parteEditando;
+  if(!p[lista]) p[lista] = [];
+  if(lista==='auxiliares' || lista==='fermentos'){
+    p[lista].push({nombre:'',consumo_total:0,proveedor:'',lote:'',caducidad:''});
+  } else if(lista==='prensados'){
+    p[lista].push({formato:'',programa:p.prensados.length+1,bar_inicial:0,bar_final:0,rampa_min:0,mantenimiento_min:0});
+  } else if(lista==='desmoldeos'){
+    p[lista].push({formato:'',hi:'',hf:'',ph:'',temp:'',ph_final:'',temp_final:''});
+  } else if(lista==='salmueras'){
+    p[lista].push({formato:'',hi:'',hf:''});
+  }
+  renderEpForm();
+}
+function _epDel(lista, idx){
+  _epRecogerEnEstado();
+  var p = window._parteEditando;
+  if(!p[lista]) return;
+  p[lista].splice(idx,1);
+  renderEpForm();
+}
+
+// Recoge valores del DOM y los vuelca al estado window._parteEditando
+function _epRecogerEnEstado(){
+  var p = window._parteEditando;
+  if(!p) return;
+  function v(id){ var el=document.getElementById(id); return el?el.value:undefined; }
+  function n(id){ var x=parseFloat(v(id)); return isNaN(x)?undefined:x; }
+  function i(id){ var x=parseInt(v(id)); return isNaN(x)?undefined:x; }
+  function c(id){ var el=document.getElementById(id); return el?el.checked:undefined; }
+
+  // Cabecera
+  if(v('ep-tipo')!==undefined)     p.tipo = v('ep-tipo');
+  if(v('ep-variedad')!==undefined) p.variedad = v('ep-variedad');
+  if(v('ep-cuba')!==undefined)     p.cuba = v('ep-cuba');
+  if(v('ep-operario')!==undefined) p.operario = v('ep-operario');
+  if(v('ep-fecha')!==undefined)    p.fecha = v('ep-fecha');
+  if(v('ep-lote-queso')!==undefined) p.lote_queso = v('ep-lote-queso');
+
+  // Litros y tanques
+  if(n('ep-litros')!==undefined)   p.litros = n('ep-litros');
+  if(v('ep-tanque')!==undefined)   p.tanque = v('ep-tanque');
+  if(n('ep-l-vaca')!==undefined)   p.lvaca = n('ep-l-vaca');
+  if(n('ep-l-cabra')!==undefined)  p.lcabra = n('ep-l-cabra');
+  if(n('ep-l-oveja')!==undefined)  p.loveja = n('ep-l-oveja');
+  if(v('ep-tanque-vaca')!==undefined)  p.tanque_vaca = v('ep-tanque-vaca');
+  if(v('ep-tanque-cabra')!==undefined) p.tanque_cabra = v('ep-tanque-cabra');
+  if(v('ep-tanque-oveja')!==undefined) p.tanque_oveja = v('ep-tanque-oveja');
+
+  // Generales
+  if(v('ep-ph')!==undefined)       p.ph = v('ep-ph');
+  if(v('ep-temp')!==undefined)     p.temp = v('ep-temp');
+  if(v('ep-dornic')!==undefined)   p.dornic_leche = v('ep-dornic');
+
+  // Pasteurización
+  if(!p.pasteurizacion) p.pasteurizacion = {};
+  if(v('ep-past-valv')!==undefined)   p.pasteurizacion.valvula = v('ep-past-valv');
+  if(v('ep-past-temp')!==undefined)   p.pasteurizacion.temp = v('ep-past-temp');
+  if(v('ep-past-tiempo')!==undefined) p.pasteurizacion.tiempo = v('ep-past-tiempo');
+  if(c('ep-past-fosf')!==undefined)   p.pasteurizacion.fosfatasa = c('ep-past-fosf');
+  var cond = v('ep-past-cond');
+  if(cond!==undefined) p.pasteurizacion.cruda = (cond==='CRUDA');
+
+  // CO2
+  if(!p.co2) p.co2 = {};
+  if(v('ep-co2-lote')!==undefined)   p.co2.lote = v('ep-co2-lote');
+  if(v('ep-co2-cad')!==undefined)    p.co2.caducidad = v('ep-co2-cad');
+  if(i('ep-co2-seg')!==undefined)    p.co2.tiempo_seg = i('ep-co2-seg');
+  if(n('ep-co2-caudal')!==undefined) p.co2.caudal_lh = n('ep-co2-caudal');
+
+  // Auxiliares
+  if(p.auxiliares){
+    p.auxiliares.forEach(function(a,k){
+      if(v('ep-aux-nom-'+k)!==undefined)  a.nombre = v('ep-aux-nom-'+k);
+      if(n('ep-aux-cons-'+k)!==undefined) a.consumo_total = n('ep-aux-cons-'+k);
+      if(v('ep-aux-prov-'+k)!==undefined) a.proveedor = v('ep-aux-prov-'+k);
+      if(v('ep-aux-lote-'+k)!==undefined) a.lote = v('ep-aux-lote-'+k);
+      if(v('ep-aux-cad-'+k)!==undefined)  a.caducidad = v('ep-aux-cad-'+k);
+    });
+  }
+  // Fermentos
+  if(p.fermentos){
+    p.fermentos.forEach(function(f,k){
+      if(v('ep-fer-nom-'+k)!==undefined)  f.nombre = v('ep-fer-nom-'+k);
+      if(n('ep-fer-cons-'+k)!==undefined) f.consumo_total = n('ep-fer-cons-'+k);
+      if(v('ep-fer-prov-'+k)!==undefined) f.proveedor = v('ep-fer-prov-'+k);
+      if(v('ep-fer-lote-'+k)!==undefined) f.lote = v('ep-fer-lote-'+k);
+      if(v('ep-fer-cad-'+k)!==undefined)  f.caducidad = v('ep-fer-cad-'+k);
+    });
+  }
+  // Cuajo
+  if(!p.cuajo) p.cuajo = {};
+  if(v('ep-cuajo-nom')!==undefined)  p.cuajo.nombre = v('ep-cuajo-nom');
+  if(n('ep-cuajo-cons')!==undefined) p.cuajo.consumo_total = n('ep-cuajo-cons');
+  if(v('ep-cuajo-prov')!==undefined) p.cuajo.proveedor = v('ep-cuajo-prov');
+  if(v('ep-cuajo-lote')!==undefined) p.cuajo.lote = v('ep-cuajo-lote');
+  if(v('ep-cuajo-cad')!==undefined)  p.cuajo.caducidad = v('ep-cuajo-cad');
+
+  // Coag
+  if(!p.coag) p.coag = {};
+  if(v('ep-coag-had')!==undefined)   p.coag.hadicion = v('ep-coag-had');
+  if(v('ep-coag-hc')!==undefined)    p.coag.hc = v('ep-coag-hc');
+  if(v('ep-coag-ph')!==undefined)    p.coag.ph = v('ep-coag-ph');
+  if(v('ep-coag-temp')!==undefined)  p.coag.temp = v('ep-coag-temp');
+  if(v('ep-coag-total')!==undefined) p.coag.total = v('ep-coag-total');
+
+  // Desuerado
+  if(!p.desuerado) p.desuerado = {};
+  if(v('ep-rec-hi')!==undefined)  p.desuerado.rec_hi = v('ep-rec-hi');
+  if(v('ep-rec-hf')!==undefined)  p.desuerado.rec_hf = v('ep-rec-hf');
+  if(v('ep-rec-ti')!==undefined)  p.desuerado.rec_ti = v('ep-rec-ti');
+  if(v('ep-rec-tf')!==undefined)  p.desuerado.rec_tf = v('ep-rec-tf');
+  if(v('ep-rec-ph')!==undefined)  p.desuerado.rec_ph = v('ep-rec-ph');
+  if(v('ep-rec-dor')!==undefined) p.desuerado.rec_dornic = v('ep-rec-dor');
+  if(v('ep-agit-hi')!==undefined) p.desuerado.agit_hi = v('ep-agit-hi');
+  if(v('ep-agit-hf')!==undefined) p.desuerado.agit_hf = v('ep-agit-hf');
+
+  // Moldeo
+  if(!p.moldeo) p.moldeo = {};
+  if(v('ep-mol-hi')!==undefined)   p.moldeo.hi = v('ep-mol-hi');
+  if(v('ep-mol-hf')!==undefined)   p.moldeo.hf = v('ep-mol-hf');
+  if(v('ep-mol-ph')!==undefined)   p.moldeo.ph = v('ep-mol-ph');
+  if(v('ep-mol-temp')!==undefined) p.moldeo.temp = v('ep-mol-temp');
+
+  // Prensados
+  if(p.prensados){
+    p.prensados.forEach(function(pr,k){
+      if(v('ep-pren-fmt-'+k)!==undefined)  pr.formato = v('ep-pren-fmt-'+k);
+      if(v('ep-pren-prog-'+k)!==undefined) pr.programa = v('ep-pren-prog-'+k);
+      if(n('ep-pren-bi-'+k)!==undefined)   pr.bar_inicial = n('ep-pren-bi-'+k);
+      if(n('ep-pren-bf-'+k)!==undefined)   pr.bar_final = n('ep-pren-bf-'+k);
+      if(n('ep-pren-rmp-'+k)!==undefined)  pr.rampa_min = n('ep-pren-rmp-'+k);
+      if(n('ep-pren-mnt-'+k)!==undefined)  pr.mantenimiento_min = n('ep-pren-mnt-'+k);
+    });
+  }
+  // Desmoldeos
+  if(p.desmoldeos){
+    p.desmoldeos.forEach(function(d,k){
+      if(v('ep-des-fmt-'+k)!==undefined) d.formato = v('ep-des-fmt-'+k);
+      if(v('ep-des-hi-'+k)!==undefined)  d.hi = v('ep-des-hi-'+k);
+      if(v('ep-des-hf-'+k)!==undefined)  d.hf = v('ep-des-hf-'+k);
+      if(v('ep-des-phi-'+k)!==undefined) d.ph = v('ep-des-phi-'+k);
+      if(v('ep-des-ti-'+k)!==undefined)  d.temp = v('ep-des-ti-'+k);
+      if(v('ep-des-phf-'+k)!==undefined) d.ph_final = v('ep-des-phf-'+k);
+      if(v('ep-des-tf-'+k)!==undefined)  d.temp_final = v('ep-des-tf-'+k);
+    });
+  }
+  // Salmueras
+  if(p.salmueras){
+    p.salmueras.forEach(function(s,k){
+      if(v('ep-sal-fmt-'+k)!==undefined) s.formato = v('ep-sal-fmt-'+k);
+      if(v('ep-sal-hi-'+k)!==undefined)  s.hi = v('ep-sal-hi-'+k);
+      if(v('ep-sal-hf-'+k)!==undefined)  s.hf = v('ep-sal-hf-'+k);
+    });
+  }
+  // Piezas
+  if(!p.piezas) p.piezas = {};
+  if(i('ep-pz-3')!==undefined)   p.piezas['3kg']     = i('ep-pz-3');
+  if(i('ep-pz-2')!==undefined)   p.piezas['2kg']     = i('ep-pz-2');
+  if(i('ep-pz-1')!==undefined)   p.piezas['1kg']     = i('ep-pz-1');
+  if(i('ep-pz-05')!==undefined)  p.piezas['05kg']    = i('ep-pz-05');
+  if(i('ep-pz-bar')!==undefined) p.piezas['barra']   = i('ep-pz-bar');
+  if(i('ep-pz-gig')!==undefined) p.piezas['gigante'] = i('ep-pz-gig');
+  // Caseínas
+  if(!p.caseinas) p.caseinas = {};
+  if(v('ep-cas-serie')!==undefined) p.caseinas.serie = v('ep-cas-serie');
+  if(i('ep-cas-pri')!==undefined)   p.caseinas.primera = i('ep-cas-pri');
+  if(i('ep-cas-ult')!==undefined)   p.caseinas.ultima = i('ep-cas-ult');
+  if(p.caseinas.primera!=null && p.caseinas.ultima!=null) p.caseinas.total = p.caseinas.ultima - p.caseinas.primera + 1;
+
+  // Observaciones
+  if(v('ep-obs')!==undefined) p.observaciones = v('ep-obs');
+}
+
+// Cambio de tipo en el editor → repintar todo (especialmente bloque litros/tanques)
+function onEpTipoChange(){
+  _epRecogerEnEstado();
+  var p = window._parteEditando;
+  // Si el tipo cambia y antes había tanque puro vacío, asignar el default del nuevo tipo
+  if(!p.tanque) p.tanque = _tanqueDefault(p.tipo);
+  // Limpiar variedad si el tipo no la admite
+  var vars = TIPOS_VARIEDADES[p.tipo]||[];
+  if(vars.length===0) p.variedad = '';
+  renderEpForm();
+}
 
 function guardarParteEditado(id){
   var idx = PARTES.findIndex(function(x){return x.id===id;});
   if(idx<0){ toast('Parte no encontrado','err'); return; }
-  var p = PARTES[idx];
+
+  // Recoger todo del DOM al estado
+  _epRecogerEnEstado();
+  var p = window._parteEditando;
+
+  // Auditoría
+  p.modificado_por   = (typeof CU!=='undefined' && CU && CU.n) ? CU.n : (window._operarioActual||'Calidad');
+  p.fecha_modificado = new Date().toISOString();
+
+  PARTES[idx] = p;
+  persistir();
 
   // Feedback en el botón
   var btn = document.getElementById('btn-ep-guardar');
   var txtOrig = '';
   if(btn){ txtOrig = btn.innerHTML; btn.innerHTML='⏳ Guardando...'; btn.disabled=true; btn.style.opacity='0.65'; }
-  function restaurarBoton(){ if(btn){ btn.innerHTML=txtOrig||'💾 Guardar cambios'; btn.disabled=false; btn.style.opacity=''; } }
-
-  // Cabecera
-  p.tipo     = _val('ep-tipo');
-  p.variedad = _val('ep-variedad');
-  p.cuba     = _val('ep-cuba');
-  p.operario = _val('ep-operario');
-  p.fecha    = _val('ep-fecha');
-
-  // Datos generales
-  p.litros       = _num('ep-litros');
-  p.ph           = _val('ep-ph');
-  p.temp         = _val('ep-temp');
-  p.dornic_leche = _val('ep-dornic');
-  p.lvaca        = _num('ep-lvaca');
-  p.lcabra       = _num('ep-lcabra');
-  p.loveja       = _num('ep-loveja');
-
-  // CO2
-  if(p.co2){
-    p.co2.lote       = _val('ep-co2-lote');
-    p.co2.caducidad  = _val('ep-co2-cad');
-    p.co2.tiempo_seg = _int('ep-co2-seg');
-    p.co2.caudal_lh  = _num('ep-co2-caudal');
-  }
-
-  // Auxiliares
-  if(p.auxiliares && p.auxiliares.length){
-    p.auxiliares.forEach(function(a, i){
-      a.consumo_total = _num('ep-aux-cons-'+i);
-      a.proveedor     = _val('ep-aux-prov-'+i);
-      a.lote          = _val('ep-aux-lote-'+i);
-      a.caducidad     = _val('ep-aux-cad-'+i);
-    });
-  }
-
-  // Fermentos
-  if(p.fermentos && p.fermentos.length){
-    p.fermentos.forEach(function(f, i){
-      f.consumo_total = _num('ep-fer-cons-'+i);
-      f.proveedor     = _val('ep-fer-prov-'+i);
-      f.lote          = _val('ep-fer-lote-'+i);
-      f.caducidad     = _val('ep-fer-cad-'+i);
-    });
-  }
-
-  // Cuajo
-  if(p.cuajo){
-    p.cuajo.consumo_total = _num('ep-cuajo-cons');
-    p.cuajo.proveedor     = _val('ep-cuajo-prov');
-    p.cuajo.lote          = _val('ep-cuajo-lote');
-    p.cuajo.caducidad     = _val('ep-cuajo-cad');
-  }
-
-  // Coagulación
-  if(p.coag){
-    p.coag.hadicion = _val('ep-coag-had');
-    p.coag.hc       = _val('ep-coag-hc');
-    p.coag.ph       = _val('ep-coag-ph');
-    p.coag.temp     = _val('ep-coag-temp');
-    p.coag.total    = _val('ep-coag-total');
-  }
-
-  // Desuerado
-  if(p.desuerado){
-    p.desuerado.rec_hi     = _val('ep-rec-hi');
-    p.desuerado.rec_hf     = _val('ep-rec-hf');
-    p.desuerado.rec_ti     = _val('ep-rec-ti');
-    p.desuerado.rec_tf     = _val('ep-rec-tf');
-    p.desuerado.rec_ph     = _val('ep-rec-ph');
-    p.desuerado.rec_dornic = _val('ep-rec-dor');
-    p.desuerado.agit_hi    = _val('ep-agit-hi');
-    p.desuerado.agit_hf    = _val('ep-agit-hf');
-  }
-
-  // Moldeo
-  if(p.moldeo){
-    p.moldeo.hi   = _val('ep-mol-hi');
-    p.moldeo.hf   = _val('ep-mol-hf');
-    p.moldeo.ph   = _val('ep-mol-ph');
-    p.moldeo.temp = _val('ep-mol-temp');
-  }
-
-  // Piezas
-  if(p.piezas){
-    p.piezas['3kg']    = _int('ep-pz-3');
-    p.piezas['2kg']    = _int('ep-pz-2');
-    p.piezas['1kg']    = _int('ep-pz-1');
-    p.piezas['05kg']   = _int('ep-pz-05');
-    p.piezas['barra']  = _int('ep-pz-bar');
-    p.piezas['gigante']= _int('ep-pz-gig');
-  }
-
-  // Caseínas
-  if(p.caseinas){
-    p.caseinas.serie   = _val('ep-cas-serie');
-    p.caseinas.primera = _int('ep-cas-pri');
-    p.caseinas.ultima  = _int('ep-cas-ult');
-    p.caseinas.total   = p.caseinas.ultima - p.caseinas.primera + 1;
-  }
-
-  // Observaciones
-  p.observaciones = _val('ep-obs');
-
-  // Marcar auditoría
-  p.modificado_por   = (typeof CU!=='undefined' && CU.n) ? CU.n : (window._operarioActual||'Calidad');
-  p.fecha_modificado = new Date().toISOString();
-
-  // Guardar localmente
-  PARTES[idx] = p;
-  persistir();
+  function restaurar(){ if(btn){ btn.innerHTML=txtOrig||'💾 Guardar cambios'; btn.disabled=false; btn.style.opacity=''; } }
 
   // Enviar a Sheets (UPDATE)
   try {
@@ -2458,25 +2684,22 @@ function guardarParteEditado(id){
     fetch(API_URL, {method:'POST', body:JSON.stringify(payload)})
       .then(function(r){return r.json();})
       .then(function(res){
-        if(res && res.ok){
-          toast('✅ Parte actualizado en Sheets');
-        } else {
-          toast('⚠️ Guardado local; revisa Sheets manualmente','warn');
-        }
+        if(res && res.ok){ toast('✅ Parte actualizado en Sheets'); }
+        else { toast('⚠️ Guardado local; revisa Sheets','warn'); }
         cerrarModal();
-        renderPartes();
+        try{ renderPartes(); }catch(e){}
         try{ renderCarrusel(); }catch(e){}
       })
       .catch(function(e){
         console.error('Error guardando edición:', e);
         toast('⚠️ Sin conexión: guardado local','warn');
         cerrarModal();
-        renderPartes();
+        try{ renderPartes(); }catch(e){}
         try{ renderCarrusel(); }catch(e){}
       });
   } catch(err){
     console.error('Error en guardarParteEditado:', err);
-    restaurarBoton();
+    restaurar();
     toast('⚠️ Error: '+(err.message||err),'warn');
   }
 }
@@ -2930,7 +3153,7 @@ function init(){
   // 1. Cargar datos del localStorage
   try{ cargarOperarios(); cargarVariedadesCustom(); cargarPrensadoConfig(); }catch(e){}
 
-  // MIGRACIÓN v2.6.29: limpiar datos demo (R-704, NATUREN ficticio, etc.)
+  // MIGRACIÓN v2.6.30: limpiar datos demo (R-704, NATUREN ficticio, etc.)
   // Solo se ejecuta una vez por dispositivo
   try {
     if (!localStorage.getItem('tq_limpio_demo_v1')) {
