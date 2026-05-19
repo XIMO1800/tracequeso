@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.27</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.29</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1550,6 +1550,24 @@ function renderAuxiliares(receta){
   var h='';receta.auxiliares.forEach(function(a){h+=renderProductoCard(a);});c.innerHTML=h;
 }
 
+// Detecta el "código" base de un fermento rotatorio (R-603 vs R-604 vs otros)
+// Normaliza espacios y guiones para comparar: "R - 603", "R-603", "R603" → "R603"
+function _codigoRotatorio(nombre){
+  var s = String(nombre||'').toUpperCase().replace(/\s+/g,'').replace(/-/g,'');
+  if(/^R603/.test(s)) return 'R603';
+  if(/^R604/.test(s)) return 'R604';
+  return null;
+}
+
+// Devuelve cuál fermento de la pareja R-603/R-604 toca hoy según el día de la semana
+// Lunes/Miércoles/Viernes → R-603 ; Martes/Jueves/Sábado → R-604 ; Domingo → ninguno
+function _quePareTocaHoy(){
+  var dia = new Date().getDay(); // 0=Dom, 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb
+  if(dia===1 || dia===3 || dia===5) return 'R603';
+  if(dia===2 || dia===4 || dia===6) return 'R604';
+  return null; // domingo: decide el quesero
+}
+
 function renderFermentos(receta){
   var c=document.getElementById('ferm-container');
   if(!receta.fermentos||!receta.fermentos.length){
@@ -1558,8 +1576,26 @@ function renderFermentos(receta){
     return;
   }
   var sub=document.getElementById('ferm-sub'); if(sub) sub.textContent=receta.fermentos.map(function(f){return f.nombre;}).join(' · ');
-  // Renderizar como tabla compacta
-  var h = '<div class="ferm-tabla">';
+
+  // Detectar pareja rotatoria R-603 / R-604
+  var tieneR603 = receta.fermentos.some(function(f){ return _codigoRotatorio(f.nombre)==='R603'; });
+  var tieneR604 = receta.fermentos.some(function(f){ return _codigoRotatorio(f.nombre)==='R604'; });
+  var hayRotacion = tieneR603 && tieneR604;
+  var tocaHoy = hayRotacion ? _quePareTocaHoy() : null;
+  var diasLabel = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  var hoyTxt = diasLabel[new Date().getDay()];
+
+  var h = '';
+  if(hayRotacion){
+    var msg = '🔄 <b>Rotación R-603 / R-604</b> · Hoy es '+hoyTxt+' → ';
+    if(tocaHoy==='R603')      msg += 'usar <b>R-603</b>';
+    else if(tocaHoy==='R604') msg += 'usar <b>R-604</b>';
+    else                      msg += 'decide el quesero (domingo)';
+    h += '<div style="background:#fff8e1;border-left:4px solid #f0b400;padding:8px 10px;border-radius:6px;font-size:0.78rem;color:#5a4500;margin-bottom:8px">'+msg+'</div>';
+  }
+
+  // Tabla
+  h += '<div class="ferm-tabla">';
   h += '<div class="ferm-tabla-cab">'
      + '<span>Nombre</span>'
      + '<span>Dosis /1000L</span>'
@@ -1581,8 +1617,25 @@ function renderFermentos(receta){
       cadHTML = '—';
       provHTML = '—';
     }
-    h += '<div class="ferm-tabla-fila">'
-       + '<div class="nombre">'+f.nombre+'</div>'
+
+    // Determinar si está en rotación y si es el activo hoy
+    var cod = _codigoRotatorio(f.nombre);
+    var enRotacion = hayRotacion && (cod==='R603' || cod==='R604');
+    var esActivoHoy = enRotacion && tocaHoy === cod;
+    var esInactivoHoy = enRotacion && tocaHoy && tocaHoy !== cod;
+
+    var estiloFila = '';
+    var marcaNombre = '';
+    if(esActivoHoy){
+      estiloFila = 'background:rgba(34,139,34,0.08);border-left:3px solid #228b22';
+      marcaNombre = ' <span style="font-size:0.7rem;color:#228b22;font-weight:700">✅ HOY</span>';
+    } else if(esInactivoHoy){
+      estiloFila = 'opacity:0.5';
+      marcaNombre = ' <span style="font-size:0.7rem;color:var(--text3);font-weight:700">⏭️ otro día</span>';
+    }
+
+    h += '<div class="ferm-tabla-fila" style="'+estiloFila+'">'
+       + '<div class="nombre">'+f.nombre+marcaNombre+'</div>'
        + '<div class="dosis-base">'+f.dosis_ml_1000L+'</div>'
        + '<div><input type="text" class="dosis-input" id="dosis-'+key+'" data-prod="'+f.nombre+'" oninput="onDosisOverride(this)" placeholder="—"></div>'
        + '<div class="meta">'+provHTML+'</div>'
@@ -2087,8 +2140,345 @@ function verParte(id){
   // Observaciones
   if(p.observaciones) h += bloque('📝 Observaciones', '<div style="font-size:0.88rem;color:var(--text2)">'+p.observaciones+'</div>');
 
-  h += '<button class="btn btn-danger" style="margin-top:16px" onclick="eliminarParte(\''+p.id+'\')">🗑️ Eliminar parte</button>';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px">';
+  h += '<button class="btn btn-secondary" onclick="editarParteCompleto(\''+p.id+'\')">✏️ Editar parte</button>';
+  h += '<button class="btn btn-danger" onclick="eliminarParte(\''+p.id+'\')">🗑️ Eliminar</button>';
+  h += '</div>';
   abrirModal(h);
+}
+
+// ═══════════════════════════════════════════════
+// EDITAR PARTE COMPLETO (calidad puede modificar todo)
+// ═══════════════════════════════════════════════
+
+function editarParteCompleto(id){
+  var p = PARTES.find(function(x){return x.id===id;});
+  if(!p){ toast('Parte no encontrado','err'); return; }
+
+  // Tipos y variedades disponibles
+  var tipos = Object.keys(TIPOS_VARIEDADES);
+  var tipoOpts = '<option value="">— Tipo —</option>';
+  tipos.forEach(function(t){
+    tipoOpts += '<option value="'+t+'"'+(t===p.tipo?' selected':'')+'>'+t+'</option>';
+  });
+
+  function inp(id, val, tipo, ph){
+    tipo = tipo || 'text';
+    return '<input type="'+tipo+'" id="'+id+'" value="'+(val!==undefined&&val!==null?String(val).replace(/"/g,'&quot;'):'')+'" placeholder="'+(ph||'')+'" style="width:100%;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;background:var(--bg)">';
+  }
+  function lbl(t){ return '<label style="font-size:0.7rem;color:var(--text3);font-weight:700;letter-spacing:0.5px;text-transform:uppercase">'+t+'</label>'; }
+  function row(label, html){
+    return '<div style="margin-bottom:8px">'+lbl(label)+html+'</div>';
+  }
+  function dosrow(l1,h1,l2,h2){
+    return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
+      +  '<div>'+lbl(l1)+h1+'</div>'
+      +  '<div>'+lbl(l2)+h2+'</div>'
+      +'</div>';
+  }
+  function sep(t){
+    return '<div class="sep-label" style="margin-top:14px;margin-bottom:6px">'+t+'</div>';
+  }
+
+  var h = '<div class="modal-title">✏️ Editar parte · Cuba '+p.cuba+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
+  h += '<div style="font-size:0.75rem;color:var(--text3);margin-bottom:14px">'+formatearFecha(p.fecha)+' · '+(p.operario||'—')+' · ID: '+p.id+'</div>';
+
+  // Cabecera: tipo, variedad, cuba, operario
+  h += '<div style="background:#fff8e1;border-left:4px solid #f0b400;padding:8px 10px;border-radius:6px;font-size:0.78rem;color:#5a4500;margin-bottom:12px">📝 Calidad puede modificar cualquier campo, incluyendo TIPO (OVEJA → D.O. PAST.), VARIEDAD, temperaturas, dosis y lotes.</div>';
+
+  h += sep('📋 Cabecera');
+  h += dosrow('Tipo',
+              '<select id="ep-tipo" style="width:100%;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;background:var(--bg)" onchange="onEpTipoChange()">'+tipoOpts+'</select>',
+              'Variedad',
+              '<select id="ep-variedad" style="width:100%;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;background:var(--bg)"></select>');
+  h += dosrow('Cuba', inp('ep-cuba', p.cuba), 'Operario', inp('ep-operario', p.operario));
+  h += row('Fecha', inp('ep-fecha', p.fecha, 'date'));
+
+  // Datos generales
+  h += sep('🥛 Datos generales');
+  h += dosrow('Litros totales', inp('ep-litros', p.litros, 'number'), 'pH leche', inp('ep-ph', p.ph, 'number'));
+  h += dosrow('Tª leche (°C)', inp('ep-temp', p.temp, 'number'), '°Dornic leche', inp('ep-dornic', p.dornic_leche, 'number'));
+  h += dosrow('L. Vaca', inp('ep-lvaca', p.lvaca, 'number'), 'L. Cabra', inp('ep-lcabra', p.lcabra, 'number'));
+  h += row('L. Oveja', inp('ep-loveja', p.loveja, 'number'));
+
+  // CO2
+  if(p.co2){
+    h += sep('🌫️ CO₂');
+    h += dosrow('Lote CO₂', inp('ep-co2-lote', p.co2.lote||''), 'Caducidad', inp('ep-co2-cad', p.co2.caducidad||'', 'date'));
+    h += dosrow('Tiempo (seg)', inp('ep-co2-seg', p.co2.tiempo_seg, 'number'), 'Caudal (L/h)', inp('ep-co2-caudal', p.co2.caudal_lh, 'number'));
+  }
+
+  // Auxiliares (lotes editables)
+  if(p.auxiliares && p.auxiliares.length){
+    h += sep('🧪 Auxiliares');
+    p.auxiliares.forEach(function(a, i){
+      h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px">';
+      h += '<div style="font-weight:700;font-size:0.85rem;margin-bottom:6px">'+a.nombre+'</div>';
+      h += dosrow('Dosis utilizada', inp('ep-aux-cons-'+i, a.consumo_total||a.dosis_utilizada||0, 'number'),
+                  'Proveedor', inp('ep-aux-prov-'+i, a.proveedor||''));
+      h += dosrow('Lote', inp('ep-aux-lote-'+i, a.lote||''),
+                  'Caducidad', inp('ep-aux-cad-'+i, a.caducidad||'', 'date'));
+      h += '</div>';
+    });
+  }
+
+  // Fermentos
+  if(p.fermentos && p.fermentos.length){
+    h += sep('🦠 Fermentos');
+    p.fermentos.forEach(function(f, i){
+      h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px">';
+      h += '<div style="font-weight:700;font-size:0.85rem;margin-bottom:6px">'+f.nombre+'</div>';
+      h += dosrow('Dosis utilizada', inp('ep-fer-cons-'+i, f.consumo_total||f.dosis_utilizada||0, 'number'),
+                  'Proveedor', inp('ep-fer-prov-'+i, f.proveedor||''));
+      h += dosrow('Lote', inp('ep-fer-lote-'+i, f.lote||''),
+                  'Caducidad', inp('ep-fer-cad-'+i, f.caducidad||'', 'date'));
+      h += '</div>';
+    });
+  }
+
+  // Cuajo
+  if(p.cuajo){
+    h += sep('⚗️ Cuajo');
+    h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px">';
+    h += '<div style="font-weight:700;font-size:0.85rem;margin-bottom:6px">'+(p.cuajo.nombre||'Cuajo')+'</div>';
+    h += dosrow('Dosis utilizada', inp('ep-cuajo-cons', p.cuajo.consumo_total||p.cuajo.dosis_utilizada||0, 'number'),
+                'Proveedor', inp('ep-cuajo-prov', p.cuajo.proveedor||''));
+    h += dosrow('Lote', inp('ep-cuajo-lote', p.cuajo.lote||''),
+                'Caducidad', inp('ep-cuajo-cad', p.cuajo.caducidad||'', 'date'));
+    h += '</div>';
+  }
+
+  // Coagulación
+  if(p.coag){
+    h += sep('⏱️ Coagulación');
+    h += dosrow('Hora adición', inp('ep-coag-had', p.coag.hadicion, 'time'), 'Hora corte', inp('ep-coag-hc', p.coag.hc, 'time'));
+    h += dosrow('pH coagulación', inp('ep-coag-ph', p.coag.ph, 'number'), 'Tª coagulación (°C)', inp('ep-coag-temp', p.coag.temp, 'number'));
+    h += row('Total (min)', inp('ep-coag-total', p.coag.total, 'number'));
+  }
+
+  // Desuerado
+  if(p.desuerado){
+    h += sep('🌊 Desuerado');
+    h += dosrow('Recal. inicio', inp('ep-rec-hi', p.desuerado.rec_hi, 'time'), 'Recal. fin', inp('ep-rec-hf', p.desuerado.rec_hf, 'time'));
+    h += dosrow('Tª inicio (°C)', inp('ep-rec-ti', p.desuerado.rec_ti, 'number'), 'Tª fin (°C)', inp('ep-rec-tf', p.desuerado.rec_tf, 'number'));
+    h += dosrow('pH suero', inp('ep-rec-ph', p.desuerado.rec_ph, 'number'), '°Dornic suero', inp('ep-rec-dor', p.desuerado.rec_dornic, 'number'));
+    h += dosrow('Agit. inicio', inp('ep-agit-hi', p.desuerado.agit_hi, 'time'), 'Agit. fin', inp('ep-agit-hf', p.desuerado.agit_hf, 'time'));
+  }
+
+  // Moldeo
+  if(p.moldeo){
+    h += sep('🧱 Moldeo');
+    h += dosrow('Hora inicio', inp('ep-mol-hi', p.moldeo.hi, 'time'), 'Hora fin', inp('ep-mol-hf', p.moldeo.hf, 'time'));
+    h += dosrow('pH moldeo', inp('ep-mol-ph', p.moldeo.ph, 'number'), 'Tª moldeo (°C)', inp('ep-mol-temp', p.moldeo.temp, 'number'));
+  }
+
+  // Piezas
+  if(p.piezas){
+    h += sep('🧀 Piezas fabricadas');
+    h += dosrow('3 KG', inp('ep-pz-3', p.piezas['3kg']||0, 'number'), '2 KG', inp('ep-pz-2', p.piezas['2kg']||0, 'number'));
+    h += dosrow('1 KG', inp('ep-pz-1', p.piezas['1kg']||0, 'number'), '1/2 KG', inp('ep-pz-05', p.piezas['05kg']||0, 'number'));
+    h += dosrow('Barra', inp('ep-pz-bar', p.piezas['barra']||0, 'number'), 'Gigante', inp('ep-pz-gig', p.piezas['gigante']||0, 'number'));
+  }
+
+  // Caseínas
+  if(p.caseinas){
+    h += sep('🏷️ Caseínas (D.O.)');
+    h += row('Serie', inp('ep-cas-serie', p.caseinas.serie||''));
+    h += dosrow('Primera', inp('ep-cas-pri', p.caseinas.primera||0, 'number'), 'Última', inp('ep-cas-ult', p.caseinas.ultima||0, 'number'));
+  }
+
+  // Observaciones
+  h += sep('📝 Observaciones');
+  h += '<textarea id="ep-obs" style="width:100%;min-height:60px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;background:var(--bg);font-family:inherit;resize:vertical">'+(p.observaciones||'')+'</textarea>';
+
+  // Botones
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">';
+  h += '<button class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>';
+  h += '<button id="btn-ep-guardar" class="btn btn-primary" onclick="guardarParteEditado(\''+p.id+'\')">💾 Guardar cambios</button>';
+  h += '</div>';
+
+  abrirModal(h);
+
+  // Poblar variedades según tipo seleccionado y preservar la variedad del parte
+  setTimeout(function(){
+    var vEl = document.getElementById('ep-variedad');
+    if(!vEl) return;
+    var vars = TIPOS_VARIEDADES[p.tipo]||[];
+    vEl.innerHTML = '<option value="">— Variedad —</option>';
+    vars.forEach(function(v){
+      var sel = (v===p.variedad)?' selected':'';
+      vEl.innerHTML += '<option value="'+v+'"'+sel+'>'+v+'</option>';
+    });
+    if(vars.length===0){ vEl.disabled = true; } else { vEl.disabled = false; }
+  }, 50);
+}
+
+// Cuando el usuario cambia el TIPO en el editor, repoblar las variedades disponibles
+function onEpTipoChange(){
+  var tEl = document.getElementById('ep-tipo');
+  var vEl = document.getElementById('ep-variedad');
+  if(!tEl || !vEl) return;
+  var t = tEl.value;
+  var vars = TIPOS_VARIEDADES[t]||[];
+  vEl.innerHTML = '<option value="">— Variedad —</option>';
+  vars.forEach(function(v){
+    vEl.innerHTML += '<option value="'+v+'">'+v+'</option>';
+  });
+  vEl.disabled = (vars.length===0);
+}
+
+function _val(id){ var el=document.getElementById(id); return el?el.value:''; }
+function _num(id){ var v=parseFloat(_val(id)); return isNaN(v)?0:v; }
+function _int(id){ var v=parseInt(_val(id)); return isNaN(v)?0:v; }
+
+function guardarParteEditado(id){
+  var idx = PARTES.findIndex(function(x){return x.id===id;});
+  if(idx<0){ toast('Parte no encontrado','err'); return; }
+  var p = PARTES[idx];
+
+  // Feedback en el botón
+  var btn = document.getElementById('btn-ep-guardar');
+  var txtOrig = '';
+  if(btn){ txtOrig = btn.innerHTML; btn.innerHTML='⏳ Guardando...'; btn.disabled=true; btn.style.opacity='0.65'; }
+  function restaurarBoton(){ if(btn){ btn.innerHTML=txtOrig||'💾 Guardar cambios'; btn.disabled=false; btn.style.opacity=''; } }
+
+  // Cabecera
+  p.tipo     = _val('ep-tipo');
+  p.variedad = _val('ep-variedad');
+  p.cuba     = _val('ep-cuba');
+  p.operario = _val('ep-operario');
+  p.fecha    = _val('ep-fecha');
+
+  // Datos generales
+  p.litros       = _num('ep-litros');
+  p.ph           = _val('ep-ph');
+  p.temp         = _val('ep-temp');
+  p.dornic_leche = _val('ep-dornic');
+  p.lvaca        = _num('ep-lvaca');
+  p.lcabra       = _num('ep-lcabra');
+  p.loveja       = _num('ep-loveja');
+
+  // CO2
+  if(p.co2){
+    p.co2.lote       = _val('ep-co2-lote');
+    p.co2.caducidad  = _val('ep-co2-cad');
+    p.co2.tiempo_seg = _int('ep-co2-seg');
+    p.co2.caudal_lh  = _num('ep-co2-caudal');
+  }
+
+  // Auxiliares
+  if(p.auxiliares && p.auxiliares.length){
+    p.auxiliares.forEach(function(a, i){
+      a.consumo_total = _num('ep-aux-cons-'+i);
+      a.proveedor     = _val('ep-aux-prov-'+i);
+      a.lote          = _val('ep-aux-lote-'+i);
+      a.caducidad     = _val('ep-aux-cad-'+i);
+    });
+  }
+
+  // Fermentos
+  if(p.fermentos && p.fermentos.length){
+    p.fermentos.forEach(function(f, i){
+      f.consumo_total = _num('ep-fer-cons-'+i);
+      f.proveedor     = _val('ep-fer-prov-'+i);
+      f.lote          = _val('ep-fer-lote-'+i);
+      f.caducidad     = _val('ep-fer-cad-'+i);
+    });
+  }
+
+  // Cuajo
+  if(p.cuajo){
+    p.cuajo.consumo_total = _num('ep-cuajo-cons');
+    p.cuajo.proveedor     = _val('ep-cuajo-prov');
+    p.cuajo.lote          = _val('ep-cuajo-lote');
+    p.cuajo.caducidad     = _val('ep-cuajo-cad');
+  }
+
+  // Coagulación
+  if(p.coag){
+    p.coag.hadicion = _val('ep-coag-had');
+    p.coag.hc       = _val('ep-coag-hc');
+    p.coag.ph       = _val('ep-coag-ph');
+    p.coag.temp     = _val('ep-coag-temp');
+    p.coag.total    = _val('ep-coag-total');
+  }
+
+  // Desuerado
+  if(p.desuerado){
+    p.desuerado.rec_hi     = _val('ep-rec-hi');
+    p.desuerado.rec_hf     = _val('ep-rec-hf');
+    p.desuerado.rec_ti     = _val('ep-rec-ti');
+    p.desuerado.rec_tf     = _val('ep-rec-tf');
+    p.desuerado.rec_ph     = _val('ep-rec-ph');
+    p.desuerado.rec_dornic = _val('ep-rec-dor');
+    p.desuerado.agit_hi    = _val('ep-agit-hi');
+    p.desuerado.agit_hf    = _val('ep-agit-hf');
+  }
+
+  // Moldeo
+  if(p.moldeo){
+    p.moldeo.hi   = _val('ep-mol-hi');
+    p.moldeo.hf   = _val('ep-mol-hf');
+    p.moldeo.ph   = _val('ep-mol-ph');
+    p.moldeo.temp = _val('ep-mol-temp');
+  }
+
+  // Piezas
+  if(p.piezas){
+    p.piezas['3kg']    = _int('ep-pz-3');
+    p.piezas['2kg']    = _int('ep-pz-2');
+    p.piezas['1kg']    = _int('ep-pz-1');
+    p.piezas['05kg']   = _int('ep-pz-05');
+    p.piezas['barra']  = _int('ep-pz-bar');
+    p.piezas['gigante']= _int('ep-pz-gig');
+  }
+
+  // Caseínas
+  if(p.caseinas){
+    p.caseinas.serie   = _val('ep-cas-serie');
+    p.caseinas.primera = _int('ep-cas-pri');
+    p.caseinas.ultima  = _int('ep-cas-ult');
+    p.caseinas.total   = p.caseinas.ultima - p.caseinas.primera + 1;
+  }
+
+  // Observaciones
+  p.observaciones = _val('ep-obs');
+
+  // Marcar auditoría
+  p.modificado_por   = (typeof CU!=='undefined' && CU.n) ? CU.n : (window._operarioActual||'Calidad');
+  p.fecha_modificado = new Date().toISOString();
+
+  // Guardar localmente
+  PARTES[idx] = p;
+  persistir();
+
+  // Enviar a Sheets (UPDATE)
+  try {
+    var payload = Object.assign({}, p, {_SHEET:'PARTES', _UPDATE:true, ID: p.id});
+    fetch(API_URL, {method:'POST', body:JSON.stringify(payload)})
+      .then(function(r){return r.json();})
+      .then(function(res){
+        if(res && res.ok){
+          toast('✅ Parte actualizado en Sheets');
+        } else {
+          toast('⚠️ Guardado local; revisa Sheets manualmente','warn');
+        }
+        cerrarModal();
+        renderPartes();
+        try{ renderCarrusel(); }catch(e){}
+      })
+      .catch(function(e){
+        console.error('Error guardando edición:', e);
+        toast('⚠️ Sin conexión: guardado local','warn');
+        cerrarModal();
+        renderPartes();
+        try{ renderCarrusel(); }catch(e){}
+      });
+  } catch(err){
+    console.error('Error en guardarParteEditado:', err);
+    restaurarBoton();
+    toast('⚠️ Error: '+(err.message||err),'warn');
+  }
 }
 
 function eliminarParte(id){
@@ -2238,7 +2628,11 @@ function guardarReceta(){
     r.tipo     = (tipoEl.value||'').trim().toUpperCase();
     r.variedad = varEl ? (varEl.value||'').trim().toUpperCase() : '';
     if(!r.tipo){toast('⚠ Selecciona un Tipo de queso');return;}
-    if(!r.variedad){toast('⚠ Selecciona una Variedad');return;}
+    // Solo exigir variedad si el tipo tiene variedades definidas
+    var variedadesDelTipo = TIPOS_VARIEDADES[r.tipo] || [];
+    if(variedadesDelTipo.length > 0 && !r.variedad){
+      toast('⚠ Selecciona una Variedad');return;
+    }
     // Limpiar ingredientes vacíos (filas con nombre en blanco)
     if(r.auxiliares) r.auxiliares = r.auxiliares.filter(function(x){ return x && x.nombre; });
     if(r.fermentos)  r.fermentos  = r.fermentos.filter(function(x){ return x && x.nombre; });
@@ -2536,7 +2930,7 @@ function init(){
   // 1. Cargar datos del localStorage
   try{ cargarOperarios(); cargarVariedadesCustom(); cargarPrensadoConfig(); }catch(e){}
 
-  // MIGRACIÓN v2.6.27: limpiar datos demo (R-704, NATUREN ficticio, etc.)
+  // MIGRACIÓN v2.6.29: limpiar datos demo (R-704, NATUREN ficticio, etc.)
   // Solo se ejecuta una vez por dispositivo
   try {
     if (!localStorage.getItem('tq_limpio_demo_v1')) {
