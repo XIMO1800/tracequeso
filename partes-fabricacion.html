@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.32</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.33</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2108,6 +2108,28 @@ function renderPartes(){
 
 function verParte(id){
   var p=PARTES.find(function(x){return x.id===id;});if(!p)return;
+  // Si el parte no trae ingredientes en memoria (viene del histórico de Sheets),
+  // los pedimos a Sheets (SALIDAS por ID PARTE) y luego pintamos.
+  var sinIng = !(p.auxiliares && p.auxiliares.length) &&
+               !(p.fermentos && p.fermentos.length) &&
+               !(p.cuajo && p.cuajo.nombre);
+  if(sinIng && navigator.onLine && !p._ingFetched){
+    cargarIngredientesParte(id, function(data){
+      p._ingFetched = true;
+      if(data){
+        if(data.auxiliares && data.auxiliares.length) p.auxiliares = data.auxiliares;
+        if(data.fermentos  && data.fermentos.length)  p.fermentos  = data.fermentos;
+        if(data.cuajo && data.cuajo.nombre)           p.cuajo      = data.cuajo;
+      }
+      _verParteRender(id);
+    });
+    return;
+  }
+  _verParteRender(id);
+}
+
+function _verParteRender(id){
+  var p=PARTES.find(function(x){return x.id===id;});if(!p)return;
 
   function fila(label, valor){
     if(!valor && valor!==0) return '';
@@ -3217,6 +3239,15 @@ function enviarRecetaSheets(receta,eliminar){
 function enviarEntradaSheets(entrada){
   var payload=Object.assign({},entrada,{_SHEET:'ENTRADAS'});
   fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){SYNC_PENDIENTE.push({tipo:'entrada',data:payload});persistir();});
+}
+
+// Ingredientes (auxiliares/fermentos/cuajo) de un parte concreto, desde SALIDAS (Opción B)
+function cargarIngredientesParte(id, cb){
+  if(!id){ cb(null); return; }
+  fetch(API_URL+'?tipo=ingredientesParte&id='+encodeURIComponent(id))
+    .then(function(r){return r.json();})
+    .then(function(d){ cb(d && d.ok && d.data ? d.data : null); })
+    .catch(function(){ cb(null); });
 }
 
 function cargarPartesSheets(){
