@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.37</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.38</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1498,6 +1498,99 @@ function puedeEditarParte(p){
   return esHoy || rol==='CALIDAD' || rol==='ADMIN';
 }
 
+// ─────────── IMPRESIÓN DEL PARTE (formato FOR 08-01) ───────────
+// Solo CALIDAD / ADMIN. Genera una hoja A4 calcada al parte en papel y abre
+// el diálogo de impresión del navegador (imprimir o "Guardar como PDF").
+function esCalidadOAdmin(){
+  var r = String(ROL_ACTUAL||'').toUpperCase();
+  return r==='CALIDAD' || r==='ADMIN';
+}
+
+function imprimirParte(id){
+  var p = PARTES.find(function(x){return x.id===id;});
+  if(!p){ toast('Parte no encontrado','err'); return; }
+  if(!esCalidadOAdmin()){ toast('Solo Calidad puede imprimir el parte','warn'); return; }
+  var html = _htmlParteImpresion(p);
+  var w = window.open('', '_blank');
+  if(!w){ toast('Permite las ventanas emergentes para poder imprimir','warn'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+  setTimeout(function(){ try{ w.focus(); w.print(); }catch(e){} }, 600);
+}
+
+function _htmlParteImpresion(p){
+  function e(x){ if(x===undefined||x===null) return ''; return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function n(x){ return (x===undefined||x===null||x==='')?'':e(x); }
+  function z(x){ return (!x||x==='0'||x===0)?'':e(x); }
+  var logo=''; try{ var im=document.querySelector('img[src^="data:image"]'); if(im) logo=im.src; }catch(_){}
+  var fecha = (typeof formatearFecha==='function') ? formatearFecha(p.fecha) : e(p.fecha);
+  var pa=p.pasteurizacion||{}, co=p.co2||{}, cg=p.coag||{}, ds=p.desuerado||{}, mo=p.moldeo||{}, cas=p.caseinas||{}, pz=p.piezas||{}, cu=p.cuajo||{};
+  var H=[];
+  H.push('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Parte '+fecha+' '+e(p.tipo)+'</title><style>');
+  H.push('@page{size:A4;margin:8mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#000;margin:0}');
+  H.push('table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:2px 4px;vertical-align:middle}');
+  H.push('.sec{background:#e6e6e6;font-weight:bold;text-transform:uppercase;padding:3px 4px;border:1px solid #000;border-top:none}');
+  H.push('.lbl{font-weight:bold}.t{text-align:center}.mt{margin-top:6px}');
+  H.push('.hdr{display:flex;align-items:center;gap:12px;border:1px solid #000;padding:6px}.hdr img{height:42px}.hdr .ti{flex:1;text-align:center;font-size:17px;font-weight:bold;letter-spacing:1px}');
+  H.push('.firma{margin-top:18px;border:1px solid #000;height:64px;padding:4px}.foot{display:flex;justify-content:space-between;font-size:9px;margin-top:4px;color:#333}');
+  H.push('</style></head><body>');
+  H.push('<div class="hdr">'+(logo?'<img src="'+logo+'">':'')+'<div class="ti">PARTE DE FABRICACIÓN</div></div>');
+  H.push('<table class="mt"><tr><td><span class="lbl">FECHA:</span> '+fecha+'</td><td><span class="lbl">TIPO DE QUESO:</span> '+n(p.tipo)+(p.variedad?(' · '+e(p.variedad)):'')+'</td><td><span class="lbl">LOTE:</span> '+n(p.lote_queso)+'</td></tr></table>');
+  H.push('<table class="mt"><tr><td></td><td class="t lbl">VACA</td><td class="t lbl">CABRA</td><td class="t lbl">OVEJA</td><td class="t lbl">MEZCLA</td><td class="t lbl">TOTAL</td></tr>');
+  H.push('<tr><td class="lbl">LITROS DE LECHE</td><td class="t">'+z(p.lvaca)+'</td><td class="t">'+z(p.lcabra)+'</td><td class="t">'+z(p.loveja)+'</td><td class="t"></td><td class="t">'+n(p.litros)+'</td></tr>');
+  H.push('<tr><td class="lbl">TANQUE PROCEDENCIA</td><td class="t">'+z(p.tanque_vaca)+'</td><td class="t">'+z(p.tanque_cabra)+'</td><td class="t">'+z(p.tanque_oveja)+'</td><td class="t"></td><td class="t">'+z(p.tanque)+'</td></tr></table>');
+  H.push('<table><tr><td class="lbl">Nº CUBA: <span style="font-weight:normal">'+n(p.cuba)+'</span></td><td class="lbl">pH: <span style="font-weight:normal">'+n(p.ph)+'</span></td><td class="lbl">ºD: <span style="font-weight:normal">'+n(p.dornic_leche)+'</span></td><td class="lbl">TºC: <span style="font-weight:normal">'+n(p.temp)+'</span></td></tr></table>');
+  var pcond = pa.temp ? ('Tºc '+e(pa.temp)+(pa.tiempo?(' - '+e(pa.tiempo)+'s'):'')) : '';
+  H.push('<div class="sec">Pasteurización</div><table><tr><td class="t lbl">Válvula desvío (C/I)</td><td class="t lbl">Fosfatasa alcalina</td><td class="t lbl">Condiciones pasteurización</td><td class="t lbl">Cruda</td></tr>');
+  H.push('<tr><td class="t">'+n(pa.valvula)+'</td><td class="t">'+(pa.fosfatasa?'Sí':'No')+'</td><td class="t">'+pcond+'</td><td class="t">'+(pa.cruda?'Sí':'')+'</td></tr></table>');
+  H.push('<div class="sec">Auxiliares de fabricación</div><table><tr><td class="lbl">Auxiliar</td><td class="lbl t">ml/1000L</td><td class="lbl t">ml utilizados</td><td class="lbl">Proveedor</td><td class="lbl">Lote</td><td class="lbl">Caducidad</td></tr>');
+  var auxList=(p.auxiliares||[]).concat(p.otrosAuxiliares||[]);
+  if(auxList.length){ auxList.forEach(function(a){ a=a||{}; H.push('<tr><td>'+n(a.nombre)+'</td><td class="t">'+n(a.dosis_ml_1000L)+'</td><td class="t">'+n(a.consumo_total)+'</td><td>'+n(a.proveedor)+'</td><td>'+n(a.lote)+'</td><td>'+n(a.caducidad)+'</td></tr>'); }); }
+  else { H.push('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>'); }
+  H.push('</table>');
+  H.push('<table><tr><td class="lbl">CO2</td><td>Caducidad: '+n(co.caducidad)+'</td><td>Lote: '+n(co.lote)+'</td><td>Tiempo: '+n(co.tiempo_seg)+(co.tiempo_seg?' s':'')+'</td><td>Litros/Hora: '+n(co.caudal_lh)+'</td></tr></table>');
+  H.push('<div class="sec">Fermentos lácticos</div><table><tr><td class="lbl">Nombre</td><td class="lbl t">Dosis/1000l</td><td class="lbl t">Dosis utili.</td><td class="lbl">Proveedor</td><td class="lbl">Lote</td><td class="lbl">Caducidad</td></tr>');
+  var fer=p.fermentos||[];
+  if(fer.length){ fer.forEach(function(f){ f=f||{}; H.push('<tr><td>'+n(f.nombre)+'</td><td class="t">'+n(f.dosis_ml_1000L)+'</td><td class="t">'+n(f.consumo_total)+'</td><td>'+n(f.proveedor)+'</td><td>'+n(f.lote)+'</td><td>'+n(f.caducidad)+'</td></tr>'); }); }
+  else { H.push('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>'); }
+  H.push('</table>');
+  H.push('<div class="sec">Coagulación</div><table><tr><td>Hora de toma:</td><td>Hora adición: '+n(cg.hadicion)+'</td><td>pH: '+n(cg.ph)+'</td><td>TºC: '+n(cg.temp)+'</td></tr><tr><td>Hora de corte: '+n(cg.hc)+'</td><td colspan="3">Coagulación Total: '+n(cg.total)+(cg.total?' min':'')+'</td></tr></table>');
+  H.push('<table><tr><td class="lbl">Nombre</td><td class="lbl t">Dosis/1000l</td><td class="lbl t">Dosis utili.</td><td class="lbl">Proveedor</td><td class="lbl">Lote</td><td class="lbl">Caducidad</td></tr>');
+  H.push('<tr><td>'+n(cu.nombre)+'</td><td class="t">'+n(cu.dosis_ml_1000L)+'</td><td class="t">'+n(cu.consumo_total)+'</td><td>'+n(cu.proveedor)+'</td><td>'+n(cu.lote)+'</td><td>'+n(cu.caducidad)+'</td></tr></table>');
+  H.push('<div class="sec">Desuerado en cuba</div><table>');
+  H.push('<tr><td class="lbl" colspan="6">Recalentamiento</td></tr>');
+  H.push('<tr><td>Hora Inicial: '+n(ds.rec_hi)+'</td><td>TºC Inicial: '+n(ds.rec_ti)+'</td><td>Hora Final: '+n(ds.rec_hf)+'</td><td>TºC Final: '+n(ds.rec_tf)+'</td><td>pH: '+n(ds.rec_ph)+'</td><td>ºD(suero): '+n(ds.rec_dornic)+'</td></tr>');
+  H.push('<tr><td class="lbl" colspan="6">Lavado cuajada'+(ds.lavado_metodo?(' · '+e(ds.lavado_metodo)):'')+'</td></tr>');
+  H.push('<tr><td colspan="2">Hora Inicial: '+n(ds.lavado_hi)+'</td><td colspan="2">Hora Final: '+n(ds.lavado_hf)+'</td><td colspan="2">TºC: '+n(ds.lavado_temp)+'</td></tr>');
+  H.push('<tr><td class="lbl" colspan="6">Agitación</td></tr>');
+  H.push('<tr><td colspan="2">Hora Inicial: '+n(ds.agit_hi)+'</td><td colspan="2">Hora Final: '+n(ds.agit_hf)+'</td><td colspan="2">Total: '+n(ds.agit_total)+(ds.agit_total?' min':'')+'</td></tr></table>');
+  H.push('<div class="sec">Moldeo</div><table><tr><td>Hora Inicial: '+n(mo.hi)+'</td><td>pH: '+n(mo.ph)+'</td><td>TºC: '+n(mo.temp)+'</td><td>Hora Final: '+n(mo.hf)+'</td></tr></table>');
+  H.push('<div class="sec">Prensado</div><table><tr><td class="lbl t">Formato / Programa</td><td class="lbl t">Tiempo (rampa + mant.)</td><td class="lbl t">Bar</td></tr>');
+  var pre=p.prensados||[];
+  if(pre.length){ pre.forEach(function(x){ x=x||{}; var fp=(x.formato?e(x.formato):'')+(x.programa?(' · '+e(x.programa)):''); var ti=((x.rampa_min!==undefined&&x.rampa_min!=='')?e(x.rampa_min):'')+' + '+((x.mantenimiento_min!==undefined&&x.mantenimiento_min!=='')?e(x.mantenimiento_min):''); var bar=((x.bar_inicial!==undefined&&x.bar_inicial!=='')?e(x.bar_inicial):'')+' - '+((x.bar_final!==undefined&&x.bar_final!=='')?e(x.bar_final):''); H.push('<tr><td>'+fp+'</td><td class="t">'+ti+'</td><td class="t">'+bar+'</td></tr>'); }); }
+  else { H.push('<tr><td>&nbsp;</td><td></td><td></td></tr>'); }
+  H.push('</table>');
+  H.push('<div class="sec">Desmoldeo</div><table><tr><td class="lbl t">Formato</td><td class="lbl t">Hora Inicial</td><td class="lbl t">TºC</td><td class="lbl t">pH</td><td class="lbl t">Hora Final</td><td class="lbl t">TºC</td><td class="lbl t">pH</td></tr>');
+  var dml=p.desmoldeos||[];
+  if(dml.length){ dml.forEach(function(x){ x=x||{}; H.push('<tr><td>'+n(x.formato)+'</td><td class="t">'+n(x.hi)+'</td><td class="t">'+n(x.temp)+'</td><td class="t">'+n(x.ph)+'</td><td class="t">'+n(x.hf)+'</td><td class="t">'+n(x.temp_final)+'</td><td class="t">'+n(x.ph_final)+'</td></tr>'); }); }
+  else { H.push('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>'); }
+  H.push('</table>');
+  H.push('<div class="sec">Salmuera</div><table><tr><td class="lbl t">Formato</td><td class="lbl t">Hora Inicial</td><td class="lbl t">Hora Final</td></tr>');
+  var sa=p.salmueras||[];
+  if(sa.length){ sa.forEach(function(x){ x=x||{}; H.push('<tr><td>'+n(x.formato)+'</td><td class="t">'+n(x.hi)+'</td><td class="t">'+n(x.hf)+'</td></tr>'); }); }
+  else { H.push('<tr><td>&nbsp;</td><td></td><td></td></tr>'); }
+  H.push('</table>');
+  H.push('<div class="sec">Piezas fabricadas</div><table><tr><td class="t lbl">3 Kgs.</td><td class="t lbl">2 Kgs.</td><td class="t lbl">1 Kg.</td><td class="t lbl">1/2 Kg.</td><td class="t lbl">Barras</td><td class="t lbl">Gigante</td></tr>');
+  H.push('<tr><td class="t">'+z(pz['3kg'])+'</td><td class="t">'+z(pz['2kg'])+'</td><td class="t">'+z(pz['1kg'])+'</td><td class="t">'+z(pz['05kg'])+'</td><td class="t">'+z(pz.barra)+'</td><td class="t">'+z(pz.gigante)+'</td></tr></table>');
+  var casTxt=(cas.serie?(e(cas.serie)+' · '):'')+n(cas.primera)+' → '+n(cas.ultima)+(cas.total?(' ('+e(cas.total)+')'):'');
+  H.push('<table><tr><td><span class="lbl">Nº Caseínas:</span> '+casTxt+'</td></tr></table>');
+  H.push('<table class="mt"><tr><td style="height:34px"><span class="lbl">Acciones correctoras:</span> '+n(p.observaciones)+'</td></tr></table>');
+  H.push('<div class="firma"><span class="lbl">FIRMA:</span></div>');
+  H.push('<div class="foot"><span>FOR 08-01 / diciembre 2024</span><span>Operario: '+n(p.operario)+' · Cuba '+n(p.cuba)+' · '+fecha+'</span></div>');
+  H.push('</body></html>');
+  return H.join('');
+}
+
+
 function toast(msg){var t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2200);}
 
 function switchTab(tab){
@@ -2361,6 +2454,9 @@ function _verParteRender(id){
   // Observaciones
   if(p.observaciones) h += bloque('📝 Observaciones', '<div style="font-size:0.88rem;color:var(--text2)">'+p.observaciones+'</div>');
 
+  if(esCalidadOAdmin()){
+    h += '<button class="btn btn-secondary" style="width:100%;margin-top:16px" onclick="imprimirParte(\''+p.id+'\')">🖨️ Imprimir / PDF</button>';
+  }
   if(puedeEditarParte(p)){
     h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px">';
     h += '<button class="btn btn-secondary" onclick="editarParteCompleto(\''+p.id+'\')">✏️ Editar parte</button>';
