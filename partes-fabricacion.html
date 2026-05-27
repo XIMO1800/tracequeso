@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.36</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.37</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -823,6 +823,7 @@ function propagarHora(origenId, destinoId){
 
 var OPERARIOS = ['JORGE','JOAQUIN','PACO']; // se pueden añadir más
 var OPERARIO_ACTUAL = ''; // último usado, persiste
+var ROL_ACTUAL = ''; // rol del usuario que entró desde TraceQueso (CALIDAD/ADMIN/...)
 
 function cargarOperarios(){
   try{
@@ -831,6 +832,7 @@ function cargarOperarios(){
       var d = JSON.parse(s);
       if(d.lista && d.lista.length) OPERARIOS = d.lista;
       if(d.actual) OPERARIO_ACTUAL = d.actual;
+      if(d.rol) ROL_ACTUAL = d.rol;
     }
   }catch(e){}
   // Operario recibido desde TraceQueso (al pulsar "Partes de Fabricación" en el menú)
@@ -841,6 +843,7 @@ function cargarOperarios(){
       if(h && h.operario){
         OPERARIO_ACTUAL = h.operario;
         if(OPERARIOS.indexOf(h.operario)<0) OPERARIOS.unshift(h.operario);
+        if(h.rol) ROL_ACTUAL = h.rol;
         guardarOperarios();
       }
       localStorage.removeItem('tq_partes_handoff');
@@ -850,7 +853,7 @@ function cargarOperarios(){
 
 function guardarOperarios(){
   try{
-    localStorage.setItem('tq_partes_operarios', JSON.stringify({lista:OPERARIOS, actual:OPERARIO_ACTUAL}));
+    localStorage.setItem('tq_partes_operarios', JSON.stringify({lista:OPERARIOS, actual:OPERARIO_ACTUAL, rol:ROL_ACTUAL}));
   }catch(e){}
 }
 
@@ -1484,6 +1487,16 @@ function persistir(){
 }
 
 function formatearFecha(iso){if(!iso)return'—';var p=iso.toString().split('-');if(p.length<3)return iso;return p[2].slice(0,2)+'/'+p[1]+'/'+p[0].slice(2);}
+
+// ¿Puede el usuario actual editar/eliminar este parte?
+// Regla: cualquier operario puede editar un parte de HOY; los partes de días
+// anteriores (histórico) solo los pueden tocar CALIDAD o ADMIN (Joaquín).
+function puedeEditarParte(p){
+  var hoy = new Date().toISOString().slice(0,10);
+  var esHoy = !!(p && String(p.fecha||'').slice(0,10) === hoy);
+  var rol = String(ROL_ACTUAL||'').toUpperCase();
+  return esHoy || rol==='CALIDAD' || rol==='ADMIN';
+}
 
 function toast(msg){var t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2200);}
 
@@ -2348,10 +2361,14 @@ function _verParteRender(id){
   // Observaciones
   if(p.observaciones) h += bloque('📝 Observaciones', '<div style="font-size:0.88rem;color:var(--text2)">'+p.observaciones+'</div>');
 
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px">';
-  h += '<button class="btn btn-secondary" onclick="editarParteCompleto(\''+p.id+'\')">✏️ Editar parte</button>';
-  h += '<button class="btn btn-danger" onclick="eliminarParte(\''+p.id+'\')">🗑️ Eliminar</button>';
-  h += '</div>';
+  if(puedeEditarParte(p)){
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px">';
+    h += '<button class="btn btn-secondary" onclick="editarParteCompleto(\''+p.id+'\')">✏️ Editar parte</button>';
+    h += '<button class="btn btn-danger" onclick="eliminarParte(\''+p.id+'\')">🗑️ Eliminar</button>';
+    h += '</div>';
+  } else {
+    h += '<div style="margin-top:16px;padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;font-size:0.82rem;color:var(--text3);text-align:center">🔒 Solo Calidad puede modificar partes de días anteriores</div>';
+  }
   abrirModal(h);
 }
 
@@ -2374,6 +2391,7 @@ function _formatosQueso(){ return ['3 KG','2 KG','1 KG','1/2 KG','BARRA','GIGANT
 function editarParteCompleto(id){
   var p = PARTES.find(function(x){return x.id===id;});
   if(!p){ toast('Parte no encontrado','err'); return; }
+  if(!puedeEditarParte(p)){ toast('Solo Calidad puede modificar partes de días anteriores','warn'); return; }
 
   // Asegurar que existan los arrays/objetos para que siempre haya algo que editar
   if(!p.auxiliares) p.auxiliares = [];
@@ -2917,6 +2935,8 @@ function guardarParteEditado(id){
 }
 
 function eliminarParte(id){
+  var _pe=PARTES.find(function(x){return x.id===id;});
+  if(_pe && !puedeEditarParte(_pe)){ toast('Solo Calidad puede eliminar partes de días anteriores','warn'); return; }
   if(!confirm('¿Eliminar este parte?'))return;
   PARTES=PARTES.filter(function(p){return p.id!==id;});
   persistir();cerrarModal();renderPartes();toast('Parte eliminado');
@@ -3324,7 +3344,22 @@ function cargarPartesSheets(fecha){
     if(d.ok&&d.data&&d.data.length>0){
       var idsSheets=d.data.map(function(p){return p['ID'];});
       PARTES=PARTES.filter(function(p){return idsSheets.indexOf(p.id)<0;});
-      var deSheets=d.data.map(function(p){return {id:p['ID'],fecha:p['FECHA'],cuba:p['CUBA'],tipo:p['TIPO DE QUESO'],variedad:p['VARIEDAD'],litros:p['LITROS'],operario:p['OPERARIO'],piezas:{'3kg':p['PZAS 3KG']||0,'2kg':p['PZAS 2KG']||0,'1kg':p['PZAS 1KG']||0,'05kg':p['PZAS 05KGS']||0,'barra':p['PZAS BARRA']||0,'gigante':p['PZAS GIGANTE']||0},observaciones:p['OBSERVACIONES']||''};});
+      var deSheets=d.data.map(function(p){
+        // Si el parte trae el JSON completo, lo usamos tal cual (fidelidad total)
+        if(p['JSON']){
+          try{
+            var full=JSON.parse(p['JSON']);
+            if(full && typeof full==='object'){
+              full.id = full.id || p['ID'];
+              full.fecha = p['FECHA'] || full.fecha; // fecha normalizada de la hoja
+              full.cerrado = true;
+              return full;
+            }
+          }catch(e){}
+        }
+        // Partes antiguos sin JSON: reconstrucción básica desde columnas
+        return {id:p['ID'],fecha:p['FECHA'],cuba:p['CUBA'],tipo:p['TIPO DE QUESO'],variedad:p['VARIEDAD'],litros:p['LITROS'],operario:p['OPERARIO'],piezas:{'3kg':p['PZAS 3KG']||0,'2kg':p['PZAS 2KG']||0,'1kg':p['PZAS 1KG']||0,'05kg':p['PZAS 05KGS']||0,'barra':p['PZAS BARRA']||0,'gigante':p['PZAS GIGANTE']||0},observaciones:p['OBSERVACIONES']||'',cerrado:true};
+      });
       PARTES=deSheets.concat(PARTES);persistir();renderPartes();
     }
   }).catch(function(){});
