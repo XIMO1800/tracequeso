@@ -1,7 +1,12 @@
-// Service Worker para TraceQueso
-// Versión: v92 - cambiar este número en cada nueva versión del HTML
-const CACHE = 'tracequeso-v126';
-const ASSETS = ['/tracequeso/', '/tracequeso/index.html'];
+// Service Worker UNIFICADO para TraceQueso + Partes de Fabricación
+// Versión: v127 - cambiar este número (y la cadena CACHE) en cada despliegue
+// Sustituye al antiguo partes-sw.js: ahora un solo SW cachea las dos apps.
+const CACHE = 'tracequeso-v127';
+const ASSETS = [
+  '/tracequeso/',
+  '/tracequeso/index.html',
+  '/tracequeso/partes-fabricacion.html'
+];
 
 // INSTALACIÓN: cachear archivos esenciales
 self.addEventListener('install', function(e) {
@@ -15,7 +20,7 @@ self.addEventListener('install', function(e) {
   );
 });
 
-// ACTIVACIÓN: borrar cachés viejos
+// ACTIVACIÓN: borrar cachés viejos (incluye los antiguos 'partes-v2-6-xx')
 self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(keys) {
@@ -29,13 +34,19 @@ self.addEventListener('activate', function(e) {
   );
 });
 
-// FETCH: network-first para el HTML (siempre lo más reciente)
-// cache-first para el resto
+// FETCH: network-first para los HTML (siempre la versión más reciente),
+// cache-first para el resto.
 self.addEventListener('fetch', function(e) {
   var url = e.request.url;
 
-  // Para el HTML siempre intentar red primero
-  if (url.indexOf('/tracequeso/index.html') >= 0 || url.endsWith('/tracequeso/') || url.endsWith('/tracequeso')) {
+  var esHTML = (
+    url.indexOf('/tracequeso/index.html') >= 0 ||
+    url.indexOf('/tracequeso/partes-fabricacion.html') >= 0 ||
+    url.endsWith('/tracequeso/') ||
+    url.endsWith('/tracequeso')
+  );
+
+  if (esHTML) {
     e.respondWith(
       fetch(e.request).then(function(resp) {
         // Guardar copia en caché para uso offline
