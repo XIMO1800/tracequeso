@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.35</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.36</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1504,7 +1504,7 @@ function switchTab(tab){
   if(badge) badge.style.display = (tab==='hoy' && CUBA_ACTIVA_ID) ? 'block' : 'none';
   // Refrescar contenido según pantalla
   if(tab==='hoy'){ try{ renderPestanasCubas(); }catch(e){} }
-  if(tab==='historial'){ try{ renderPartes(); }catch(e){} }
+  if(tab==='historial'){ try{ renderPartes(); }catch(e){} try{ cargarPartesSheets(_filtroFecha); }catch(e){} }
 }
 
 function toggleSec(id){var b=document.getElementById('body-'+id);var c=document.getElementById('chev-'+id);if(b)b.classList.toggle('open');if(c)c.classList.toggle('open');}
@@ -2152,6 +2152,7 @@ function cambiarDiaFiltro(delta){
   var p=_filtroFecha.split('-');
   document.getElementById('filtro-fecha-display').textContent=p[2]+'/'+p[1]+'/'+p[0].slice(2);
   renderPartes();
+  try{ cargarPartesSheets(_filtroFecha); }catch(e){}
 }
 
 var _filtroFecha=new Date().toISOString().slice(0,10);
@@ -3317,8 +3318,8 @@ function cargarIngredientesParte(id, cb){
     .catch(function(){ cb(null); });
 }
 
-function cargarPartesSheets(){
-  var hoy=new Date().toISOString().slice(0,10);
+function cargarPartesSheets(fecha){
+  var hoy=fecha||new Date().toISOString().slice(0,10);
   fetch(API_URL+'?tipo=partes&fecha='+hoy).then(function(r){return r.json();}).then(function(d){
     if(d.ok&&d.data&&d.data.length>0){
       var idsSheets=d.data.map(function(p){return p['ID'];});
