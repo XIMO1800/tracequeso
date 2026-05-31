@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.38</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.39</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3119,7 +3119,7 @@ function refrescarIngs(){
     var c=document.getElementById(contId);if(!c)return;
     if(!lista||!lista.length){c.innerHTML='<div style="font-size:0.78rem;color:var(--text3);padding:8px 0">Sin ingredientes</div>';return;}
     // Categoría del stock que filtra cada tipo
-    var catMap = {auxiliares:'AUXILIAR', fermentos:'FERMENTO', cuajo:'CUAJO'};
+    var catMap = {auxiliares:'AUXILIAR FABRICACION', fermentos:'FERMENTO', cuajo:'CUAJO'};
     var catFiltro = catMap[tipo] || '';
     var disponibles = catFiltro ? getProductosStockPorCategoria(catFiltro) : [];
     var h='';
@@ -3272,7 +3272,7 @@ function renderLotes(){
   var c=document.getElementById('lista-lotes');
   if(!c) return;
   var stock = (STOCK_REMOTO && STOCK_REMOTO.stock) ? STOCK_REMOTO.stock.map(normRowStock) : [];
-  var CATS_FABRI = ['FERMENTO','AUXILIAR','CUAJO'];
+  var CATS_FABRI = ['FERMENTO','AUXILIAR FABRICACION','CUAJO'];
   // Solo lotes activos (con stock > 0) y de categorías de fabricación
   var activos = stock.filter(function(r){
     return r.stockActual > 0 && CATS_FABRI.indexOf((r.categoria||'').toUpperCase()) >= 0;
@@ -3329,7 +3329,7 @@ function renderStock(){
   if(!c) return;
   var stockTodo = (STOCK_REMOTO && STOCK_REMOTO.stock) ? STOCK_REMOTO.stock.map(normRowStock) : [];
   // Filtrar solo categorías de fabricación (no plástico, cartonaje, etiquetas, etc.)
-  var CATS_FABRI = ['FERMENTO','AUXILIAR','CUAJO'];
+  var CATS_FABRI = ['FERMENTO','AUXILIAR FABRICACION','CUAJO'];
   var stock = stockTodo.filter(function(r){
     return CATS_FABRI.indexOf((r.categoria||'').toUpperCase()) >= 0;
   });
