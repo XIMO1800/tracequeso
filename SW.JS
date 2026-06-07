@@ -1,7 +1,7 @@
 // Service Worker UNIFICADO para TraceQueso + Partes de Fabricación
 // Versión: v127 - cambiar este número (y la cadena CACHE) en cada despliegue
 // Sustituye al antiguo partes-sw.js: ahora un solo SW cachea las dos apps.
-const CACHE = 'tracequeso-v159';
+const CACHE = 'tracequeso-v160';
 const ASSETS = [
   '/tracequeso/',
   '/tracequeso/index.html',
