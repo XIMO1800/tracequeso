@@ -371,7 +371,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.39</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.40</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1336,11 +1336,20 @@ function autoGuardarParte(parteId){
 }
 
 function cerrarParteActivo(id){
+  var p = PARTES.find(function(x){return x.id===id;});
+  if(!p) return;
+  // Pedir la firma del quesero ANTES de confirmar el cierre.
+  abrirFirmaQuesero(p, function(){ _cerrarParteActivoConfirmar(id); });
+}
+
+function _cerrarParteActivoConfirmar(id){
   if(!confirm('¿Cerrar este parte? Pasará al historial.')) return;
   var p = PARTES.find(function(x){return x.id===id;});
   if(!p) return;
   // Antes de cerrar, capturar los auxiliares/fermentos/cuajo aplicados con sus lotes reales
   _capturarAuxFermCuajoEnParte(p);
+  // Descartar prensados vacíos (un "+ Añadir" por error no debe dejar filas en blanco)
+  limpiarPrensadosVacios(p);
   // Aviso si algún ingrediente deja el stock en negativo (no bloquea, solo avisa)
   var avisoStock = _avisoStockInsuficiente(p);
   if(avisoStock && !confirm(avisoStock)) return;
@@ -1532,6 +1541,7 @@ function _htmlParteImpresion(p){
   H.push('.lbl{font-weight:bold}.t{text-align:center}.mt{margin-top:6px}');
   H.push('.hdr{display:flex;align-items:center;gap:12px;border:1px solid #000;padding:6px}.hdr img{height:42px}.hdr .ti{flex:1;text-align:center;font-size:17px;font-weight:bold;letter-spacing:1px}');
   H.push('.firma{margin-top:18px;border:1px solid #000;height:64px;padding:4px}.foot{display:flex;justify-content:space-between;font-size:9px;margin-top:4px;color:#333}');
+  H.push('.firmas{display:flex;gap:8px;margin-top:14px}.firmabox{flex:1;border:1px solid #000;padding:4px;min-height:80px}.firmabox .lbl{display:block;margin-bottom:2px}.firmabox img{max-width:100%;max-height:58px;display:block;margin:2px auto 0}.firmabox .vb{font-size:10px;margin-top:4px}');
   H.push('</style></head><body>');
   H.push('<div class="hdr">'+(logo?'<img src="'+logo+'">':'')+'<div class="ti">PARTE DE FABRICACIÓN</div></div>');
   H.push('<table class="mt"><tr><td><span class="lbl">FECHA:</span> '+fecha+'</td><td><span class="lbl">TIPO DE QUESO:</span> '+n(p.tipo)+(p.variedad?(' · '+e(p.variedad)):'')+'</td><td><span class="lbl">LOTE:</span> '+n(p.lote_queso)+'</td></tr></table>');
@@ -1584,7 +1594,13 @@ function _htmlParteImpresion(p){
   var casTxt=(cas.serie?(e(cas.serie)+' · '):'')+n(cas.primera)+' → '+n(cas.ultima)+(cas.total?(' ('+e(cas.total)+')'):'');
   H.push('<table><tr><td><span class="lbl">Nº Caseínas:</span> '+casTxt+'</td></tr></table>');
   H.push('<table class="mt"><tr><td style="height:34px"><span class="lbl">Acciones correctoras:</span> '+n(p.observaciones)+'</td></tr></table>');
-  H.push('<div class="firma"><span class="lbl">FIRMA:</span></div>');
+  var firmaImg = p.firma_quesero ? ('<img src="'+p.firma_quesero+'">') : '';
+  var firmaNom = p.firma_quesero_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_quesero_nombre)+(p.firma_quesero_ts?(' · '+e(p.firma_quesero_ts)):'')+'</div>') : '';
+  var vbCalidad = p.revisado_calidad ? ('<div class="vb"><b>✓ Revisado por Calidad</b><br>'+e(p.revisado_calidad_por||'Calidad')+(p.revisado_calidad_ts?(' · '+e(p.revisado_calidad_ts)):'')+'</div>') : '';
+  H.push('<div class="firmas">');
+  H.push('<div class="firmabox"><span class="lbl">FIRMA:</span>'+firmaImg+firmaNom+'</div>');
+  H.push('<div class="firmabox"><span class="lbl">Vº Bº CALIDAD:</span>'+vbCalidad+'</div>');
+  H.push('</div>');
   H.push('<div class="foot"><span>FOR 08-01 / diciembre 2024</span><span>Operario: '+n(p.operario)+' · Cuba '+n(p.cuba)+' · '+fecha+'</span></div>');
   H.push('</body></html>');
   return H.join('');
@@ -2453,6 +2469,22 @@ function _verParteRender(id){
 
   // Observaciones
   if(p.observaciones) h += bloque('📝 Observaciones', '<div style="font-size:0.88rem;color:var(--text2)">'+p.observaciones+'</div>');
+
+  // Firma del quesero + visto bueno de Calidad
+  var fb = '';
+  if(p.firma_quesero){
+    fb += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:4px">Firma del quesero'+(p.firma_quesero_nombre?(' · '+p.firma_quesero_nombre):'')+'</div>';
+    fb += '<div style="border:1px solid var(--border);border-radius:8px;background:#fff;padding:6px;text-align:center"><img src="'+p.firma_quesero+'" alt="Firma" style="max-width:100%;max-height:120px"></div>';
+    if(p.firma_quesero_ts) fb += '<div style="font-size:0.72rem;color:var(--text3);margin-top:4px">Firmado: '+p.firma_quesero_ts+'</div>';
+  } else {
+    fb += '<div style="font-size:0.82rem;color:var(--text3);padding:8px;background:var(--bg2);border-radius:8px">Sin firma del quesero.</div>';
+  }
+  if(p.revisado_calidad){
+    fb += '<div style="margin-top:8px;padding:8px 10px;background:var(--greenl);border:1px solid var(--green2);border-radius:8px;font-size:0.82rem;color:var(--green)"><b>✓ Revisado por Calidad</b><br>'+(p.revisado_calidad_por||'Calidad')+' · '+(p.revisado_calidad_ts||'')+'</div>';
+  } else if(esCalidadOAdmin()){
+    fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="revisarPorCalidad(\''+p.id+'\')">✓ Revisado por Calidad</button>';
+  }
+  h += bloque('✍️ Firma y revisión', fb);
 
   if(esCalidadOAdmin()){
     h += '<button class="btn btn-secondary" style="width:100%;margin-top:16px" onclick="imprimirParte(\''+p.id+'\')">🖨️ Imprimir / PDF</button>';
@@ -3409,6 +3441,127 @@ function articulosDeCategoria(cat){
 function abrirModal(html){var c=document.getElementById('modal-content');var m=document.getElementById('modal');if(c)c.innerHTML=html;if(m)m.classList.add('open');}
 function cerrarModal(){var m=document.getElementById('modal');if(m)m.classList.remove('open');}
 
+// ═══════════════════════════════════════════════
+// FIRMA DEL QUESERO (lienzo táctil) + VISTO BUENO DE CALIDAD
+// ═══════════════════════════════════════════════
+
+// Lienzo de firma. Llama a onFirma(dataURL) si firma y guarda, o continúa
+// igualmente si decide cerrar sin firmar (la firma no es obligatoria para no
+// bloquear al quesero, pero se le ofrece siempre).
+var _firmaCtx = null, _firmaDibujando = false, _firmaHayTrazo = false, _firmaOnDone = null, _firmaParte = null;
+
+function abrirFirmaQuesero(p, onDone){
+  _firmaParte = p; _firmaOnDone = onDone || function(){};
+  _firmaHayTrazo = false;
+  var ov = document.getElementById('firma-overlay');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id = 'firma-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.innerHTML =
+      '<div style="background:var(--card);border-radius:14px;max-width:460px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.3);overflow:hidden">'
+    +   '<div style="background:var(--green);color:#fff;padding:13px 16px;font-weight:700;font-size:0.95rem">✍️ Firma del quesero</div>'
+    +   '<div style="padding:14px 16px">'
+    +     '<div style="font-size:0.82rem;color:var(--text2);margin-bottom:8px">Firma con el dedo o el lápiz dentro del recuadro:</div>'
+    +     '<canvas id="firma-canvas" style="width:100%;height:180px;border:2px dashed var(--border);border-radius:10px;background:#fff;touch-action:none;display:block"></canvas>'
+    +     '<div style="display:flex;gap:8px;margin-top:12px">'
+    +       '<button class="btn btn-secondary" style="flex:1" onclick="limpiarFirma()">↺ Borrar</button>'
+    +       '<button class="btn btn-secondary" style="flex:1" onclick="cancelarFirma()">Cancelar</button>'
+    +       '<button class="btn btn-primary" style="flex:1.4" onclick="confirmarFirma()">✓ Firmar y cerrar</button>'
+    +     '</div>'
+    +     '<div style="font-size:0.74rem;color:var(--text3);text-align:center;margin-top:8px">También puedes cerrar sin firmar pulsando «Firmar y cerrar» con el recuadro vacío.</div>'
+    +   '</div>'
+    + '</div>';
+    document.body.appendChild(ov);
+  }
+  ov.style.display = 'flex';
+  // Inicializar el canvas a su tamaño real para que el trazo no se deforme
+  setTimeout(_initFirmaCanvas, 30);
+}
+
+function _initFirmaCanvas(){
+  var cv = document.getElementById('firma-canvas');
+  if(!cv) return;
+  var rect = cv.getBoundingClientRect();
+  cv.width  = Math.round(rect.width);
+  cv.height = Math.round(rect.height);
+  _firmaCtx = cv.getContext('2d');
+  _firmaCtx.lineWidth = 2.6;
+  _firmaCtx.lineCap = 'round';
+  _firmaCtx.lineJoin = 'round';
+  _firmaCtx.strokeStyle = '#1a1a1a';
+  _firmaHayTrazo = false;
+
+  function pos(ev){
+    var r = cv.getBoundingClientRect();
+    var t = (ev.touches && ev.touches[0]) ? ev.touches[0] : ev;
+    return { x: t.clientX - r.left, y: t.clientY - r.top };
+  }
+  function start(ev){ ev.preventDefault(); _firmaDibujando = true; var pt = pos(ev); _firmaCtx.beginPath(); _firmaCtx.moveTo(pt.x, pt.y); }
+  function move(ev){ if(!_firmaDibujando) return; ev.preventDefault(); var pt = pos(ev); _firmaCtx.lineTo(pt.x, pt.y); _firmaCtx.stroke(); _firmaHayTrazo = true; }
+  function end(ev){ _firmaDibujando = false; }
+
+  cv.onmousedown = start; cv.onmousemove = move; cv.onmouseup = end; cv.onmouseleave = end;
+  cv.ontouchstart = start; cv.ontouchmove = move; cv.ontouchend = end;
+}
+
+function limpiarFirma(){
+  var cv = document.getElementById('firma-canvas');
+  if(cv && _firmaCtx){ _firmaCtx.clearRect(0,0,cv.width,cv.height); _firmaHayTrazo = false; }
+}
+
+function cancelarFirma(){
+  var ov = document.getElementById('firma-overlay');
+  if(ov) ov.style.display = 'none';
+  // No se cierra el parte: el quesero canceló.
+}
+
+function confirmarFirma(){
+  var ov = document.getElementById('firma-overlay');
+  if(_firmaParte){
+    if(_firmaHayTrazo){
+      var cv = document.getElementById('firma-canvas');
+      try{ _firmaParte.firma_quesero = cv.toDataURL('image/png'); }catch(e){}
+      _firmaParte.firma_quesero_nombre = _firmaParte.operario || OPERARIO_ACTUAL || '';
+      _firmaParte.firma_quesero_ts = _ahoraSelloMadrid();
+    }
+  }
+  if(ov) ov.style.display = 'none';
+  var done = _firmaOnDone; _firmaOnDone = null;
+  if(typeof done === 'function') done();
+}
+
+// Sello de fecha+hora en hora de Madrid (dd/mm/aaaa hh:mm)
+function _ahoraSelloMadrid(){
+  try{
+    var f = new Intl.DateTimeFormat('es-ES',{timeZone:'Europe/Madrid',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date());
+    return f.replace(',', '');
+  }catch(e){
+    var d=new Date();
+    function z(n){return (n<10?'0':'')+n;}
+    return z(d.getDate())+'/'+z(d.getMonth()+1)+'/'+d.getFullYear()+' '+z(d.getHours())+':'+z(d.getMinutes());
+  }
+}
+
+// VISTO BUENO DE CALIDAD: estampa nombre + fecha + hora en el parte.
+// Calidad lo da al revisar el parte (normalmente al día siguiente).
+function revisarPorCalidad(id){
+  var p = PARTES.find(function(x){return x.id===id;});
+  if(!p){ toast('Parte no encontrado'); return; }
+  if(!esCalidadOAdmin()){ toast('Solo Calidad puede dar el visto bueno'); return; }
+  var nombre = (typeof CU!=='undefined' && CU && CU.n) ? CU.n : (OPERARIO_ACTUAL || ROL_ACTUAL || 'Calidad');
+  if(p.revisado_calidad){
+    if(!confirm('Este parte ya está revisado por '+(p.revisado_calidad_por||'Calidad')+' ('+(p.revisado_calidad_ts||'')+').\n¿Volver a estampar el visto bueno con tu nombre y la hora actual?')) return;
+  }
+  p.revisado_calidad = true;
+  p.revisado_calidad_por = nombre;
+  p.revisado_calidad_ts = _ahoraSelloMadrid();
+  persistir();
+  enviarParteSheets(p);
+  toast('✓ Revisado por Calidad');
+  _verParteRender(id);
+}
+
 function enviarParteSheets(parte){
   var payload=Object.assign({},parte,{_SHEET:'PARTES'});
   fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){SYNC_PENDIENTE.push({tipo:'parte',data:payload});persistir();});
@@ -3946,18 +4099,48 @@ function recogerPrensados(){
   var cards = document.querySelectorAll('#prensados-container .pren-card');
   var out = [];
   cards.forEach(function(c){
-    var fmt = (c.querySelector('.pren-formato')||{}).value || '';
+    var fmt  = (c.querySelector('.pren-formato')||{}).value || '';
+    var prog = (c.querySelector('.pren-programa')||{}).value || '';
+    var rawBi = (c.querySelector('.pren-bar-ini')||{}).value;
+    var rawBf = (c.querySelector('.pren-bar-fin')||{}).value;
+    var rawRa = (c.querySelector('.pren-rampa')||{}).value;
+    var rawMa = (c.querySelector('.pren-mant')||{}).value;
+    var bi = parseFloat(rawBi) || 0;
+    var bf = parseFloat(rawBf) || 0;
+    var ra = parseFloat(rawRa) || 0;
+    var ma = parseFloat(rawMa) || 0;
+    // Descartar tarjeta sin formato seleccionado
     if (!fmt) return;
+    // Descartar tarjeta "fantasma": formato sin programa y sin ningún valor real
+    // (un "+ Añadir" pulsado por error no debe dejar filas en blanco al guardar/imprimir)
+    var tieneValores = (bi>0 || bf>0 || ra>0 || ma>0);
+    if (!prog && !tieneValores) return;
     out.push({
       formato: fmt,
-      programa: (c.querySelector('.pren-programa')||{}).value || '',
-      bar_inicial: parseFloat((c.querySelector('.pren-bar-ini')||{}).value) || 0,
-      bar_final:   parseFloat((c.querySelector('.pren-bar-fin')||{}).value) || 0,
-      rampa_min:   parseFloat((c.querySelector('.pren-rampa')||{}).value)   || 0,
-      mantenimiento_min: parseFloat((c.querySelector('.pren-mant')||{}).value) || 0
+      programa: prog,
+      bar_inicial: bi,
+      bar_final:   bf,
+      rampa_min:   ra,
+      mantenimiento_min: ma
     });
   });
   return out;
+}
+
+// Limpia de un parte los prensados vacíos (formato sin programa ni valores).
+// Se usa al cerrar el parte para que un "+ Añadir" pulsado por error no
+// deje filas en blanco en el historial ni en la impresión.
+function limpiarPrensadosVacios(p){
+  if(!p || !p.prensados || !p.prensados.length) return;
+  p.prensados = p.prensados.filter(function(x){
+    if(!x || !x.formato) return false;
+    var tieneValores = (parseFloat(x.bar_inicial)||0)>0 ||
+                       (parseFloat(x.bar_final)||0)>0 ||
+                       (parseFloat(x.rampa_min)||0)>0 ||
+                       (parseFloat(x.mantenimiento_min)||0)>0;
+    if(!x.programa && !tieneValores) return false;
+    return true;
+  });
 }
 
 // === CONFIGURACIÓN GLOBAL: modal para editar valores predeterminados ===
