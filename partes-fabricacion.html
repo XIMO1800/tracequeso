@@ -125,6 +125,8 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .modal-close{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text3);line-height:1;padding:0 4px}
 .ferm-row{background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:8px;position:relative;border:1px solid var(--border)}
 .ferm-row-del{position:absolute;top:8px;right:8px;background:var(--redl);border:1px solid var(--red);color:var(--red);border-radius:6px;padding:3px 8px;font-size:0.72rem;font-weight:700;cursor:pointer}
+.prog-del-btn{background:var(--redl);border:1px solid var(--red);border-radius:8px;font-size:1.05rem;line-height:1;cursor:pointer;padding:6px 12px;flex-shrink:0}
+.prog-del-btn:active{background:var(--red)}
 .empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
 .empty-state-icon{font-size:2.5rem;margin-bottom:10px;opacity:0.5}
 .empty-state-text{font-size:0.88rem}
@@ -300,6 +302,8 @@ input[type="email"] {
 
 /* Tarjetas de prensado (una por formato producido en la cuba) */
 .pren-card{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;position:relative}
+.pren-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.pren-card-titulo{font-size:0.9rem;color:var(--green)}
 .pren-card .quitar-btn{position:absolute;top:4px;right:6px;background:none;border:none;color:var(--text2);font-size:1.1rem;cursor:pointer;padding:3px 7px}
 .pren-card .quitar-btn:hover{color:var(--brand)}
 /* Modal config prensado */
@@ -371,7 +375,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.40</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.41</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2702,7 +2706,7 @@ function renderEpForm(){
       foOpts += '<option value="'+f+'"'+(f===pr.formato?' selected':'')+'>'+f+'</option>';
     });
     h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px;border-left:3px solid var(--accent)">';
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:0.85rem">Programa '+(i+1)+'</b><button class="ferm-row-del" onclick="_epDel(\'prensados\','+i+')">Eliminar</button></div>';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:0.85rem">Programa '+(i+1)+'</b><button class="prog-del-btn" onclick="_epDelConfirm(\'prensados\','+i+',\'Programa '+(i+1)+'\')" title="Eliminar este programa">🗑️</button></div>';
     h += _ep2('Formato', '<select id="ep-pren-fmt-'+i+'" style="'+_epStyle()+'">'+foOpts+'</select>',
              'Programa nº', _epInp('ep-pren-prog-'+i, pr.programa||(i+1)));
     h += _ep2('Presión inicial (bar)', _epInp('ep-pren-bi-'+i, pr.bar_inicial||0, 'number'),
@@ -2724,7 +2728,7 @@ function renderEpForm(){
       foOpts += '<option value="'+f+'"'+(f===d.formato?' selected':'')+'>'+f+'</option>';
     });
     h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px;border-left:3px solid #7A5A3F">';
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:0.85rem">Desmoldeo '+(i+1)+'</b><button class="ferm-row-del" onclick="_epDel(\'desmoldeos\','+i+')">Eliminar</button></div>';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:0.85rem">Desmoldeo '+(i+1)+'</b><button class="prog-del-btn" onclick="_epDelConfirm(\'desmoldeos\','+i+',\'Desmoldeo '+(i+1)+'\')" title="Eliminar este desmoldeo">🗑️</button></div>';
     h += _ep1('Formato', '<select id="ep-des-fmt-'+i+'" style="'+_epStyle()+'">'+foOpts+'</select>');
     h += _ep2('Hora inicio', _epInp('ep-des-hi-'+i, d.hi, 'time'), 'Hora fin', _epInp('ep-des-hf-'+i, d.hf, 'time'));
     h += _ep2('pH inicial', _epInp('ep-des-phi-'+i, d.ph, 'number'), 'Tª inicial (°C)', _epInp('ep-des-ti-'+i, d.temp, 'number'));
@@ -2744,7 +2748,7 @@ function renderEpForm(){
       foOpts += '<option value="'+f+'"'+(f===s.formato?' selected':'')+'>'+f+'</option>';
     });
     h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px;border-left:3px solid #5A8AA8">';
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:0.85rem">Salmuera '+(i+1)+'</b><button class="ferm-row-del" onclick="_epDel(\'salmueras\','+i+')">Eliminar</button></div>';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:0.85rem">Salmuera '+(i+1)+'</b><button class="prog-del-btn" onclick="_epDelConfirm(\'salmueras\','+i+',\'Salmuera '+(i+1)+'\')" title="Eliminar esta salmuera">🗑️</button></div>';
     h += _ep1('Formato', '<select id="ep-sal-fmt-'+i+'" style="'+_epStyle()+'">'+foOpts+'</select>');
     h += _ep2('Hora inicio', _epInp('ep-sal-hi-'+i, s.hi, 'time'), 'Hora fin', _epInp('ep-sal-hf-'+i, s.hf, 'time'));
     h += '</div>';
@@ -2848,6 +2852,13 @@ function _epDel(lista, idx){
   if(!p[lista]) return;
   p[lista].splice(idx,1);
   renderEpForm();
+}
+
+// Borrado de una sola fila (programa/desmoldeo/salmuera) con confirmación
+// que deja claro exactamente cuál se elimina. NO afecta al resto del parte.
+function _epDelConfirm(lista, idx, etiqueta){
+  if(!confirm('¿Eliminar solo "'+etiqueta+'"?\n\nEsto borra únicamente esta tarjeta. El resto del parte y los demás programas no se tocan.')) return;
+  _epDel(lista, idx);
 }
 
 // Recoge valores del DOM y los vuelca al estado window._parteEditando
@@ -4006,7 +4017,9 @@ function anadirPrensado(datos){
   div.className = 'pren-card';
   div.dataset.idx = idx;
   div.innerHTML = ''
-    + (idx > 0 ? '<button type="button" class="quitar-btn" onclick="quitarPrensado(this)" title="Quitar">×</button>' : '')
+    + '<div class="pren-card-head"><b class="pren-card-titulo">Programa '+(idx+1)+'</b>'
+    +   '<button type="button" class="prog-del-btn" onclick="quitarPrensado(this)" title="Eliminar este programa">🗑️</button>'
+    + '</div>'
     + '<div class="form-cols">'
     +   '<div class="form-row"><label class="form-label">Formato</label><select class="pren-formato" onchange="onFormatoPrensadoChange(this)">'+optFmt+'</select></div>'
     +   '<div class="form-row"><label class="form-label">Programa</label><select class="pren-programa" onchange="onProgramaPrensadoChange(this)"><option value="">—</option></select></div>'
@@ -4090,8 +4103,22 @@ function onProgramaPrensadoChange(sel){
 
 function quitarPrensado(btn){
   var card = btn.closest('.pren-card');
-  if (card) card.remove();
+  if (!card) return;
+  var titulo = (card.querySelector('.pren-card-titulo')||{}).textContent || 'este programa';
+  if(!confirm('¿Eliminar solo "'+titulo+'"?\n\nSe borra únicamente esta tarjeta de prensado. El resto del parte no se toca.')) return;
+  card.remove();
+  _renumerarPrensados();
   if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
+}
+
+// Renumera los títulos "Programa N" tras eliminar una tarjeta
+function _renumerarPrensados(){
+  var cards = document.querySelectorAll('#prensados-container .pren-card');
+  cards.forEach(function(c, i){
+    c.dataset.idx = i;
+    var t = c.querySelector('.pren-card-titulo');
+    if(t) t.textContent = 'Programa '+(i+1);
+  });
 }
 
 // Recoger los prensados del DOM al guardar el parte
