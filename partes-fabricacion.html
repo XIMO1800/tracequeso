@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.45</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.46</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3777,7 +3777,9 @@ function revisarPorCalidad(id){
 }
 
 function enviarParteSheets(parte){
-  var payload=Object.assign({},parte,{_SHEET:'PARTES'});
+  // Siempre como upsert: el Apps Script busca por ID y actualiza si existe,
+  // o inserta si es nuevo. Así cerrar/firmar/revisar el MISMO parte no duplica filas.
+  var payload=Object.assign({},parte,{_SHEET:'PARTES', _UPDATE:true, ID: parte.id});
   fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){SYNC_PENDIENTE.push({tipo:'parte',data:payload});persistir();});
 }
 
