@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.62</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.63</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -415,6 +415,12 @@ input[type="email"] {
     <div id="firmar-todos-titulo" style="font-size:0.78rem;color:var(--text3);text-align:center;margin-bottom:8px">Firmar todos los partes de hoy de una vez</div>
     <button id="btn-firmar-todos-sala" class="btn-firmar-sala" onclick="firmarTodosHoy('sala')">✍️ Firmar todos (operario de sala)</button>
     <button id="btn-firmar-todos-quesero" class="btn-firmar-quesero" onclick="firmarTodosHoy('quesero')">✍️ Firmar todos (quesero)</button>
+  </div>
+
+  <!-- Mantenimiento: refrescar/reiniciar datos locales (para cuando algo se queda desincronizado) -->
+  <div style="padding:0 12px 40px;border-top:1px dashed var(--border);margin-top:6px;padding-top:18px">
+    <div style="font-size:0.74rem;color:var(--text3);text-align:center;margin-bottom:8px">¿Ves partes que ya no deberían estar, o algo descuadrado? Reinicia y vuelve a cargar desde Google.</div>
+    <button onclick="reiniciarDatosLocales()" style="width:100%;padding:11px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg2);color:var(--text2);font-size:0.9rem;font-weight:600;cursor:pointer">🔄 Refrescar / Reiniciar datos</button>
   </div>
 
 </div>
@@ -4089,6 +4095,42 @@ function cargarIngredientesParte(id, cb){
     .then(function(r){return r.json();})
     .then(function(d){ cb(d && d.ok && d.data ? d.data : null); })
     .catch(function(){ cb(null); });
+}
+
+// Reinicio total de datos locales: borra los partes guardados en el dispositivo
+// y la cola de pendientes, y vuelve a cargar desde Google la versión buena.
+// NO cierra sesión ni saca de la app (pensado para tablets ancladas en modo kiosko).
+// Pide confirmación porque se perderían cubas de hoy a medias sin sincronizar.
+function reiniciarDatosLocales(){
+  var msg = '¿Reiniciar y volver a cargar desde Google?\n\n'
+          + 'Se borrarán los partes guardados en esta tablet y se descargarán de nuevo los que haya en Google.\n\n'
+          + 'Si tienes una cuba de hoy a medias SIN guardar, se perderá. Asegúrate de haber guardado antes.';
+  if(!confirm(msg)) return;
+  try{
+    // Vaciar partes y cola de pendientes en memoria
+    PARTES = [];
+    if(typeof SYNC_PENDIENTE !== 'undefined') SYNC_PENDIENTE = [];
+    CUBA_ACTIVA_ID = null;
+    // Persistir el estado vacío (mantiene recetas/stock/lotes; solo limpia partes y pendientes)
+    persistir();
+  }catch(e){}
+  // Limpiar panel de cuba activa y pestañas
+  try{
+    var panel = document.getElementById('panel-cuba-activa');
+    if(panel) panel.innerHTML = '<div class="empty-state" style="padding:40px 20px"><div class="empty-state-icon">🔄</div><div class="empty-state-text">Recargando desde Google…</div></div>';
+  }catch(e){}
+  toast('🔄 Reiniciando y recargando desde Google…');
+  // Volver a bajar de Google (partes, recetas y stock) y repintar
+  try{ if(typeof cargarPartesSheets==='function') cargarPartesSheets(); }catch(e){}
+  try{ if(typeof cargarRecetasSheets==='function') cargarRecetasSheets(); }catch(e){}
+  try{ if(typeof cargarStockMaterial==='function') cargarStockMaterial(); }catch(e){}
+  // Repintar tras un momento, dando tiempo a la descarga
+  setTimeout(function(){
+    try{ renderPartes(); }catch(e){}
+    try{ renderPestanasCubas(); }catch(e){}
+    try{ switchTab('hoy'); }catch(e){}
+    toast('✓ Datos recargados desde Google');
+  }, 1500);
 }
 
 function cargarPartesSheets(fecha){
