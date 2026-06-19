@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.56</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.60</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -411,10 +411,10 @@ input[type="email"] {
   </div>
 
   <!-- Firma rápida: aplica una firma a TODOS los partes de hoy de una vez -->
-  <div style="padding:14px 12px 30px">
-    <div style="font-size:0.78rem;color:var(--text3);text-align:center;margin-bottom:8px">Firmar todos los partes de hoy de una vez</div>
-    <button class="btn-firmar-sala" onclick="firmarTodosHoy('sala')">✍️ Firmar todos (operario de sala)</button>
-    <button class="btn-firmar-quesero" onclick="firmarTodosHoy('quesero')">✍️ Firmar todos (quesero)</button>
+  <div id="firmar-todos-wrap" style="padding:14px 12px 30px">
+    <div id="firmar-todos-titulo" style="font-size:0.78rem;color:var(--text3);text-align:center;margin-bottom:8px">Firmar todos los partes de hoy de una vez</div>
+    <button id="btn-firmar-todos-sala" class="btn-firmar-sala" onclick="firmarTodosHoy('sala')">✍️ Firmar todos (operario de sala)</button>
+    <button id="btn-firmar-todos-quesero" class="btn-firmar-quesero" onclick="firmarTodosHoy('quesero')">✍️ Firmar todos (quesero)</button>
   </div>
 
 </div>
@@ -1005,6 +1005,7 @@ function renderPestanasCubas(){
   });
   h += '<button class="cuba-pestana-add" onclick="nuevaCubaPestana()">+ Nueva</button>';
   wrap.innerHTML = h;
+  try{ actualizarBotonesFirmarTodos(); }catch(e){}
 }
 
 function nuevaCubaPestana(){
@@ -1336,7 +1337,7 @@ function rellenarCampos(p){
     panel.appendChild(btnFirmar);
     var btnFirmarSala = document.createElement('button');
     btnFirmarSala.className='btn-firmar-sala';
-    btnFirmarSala.textContent = p.firma_sala ? '✍️ Firmado por la sala ✓ (volver a firmar)' : '✍️ Firmar (operario de sala)';
+    btnFirmarSala.textContent = p.firma_sala ? '✍️ Firmado por operario de sala ✓ (volver a firmar)' : '✍️ Firmar (operario de sala)';
     btnFirmarSala.onclick = function(){ firmarSala(p.id); };
     panel.appendChild(btnFirmarSala);
     var btnCerrar = document.createElement('button');
@@ -2260,8 +2261,18 @@ function obtenerLotesDelProducto(producto){
 function onDosisOverride(input){
   var prod=input.dataset.prod;
   var v=parseFloat(input.value);
-  if(isNaN(v)||v<=0)delete parteActual.dosis_override[prod];
-  else parteActual.dosis_override[prod]=v;
+  var esSobreTA = !!_sobreFermento(prod);
+  if(input.value.trim()===''){
+    // Campo vacío: vuelve a la propuesta automática
+    delete parteActual.dosis_override[prod];
+  } else if(esSobreTA){
+    // Sobres TA-054: se admite cualquier valor ≥ 0 (incluido 0 para "no echar de este sobre")
+    parteActual.dosis_override[prod] = isNaN(v)?0:v;
+  } else if(isNaN(v)||v<=0){
+    delete parteActual.dosis_override[prod];
+  } else {
+    parteActual.dosis_override[prod]=v;
+  }
   calcularDosis();
 }
 
@@ -2283,7 +2294,7 @@ function calcularDosis(){
         var txt = '🧮 <b>TA-054</b> · Objetivo '+repTA.objetivo+' dosis ('+litros+' L × '+(parseFloat(r.fermentos.filter(function(f){return f.nombre===repTA.fGrande;})[0].dosis_ml_1000L)||0)+'/1000) → ';
         txt += '<b>'+repTA.nG+'</b> sobre'+(repTA.nG===1?'':'s')+' de '+repTA.tamG;
         if(repTA.fPeq && repTA.nP>0) txt += ' + <b>'+repTA.nP+'</b> de '+repTA.tamP;
-        txt += ' = <b>'+repTA.totalReal+' dosis</b>';
+        txt += ' = <b>'+repTA.totalReal+' dosis</b> · <span style="font-weight:400;font-style:italic">propuesta — puedes cambiar la dosis utilizada de cada sobre</span>';
         resEl.innerHTML = txt;
       } else {
         resEl.innerHTML = 'Introduce los litros para repartir los sobres de TA-054';
@@ -2296,8 +2307,13 @@ function calcularDosis(){
     var key=p.nombre.replace(/[^a-zA-Z0-9]/g,'_');
     var el=document.getElementById('dosis-'+key);
     if(!el)return;
-    // Si es un sobre TA-054, el valor lo fija el reparto de sobres (no el cálculo ml libre)
+    // Si es un sobre TA-054, el reparto es solo una PROPUESTA inicial.
+    // Si el quesero ya escribió un valor a mano (override), se respeta y NO se machaca.
     if(repTA && nombresTA.hasOwnProperty(p.nombre)){
+      if(parteActual.dosis_override.hasOwnProperty(p.nombre)){
+        // El quesero lo editó: dejar su valor tal cual (no tocar el input)
+        return;
+      }
       var val = nombresTA[p.nombre];
       if(el.tagName==='INPUT') el.value = litros>0 ? String(val) : '';
       else el.textContent = litros>0 ? String(val) : '—';
@@ -2444,10 +2460,33 @@ function guardarParte(){
     caseinas:{serie:document.getElementById('cas-serie').value,primera:parseInt(document.getElementById('cas-primera').value)||0,ultima:parseInt(document.getElementById('cas-ultima').value)||0,total:(parseInt(document.getElementById('cas-ultima').value)||0)-(parseInt(document.getElementById('cas-primera').value)||0)+1},
     observaciones:document.getElementById('np-obs').value
   };
-  function recogerProd(p){var base=parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L;var consumo=litros*base/1000;var lote=obtenerLoteActivo(p.nombre);return {nombre:p.nombre,dosis_1000L:base,consumo_total:consumo,lote:lote?lote.lote:'',caducidad:lote?lote.caducidad:'',proveedor:lote?lote.proveedor:''};}
-  (r.auxiliares||[]).forEach(function(p){parte.auxiliares.push(recogerProd(p));descontarStock(p.nombre,litros*(parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L)/1000);});
-  (r.fermentos||[]).forEach(function(p){parte.fermentos.push(recogerProd(p));descontarStock(p.nombre,litros*(parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L)/1000);});
-  if(r.cuajo){parte.cuajo=recogerProd(r.cuajo);descontarStock(r.cuajo.nombre,litros*(parteActual.dosis_override[r.cuajo.nombre]||r.cuajo.dosis_ml_1000L)/1000);}
+  // Reparto propuesto de sobres TA-054 (para los que el quesero no haya tocado a mano)
+  var _repTAg = _calcReparteTA054(r, litros);
+  var _doseTAg = {};
+  if(_repTAg){
+    _doseTAg[_repTAg.fGrande] = _repTAg.nG * _repTAg.tamG;
+    if(_repTAg.fPeq) _doseTAg[_repTAg.fPeq] = _repTAg.nP * _repTAg.tamP;
+  }
+  // Consumo real de un producto: para sobres TA-054 es la dosis utilizada DIRECTA
+  // (lo que escribió el quesero, o el reparto propuesto); para el resto, litros×dosis/1000.
+  function _consumoProd(p){
+    if(_sobreFermento(p.nombre)){
+      if(parteActual.dosis_override.hasOwnProperty(p.nombre)) return parteActual.dosis_override[p.nombre];
+      if(_doseTAg.hasOwnProperty(p.nombre)) return _doseTAg[p.nombre];
+      return 0;
+    }
+    var base=parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L;
+    return litros*base/1000;
+  }
+  function recogerProd(p){
+    var consumo=_consumoProd(p);
+    var base = _sobreFermento(p.nombre) ? (p.dosis_ml_1000L||0) : (parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L);
+    var lote=obtenerLoteActivo(p.nombre);
+    return {nombre:p.nombre,dosis_1000L:base,consumo_total:consumo,lote:lote?lote.lote:'',caducidad:lote?lote.caducidad:'',proveedor:lote?lote.proveedor:''};
+  }
+  (r.auxiliares||[]).forEach(function(p){parte.auxiliares.push(recogerProd(p));descontarStock(p.nombre,_consumoProd(p));});
+  (r.fermentos||[]).forEach(function(p){parte.fermentos.push(recogerProd(p));descontarStock(p.nombre,_consumoProd(p));});
+  if(r.cuajo){parte.cuajo=recogerProd(r.cuajo);descontarStock(r.cuajo.nombre,_consumoProd(r.cuajo));}
   var co2lote=obtenerLoteActivo('CO2');
   parte.co2={lote:co2lote?co2lote.lote:'',caducidad:co2lote?co2lote.caducidad:'',tiempo_seg:parseInt(document.getElementById('co2-tiempo').value)||0,caudal_lh:parseFloat(document.getElementById('co2-caudal').value)||100,ph_leche:parseFloat(document.getElementById('aux-ph').value)||0,temp_leche:parseFloat(document.getElementById('aux-temp').value)||0,ph_objetivo:6.48};
 
@@ -2754,7 +2793,7 @@ function _verParteRender(id){
     fb += '<div style="font-size:0.78rem;color:var(--text3);margin:10px 0 4px">Firma del operario de sala'+(p.firma_sala_nombre?(' · '+p.firma_sala_nombre):'')+'</div>';
     fb += '<div style="border:1px solid var(--border);border-radius:8px;background:#fff;padding:6px;text-align:center"><img src="'+p.firma_sala+'" alt="Firma sala" style="max-width:100%;max-height:120px"></div>';
     if(p.firma_sala_ts) fb += '<div style="font-size:0.72rem;color:var(--text3);margin-top:4px">Firmado: '+p.firma_sala_ts+'</div>';
-    if(puedeEditarParte(p)) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="firmarSala(\''+p.id+'\')">✍️ Volver a firmar (sala)</button>';
+    if(puedeEditarParte(p)) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="firmarSala(\''+p.id+'\')">✍️ Volver a firmar (operario de sala)</button>';
   } else {
     fb += '<div style="font-size:0.82rem;color:var(--text3);padding:8px;background:var(--bg2);border-radius:8px;margin-top:10px">Sin firma del operario de sala.</div>';
     if(puedeEditarParte(p)) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="firmarSala(\''+p.id+'\')">✍️ Firmar (operario de sala)</button>';
@@ -3897,17 +3936,18 @@ function confirmarFirma(){
   try{ enviarParteSheets(_firmaParte); }catch(e){}
   var ov = document.getElementById('firma-overlay');
   if(ov) ov.style.display = 'none';
-  toast(_firmaTipo==='sala' ? '✍️ Firmado por la sala'
+  toast(_firmaTipo==='sala' ? '✍️ Firmado por operario de sala'
         : _firmaTipo==='calidad' ? '✓ Revisado y firmado por Calidad'
         : '✍️ Firmado por el quesero');
   // Refrescar etiquetas de los botones en el panel de cuba activa
   var bq = document.querySelector('.btn-firmar-quesero');
   if(bq && _firmaParte.firma_quesero) bq.textContent = '✍️ Firmado por el quesero ✓ (volver a firmar)';
   var bs = document.querySelector('.btn-firmar-sala');
-  if(bs && _firmaParte.firma_sala) bs.textContent = '✍️ Firmado por la sala ✓ (volver a firmar)';
+  if(bs && _firmaParte.firma_sala) bs.textContent = '✍️ Firmado por operario de sala ✓ (volver a firmar)';
   var doneId = _firmaParte.id;
   var done = _firmaOnDone; _firmaOnDone = null;
   if(typeof done === 'function') done();
+  try{ actualizarBotonesFirmarTodos(); }catch(e){}
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
 }
@@ -3922,6 +3962,31 @@ function firmarSala(id){
   var p = PARTES.find(function(x){return x.id===id;});
   if(!p){ toast('Parte no encontrado'); return; }
   abrirFirma(p, 'sala', function(){});
+}
+
+// Muestra u oculta los botones "Firmar todos" según queden partes de HOY sin firmar.
+// Si TODOS los partes de hoy ya tienen firma de quesero, se oculta el botón de quesero;
+// igual con el de operario de sala. Si no hay partes de hoy, se ocultan ambos.
+function actualizarBotonesFirmarTodos(){
+  var hoy = new Date().toISOString().slice(0,10);
+  var partesHoy = PARTES.filter(function(p){
+    if(p.version==='revisado') return false; // las versiones de calidad no cuentan aquí
+    return String(p.fecha||'').slice(0,10)===hoy;
+  });
+  var bSala = document.getElementById('btn-firmar-todos-sala');
+  var bQ    = document.getElementById('btn-firmar-todos-quesero');
+  var wrap  = document.getElementById('firmar-todos-wrap');
+  var titulo= document.getElementById('firmar-todos-titulo');
+  if(!bSala || !bQ || !wrap) return;
+  var hay = partesHoy.length > 0;
+  var faltaSala = hay && partesHoy.some(function(p){ return !p.firma_sala; });
+  var faltaQ    = hay && partesHoy.some(function(p){ return !p.firma_quesero; });
+  bSala.style.display = faltaSala ? '' : 'none';
+  bQ.style.display    = faltaQ    ? '' : 'none';
+  // Si no falta ninguna firma (o no hay partes), ocultar todo el bloque (título incluido)
+  var mostrarBloque = faltaSala || faltaQ;
+  wrap.style.display = mostrarBloque ? '' : 'none';
+  if(titulo) titulo.style.display = mostrarBloque ? '' : 'none';
 }
 
 // Firma TODOS los partes de hoy de una vez (sala o quesero). El operario firma
@@ -3955,6 +4020,7 @@ function _aplicarFirmaMasiva(tipo){
   try{ persistir(); }catch(e){}
   _firmaMasivaLista=null;
   toast('✍️ Firmados '+n+' partes de hoy');
+  try{ actualizarBotonesFirmarTodos(); }catch(e){}
 }
 
 // Texto legible de la fosfatasa. Acepta el nuevo 'P'/'N' y el booleano antiguo.
@@ -4320,9 +4386,23 @@ function anadirOtroAuxiliar(datos){
   var div = document.createElement('div');
   div.className = 'otro-aux-card';
   div.dataset.idx = idx;
+  // Opciones del desplegable: los auxiliares dados de alta en el stock (sin CO2)
+  var listaAux = [];
+  try{ listaAux = articulosDeCategoria('AUXILIAR FABRICACION') || []; }catch(e){}
+  var nombreActual = datos.nombre || '';
+  var enLista = nombreActual && listaAux.indexOf(nombreActual) >= 0;
+  var opciones = '<option value="">— Elegir auxiliar —</option>';
+  listaAux.forEach(function(a){
+    opciones += '<option value="'+a+'"'+((enLista && a===nombreActual)?' selected':'')+'>'+a+'</option>';
+  });
+  // Opción para escribir uno que no está en stock
+  opciones += '<option value="__OTRO__"'+((nombreActual && !enLista)?' selected':'')+'>✏️ Otro (escribir)…</option>';
+  var mostrarTexto = (nombreActual && !enLista);
   div.innerHTML = ''
     + '<button type="button" class="quitar-btn" onclick="quitarOtroAuxiliar(this)" title="Quitar">×</button>'
-    + '<div class="form-row"><label class="form-label">Nombre / Descripción</label><input type="text" class="oaux-nombre" placeholder="Ej: Lisozima, Sales antibutíricas..." value="'+(datos.nombre||'')+'"></div>'
+    + '<div class="form-row"><label class="form-label">Auxiliar</label>'
+    +   '<select class="oaux-sel" onchange="_onOtroAuxSel(this)">'+opciones+'</select></div>'
+    + '<div class="form-row oaux-nombre-row" style="display:'+(mostrarTexto?'block':'none')+'"><label class="form-label">Nombre / Descripción</label><input type="text" class="oaux-nombre" placeholder="Ej: Lisozima, Sales antibutíricas..." value="'+(nombreActual||'')+'"></div>'
     + '<div class="form-cols">'
     +   '<div class="form-row"><label class="form-label">Lote</label><input type="text" class="oaux-lote" value="'+(datos.lote||'')+'"></div>'
     +   '<div class="form-row"><label class="form-label">Caducidad</label><input type="date" class="oaux-cad" value="'+(datos.caducidad||'')+'"></div>'
@@ -4334,11 +4414,28 @@ function anadirOtroAuxiliar(datos){
     + '<div class="form-row"><label class="form-label">Observaciones</label><input type="text" class="oaux-obs" placeholder="Opcional" value="'+(datos.obs||'')+'"></div>';
   cont.appendChild(div);
   // Enganchar listeners de autoguardado
-  div.querySelectorAll('input').forEach(function(inp){
+  div.querySelectorAll('input,select').forEach(function(inp){
     inp.addEventListener('input', function(){
       if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
     });
   });
+}
+
+// Al elegir en el desplegable de auxiliar: si es "Otro", muestra el campo de texto;
+// si es uno del stock, copia el nombre al campo oculto y oculta el texto libre.
+function _onOtroAuxSel(sel){
+  var card = sel.closest('.otro-aux-card');
+  if(!card) return;
+  var row = card.querySelector('.oaux-nombre-row');
+  var inp = card.querySelector('.oaux-nombre');
+  if(sel.value==='__OTRO__'){
+    if(row) row.style.display='block';
+    if(inp){ inp.value=''; inp.focus(); }
+  } else {
+    if(row) row.style.display='none';
+    if(inp) inp.value = sel.value; // el nombre real es el del stock elegido
+  }
+  if(CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
 }
 
 function quitarOtroAuxiliar(btn){
