@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.60</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.62</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1617,16 +1617,22 @@ function formatearFecha(iso){if(!iso)return'—';var p=iso.toString().split('-')
 function puedeEditarParte(p){
   var hoy = new Date().toISOString().slice(0,10);
   var esHoy = !!(p && String(p.fecha||'').slice(0,10) === hoy);
-  var rol = String(ROL_ACTUAL||'').toUpperCase();
-  return esHoy || rol==='CALIDAD' || rol==='ADMIN';
+  // Calidad/Admin pueden editar cualquier parte (hoy o histórico)
+  if(esCalidadOAdmin()) return true;
+  // El resto: solo partes de HOY y solo si son SU autor (el quesero que lo creó/entró)
+  if(!esHoy) return false;
+  var autor = String((p && p.operario) || '').toUpperCase().trim();
+  var yo = String(OPERARIO_ACTUAL||'').toUpperCase().trim();
+  // Si el parte no tiene autor registrado, lo tratamos como editable hoy (compatibilidad)
+  if(!autor) return true;
+  return autor === yo;
 }
 
 // ─────────── IMPRESIÓN DEL PARTE (formato FOR 08-01) ───────────
 // Solo CALIDAD / ADMIN. Genera una hoja A4 calcada al parte en papel y abre
 // el diálogo de impresión del navegador (imprimir o "Guardar como PDF").
 function esCalidadOAdmin(){
-  var r = String(ROL_ACTUAL||'').toUpperCase();
-  return r==='CALIDAD' || r==='ADMIN';
+  return _rolContiene(ROL_ACTUAL,'CALIDAD') || _rolContiene(ROL_ACTUAL,'ADMIN');
 }
 
 // IDs de los campos que pertenecen a las fases del QUESERO (cabecera → inicio de moldeo).
@@ -4089,9 +4095,22 @@ function cargarPartesSheets(fecha){
   var hoy=fecha||new Date().toISOString().slice(0,10);
   fetch(API_URL+'?tipo=partes&fecha='+hoy).then(function(r){return r.json();}).then(function(d){
     if(d.ok&&d.data&&d.data.length>0){
+      var hoyISO = new Date().toISOString().slice(0,10);
+      // Guardar el estado local previo (cerrado/abierto) por id, para no perder
+      // la "mesa de trabajo" de hoy al recargar desde Sheets tras cambiar de usuario.
+      var estadoLocal = {};
+      PARTES.forEach(function(p){ if(p && p.id) estadoLocal[p.id] = { cerrado: !!p.cerrado }; });
       var idsSheets=d.data.map(function(p){return p['ID'];});
       PARTES=PARTES.filter(function(p){return idsSheets.indexOf(p.id)<0;});
       var deSheets=d.data.map(function(p){
+        var fechaP = p['FECHA'] || '';
+        var esDeHoy = String(fechaP).slice(0,10) === hoyISO;
+        var prev = estadoLocal[p['ID']];
+        // Estado "cerrado": para días anteriores siempre cerrado; para HOY, se respeta
+        // el estado local previo si lo había (abierto sigue abierto). Si no había estado
+        // local (entró nuevo en esta tablet), un parte de hoy se considera ABIERTO para
+        // que vuelva a aparecer en las pestañas y se pueda seguir trabajando.
+        var cerradoCalc = esDeHoy ? (prev ? prev.cerrado : false) : true;
         // Si el parte trae el JSON completo, lo usamos tal cual (fidelidad total)
         if(p['JSON']){
           try{
@@ -4099,15 +4118,24 @@ function cargarPartesSheets(fecha){
             if(full && typeof full==='object'){
               full.id = full.id || p['ID'];
               full.fecha = p['FECHA'] || full.fecha; // fecha normalizada de la hoja
-              full.cerrado = true;
+              if(esDeHoy){
+                // Para hoy: si el JSON ya guardó el estado cerrado, se respeta;
+                // si no, el estado local previo; si tampoco, abierto.
+                if(full.hasOwnProperty('cerrado')) { /* respetar el del JSON */ }
+                else if(prev) full.cerrado = prev.cerrado;
+                else full.cerrado = false;
+              } else {
+                full.cerrado = true;
+              }
               return full;
             }
           }catch(e){}
         }
         // Partes antiguos sin JSON: reconstrucción básica desde columnas
-        return {id:p['ID'],fecha:p['FECHA'],cuba:p['CUBA'],tipo:p['TIPO DE QUESO'],variedad:p['VARIEDAD'],litros:p['LITROS'],operario:p['OPERARIO'],piezas:{'3kg':p['PZAS 3KG']||0,'2kg':p['PZAS 2KG']||0,'1kg':p['PZAS 1KG']||0,'05kg':p['PZAS 05KGS']||0,'barra':p['PZAS BARRA']||0,'gigante':p['PZAS GIGANTE']||0},observaciones:p['OBSERVACIONES']||'',cerrado:true};
+        return {id:p['ID'],fecha:p['FECHA'],cuba:p['CUBA'],tipo:p['TIPO DE QUESO'],variedad:p['VARIEDAD'],litros:p['LITROS'],operario:p['OPERARIO'],piezas:{'3kg':p['PZAS 3KG']||0,'2kg':p['PZAS 2KG']||0,'1kg':p['PZAS 1KG']||0,'05kg':p['PZAS 05KGS']||0,'barra':p['PZAS BARRA']||0,'gigante':p['PZAS GIGANTE']||0},observaciones:p['OBSERVACIONES']||'',cerrado:cerradoCalc};
       });
       PARTES=deSheets.concat(PARTES);persistir();renderPartes();
+      try{ renderPestanasCubas(); }catch(e){}
     }
   }).catch(function(){});
 }
