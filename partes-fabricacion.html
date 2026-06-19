@@ -377,7 +377,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.43</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.44</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1454,12 +1454,20 @@ function _capturarAuxFermCuajoEnParte(p){
     };
   });
   // Fermentos
+  var repTAcap = _calcReparteTA054(receta, litros);
+  var doseTA = {};
+  if(repTAcap){
+    doseTA[repTAcap.fGrande] = repTAcap.nG * repTAcap.tamG;
+    if(repTAcap.fPeq) doseTA[repTAcap.fPeq] = repTAcap.nP * repTAcap.tamP;
+  }
   p.fermentos = (receta.fermentos||[]).map(function(f){
     var L = lote(f.nombre);
+    // Si es sobre TA-054, el consumo lo fija el reparto de sobres (dosis reales echadas)
+    var consumo = doseTA.hasOwnProperty(f.nombre) ? doseTA[f.nombre] : dosisUtil(f.dosis_ml_1000L);
     return {
       nombre:        f.nombre,
       dosis_ml_1000L: f.dosis_ml_1000L || 0,
-      consumo_total: dosisUtil(f.dosis_ml_1000L),
+      consumo_total: consumo,
       proveedor:     L.proveedor || '',
       lote:          L.lote || '',
       caducidad:     L.caducidad || '',
@@ -1888,6 +1896,56 @@ function _quePareTocaHoy(){
   return null; // domingo: decide el quesero
 }
 
+// ── Fermentos que vienen en SOBRES de tamaño fijo (ej. TA-054 en sobres de 50 y 25) ──
+// No se dosifican por mililitros libres: se echan sobres enteros. El sistema calcula
+// el objetivo teórico (litros × dosis/1000L del sobre grande) y reparte en sobres,
+// tirando primero de los grandes y completando con los pequeños (redondeo al más cercano).
+// Detecta el tamaño del sobre a partir del nombre: "TA-054 (50)" → 50 ; "TA-054 (25)" → 25.
+function _sobreFermento(nombre){
+  var s = String(nombre||'').toUpperCase().replace(/\s+/g,'');
+  var m = s.match(/^TA-?054\((\d+)\)/);
+  if(m) return { base:'TA-054', tam: parseInt(m[1],10) };
+  return null;
+}
+
+// Calcula el reparto en sobres para los TA-054 de una receta, dados los litros.
+// Objetivo (dosis) = litros × dosisObjetivo/1000, donde dosisObjetivo es la dosis/1000L
+// del sobre GRANDE (50). Reparto: primero sobres de 50, completa con uno de 25 si el
+// resto está más cerca de 25 que de 0 (redondeo al más cercano). Cada sobre aporta
+// "tam" dosis (50 ó 25). Devuelve null si la receta no tiene TA-054.
+function _calcReparteTA054(receta, litros){
+  if(!receta || !receta.fermentos) return null;
+  var grandes = receta.fermentos.filter(function(f){ var s=_sobreFermento(f.nombre); return s && s.tam>=50; });
+  var pequenos = receta.fermentos.filter(function(f){ var s=_sobreFermento(f.nombre); return s && s.tam>0 && s.tam<50; });
+  if(!grandes.length) return null;
+  var fGrande = grandes[0], fPeq = pequenos.length ? pequenos[0] : null;
+  var tamG = _sobreFermento(fGrande.nombre).tam;            // 50
+  var tamP = fPeq ? _sobreFermento(fPeq.nombre).tam : 0;    // 25 (o 0 si no hay)
+  var dosisObjetivo = parseFloat(fGrande.dosis_ml_1000L) || 0; // 20 dosis/1000L
+  var objetivo = Math.round((litros * dosisObjetivo / 1000) * 10) / 10; // ej. 170
+  // Llenar con grandes primero (sin pasarse), luego decidir el pequeño por cercanía
+  var nG = Math.floor(objetivo / tamG);
+  var resto = objetivo - nG * tamG; // lo que falta tras los grandes
+  var nP = 0;
+  if(fPeq && tamP > 0){
+    // ¿El resto está más cerca de un sobre pequeño (tamP) o de 0?
+    nP = (resto >= tamP/2) ? 1 : 0;
+    // Si el resto supera un sobre pequeño (caso raro con tamG/tamP=2), añadimos grande
+    if(resto >= tamP){ // resto entre 25 y 50 → más cerca de 25 que de 0, 1 pequeño basta
+      nP = 1;
+    }
+  } else {
+    // Sin sobre pequeño: redondear los grandes al más cercano
+    if(resto >= tamG/2) nG += 1;
+  }
+  var totalReal = nG * tamG + nP * tamP;
+  return {
+    fGrande: fGrande.nombre, fPeq: fPeq ? fPeq.nombre : null,
+    tamG: tamG, tamP: tamP,
+    objetivo: objetivo, nG: nG, nP: nP, totalReal: totalReal
+  };
+}
+
 function renderFermentos(receta){
   var c=document.getElementById('ferm-container');
   if(!receta.fermentos||!receta.fermentos.length){
@@ -1912,6 +1970,11 @@ function renderFermentos(receta){
     else if(tocaHoy==='R604') msg += 'usar <b>R-604</b>';
     else                      msg += 'decide el quesero (domingo)';
     h += '<div style="background:#fff8e1;border-left:4px solid #f0b400;padding:8px 10px;border-radius:6px;font-size:0.78rem;color:#5a4500;margin-bottom:8px">'+msg+'</div>';
+  }
+
+  // Banner resumen del reparto de sobres TA-054 (se rellena en calcularDosis)
+  if(receta.fermentos.some(function(f){ return _sobreFermento(f.nombre); })){
+    h += '<div id="ta054-resumen" style="background:#e8f4ff;border-left:4px solid var(--blue);padding:8px 10px;border-radius:6px;font-size:0.78rem;color:#0a3d62;margin-bottom:8px"></div>';
   }
 
   // Tabla
@@ -2066,16 +2129,43 @@ function calcularDosis(){
   parteActual.litros=litros;
   if(!parteActual.receta)return;
   var r=parteActual.receta;
+
+  // ── Reparto especial de sobres TA-054 ──
+  var repTA = _calcReparteTA054(r, litros);
+  var nombresTA = {};
+  if(repTA){
+    nombresTA[repTA.fGrande] = repTA.nG * repTA.tamG;          // dosis aportadas por los sobres de 50
+    if(repTA.fPeq) nombresTA[repTA.fPeq] = repTA.nP * repTA.tamP; // dosis aportadas por los sobres de 25
+    var resEl = document.getElementById('ta054-resumen');
+    if(resEl){
+      if(litros>0){
+        var txt = '🧮 <b>TA-054</b> · Objetivo '+repTA.objetivo+' dosis ('+litros+' L × '+(parseFloat(r.fermentos.filter(function(f){return f.nombre===repTA.fGrande;})[0].dosis_ml_1000L)||0)+'/1000) → ';
+        txt += '<b>'+repTA.nG+'</b> sobre'+(repTA.nG===1?'':'s')+' de '+repTA.tamG;
+        if(repTA.fPeq && repTA.nP>0) txt += ' + <b>'+repTA.nP+'</b> de '+repTA.tamP;
+        txt += ' = <b>'+repTA.totalReal+' dosis</b>';
+        resEl.innerHTML = txt;
+      } else {
+        resEl.innerHTML = 'Introduce los litros para repartir los sobres de TA-054';
+      }
+    }
+  }
+
   var todos=(r.auxiliares||[]).concat(r.fermentos||[]).concat(r.cuajo?[r.cuajo]:[]);
   todos.forEach(function(p){
     var key=p.nombre.replace(/[^a-zA-Z0-9]/g,'_');
+    var el=document.getElementById('dosis-'+key);
+    if(!el)return;
+    // Si es un sobre TA-054, el valor lo fija el reparto de sobres (no el cálculo ml libre)
+    if(repTA && nombresTA.hasOwnProperty(p.nombre)){
+      var val = nombresTA[p.nombre];
+      if(el.tagName==='INPUT') el.value = litros>0 ? String(val) : '';
+      else el.textContent = litros>0 ? String(val) : '—';
+      return;
+    }
     var base=parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L;
     var total=litros*base/1000;
-    var el=document.getElementById('dosis-'+key);
-    if(el){
-      if(el.tagName==='INPUT') el.value=litros>0?total.toFixed(1):'';
-      else el.textContent=litros>0?total.toFixed(1):'—';
-    }
+    if(el.tagName==='INPUT') el.value=litros>0?total.toFixed(1):'';
+    else el.textContent=litros>0?total.toFixed(1):'—';
   });
 }
 
