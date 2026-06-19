@@ -70,6 +70,7 @@ input[type=text],input[type=number],input[type=date],input[type=time],select,tex
 select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%236B6860' d='M6 8L0 0h12z'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
 input:focus,select:focus,textarea:focus{border-color:var(--green2);background:white}
 input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--green2);color:var(--green);font-weight:700}
+.campo-bloqueado,input.campo-bloqueado,select.campo-bloqueado{background:#eceff1 !important;border-color:#cfd8dc !important;color:#78909c !important;font-weight:600 !important;pointer-events:none}
 .form-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .form-cols-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .form-cols-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
@@ -377,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.44</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.45</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1279,12 +1280,18 @@ function rellenarCampos(p){
     btnCerrar.textContent='✓ Cerrar parte (pasa al historial)';
     btnCerrar.onclick = function(){ cerrarParteActivo(p.id); };
     panel.appendChild(btnCerrar);
-    var btnEliminar = document.createElement('button');
-    btnEliminar.className='btn-eliminar-cuba';
-    btnEliminar.textContent='🗑 Eliminar esta cuba';
-    btnEliminar.onclick = function(){ eliminarCubaActiva(p.id); };
-    panel.appendChild(btnEliminar);
+    // "Eliminar cuba": si el parte está bloqueado (inicio de moldeo hecho), solo ADMIN/Calidad.
+    // Antes de bloquearse, el propio quesero puede eliminar su cuba si se equivocó.
+    if(!p.bloqueado_quesero || esCalidadOAdmin()){
+      var btnEliminar = document.createElement('button');
+      btnEliminar.className='btn-eliminar-cuba';
+      btnEliminar.textContent='🗑 Eliminar esta cuba';
+      btnEliminar.onclick = function(){ eliminarCubaActiva(p.id); };
+      panel.appendChild(btnEliminar);
+    }
   }
+  // Aplicar bloqueo visual de las fases del quesero (solo afecta a operarios de sala)
+  aplicarBloqueoQuesero(p);
 }
 
 function installAutoSave(parteId){
@@ -1336,6 +1343,15 @@ function autoGuardarParte(parteId){
     lavado_metodo: g('lavado-metodo'),
     lavado_hi:g('lavado-hi'), lavado_hf:g('lavado-hf'), lavado_temp:g('lavado-temp')};
   p.moldeo = {hi:g('mol-hi'), hf:g('mol-hf'), ph:g('mol-ph'), temp:g('mol-temp')};
+  // ── Bloqueo de las fases del quesero ──
+  // Cuando el inicio de moldeo está completo (hora + pH + Tª), las fases del quesero
+  // (cabecera → moldeo) quedan guardadas y protegidas frente a los operarios de sala.
+  // Solo ADMIN/Calidad o el propio quesero pueden seguir editándolas o eliminar el parte.
+  if(!p.bloqueado_quesero && p.moldeo.hi && p.moldeo.ph && p.moldeo.temp){
+    p.bloqueado_quesero = true;
+    p.bloqueado_quesero_por = p.operario || OPERARIO_ACTUAL || '';
+    p.bloqueado_quesero_ts = _ahoraSelloMadrid();
+  }
   p.prensados = (typeof recogerPrensados === 'function') ? recogerPrensados() : [];
   p.desmoldeos = (typeof recogerDesmoldeos === 'function') ? recogerDesmoldeos() : [];
   p.salmueras = (typeof recogerSalmueras === 'function') ? recogerSalmueras() : [];
@@ -1498,6 +1514,11 @@ function _capturarAuxFermCuajoEnParte(p){
 }
 
 function eliminarCubaActiva(id){
+  var p = PARTES.find(function(x){return x.id===id;});
+  if(p && p.bloqueado_quesero && !esCalidadOAdmin()){
+    toast('Parte protegido: solo Calidad puede eliminarlo','warn');
+    return;
+  }
   if(!confirm('¿Eliminar esta cuba? Se perderán todos los datos.')) return;
   PARTES = PARTES.filter(function(p){return p.id!==id;});
   persistir();
@@ -1534,6 +1555,37 @@ function puedeEditarParte(p){
 function esCalidadOAdmin(){
   var r = String(ROL_ACTUAL||'').toUpperCase();
   return r==='CALIDAD' || r==='ADMIN';
+}
+
+// IDs de los campos que pertenecen a las fases del QUESERO (cabecera → inicio de moldeo).
+// Cuando el parte queda bloqueado, estos se ponen en solo lectura para los operarios de sala.
+// NO se incluyen: mol-hf (hora fin moldeo), prensado, desmoldeo, salmuera, piezas → esos los rellena la sala.
+var CAMPOS_QUESERO = ['np-tipo-sel','np-var-sel','np-lote','np-litros','np-lvaca','np-lcabra','np-loveja',
+  'np-tanque','np-cuba','np-ph','np-temp','np-dornic','np-operario',
+  'past-valvula','past-fosfatasa','past-temp','past-tiempo','past-cruda',
+  'aux-hadicion','aux-ph','aux-temp','co2-aplicado','co2-caudal','co2-tiempo',
+  'coag-hadicion','coag-htoma','coag-hc','coag-ph','coag-temp','coag-total',
+  'rec-hi','rec-hf','rec-ti','rec-tf','rec-ph','rec-dornic',
+  'agit-hi','agit-hf','agit-total','lavado-aplicado','lavado-metodo','lavado-hi','lavado-hf','lavado-temp',
+  'mol-hi','mol-ph','mol-temp'];
+
+// Aplica (o quita) el bloqueo visual de las fases del quesero en el panel de cuba activa.
+// El parte queda bloqueado para operarios de sala una vez completado el inicio de moldeo.
+// ADMIN/Calidad nunca quedan bloqueados (pueden corregir).
+function aplicarBloqueoQuesero(p){
+  var bloquear = !!(p && p.bloqueado_quesero) && !esCalidadOAdmin();
+  function set(el){
+    if(!el) return;
+    if(bloquear){ el.setAttribute('readonly','readonly'); el.classList.add('campo-bloqueado'); if(el.tagName==='SELECT'||el.type==='checkbox') el.disabled=true; }
+    else { el.removeAttribute('readonly'); el.classList.remove('campo-bloqueado'); }
+  }
+  CAMPOS_QUESERO.forEach(function(id){ set(document.getElementById(id)); });
+  // Campos dinámicos: dosis de auxiliares, fermentos y cuajo (inputs con clase dosis-input/papel-prod-dosis-input)
+  document.querySelectorAll('.dosis-input,.papel-prod-dosis-input').forEach(set);
+  // Enlaces "cambiar/elegir lote": ocultarlos si está bloqueado
+  document.querySelectorAll('.cambiar-lnk,.papel-prod-cambiar').forEach(function(el){
+    if(el) el.style.display = bloquear ? 'none' : '';
+  });
 }
 
 function imprimirParte(id){
@@ -2167,6 +2219,11 @@ function calcularDosis(){
     if(el.tagName==='INPUT') el.value=litros>0?total.toFixed(1):'';
     else el.textContent=litros>0?total.toFixed(1):'—';
   });
+  // Si el parte activo está bloqueado, reaplicar el bloqueo a los campos de dosis recién escritos
+  try{
+    var pact = PARTES.find(function(x){return x.id===CUBA_ACTIVA_ID;});
+    if(pact && pact.bloqueado_quesero) aplicarBloqueoQuesero(pact);
+  }catch(e){}
 }
 
 function calcCO2(){
