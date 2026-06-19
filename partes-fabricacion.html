@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.47</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.48</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1679,7 +1679,7 @@ function _htmlParteImpresion(p){
   var firmaNom = p.firma_quesero_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_quesero_nombre)+(p.firma_quesero_ts?(' · '+e(p.firma_quesero_ts)):'')+'</div>') : '';
   var salaImg = p.firma_sala ? ('<img src="'+p.firma_sala+'">') : '';
   var salaNom = p.firma_sala_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_sala_nombre)+(p.firma_sala_ts?(' · '+e(p.firma_sala_ts)):'')+'</div>') : '';
-  var vbCalidad = p.revisado_calidad ? ('<div class="vb"><b>✓ Revisado por Calidad</b><br>'+e(p.revisado_calidad_por||'Calidad')+(p.revisado_calidad_ts?(' · '+e(p.revisado_calidad_ts)):'')+'</div>') : '';
+  var vbCalidad = p.revisado_calidad ? ((p.firma_calidad?('<img src="'+p.firma_calidad+'">'):'')+'<div class="vb"><b>✓ Revisado por Calidad</b><br>'+e(p.revisado_calidad_por||'Calidad')+(p.revisado_calidad_ts?(' · '+e(p.revisado_calidad_ts)):'')+'</div>') : '';
   H.push('<div class="firmas">');
   H.push('<div class="firmabox"><span class="lbl">FIRMA QUESERO:</span>'+firmaImg+firmaNom+'</div>');
   H.push('<div class="firmabox"><span class="lbl">FIRMA SALA:</span>'+salaImg+salaNom+'</div>');
@@ -2664,8 +2664,12 @@ function _verParteRender(id){
   }
   if(p.revisado_calidad){
     fb += '<div style="margin-top:8px;padding:8px 10px;background:var(--greenl);border:1px solid var(--green2);border-radius:8px;font-size:0.82rem;color:var(--green)"><b>✓ Revisado por Calidad</b><br>'+(p.revisado_calidad_por||'Calidad')+' · '+(p.revisado_calidad_ts||'')+'</div>';
+    if(p.firma_calidad){
+      fb += '<div style="border:1px solid var(--border);border-radius:8px;background:#fff;padding:6px;text-align:center;margin-top:6px"><img src="'+p.firma_calidad+'" alt="Firma Calidad" style="max-width:100%;max-height:120px"></div>';
+    }
+    if(esCalidadOAdmin()) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="revisarPorCalidad(\''+p.id+'\')">✓ Volver a firmar la revisión</button>';
   } else if(esCalidadOAdmin()){
-    fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="revisarPorCalidad(\''+p.id+'\')">✓ Revisado por Calidad</button>';
+    fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="revisarPorCalidad(\''+p.id+'\')">✓ Revisar y firmar (Calidad)</button>';
   }
   h += bloque('✍️ Firma y revisión', fb);
 
@@ -3644,35 +3648,45 @@ function cerrarModal(){var m=document.getElementById('modal');if(m)m.classList.r
 
 var _firmaCtx = null, _firmaDibujando = false, _firmaHayTrazo = false, _firmaOnDone = null, _firmaParte = null, _firmaTipo = 'quesero';
 
-// tipo: 'quesero' o 'sala'
+// tipo: 'quesero' | 'sala' | 'calidad'
 function abrirFirma(p, tipo, onDone){
-  _firmaParte = p; _firmaTipo = (tipo==='sala') ? 'sala' : 'quesero';
+  _firmaParte = p;
+  _firmaTipo = (tipo==='sala') ? 'sala' : (tipo==='calidad' ? 'calidad' : 'quesero');
   _firmaOnDone = onDone || function(){};
   _firmaHayTrazo = false;
-  var titulo = (_firmaTipo==='sala') ? '✍️ Firma del operario de sala' : '✍️ Firma del quesero';
-  var color  = (_firmaTipo==='sala') ? 'var(--brand)' : 'var(--green)';
+  var titulo, color, sugerido;
+  if(_firmaTipo==='sala'){ titulo='✍️ Firma del operario de sala'; color='var(--brand)'; sugerido=''; }
+  else if(_firmaTipo==='calidad'){ titulo='✓ Revisión de Calidad'; color='var(--green)'; sugerido=(typeof CU!=='undefined'&&CU&&CU.n)?CU.n:(OPERARIO_ACTUAL||''); }
+  else { titulo='✍️ Firma del quesero'; color='var(--green)'; sugerido=p.operario||OPERARIO_ACTUAL||''; }
+
+  // Opciones del desplegable de operario
+  var ops = '<option value="">— Selecciona quién firma —</option>';
+  OPERARIOS.forEach(function(op){
+    ops += '<option value="'+op+'"'+(op===sugerido?' selected':'')+'>'+op+'</option>';
+  });
+
   var ov = document.getElementById('firma-overlay');
   if(ov){ ov.remove(); ov = null; }
-  if(!ov){
-    ov = document.createElement('div');
-    ov.id = 'firma-overlay';
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px';
-    ov.innerHTML =
-      '<div style="background:var(--card);border-radius:14px;max-width:460px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.3);overflow:hidden">'
-    +   '<div style="background:'+color+';color:#fff;padding:13px 16px;font-weight:700;font-size:0.95rem">'+titulo+'</div>'
-    +   '<div style="padding:14px 16px">'
-    +     '<div style="font-size:0.82rem;color:var(--text2);margin-bottom:8px">Firma con el dedo o el lápiz dentro del recuadro:</div>'
-    +     '<canvas id="firma-canvas" style="width:100%;height:180px;border:2px dashed var(--border);border-radius:10px;background:#fff;touch-action:none;display:block"></canvas>'
-    +     '<div style="display:flex;gap:8px;margin-top:12px">'
-    +       '<button class="btn btn-secondary" style="flex:1" onclick="limpiarFirma()">↺ Borrar</button>'
-    +       '<button class="btn btn-secondary" style="flex:1" onclick="cancelarFirma()">Cancelar</button>'
-    +       '<button class="btn btn-primary" style="flex:1.4" onclick="confirmarFirma()">✓ Guardar firma</button>'
-    +     '</div>'
-    +     '<div style="font-size:0.74rem;color:var(--text3);text-align:center;margin-top:8px">El parte NO se cierra al firmar: sigue abierto.</div>'
-    +   '</div>'
-    + '</div>';
-    document.body.appendChild(ov);
-  }
+  ov = document.createElement('div');
+  ov.id = 'firma-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML =
+    '<div style="background:var(--card);border-radius:14px;max-width:460px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.3);overflow:hidden">'
+  +   '<div style="background:'+color+';color:#fff;padding:13px 16px;font-weight:700;font-size:0.95rem">'+titulo+'</div>'
+  +   '<div style="padding:14px 16px">'
+  +     '<div style="font-size:0.82rem;color:var(--text2);margin-bottom:4px">¿Quién firma?</div>'
+  +     '<select id="firma-operario" style="width:100%;padding:10px;font-size:0.95rem;border:1.5px solid var(--border);border-radius:8px;margin-bottom:10px;background:#fff">'+ops+'</select>'
+  +     '<div style="font-size:0.82rem;color:var(--text2);margin-bottom:8px">Firma con el dedo o el lápiz dentro del recuadro:</div>'
+  +     '<canvas id="firma-canvas" style="width:100%;height:180px;border:2px dashed var(--border);border-radius:10px;background:#fff;touch-action:none;display:block"></canvas>'
+  +     '<div style="display:flex;gap:8px;margin-top:12px">'
+  +       '<button class="btn btn-secondary" style="flex:1" onclick="limpiarFirma()">↺ Borrar</button>'
+  +       '<button class="btn btn-secondary" style="flex:1" onclick="cancelarFirma()">Cancelar</button>'
+  +       '<button class="btn btn-primary" style="flex:1.4" onclick="confirmarFirma()">✓ Guardar firma</button>'
+  +     '</div>'
+  +     '<div style="font-size:0.74rem;color:var(--text3);text-align:center;margin-top:8px">El parte NO se cierra al firmar: sigue abierto.</div>'
+  +   '</div>'
+  + '</div>';
+  document.body.appendChild(ov);
   ov.style.display = 'flex';
   // Inicializar el canvas a su tamaño real para que el trazo no se deforme
   setTimeout(_initFirmaCanvas, 30);
@@ -3716,35 +3730,45 @@ function cancelarFirma(){
 }
 
 function confirmarFirma(){
-  var ov = document.getElementById('firma-overlay');
-  var firmado = false;
-  if(_firmaParte && _firmaHayTrazo){
-    var cv = document.getElementById('firma-canvas');
-    var img = ''; try{ img = cv.toDataURL('image/png'); }catch(e){}
-    var nombre = _firmaParte.operario || OPERARIO_ACTUAL || '';
-    var ts = _ahoraSelloMadrid();
-    if(_firmaTipo==='sala'){
-      _firmaParte.firma_sala = img;
-      _firmaParte.firma_sala_nombre = nombre;
-      _firmaParte.firma_sala_ts = ts;
-    } else {
-      _firmaParte.firma_quesero = img;
-      _firmaParte.firma_quesero_nombre = nombre;
-      _firmaParte.firma_quesero_ts = ts;
-    }
-    firmado = true;
-    try{ persistir(); }catch(e){}
-    try{ enviarParteSheets(_firmaParte); }catch(e){}
+  if(!_firmaParte) return;
+  if(!_firmaHayTrazo){ toast('Firma dentro del recuadro antes de guardar','warn'); return; }
+  var selOp = document.getElementById('firma-operario');
+  var nombre = selOp ? selOp.value : '';
+  if(!nombre){ toast('Selecciona quién firma','warn'); return; }
+  var cv = document.getElementById('firma-canvas');
+  var img = ''; try{ img = cv.toDataURL('image/png'); }catch(e){}
+  var ts = _ahoraSelloMadrid();
+  if(_firmaTipo==='sala'){
+    _firmaParte.firma_sala = img;
+    _firmaParte.firma_sala_nombre = nombre;
+    _firmaParte.firma_sala_ts = ts;
+  } else if(_firmaTipo==='calidad'){
+    _firmaParte.firma_calidad = img;
+    _firmaParte.revisado_calidad = true;
+    _firmaParte.revisado_calidad_por = nombre;
+    _firmaParte.revisado_calidad_ts = ts;
+  } else {
+    _firmaParte.firma_quesero = img;
+    _firmaParte.firma_quesero_nombre = nombre;
+    _firmaParte.firma_quesero_ts = ts;
   }
+  try{ persistir(); }catch(e){}
+  try{ enviarParteSheets(_firmaParte); }catch(e){}
+  var ov = document.getElementById('firma-overlay');
   if(ov) ov.style.display = 'none';
-  if(firmado) toast(_firmaTipo==='sala' ? '✍️ Parte firmado por la sala' : '✍️ Parte firmado por el quesero');
+  toast(_firmaTipo==='sala' ? '✍️ Firmado por la sala'
+        : _firmaTipo==='calidad' ? '✓ Revisado y firmado por Calidad'
+        : '✍️ Firmado por el quesero');
   // Refrescar etiquetas de los botones en el panel de cuba activa
   var bq = document.querySelector('.btn-firmar-quesero');
-  if(bq && _firmaParte && _firmaParte.firma_quesero) bq.textContent = '✍️ Firmado por el quesero ✓ (volver a firmar)';
+  if(bq && _firmaParte.firma_quesero) bq.textContent = '✍️ Firmado por el quesero ✓ (volver a firmar)';
   var bs = document.querySelector('.btn-firmar-sala');
-  if(bs && _firmaParte && _firmaParte.firma_sala) bs.textContent = '✍️ Firmado por la sala ✓ (volver a firmar)';
+  if(bs && _firmaParte.firma_sala) bs.textContent = '✍️ Firmado por la sala ✓ (volver a firmar)';
+  var doneId = _firmaParte.id;
   var done = _firmaOnDone; _firmaOnDone = null;
   if(typeof done === 'function') done();
+  // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
+  if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
 }
 
 // Botones independientes: cada uno firma SU parte sin cerrarlo.
@@ -3777,17 +3801,11 @@ function revisarPorCalidad(id){
   var p = PARTES.find(function(x){return x.id===id;});
   if(!p){ toast('Parte no encontrado'); return; }
   if(!esCalidadOAdmin()){ toast('Solo Calidad puede dar el visto bueno'); return; }
-  var nombre = (typeof CU!=='undefined' && CU && CU.n) ? CU.n : (OPERARIO_ACTUAL || ROL_ACTUAL || 'Calidad');
   if(p.revisado_calidad){
-    if(!confirm('Este parte ya está revisado por '+(p.revisado_calidad_por||'Calidad')+' ('+(p.revisado_calidad_ts||'')+').\n¿Volver a estampar el visto bueno con tu nombre y la hora actual?')) return;
+    if(!confirm('Este parte ya está revisado por '+(p.revisado_calidad_por||'Calidad')+' ('+(p.revisado_calidad_ts||'')+').\n¿Volver a firmar la revisión con tu nombre y la hora actual?')) return;
   }
-  p.revisado_calidad = true;
-  p.revisado_calidad_por = nombre;
-  p.revisado_calidad_ts = _ahoraSelloMadrid();
-  persistir();
-  enviarParteSheets(p);
-  toast('✓ Revisado por Calidad');
-  _verParteRender(id);
+  // Abre el lienzo para que Calidad firme (selecciona quién firma + firma manuscrita)
+  abrirFirma(p, 'calidad', function(){});
 }
 
 function enviarParteSheets(parte){
