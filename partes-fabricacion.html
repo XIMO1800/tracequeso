@@ -160,6 +160,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .parte-status.cerrado{background:var(--greenl);color:var(--green)}
 
 .btn-cerrar-parte{background:var(--green);color:white;border:none;border-radius:10px;padding:14px;font-size:1rem;font-weight:700;width:100%;cursor:pointer;margin-top:14px}
+.btn-firmar-quesero{background:var(--amberl);color:var(--amber);border:1.5px solid var(--amber);border-radius:10px;padding:14px;font-size:1rem;font-weight:700;width:100%;cursor:pointer;margin-top:14px}
 .btn-eliminar-cuba{background:var(--redl);color:var(--red);border:1.5px solid var(--red);border-radius:10px;padding:12px;font-size:0.9rem;font-weight:700;width:100%;cursor:pointer;margin-top:8px}
 
 /* ── Carrusel de cubas activas ── */
@@ -375,7 +376,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.41</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.42</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1259,9 +1260,14 @@ function rellenarCampos(p){
   }
   v('np-obs', p.observaciones);
 
-  // Añadir botones al final: Cerrar parte / Eliminar
+  // Añadir botones al final: Firmar (quesero) / Cerrar parte / Eliminar
   var panel = document.getElementById('panel-cuba-activa');
   if(panel){
+    var btnFirmar = document.createElement('button');
+    btnFirmar.className='btn-firmar-quesero';
+    btnFirmar.textContent = p.firma_quesero ? '✍️ Firmado por el quesero ✓ (volver a firmar)' : '✍️ Firmar (quesero)';
+    btnFirmar.onclick = function(){ firmarQuesero(p.id); };
+    panel.appendChild(btnFirmar);
     var btnCerrar = document.createElement('button');
     btnCerrar.className='btn-cerrar-parte';
     btnCerrar.textContent='✓ Cerrar parte (pasa al historial)';
@@ -1340,10 +1346,7 @@ function autoGuardarParte(parteId){
 }
 
 function cerrarParteActivo(id){
-  var p = PARTES.find(function(x){return x.id===id;});
-  if(!p) return;
-  // Pedir la firma del quesero ANTES de confirmar el cierre.
-  abrirFirmaQuesero(p, function(){ _cerrarParteActivoConfirmar(id); });
+  _cerrarParteActivoConfirmar(id);
 }
 
 function _cerrarParteActivoConfirmar(id){
@@ -1567,7 +1570,7 @@ function _htmlParteImpresion(p){
   if(fer.length){ fer.forEach(function(f){ f=f||{}; H.push('<tr><td>'+n(f.nombre)+'</td><td class="t">'+n(f.dosis_ml_1000L)+'</td><td class="t">'+n(f.consumo_total)+'</td><td>'+n(f.proveedor)+'</td><td>'+n(f.lote)+'</td><td>'+n(f.caducidad)+'</td></tr>'); }); }
   else { H.push('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>'); }
   H.push('</table>');
-  H.push('<div class="sec">Coagulación</div><table><tr><td>Hora de toma:</td><td>Hora adición: '+n(cg.hadicion)+'</td><td>pH: '+n(cg.ph)+'</td><td>TºC: '+n(cg.temp)+'</td></tr><tr><td>Hora de corte: '+n(cg.hc)+'</td><td colspan="3">Coagulación Total: '+n(cg.total)+(cg.total?' min':'')+'</td></tr></table>');
+  H.push('<div class="sec">Coagulación</div><table><tr><td>Hora adición: '+n(cg.hadicion)+'</td><td>pH: '+n(cg.ph)+'</td><td>TºC: '+n(cg.temp)+'</td></tr><tr><td>Hora de toma: '+n(cg.htoma)+'</td><td colspan="2"></td></tr><tr><td>Hora de corte: '+n(cg.hc)+'</td><td colspan="2">Coagulación Total: '+n(cg.total)+(cg.total?' min':'')+'</td></tr></table>');
   H.push('<table><tr><td class="lbl">Nombre</td><td class="lbl t">Dosis/1000l</td><td class="lbl t">Dosis utili.</td><td class="lbl">Proveedor</td><td class="lbl">Lote</td><td class="lbl">Caducidad</td></tr>');
   H.push('<tr><td>'+n(cu.nombre)+'</td><td class="t">'+n(cu.dosis_ml_1000L)+'</td><td class="t">'+n(cu.consumo_total)+'</td><td>'+n(cu.proveedor)+'</td><td>'+n(cu.lote)+'</td><td>'+n(cu.caducidad)+'</td></tr></table>');
   H.push('<div class="sec">Desuerado en cuba</div><table>');
@@ -1595,17 +1598,21 @@ function _htmlParteImpresion(p){
   H.push('</table>');
   H.push('<div class="sec">Piezas fabricadas</div><table><tr><td class="t lbl">3 Kgs.</td><td class="t lbl">2 Kgs.</td><td class="t lbl">1 Kg.</td><td class="t lbl">1/2 Kg.</td><td class="t lbl">Barras</td><td class="t lbl">Gigante</td></tr>');
   H.push('<tr><td class="t">'+z(pz['3kg'])+'</td><td class="t">'+z(pz['2kg'])+'</td><td class="t">'+z(pz['1kg'])+'</td><td class="t">'+z(pz['05kg'])+'</td><td class="t">'+z(pz.barra)+'</td><td class="t">'+z(pz.gigante)+'</td></tr></table>');
-  var casTxt=(cas.serie?(e(cas.serie)+' · '):'')+n(cas.primera)+' → '+n(cas.ultima)+(cas.total?(' ('+e(cas.total)+')'):'');
+  var casVacio = (!cas.serie && !cas.primera && !cas.ultima);
+  var casTxt = casVacio ? '' : ((cas.serie?(e(cas.serie)+' · '):'')+n(cas.primera)+' → '+n(cas.ultima)+(cas.total?(' ('+e(cas.total)+')'):''));
   H.push('<table><tr><td><span class="lbl">Nº Caseínas:</span> '+casTxt+'</td></tr></table>');
   H.push('<table class="mt"><tr><td style="height:34px"><span class="lbl">Acciones correctoras:</span> '+n(p.observaciones)+'</td></tr></table>');
   var firmaImg = p.firma_quesero ? ('<img src="'+p.firma_quesero+'">') : '';
   var firmaNom = p.firma_quesero_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_quesero_nombre)+(p.firma_quesero_ts?(' · '+e(p.firma_quesero_ts)):'')+'</div>') : '';
+  var salaImg = p.firma_sala ? ('<img src="'+p.firma_sala+'">') : '';
+  var salaNom = p.firma_sala_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_sala_nombre)+(p.firma_sala_ts?(' · '+e(p.firma_sala_ts)):'')+'</div>') : '';
   var vbCalidad = p.revisado_calidad ? ('<div class="vb"><b>✓ Revisado por Calidad</b><br>'+e(p.revisado_calidad_por||'Calidad')+(p.revisado_calidad_ts?(' · '+e(p.revisado_calidad_ts)):'')+'</div>') : '';
   H.push('<div class="firmas">');
-  H.push('<div class="firmabox"><span class="lbl">FIRMA:</span>'+firmaImg+firmaNom+'</div>');
+  H.push('<div class="firmabox"><span class="lbl">FIRMA QUESERO:</span>'+firmaImg+firmaNom+'</div>');
+  H.push('<div class="firmabox"><span class="lbl">FIRMA SALA:</span>'+salaImg+salaNom+'</div>');
   H.push('<div class="firmabox"><span class="lbl">Vº Bº CALIDAD:</span>'+vbCalidad+'</div>');
   H.push('</div>');
-  H.push('<div class="foot"><span>FOR 08-01 / diciembre 2024</span><span>Operario: '+n(p.operario)+' · Cuba '+n(p.cuba)+' · '+fecha+'</span></div>');
+  H.push('<div class="foot"><span>FOR 08-01 / diciembre 2024</span></div>');
   H.push('</body></html>');
   return H.join('');
 }
@@ -2480,8 +2487,10 @@ function _verParteRender(id){
     fb += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:4px">Firma del quesero'+(p.firma_quesero_nombre?(' · '+p.firma_quesero_nombre):'')+'</div>';
     fb += '<div style="border:1px solid var(--border);border-radius:8px;background:#fff;padding:6px;text-align:center"><img src="'+p.firma_quesero+'" alt="Firma" style="max-width:100%;max-height:120px"></div>';
     if(p.firma_quesero_ts) fb += '<div style="font-size:0.72rem;color:var(--text3);margin-top:4px">Firmado: '+p.firma_quesero_ts+'</div>';
+    if(puedeEditarParte(p)) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="firmarQuesero(\''+p.id+'\')">✍️ Volver a firmar (quesero)</button>';
   } else {
     fb += '<div style="font-size:0.82rem;color:var(--text3);padding:8px;background:var(--bg2);border-radius:8px">Sin firma del quesero.</div>';
+    if(puedeEditarParte(p)) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="firmarQuesero(\''+p.id+'\')">✍️ Firmar (quesero)</button>';
   }
   if(p.revisado_calidad){
     fb += '<div style="margin-top:8px;padding:8px 10px;background:var(--greenl);border:1px solid var(--green2);border-radius:8px;font-size:0.82rem;color:var(--green)"><b>✓ Revisado por Calidad</b><br>'+(p.revisado_calidad_por||'Calidad')+' · '+(p.revisado_calidad_ts||'')+'</div>';
@@ -3478,9 +3487,9 @@ function abrirFirmaQuesero(p, onDone){
     +     '<div style="display:flex;gap:8px;margin-top:12px">'
     +       '<button class="btn btn-secondary" style="flex:1" onclick="limpiarFirma()">↺ Borrar</button>'
     +       '<button class="btn btn-secondary" style="flex:1" onclick="cancelarFirma()">Cancelar</button>'
-    +       '<button class="btn btn-primary" style="flex:1.4" onclick="confirmarFirma()">✓ Firmar y cerrar</button>'
+    +       '<button class="btn btn-primary" style="flex:1.4" onclick="confirmarFirma()">✓ Guardar firma</button>'
     +     '</div>'
-    +     '<div style="font-size:0.74rem;color:var(--text3);text-align:center;margin-top:8px">También puedes cerrar sin firmar pulsando «Firmar y cerrar» con el recuadro vacío.</div>'
+    +     '<div style="font-size:0.74rem;color:var(--text3);text-align:center;margin-top:8px">El parte NO se cierra al firmar: sigue abierto para que la sala rellene el resto.</div>'
     +   '</div>'
     + '</div>';
     document.body.appendChild(ov);
@@ -3529,17 +3538,34 @@ function cancelarFirma(){
 
 function confirmarFirma(){
   var ov = document.getElementById('firma-overlay');
+  var firmado = false;
   if(_firmaParte){
     if(_firmaHayTrazo){
       var cv = document.getElementById('firma-canvas');
       try{ _firmaParte.firma_quesero = cv.toDataURL('image/png'); }catch(e){}
       _firmaParte.firma_quesero_nombre = _firmaParte.operario || OPERARIO_ACTUAL || '';
       _firmaParte.firma_quesero_ts = _ahoraSelloMadrid();
+      firmado = true;
+      // Guardar y sincronizar: el parte NO se cierra, sigue abierto y editable.
+      try{ persistir(); }catch(e){}
+      try{ enviarParteSheets(_firmaParte); }catch(e){}
     }
   }
   if(ov) ov.style.display = 'none';
+  if(firmado) toast('✍️ Parte firmado por el quesero');
+  // Refrescar la etiqueta del botón de firmar en el panel de cuba activa
+  var b = document.querySelector('.btn-firmar-quesero');
+  if(b && _firmaParte && _firmaParte.firma_quesero) b.textContent = '✍️ Firmado por el quesero ✓ (volver a firmar)';
   var done = _firmaOnDone; _firmaOnDone = null;
   if(typeof done === 'function') done();
+}
+
+// Botón independiente: el quesero firma su parte cuando termina SUS fases,
+// sin cerrarlo. El parte sigue abierto para que la sala rellene el resto.
+function firmarQuesero(id){
+  var p = PARTES.find(function(x){return x.id===id;});
+  if(!p){ toast('Parte no encontrado'); return; }
+  abrirFirmaQuesero(p, function(){});
 }
 
 // Sello de fecha+hora en hora de Madrid (dd/mm/aaaa hh:mm)
