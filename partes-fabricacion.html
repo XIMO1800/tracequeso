@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.48</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.50</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -408,6 +408,13 @@ input[type="email"] {
       <div class="empty-state-icon">🥛</div>
       <div class="empty-state-text">No hay cubas abiertas hoy.<br>Pulsa <b>+ Nueva cuba</b> para empezar.</div>
     </div>
+  </div>
+
+  <!-- Firma rápida: aplica una firma a TODOS los partes de hoy de una vez -->
+  <div style="padding:14px 12px 30px">
+    <div style="font-size:0.78rem;color:var(--text3);text-align:center;margin-bottom:8px">Firmar todos los partes de hoy de una vez</div>
+    <button class="btn-firmar-sala" onclick="firmarTodosHoy('sala')">✍️ Firmar todos (operario de sala)</button>
+    <button class="btn-firmar-quesero" onclick="firmarTodosHoy('quesero')">✍️ Firmar todos (quesero)</button>
   </div>
 
 </div>
@@ -828,9 +835,42 @@ function propagarHora(origenId, destinoId){
 // OPERARIOS
 // ═══════════════════════════════════════════════
 
-var OPERARIOS = ['JORGE','JOAQUIN','PACO']; // se pueden añadir más
+var OPERARIOS = ['JORGE','JOAQUIN','PACO']; // nombres (compatibilidad)
+var OPERARIOS_DET = []; // detalle desde la hoja: [{n:'JOSEPH', rol:'OPERARIO'}, ...]
 var OPERARIO_ACTUAL = ''; // último usado, persiste
 var ROL_ACTUAL = ''; // rol del usuario que entró desde TraceQueso (CALIDAD/ADMIN/...)
+
+// Carga el listado real de operarios desde Google (hoja LISTADO OPERARIOS),
+// con su rol, para poblar los desplegables de firma. Así, si cambian los
+// operarios en la hoja, los desplegables se actualizan solos sin tocar el código.
+function cargarOperariosRemotos(){
+  try{
+    fetch(API_URL+'?tipo=operarios').then(function(r){return r.json();}).then(function(d){
+      if(d && d.ok && d.data && d.data.length){
+        OPERARIOS_DET = d.data.map(function(o){ return {n:String(o.n||'').trim(), rol:String(o.rol||'').toUpperCase().trim()}; })
+                              .filter(function(o){ return o.n; });
+        OPERARIOS = OPERARIOS_DET.map(function(o){ return o.n; });
+        guardarOperarios();
+      }
+    }).catch(function(){});
+  }catch(e){}
+}
+
+// Devuelve solo los operarios de SALA DE FABRICACIÓN, identificados por el
+// rol 'OPERARIO FABR.' en la hoja LISTADO OPERARIOS. La comparación es tolerante
+// (ignora mayúsculas, espacios de más y el punto final) para que no falle por erratas.
+// Si la hoja aún no se cargó, usa la lista de nombres como fallback.
+function _rolNorm(r){
+  return String(r||'').toUpperCase().replace(/\./g,'').replace(/\s+/g,' ').trim();
+}
+function operariosDeSala(){
+  if(OPERARIOS_DET && OPERARIOS_DET.length){
+    var objetivo = _rolNorm('OPERARIO FABR.'); // -> 'OPERARIO FABR'
+    var r = OPERARIOS_DET.filter(function(o){ return _rolNorm(o.rol)===objetivo; }).map(function(o){ return o.n; });
+    return r; // puede ser [] si nadie tiene ese rol todavía; el desplegable lo indicará
+  }
+  return OPERARIOS.slice();
+}
 
 function cargarOperarios(){
   try{
@@ -838,6 +878,7 @@ function cargarOperarios(){
     if(s){
       var d = JSON.parse(s);
       if(d.lista && d.lista.length) OPERARIOS = d.lista;
+      if(d.det && d.det.length) OPERARIOS_DET = d.det;
       if(d.actual) OPERARIO_ACTUAL = d.actual;
       if(d.rol) ROL_ACTUAL = d.rol;
     }
@@ -856,11 +897,13 @@ function cargarOperarios(){
       localStorage.removeItem('tq_partes_handoff');
     }
   }catch(e){}
+  // Refrescar desde la hoja en segundo plano (lista siempre al día)
+  cargarOperariosRemotos();
 }
 
 function guardarOperarios(){
   try{
-    localStorage.setItem('tq_partes_operarios', JSON.stringify({lista:OPERARIOS, actual:OPERARIO_ACTUAL, rol:ROL_ACTUAL}));
+    localStorage.setItem('tq_partes_operarios', JSON.stringify({lista:OPERARIOS, det:OPERARIOS_DET, actual:OPERARIO_ACTUAL, rol:ROL_ACTUAL}));
   }catch(e){}
 }
 
@@ -3659,11 +3702,17 @@ function abrirFirma(p, tipo, onDone){
   else if(_firmaTipo==='calidad'){ titulo='✓ Revisión de Calidad'; color='var(--green)'; sugerido=(typeof CU!=='undefined'&&CU&&CU.n)?CU.n:(OPERARIO_ACTUAL||''); }
   else { titulo='✍️ Firma del quesero'; color='var(--green)'; sugerido=p.operario||OPERARIO_ACTUAL||''; }
 
-  // Opciones del desplegable de operario
+  // Opciones del desplegable de operario.
+  // Para SALA, solo operarios con rol 'OPERARIO FABR.' en la hoja.
+  // Para quesero y calidad, el listado completo.
+  var listaOps = (_firmaTipo==='sala') ? operariosDeSala() : OPERARIOS.slice();
   var ops = '<option value="">— Selecciona quién firma —</option>';
-  OPERARIOS.forEach(function(op){
+  listaOps.forEach(function(op){
     ops += '<option value="'+op+'"'+(op===sugerido?' selected':'')+'>'+op+'</option>';
   });
+  var avisoSala = (_firmaTipo==='sala' && !listaOps.length)
+    ? '<div style="font-size:0.74rem;color:var(--brand);margin-bottom:8px">No hay operarios con rol «OPERARIO FABR.» en la hoja. Asígnalo en LISTADO OPERARIOS para que aparezcan aquí.</div>'
+    : '';
 
   var ov = document.getElementById('firma-overlay');
   if(ov){ ov.remove(); ov = null; }
@@ -3675,6 +3724,7 @@ function abrirFirma(p, tipo, onDone){
   +   '<div style="background:'+color+';color:#fff;padding:13px 16px;font-weight:700;font-size:0.95rem">'+titulo+'</div>'
   +   '<div style="padding:14px 16px">'
   +     '<div style="font-size:0.82rem;color:var(--text2);margin-bottom:4px">¿Quién firma?</div>'
+  +     avisoSala
   +     '<select id="firma-operario" style="width:100%;padding:10px;font-size:0.95rem;border:1.5px solid var(--border);border-radius:8px;margin-bottom:10px;background:#fff">'+ops+'</select>'
   +     '<div style="font-size:0.82rem;color:var(--text2);margin-bottom:8px">Firma con el dedo o el lápiz dentro del recuadro:</div>'
   +     '<canvas id="firma-canvas" style="width:100%;height:180px;border:2px dashed var(--border);border-radius:10px;background:#fff;touch-action:none;display:block"></canvas>'
@@ -3781,6 +3831,39 @@ function firmarSala(id){
   var p = PARTES.find(function(x){return x.id===id;});
   if(!p){ toast('Parte no encontrado'); return; }
   abrirFirma(p, 'sala', function(){});
+}
+
+// Firma TODOS los partes de hoy de una vez (sala o quesero). El operario firma
+// una sola vez y se aplica esa misma firma + nombre + hora a cada parte de hoy.
+function firmarTodosHoy(tipo){
+  var hoy = new Date().toISOString().slice(0,10);
+  var partesHoy = PARTES.filter(function(p){ return String(p.fecha||'').slice(0,10)===hoy; });
+  if(!partesHoy.length){ toast('No hay partes de hoy'); return; }
+  // Usamos un parte "ancla" solo para abrir el lienzo; al confirmar propagamos a todos.
+  var ancla = partesHoy[0];
+  _firmaMasivaLista = partesHoy;
+  abrirFirma(ancla, tipo, function(){ _aplicarFirmaMasiva(tipo); });
+}
+
+var _firmaMasivaLista = null;
+function _aplicarFirmaMasiva(tipo){
+  if(!_firmaMasivaLista || !_firmaMasivaLista.length){ _firmaMasivaLista=null; return; }
+  // Tomamos la firma recién hecha del parte ancla (ya guardada por confirmarFirma)
+  var ancla = _firmaMasivaLista[0];
+  var img, nombre, ts;
+  if(tipo==='sala'){ img=ancla.firma_sala; nombre=ancla.firma_sala_nombre; ts=ancla.firma_sala_ts; }
+  else { img=ancla.firma_quesero; nombre=ancla.firma_quesero_nombre; ts=ancla.firma_quesero_ts; }
+  if(!img){ _firmaMasivaLista=null; return; }
+  var n=0;
+  _firmaMasivaLista.forEach(function(p){
+    if(tipo==='sala'){ p.firma_sala=img; p.firma_sala_nombre=nombre; p.firma_sala_ts=ts; }
+    else { p.firma_quesero=img; p.firma_quesero_nombre=nombre; p.firma_quesero_ts=ts; }
+    try{ enviarParteSheets(p); }catch(e){}
+    n++;
+  });
+  try{ persistir(); }catch(e){}
+  _firmaMasivaLista=null;
+  toast('✍️ Firmados '+n+' partes de hoy');
 }
 
 // Sello de fecha+hora en hora de Madrid (dd/mm/aaaa hh:mm)
