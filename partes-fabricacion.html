@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.63</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.65</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -522,8 +522,12 @@ input[type="email"] {
       <span class="seccion-chevron" id="chev-aux">▼</span>
     </div>
     <div class="seccion-body" id="body-aux">
-      <!-- pH y Tª de la leche en el momento de adición de auxiliares -->
-      <div class="sep-label">Leche entrada cuba</div>
+      <!-- Hora de adición + pH y Tª de la leche en el momento de adición de auxiliares -->
+      <div class="sep-label">Adición auxiliares (leche en cuba)</div>
+      <div class="form-row">
+        <label class="form-label">Hora de adición</label>
+        <input type="time" id="aux-hadicion">
+      </div>
       <div class="form-cols">
         <div class="form-row">
           <label class="form-label">pH leche</label>
@@ -595,7 +599,24 @@ input[type="email"] {
       <div class="seccion-header-left"><span class="seccion-icon">🦠</span><div><div class="seccion-label">Fermentos lácticos</div><div class="seccion-sublabel" id="ferm-sub">—</div></div></div>
       <span class="seccion-chevron" id="chev-ferm">▼</span>
     </div>
-    <div class="seccion-body" id="body-ferm"><div id="ferm-container"><div class="empty-state" style="padding:20px"><div class="empty-state-text">Selecciona tipo·variedad arriba</div></div></div></div>
+    <div class="seccion-body" id="body-ferm">
+      <div class="sep-label">Adición fermentos</div>
+      <div class="form-row">
+        <label class="form-label">Hora de adición</label>
+        <input type="time" id="ferm-hadicion">
+      </div>
+      <div class="form-cols">
+        <div class="form-row">
+          <label class="form-label">pH</label>
+          <input type="number" id="ferm-ph" step="0.01" inputmode="decimal">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Tª (°C)</label>
+          <input type="number" id="ferm-temp" step="0.1" inputmode="decimal">
+        </div>
+      </div>
+      <div id="ferm-container"><div class="empty-state" style="padding:20px"><div class="empty-state-text">Selecciona tipo·variedad arriba</div></div></div>
+    </div>
   </div>
 
   <div class="seccion">
@@ -1259,6 +1280,14 @@ function rellenarCampos(p){
     v('aux-ph', p.co2.ph_leche); v('aux-temp', p.co2.temp_leche);
     v('co2-caudal', p.co2.caudal_lh || 100); v('co2-tiempo', p.co2.tiempo_seg);
   }
+  // Hora adición auxiliares (pH/Tª de aux se cargan arriba desde co2; aquí completa si faltan)
+  if(p.aux_meta){ v('aux-hadicion', p.aux_meta.hadicion);
+    var _ap=document.getElementById('aux-ph'), _at=document.getElementById('aux-temp');
+    if(p.aux_meta.ph && _ap && !_ap.value) v('aux-ph', p.aux_meta.ph);
+    if(p.aux_meta.temp && _at && !_at.value) v('aux-temp', p.aux_meta.temp);
+  }
+  // Adición fermentos (hora, pH, Tª)
+  if(p.ferm_meta){ v('ferm-hadicion', p.ferm_meta.hadicion); v('ferm-ph', p.ferm_meta.ph); v('ferm-temp', p.ferm_meta.temp); }
   // Coagulación
   if(p.coag){
     v('coag-hadicion', p.coag.hadicion); v('coag-hc', p.coag.hc);
@@ -1406,6 +1435,8 @@ function autoGuardarParte(parteId){
   if(p.operario) OPERARIO_ACTUAL = p.operario;
   guardarOperarios();
   p.cuba = g('np-cuba');
+  p.aux_meta = {hadicion:g('aux-hadicion'), ph:g('aux-ph'), temp:g('aux-temp')};
+  p.ferm_meta = {hadicion:g('ferm-hadicion'), ph:g('ferm-ph'), temp:g('ferm-temp')};
   p.coag = {hadicion:g('coag-hadicion'), hc:g('coag-hc'), ph:g('coag-ph'), temp:g('coag-temp'), total:g('coag-total')};
   p.desuerado = {rec_hi:g('rec-hi'), rec_hf:g('rec-hf'), rec_ti:g('rec-ti'), rec_tf:g('rec-tf'),
     rec_ph:g('rec-ph'), rec_dornic:g('rec-dornic'),
@@ -1648,6 +1679,7 @@ var CAMPOS_QUESERO = ['np-tipo-sel','np-var-sel','np-lote','np-litros','np-lvaca
   'np-tanque','np-cuba','np-ph','np-temp','np-dornic','np-operario',
   'past-valvula','past-fosfatasa','past-temp','past-tiempo','past-cruda',
   'aux-hadicion','aux-ph','aux-temp','co2-aplicado','co2-caudal','co2-tiempo',
+  'ferm-hadicion','ferm-ph','ferm-temp',
   'coag-hadicion','coag-htoma','coag-hc','coag-ph','coag-temp','coag-total',
   'rec-hi','rec-hf','rec-ti','rec-tf','rec-ph','rec-dornic',
   'agit-hi','agit-hf','agit-total','lavado-aplicado','lavado-metodo','lavado-hi','lavado-hf','lavado-temp',
@@ -1727,13 +1759,21 @@ function _htmlParteImpresion(p){
   var pcond = pa.temp ? ('Tºc '+e(pa.temp)+(pa.tiempo?(' - '+e(pa.tiempo)+'s'):'')) : '';
   H.push('<div class="sec">Pasteurización</div><table><tr><td class="t lbl">Válvula desvío (C/I)</td><td class="t lbl">Fosfatasa alcalina</td><td class="t lbl">Condiciones pasteurización</td><td class="t lbl">Cruda</td></tr>');
   H.push('<tr><td class="t">'+n(pa.valvula)+'</td><td class="t">'+_fosfatasaTxt(pa.fosfatasa)+'</td><td class="t">'+pcond+'</td><td class="t">'+(pa.cruda?'Sí':'')+'</td></tr></table>');
-  H.push('<div class="sec">Auxiliares de fabricación</div><table><tr><td class="lbl">Auxiliar</td><td class="lbl t">ml/1000L</td><td class="lbl t">ml utilizados</td><td class="lbl">Proveedor</td><td class="lbl">Lote</td><td class="lbl">Caducidad</td></tr>');
+  var am = p.aux_meta || {};
+  var amPh = am.ph || (co.ph_leche!=null?co.ph_leche:'');
+  var amTemp = am.temp || (co.temp_leche!=null?co.temp_leche:'');
+  H.push('<div class="sec">Auxiliares de fabricación</div>');
+  H.push('<table><tr><td>Hora adición: '+n(am.hadicion)+'</td><td>pH: '+n(amPh)+'</td><td>TºC: '+n(amTemp)+'</td></tr></table>');
+  H.push('<table><tr><td class="lbl">Auxiliar</td><td class="lbl t">ml/1000L</td><td class="lbl t">ml utilizados</td><td class="lbl">Proveedor</td><td class="lbl">Lote</td><td class="lbl">Caducidad</td></tr>');
   var auxList=(p.auxiliares||[]).concat(p.otrosAuxiliares||[]);
   if(auxList.length){ auxList.forEach(function(a){ a=a||{}; H.push('<tr><td>'+n(a.nombre)+'</td><td class="t">'+n(a.dosis_ml_1000L)+'</td><td class="t">'+n(a.consumo_total)+'</td><td>'+n(a.proveedor)+'</td><td>'+n(a.lote)+'</td><td class="t">'+_fechaEsp(a.caducidad)+'</td></tr>'); }); }
   else { H.push('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>'); }
   H.push('</table>');
   H.push('<table><tr><td class="lbl">CO2</td><td>Caducidad: '+_fechaEsp(co.caducidad)+'</td><td>Lote: '+n(co.lote)+'</td><td>Tiempo: '+n(co.tiempo_seg)+(co.tiempo_seg?' s':'')+'</td><td>Litros/Hora: '+n(co.caudal_lh)+'</td></tr></table>');
-  H.push('<div class="sec">Fermentos lácticos</div><table><tr><td class="lbl">Nombre</td><td class="lbl t">Dosis/1000l</td><td class="lbl t">Dosis utili.</td><td class="lbl">Proveedor</td><td class="lbl">Lote</td><td class="lbl">Caducidad</td></tr>');
+  var fm = p.ferm_meta || {};
+  H.push('<div class="sec">Fermentos lácticos</div>');
+  H.push('<table><tr><td>Hora adición: '+n(fm.hadicion)+'</td><td>pH: '+n(fm.ph)+'</td><td>TºC: '+n(fm.temp)+'</td></tr></table>');
+  H.push('<table><tr><td class="lbl">Nombre</td><td class="lbl t">Dosis/1000l</td><td class="lbl t">Dosis utili.</td><td class="lbl">Proveedor</td><td class="lbl">Lote</td><td class="lbl">Caducidad</td></tr>');
   var fer=p.fermentos||[];
   if(fer.length){ fer.forEach(function(f){ f=f||{}; H.push('<tr><td>'+n(f.nombre)+'</td><td class="t">'+n(f.dosis_ml_1000L)+'</td><td class="t">'+n(f.consumo_total)+'</td><td>'+n(f.proveedor)+'</td><td>'+n(f.lote)+'</td><td class="t">'+_fechaEsp(f.caducidad)+'</td></tr>'); }); }
   else { H.push('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>'); }
@@ -2463,6 +2503,8 @@ function guardarParte(){
     ph:document.getElementById('np-ph').value,temp:document.getElementById('np-temp').value,dornic_leche:document.getElementById('np-dornic').value,
     operario:document.getElementById('np-operario').value,
     auxiliares:[],fermentos:[],cuajo:null,
+    aux_meta:{hadicion:(document.getElementById('aux-hadicion')||{}).value||'', ph:(document.getElementById('aux-ph')||{}).value||'', temp:(document.getElementById('aux-temp')||{}).value||''},
+    ferm_meta:{hadicion:(document.getElementById('ferm-hadicion')||{}).value||'', ph:(document.getElementById('ferm-ph')||{}).value||'', temp:(document.getElementById('ferm-temp')||{}).value||''},
     coag:{hadicion:document.getElementById('coag-hadicion').value,hc:document.getElementById('coag-hc').value,ph:document.getElementById('coag-ph').value,temp:document.getElementById('coag-temp').value,total:document.getElementById('coag-total').value},
     desuerado:{rec_hi:document.getElementById('rec-hi').value,rec_hf:document.getElementById('rec-hf').value,rec_ti:document.getElementById('rec-ti').value,rec_tf:document.getElementById('rec-tf').value,rec_ph:document.getElementById('rec-ph').value,rec_dornic:document.getElementById('rec-dornic').value,agit_hi:document.getElementById('agit-hi').value,agit_hf:document.getElementById('agit-hf').value,agit_total:document.getElementById('agit-total').value,lavado_aplicado:document.getElementById('lavado-aplicado').checked,lavado_metodo:document.getElementById('lavado-metodo')?document.getElementById('lavado-metodo').value:'',lavado_hi:document.getElementById('lavado-hi').value,lavado_hf:document.getElementById('lavado-hf').value,lavado_temp:document.getElementById('lavado-temp').value},
     moldeo:{hi:document.getElementById('mol-hi').value,hf:document.getElementById('mol-hf').value,ph:document.getElementById('mol-ph').value,temp:document.getElementById('mol-temp').value},
@@ -2518,7 +2560,7 @@ function descontarStock(producto,cantidad){
 }
 
 function limpiarParte(){
-  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-dornic','np-operario','aux-ph','aux-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','rec-ph','rec-dornic','agit-hi','agit-hf','agit-total','lavado-hi','lavado-hf','lavado-temp','mol-hi','mol-hf','mol-ph','mol-temp','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','cas-serie','cas-primera','cas-ultima','co2-tiempo','past-valvula','past-temp','past-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-dornic','np-operario','aux-hadicion','aux-ph','aux-temp','ferm-hadicion','ferm-ph','ferm-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','rec-ph','rec-dornic','agit-hi','agit-hf','agit-total','lavado-hi','lavado-hf','lavado-temp','mol-hi','mol-hf','mol-ph','mol-temp','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','cas-serie','cas-primera','cas-ultima','co2-tiempo','past-valvula','past-temp','past-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('np-tipo').value='';
   var ts=document.getElementById('np-tipo-sel');if(ts)ts.value='';
   var vs=document.getElementById('np-var-sel');if(vs){vs.innerHTML='<option value="">— Variedad —</option>';vs.disabled=true;}
@@ -2955,7 +2997,12 @@ function renderEpForm(){
            'Condiciones', '<select id="ep-past-cond" style="'+_epStyle()+'"><option value=""></option><option value="CRUDA"'+(p.pasteurizacion.cruda?' selected':'')+'>CRUDA</option><option value="PAST"'+(!p.pasteurizacion.cruda&&p.pasteurizacion.temp?' selected':'')+'>PASTEURIZADA</option></select>');
   h += _ep2('Tª pasteurización (°C)', _epInp('ep-past-temp', p.pasteurizacion.temp, 'number'),
            'Tiempo (seg)', _epInp('ep-past-tiempo', p.pasteurizacion.tiempo, 'number'));
-  h += _ep1('Fosfatasa alcalina', '<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem"><input type="checkbox" id="ep-past-fosf"'+(p.pasteurizacion.fosfatasa?' checked':'')+'> Sí</label>');
+  var _fosfActual = p.pasteurizacion.fosfatasa; if(_fosfActual===true) _fosfActual='P'; else if(_fosfActual===false) _fosfActual='';
+  h += _ep1('Fosfatasa alcalina (P/N)', '<select id="ep-past-fosf" style="padding:7px 10px;font-size:0.9rem;border:1.5px solid var(--border);border-radius:8px;background:#fff">'
+    + '<option value="">—</option>'
+    + '<option value="P"'+(_fosfActual==='P'?' selected':'')+'>P (Positiva)</option>'
+    + '<option value="N"'+(_fosfActual==='N'?' selected':'')+'>N (Negativa)</option>'
+    + '</select>');
 
   // ── AUXILIARES (siempre visibles, lista editable) ──
   // Incluye CO₂ como una fila especial dentro del bloque
@@ -3229,7 +3276,7 @@ function _epRecogerEnEstado(){
   if(v('ep-past-valv')!==undefined)   p.pasteurizacion.valvula = v('ep-past-valv');
   if(v('ep-past-temp')!==undefined)   p.pasteurizacion.temp = v('ep-past-temp');
   if(v('ep-past-tiempo')!==undefined) p.pasteurizacion.tiempo = v('ep-past-tiempo');
-  if(c('ep-past-fosf')!==undefined)   p.pasteurizacion.fosfatasa = c('ep-past-fosf');
+  if(v('ep-past-fosf')!==undefined)   p.pasteurizacion.fosfatasa = v('ep-past-fosf');
   var cond = v('ep-past-cond');
   if(cond!==undefined) p.pasteurizacion.cruda = (cond==='CRUDA');
 
@@ -3916,6 +3963,14 @@ function confirmarFirma(){
     var orig = _firmaParte;
     // Recoger en el parte los datos que Calidad acaba de editar (litros, fosfatasa...) antes de clonar
     try{ if(typeof autoGuardarParte==='function' && CUBA_ACTIVA_ID===orig.id) autoGuardarParte(orig.id); }catch(e){}
+    // OBLIGATORIO para Calidad: la fosfatasa debe quedar como P (positiva) o N (negativa).
+    var _fosf = orig.pasteurizacion ? orig.pasteurizacion.fosfatasa : '';
+    if(_fosf===true) _fosf='P'; // compat antiguo
+    var _fosfStr = String(_fosf||'').toUpperCase().trim();
+    if(_fosfStr!=='P' && _fosfStr!=='N'){
+      toast('Antes de firmar, indica la fosfatasa alcalina: P (positiva) o N (negativa)','warn');
+      return;
+    }
     var revisado = JSON.parse(JSON.stringify(orig));
     revisado.id = 'PR-' + Date.now();
     revisado.version = 'revisado';
