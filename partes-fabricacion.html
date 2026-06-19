@@ -161,6 +161,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 
 .btn-cerrar-parte{background:var(--green);color:white;border:none;border-radius:10px;padding:14px;font-size:1rem;font-weight:700;width:100%;cursor:pointer;margin-top:14px}
 .btn-firmar-quesero{background:var(--amberl);color:var(--amber);border:1.5px solid var(--amber);border-radius:10px;padding:14px;font-size:1rem;font-weight:700;width:100%;cursor:pointer;margin-top:14px}
+.btn-firmar-sala{background:var(--brandl,#efe6f5);color:var(--brand);border:1.5px solid var(--brand);border-radius:10px;padding:14px;font-size:1rem;font-weight:700;width:100%;cursor:pointer;margin-top:10px}
 .btn-eliminar-cuba{background:var(--redl);color:var(--red);border:1.5px solid var(--red);border-radius:10px;padding:12px;font-size:0.9rem;font-weight:700;width:100%;cursor:pointer;margin-top:8px}
 
 /* ── Carrusel de cubas activas ── */
@@ -376,7 +377,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.42</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.43</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1268,6 +1269,11 @@ function rellenarCampos(p){
     btnFirmar.textContent = p.firma_quesero ? '✍️ Firmado por el quesero ✓ (volver a firmar)' : '✍️ Firmar (quesero)';
     btnFirmar.onclick = function(){ firmarQuesero(p.id); };
     panel.appendChild(btnFirmar);
+    var btnFirmarSala = document.createElement('button');
+    btnFirmarSala.className='btn-firmar-sala';
+    btnFirmarSala.textContent = p.firma_sala ? '✍️ Firmado por la sala ✓ (volver a firmar)' : '✍️ Firmar (operario de sala)';
+    btnFirmarSala.onclick = function(){ firmarSala(p.id); };
+    panel.appendChild(btnFirmarSala);
     var btnCerrar = document.createElement('button');
     btnCerrar.className='btn-cerrar-parte';
     btnCerrar.textContent='✓ Cerrar parte (pasa al historial)';
@@ -2492,6 +2498,16 @@ function _verParteRender(id){
     fb += '<div style="font-size:0.82rem;color:var(--text3);padding:8px;background:var(--bg2);border-radius:8px">Sin firma del quesero.</div>';
     if(puedeEditarParte(p)) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="firmarQuesero(\''+p.id+'\')">✍️ Firmar (quesero)</button>';
   }
+  // Firma del operario de sala
+  if(p.firma_sala){
+    fb += '<div style="font-size:0.78rem;color:var(--text3);margin:10px 0 4px">Firma del operario de sala'+(p.firma_sala_nombre?(' · '+p.firma_sala_nombre):'')+'</div>';
+    fb += '<div style="border:1px solid var(--border);border-radius:8px;background:#fff;padding:6px;text-align:center"><img src="'+p.firma_sala+'" alt="Firma sala" style="max-width:100%;max-height:120px"></div>';
+    if(p.firma_sala_ts) fb += '<div style="font-size:0.72rem;color:var(--text3);margin-top:4px">Firmado: '+p.firma_sala_ts+'</div>';
+    if(puedeEditarParte(p)) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="firmarSala(\''+p.id+'\')">✍️ Volver a firmar (sala)</button>';
+  } else {
+    fb += '<div style="font-size:0.82rem;color:var(--text3);padding:8px;background:var(--bg2);border-radius:8px;margin-top:10px">Sin firma del operario de sala.</div>';
+    if(puedeEditarParte(p)) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="firmarSala(\''+p.id+'\')">✍️ Firmar (operario de sala)</button>';
+  }
   if(p.revisado_calidad){
     fb += '<div style="margin-top:8px;padding:8px 10px;background:var(--greenl);border:1px solid var(--green2);border-radius:8px;font-size:0.82rem;color:var(--green)"><b>✓ Revisado por Calidad</b><br>'+(p.revisado_calidad_por||'Calidad')+' · '+(p.revisado_calidad_ts||'')+'</div>';
   } else if(esCalidadOAdmin()){
@@ -3462,25 +3478,27 @@ function abrirModal(html){var c=document.getElementById('modal-content');var m=d
 function cerrarModal(){var m=document.getElementById('modal');if(m)m.classList.remove('open');}
 
 // ═══════════════════════════════════════════════
-// FIRMA DEL QUESERO (lienzo táctil) + VISTO BUENO DE CALIDAD
+// FIRMAS (lienzo táctil): QUESERO y OPERARIO DE SALA + VISTO BUENO DE CALIDAD
 // ═══════════════════════════════════════════════
 
-// Lienzo de firma. Llama a onFirma(dataURL) si firma y guarda, o continúa
-// igualmente si decide cerrar sin firmar (la firma no es obligatoria para no
-// bloquear al quesero, pero se le ofrece siempre).
-var _firmaCtx = null, _firmaDibujando = false, _firmaHayTrazo = false, _firmaOnDone = null, _firmaParte = null;
+var _firmaCtx = null, _firmaDibujando = false, _firmaHayTrazo = false, _firmaOnDone = null, _firmaParte = null, _firmaTipo = 'quesero';
 
-function abrirFirmaQuesero(p, onDone){
-  _firmaParte = p; _firmaOnDone = onDone || function(){};
+// tipo: 'quesero' o 'sala'
+function abrirFirma(p, tipo, onDone){
+  _firmaParte = p; _firmaTipo = (tipo==='sala') ? 'sala' : 'quesero';
+  _firmaOnDone = onDone || function(){};
   _firmaHayTrazo = false;
+  var titulo = (_firmaTipo==='sala') ? '✍️ Firma del operario de sala' : '✍️ Firma del quesero';
+  var color  = (_firmaTipo==='sala') ? 'var(--brand)' : 'var(--green)';
   var ov = document.getElementById('firma-overlay');
+  if(ov){ ov.remove(); ov = null; }
   if(!ov){
     ov = document.createElement('div');
     ov.id = 'firma-overlay';
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px';
     ov.innerHTML =
       '<div style="background:var(--card);border-radius:14px;max-width:460px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.3);overflow:hidden">'
-    +   '<div style="background:var(--green);color:#fff;padding:13px 16px;font-weight:700;font-size:0.95rem">✍️ Firma del quesero</div>'
+    +   '<div style="background:'+color+';color:#fff;padding:13px 16px;font-weight:700;font-size:0.95rem">'+titulo+'</div>'
     +   '<div style="padding:14px 16px">'
     +     '<div style="font-size:0.82rem;color:var(--text2);margin-bottom:8px">Firma con el dedo o el lápiz dentro del recuadro:</div>'
     +     '<canvas id="firma-canvas" style="width:100%;height:180px;border:2px dashed var(--border);border-radius:10px;background:#fff;touch-action:none;display:block"></canvas>'
@@ -3489,7 +3507,7 @@ function abrirFirmaQuesero(p, onDone){
     +       '<button class="btn btn-secondary" style="flex:1" onclick="cancelarFirma()">Cancelar</button>'
     +       '<button class="btn btn-primary" style="flex:1.4" onclick="confirmarFirma()">✓ Guardar firma</button>'
     +     '</div>'
-    +     '<div style="font-size:0.74rem;color:var(--text3);text-align:center;margin-top:8px">El parte NO se cierra al firmar: sigue abierto para que la sala rellene el resto.</div>'
+    +     '<div style="font-size:0.74rem;color:var(--text3);text-align:center;margin-top:8px">El parte NO se cierra al firmar: sigue abierto.</div>'
     +   '</div>'
     + '</div>';
     document.body.appendChild(ov);
@@ -3539,33 +3557,45 @@ function cancelarFirma(){
 function confirmarFirma(){
   var ov = document.getElementById('firma-overlay');
   var firmado = false;
-  if(_firmaParte){
-    if(_firmaHayTrazo){
-      var cv = document.getElementById('firma-canvas');
-      try{ _firmaParte.firma_quesero = cv.toDataURL('image/png'); }catch(e){}
-      _firmaParte.firma_quesero_nombre = _firmaParte.operario || OPERARIO_ACTUAL || '';
-      _firmaParte.firma_quesero_ts = _ahoraSelloMadrid();
-      firmado = true;
-      // Guardar y sincronizar: el parte NO se cierra, sigue abierto y editable.
-      try{ persistir(); }catch(e){}
-      try{ enviarParteSheets(_firmaParte); }catch(e){}
+  if(_firmaParte && _firmaHayTrazo){
+    var cv = document.getElementById('firma-canvas');
+    var img = ''; try{ img = cv.toDataURL('image/png'); }catch(e){}
+    var nombre = _firmaParte.operario || OPERARIO_ACTUAL || '';
+    var ts = _ahoraSelloMadrid();
+    if(_firmaTipo==='sala'){
+      _firmaParte.firma_sala = img;
+      _firmaParte.firma_sala_nombre = nombre;
+      _firmaParte.firma_sala_ts = ts;
+    } else {
+      _firmaParte.firma_quesero = img;
+      _firmaParte.firma_quesero_nombre = nombre;
+      _firmaParte.firma_quesero_ts = ts;
     }
+    firmado = true;
+    try{ persistir(); }catch(e){}
+    try{ enviarParteSheets(_firmaParte); }catch(e){}
   }
   if(ov) ov.style.display = 'none';
-  if(firmado) toast('✍️ Parte firmado por el quesero');
-  // Refrescar la etiqueta del botón de firmar en el panel de cuba activa
-  var b = document.querySelector('.btn-firmar-quesero');
-  if(b && _firmaParte && _firmaParte.firma_quesero) b.textContent = '✍️ Firmado por el quesero ✓ (volver a firmar)';
+  if(firmado) toast(_firmaTipo==='sala' ? '✍️ Parte firmado por la sala' : '✍️ Parte firmado por el quesero');
+  // Refrescar etiquetas de los botones en el panel de cuba activa
+  var bq = document.querySelector('.btn-firmar-quesero');
+  if(bq && _firmaParte && _firmaParte.firma_quesero) bq.textContent = '✍️ Firmado por el quesero ✓ (volver a firmar)';
+  var bs = document.querySelector('.btn-firmar-sala');
+  if(bs && _firmaParte && _firmaParte.firma_sala) bs.textContent = '✍️ Firmado por la sala ✓ (volver a firmar)';
   var done = _firmaOnDone; _firmaOnDone = null;
   if(typeof done === 'function') done();
 }
 
-// Botón independiente: el quesero firma su parte cuando termina SUS fases,
-// sin cerrarlo. El parte sigue abierto para que la sala rellene el resto.
+// Botones independientes: cada uno firma SU parte sin cerrarlo.
 function firmarQuesero(id){
   var p = PARTES.find(function(x){return x.id===id;});
   if(!p){ toast('Parte no encontrado'); return; }
-  abrirFirmaQuesero(p, function(){});
+  abrirFirma(p, 'quesero', function(){});
+}
+function firmarSala(id){
+  var p = PARTES.find(function(x){return x.id===id;});
+  if(!p){ toast('Parte no encontrado'); return; }
+  abrirFirma(p, 'sala', function(){});
 }
 
 // Sello de fecha+hora en hora de Madrid (dd/mm/aaaa hh:mm)
