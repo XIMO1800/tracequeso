@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.51</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.52</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -503,9 +503,13 @@ input[type="email"] {
           <input type="checkbox" id="past-cruda" style="width:18px;height:18px;cursor:pointer" disabled>
           <span>Cruda (auto)</span>
         </label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.82rem;color:var(--text2)">
-          <input type="checkbox" id="past-fosfatasa" style="width:18px;height:18px;cursor:pointer">
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--text2)">
           <span>Fosfatasa alcalina (calidad)</span>
+          <select id="past-fosfatasa" style="padding:5px 8px;font-size:0.85rem;border:1.5px solid var(--border);border-radius:6px;background:#fff">
+            <option value="">—</option>
+            <option value="P">P (Positiva)</option>
+            <option value="N">N (Negativa)</option>
+          </select>
         </label>
       </div>
     </div>
@@ -1237,7 +1241,7 @@ function rellenarCampos(p){
     v('past-temp', p.pasteurizacion.temp);
     v('past-tiempo', p.pasteurizacion.tiempo);
     var ck = document.getElementById('past-cruda'); if(ck) ck.checked = !!p.pasteurizacion.cruda;
-    var cf = document.getElementById('past-fosfatasa'); if(cf) cf.checked = !!p.pasteurizacion.fosfatasa;
+    var cf = document.getElementById('past-fosfatasa'); if(cf){ var fv=p.pasteurizacion.fosfatasa; if(fv===true) fv='P'; else if(fv===false) fv=''; cf.value = fv||''; }
   }
   // CO2 (check y campos)
   var co2Chk = document.getElementById('co2-aplicado');
@@ -1431,7 +1435,7 @@ function autoGuardarParte(parteId){
   var co2Chk = document.getElementById('co2-aplicado');
   p.co2 = {aplicado: co2Chk ? co2Chk.checked : true, ph_leche:gn('aux-ph'), temp_leche:gn('aux-temp'), caudal_lh:gn('co2-caudal'), tiempo_seg:gi('co2-tiempo'), ph_objetivo:6.48};
   p.otrosAuxiliares = (typeof recogerOtrosAuxiliares === 'function') ? recogerOtrosAuxiliares() : [];
-  p.pasteurizacion = {valvula:g('past-valvula'), temp:gn('past-temp'), tiempo:gn('past-tiempo'), cruda:document.getElementById('past-cruda')?document.getElementById('past-cruda').checked:false, fosfatasa:document.getElementById('past-fosfatasa')?document.getElementById('past-fosfatasa').checked:false};
+  p.pasteurizacion = {valvula:g('past-valvula'), temp:gn('past-temp'), tiempo:gn('past-tiempo'), cruda:document.getElementById('past-cruda')?document.getElementById('past-cruda').checked:false, fosfatasa:document.getElementById('past-fosfatasa')?document.getElementById('past-fosfatasa').value:''};
   p.observaciones = g('np-obs');
   persistir();
   // Refrescar las pestañas (cambia el nombre si cambió tipo/variedad)
@@ -1685,7 +1689,9 @@ function _htmlParteImpresion(p){
   var fecha = (typeof formatearFecha==='function') ? formatearFecha(p.fecha) : e(p.fecha);
   var pa=p.pasteurizacion||{}, co=p.co2||{}, cg=p.coag||{}, ds=p.desuerado||{}, mo=p.moldeo||{}, cas=p.caseinas||{}, pz=p.piezas||{}, cu=p.cuajo||{};
   var H=[];
-  H.push('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Parte '+fecha+' '+e(p.tipo)+'</title><style>');
+  var marcaRev = (p.version==='revisado') ? ' REVISADO CALIDAD' : '';
+  var tituloDoc = 'Parte '+fecha+' '+e(p.tipo)+(p.cuba?(' Cuba'+e(p.cuba)):'')+marcaRev;
+  H.push('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>'+tituloDoc+'</title><style>');
   H.push('@page{size:A4;margin:8mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#000;margin:0}');
   H.push('table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:2px 4px;vertical-align:middle}');
   H.push('.sec{background:#e6e6e6;font-weight:bold;text-transform:uppercase;padding:3px 4px;border:1px solid #000;border-top:none}');
@@ -1702,7 +1708,7 @@ function _htmlParteImpresion(p){
   H.push('<table><tr><td class="lbl">Nº CUBA: <span style="font-weight:normal">'+n(p.cuba)+'</span></td><td class="lbl">pH: <span style="font-weight:normal">'+n(p.ph)+'</span></td><td class="lbl">ºD: <span style="font-weight:normal">'+n(p.dornic_leche)+'</span></td><td class="lbl">TºC: <span style="font-weight:normal">'+n(p.temp)+'</span></td></tr></table>');
   var pcond = pa.temp ? ('Tºc '+e(pa.temp)+(pa.tiempo?(' - '+e(pa.tiempo)+'s'):'')) : '';
   H.push('<div class="sec">Pasteurización</div><table><tr><td class="t lbl">Válvula desvío (C/I)</td><td class="t lbl">Fosfatasa alcalina</td><td class="t lbl">Condiciones pasteurización</td><td class="t lbl">Cruda</td></tr>');
-  H.push('<tr><td class="t">'+n(pa.valvula)+'</td><td class="t">'+(pa.fosfatasa?'Sí':'No')+'</td><td class="t">'+pcond+'</td><td class="t">'+(pa.cruda?'Sí':'')+'</td></tr></table>');
+  H.push('<tr><td class="t">'+n(pa.valvula)+'</td><td class="t">'+_fosfatasaTxt(pa.fosfatasa)+'</td><td class="t">'+pcond+'</td><td class="t">'+(pa.cruda?'Sí':'')+'</td></tr></table>');
   H.push('<div class="sec">Auxiliares de fabricación</div><table><tr><td class="lbl">Auxiliar</td><td class="lbl t">ml/1000L</td><td class="lbl t">ml utilizados</td><td class="lbl">Proveedor</td><td class="lbl">Lote</td><td class="lbl">Caducidad</td></tr>');
   var auxList=(p.auxiliares||[]).concat(p.otrosAuxiliares||[]);
   if(auxList.length){ auxList.forEach(function(a){ a=a||{}; H.push('<tr><td>'+n(a.nombre)+'</td><td class="t">'+n(a.dosis_ml_1000L)+'</td><td class="t">'+n(a.consumo_total)+'</td><td>'+n(a.proveedor)+'</td><td>'+n(a.lote)+'</td><td>'+n(a.caducidad)+'</td></tr>'); }); }
@@ -2523,7 +2529,21 @@ var _filtroFecha=new Date().toISOString().slice(0,10);
 
 function renderPartes(){
   var fecha=_filtroFecha||document.getElementById('filtro-fecha').value||'';
-  var filtrados=PARTES.filter(function(p){if(fecha&&p.fecha!==fecha)return false;return true;});
+  var esCal = esCalidadOAdmin();
+  var filtrados=PARTES.filter(function(p){
+    if(fecha&&p.fecha!==fecha)return false;
+    if(esCal){
+      // Calidad: ve los REVISADOS, y los originales que AÚN NO tienen revisión.
+      // Oculta los originales que ya han sido revisados (de esos ve la versión revisada).
+      if(p.version==='revisado') return true;
+      if(p.tiene_revision) return false;
+      return true;
+    } else {
+      // Resto: solo ORIGINALES, nunca los revisados.
+      if(p.version==='revisado') return false;
+      return true;
+    }
+  });
   // Ordenar ascendente por número de cuba (Cuba 1 arriba, Cuba N abajo)
   filtrados.sort(function(a,b){ return (parseInt(a.cuba)||0) - (parseInt(b.cuba)||0); });
   renderCarrusel();
@@ -2533,7 +2553,8 @@ function renderPartes(){
   var h='';
   filtrados.forEach(function(p){
     var totalPzas=0;if(p.piezas)Object.keys(p.piezas).forEach(function(k){totalPzas+=(p.piezas[k]||0);});
-    h+='<div class="parte-item" onclick="verParte(\''+p.id+'\')"><div class="parte-item-top"><div class="parte-item-tipo">'+p.tipo+(p.variedad?' · '+p.variedad:'')+'</div><div class="parte-item-badge">Cuba '+p.cuba+'</div></div><div class="parte-item-meta">'+formatearFecha(p.fecha)+' · '+p.litros+'L · '+totalPzas+' pzas · '+(p.operario||'—')+'</div></div>';
+    var badgeRev = (p.version==='revisado') ? '<span style="background:var(--greenl);color:var(--green);border:1px solid var(--green2);border-radius:10px;padding:1px 7px;font-size:0.62rem;font-weight:700;margin-left:6px">✓ CALIDAD</span>' : '';
+    h+='<div class="parte-item" onclick="verParte(\''+p.id+'\')"><div class="parte-item-top"><div class="parte-item-tipo">'+p.tipo+(p.variedad?' · '+p.variedad:'')+badgeRev+'</div><div class="parte-item-badge">Cuba '+p.cuba+'</div></div><div class="parte-item-meta">'+formatearFecha(p.fecha)+' · '+p.litros+'L · '+totalPzas+' pzas · '+(p.operario||'—')+'</div></div>';
   });
   c.innerHTML=h;
 }
@@ -2594,7 +2615,7 @@ function _verParteRender(id){
     pa += fila('Temperatura', p.pasteurizacion.temp ? p.pasteurizacion.temp+'°C' : '');
     pa += fila('Tiempo', p.pasteurizacion.tiempo ? p.pasteurizacion.tiempo+' s' : '');
     pa += fila('Cruda', p.pasteurizacion.cruda ? 'Sí' : '');
-    pa += fila('Fosfatasa', p.pasteurizacion.fosfatasa ? 'Sí' : '');
+    pa += fila('Fosfatasa', _fosfatasaTxt(p.pasteurizacion.fosfatasa));
     if(pa) h += bloque('🌡️ Pasteurización', pa);
   }
 
@@ -3830,10 +3851,34 @@ function confirmarFirma(){
     _firmaParte.firma_sala_nombre = nombre;
     _firmaParte.firma_sala_ts = ts;
   } else if(_firmaTipo==='calidad'){
-    _firmaParte.firma_calidad = img;
-    _firmaParte.revisado_calidad = true;
-    _firmaParte.revisado_calidad_por = nombre;
-    _firmaParte.revisado_calidad_ts = ts;
+    // Calidad firma → se crea una COPIA REVISADA (nuevo id) y el original queda intacto,
+    // solo marcado como "ya revisado" para no mostrarlo más a Calidad.
+    var orig = _firmaParte;
+    // Recoger en el parte los datos que Calidad acaba de editar (litros, fosfatasa...) antes de clonar
+    try{ if(typeof autoGuardarParte==='function' && CUBA_ACTIVA_ID===orig.id) autoGuardarParte(orig.id); }catch(e){}
+    var revisado = JSON.parse(JSON.stringify(orig));
+    revisado.id = 'PR-' + Date.now();
+    revisado.version = 'revisado';
+    revisado.original_id = orig.id;
+    revisado.firma_calidad = img;
+    revisado.revisado_calidad = true;
+    revisado.revisado_calidad_por = nombre;
+    revisado.revisado_calidad_ts = ts;
+    // El original: marcarlo como "ya tiene revisión" (no se le pone firma de calidad)
+    orig.version = orig.version || 'original';
+    orig.tiene_revision = true;
+    PARTES.push(revisado);
+    try{ persistir(); }catch(e){}
+    try{ enviarParteSheets(orig); }catch(e){}
+    try{ enviarParteSheets(revisado); }catch(e){}
+    var ovc = document.getElementById('firma-overlay');
+    if(ovc) ovc.style.display = 'none';
+    toast('✓ Revisado por Calidad · versión guardada');
+    var done2 = _firmaOnDone; _firmaOnDone = null;
+    if(typeof done2 === 'function') done2();
+    if(typeof renderPartes==='function'){ try{ renderPartes(); }catch(e){} }
+    if(typeof cerrarModal==='function'){ try{ cerrarModal(); }catch(e){} }
+    return;
   } else {
     _firmaParte.firma_quesero = img;
     _firmaParte.firma_quesero_nombre = nombre;
@@ -3901,6 +3946,16 @@ function _aplicarFirmaMasiva(tipo){
   try{ persistir(); }catch(e){}
   _firmaMasivaLista=null;
   toast('✍️ Firmados '+n+' partes de hoy');
+}
+
+// Texto legible de la fosfatasa. Acepta el nuevo 'P'/'N' y el booleano antiguo.
+function _fosfatasaTxt(v){
+  if(v===true) return 'Positiva';
+  if(v===false || v===undefined || v===null || v==='') return '';
+  var s = String(v).toUpperCase().trim();
+  if(s==='P' || s==='POSITIVA') return 'Positiva';
+  if(s==='N' || s==='NEGATIVA') return 'Negativa';
+  return s;
 }
 
 // Sello de fecha+hora en hora de Madrid (dd/mm/aaaa hh:mm)
