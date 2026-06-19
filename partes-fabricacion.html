@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.55</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.56</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -434,14 +434,9 @@ input[type="email"] {
           <label class="form-label">Variedad</label>
           <select id="np-var-sel" onchange="onVarSelChange()" disabled><option value="">—</option></select>
         </div>
-        <div class="form-row">
-          <label class="form-label">Operario</label>
-          <div style="display:flex;gap:4px;align-items:center">
-            <select id="np-operario-sel" style="flex:1" onchange="onOperarioChange()"></select>
-            <button onclick="anadirOperario()" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:1rem;flex-shrink:0">+</button>
-          </div>
-          <input type="hidden" id="np-operario">
-        </div>
+        <!-- El operario/quesero es quien entró con su PIN; no se pide aquí. La autoría queda en las firmas. -->
+        <input type="hidden" id="np-operario-sel">
+        <input type="hidden" id="np-operario">
       </div>
       <input type="hidden" id="np-tipo">
       <input type="hidden" id="np-cuba">
@@ -940,16 +935,10 @@ function guardarOperarios(){
 }
 
 function poblarSelectOperario(valorSeleccionado){
-  var sel = document.getElementById('np-operario-sel');
-  if(!sel) return;
-  sel.innerHTML = '';
+  // El operario/quesero es siempre quien entró con su PIN (campos ocultos).
   var seleccionado = valorSeleccionado || OPERARIO_ACTUAL || OPERARIOS[0] || '';
-  OPERARIOS.forEach(function(op){
-    var o = document.createElement('option');
-    o.value = op; o.textContent = op;
-    if(op === seleccionado) o.selected = true;
-    sel.appendChild(o);
-  });
+  var sel = document.getElementById('np-operario-sel');
+  if(sel) sel.value = seleccionado;
   var hidden = document.getElementById('np-operario');
   if(hidden) hidden.value = seleccionado;
 }
@@ -1406,7 +1395,7 @@ function autoGuardarParte(parteId){
   p.tanque_cabra  = g('np-tanque-cabra');
   p.tanque_oveja  = g('np-tanque-oveja');
   var opEl = document.getElementById('np-operario-sel');
-  p.operario = opEl ? opEl.value : g('np-operario');
+  p.operario = (opEl && opEl.value) ? opEl.value : (g('np-operario') || OPERARIO_ACTUAL);
   if(p.operario) OPERARIO_ACTUAL = p.operario;
   guardarOperarios();
   p.cuba = g('np-cuba');
