@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.46</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.47</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1520,6 +1520,13 @@ function eliminarCubaActiva(id){
     return;
   }
   if(!confirm('¿Eliminar esta cuba? Se perderán todos los datos.')) return;
+  // Borrar también en Google Sheets por si este parte ya se había sincronizado
+  try{
+    var payload = {_SHEET:'PARTES', _DELETE:true, ID:id, id:id};
+    fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){
+      SYNC_PENDIENTE.push({tipo:'parte',data:payload}); persistir();
+    });
+  }catch(e){}
   PARTES = PARTES.filter(function(p){return p.id!==id;});
   persistir();
   CUBA_ACTIVA_ID = null;
@@ -3248,7 +3255,14 @@ function guardarParteEditado(id){
 function eliminarParte(id){
   var _pe=PARTES.find(function(x){return x.id===id;});
   if(_pe && !puedeEditarParte(_pe)){ toast('Solo Calidad puede eliminar partes de días anteriores','warn'); return; }
-  if(!confirm('¿Eliminar este parte?'))return;
+  if(!confirm('¿Eliminar este parte? Se borrará también de Google Sheets.'))return;
+  // Borrar en Google Sheets (por ID). El Apps Script tiene la rama _DELETE en gestionarPartes.
+  try{
+    var payload = {_SHEET:'PARTES', _DELETE:true, ID:id, id:id};
+    fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){
+      SYNC_PENDIENTE.push({tipo:'parte',data:payload}); persistir();
+    });
+  }catch(e){}
   PARTES=PARTES.filter(function(p){return p.id!==id;});
   persistir();cerrarModal();renderPartes();toast('Parte eliminado');
 }
