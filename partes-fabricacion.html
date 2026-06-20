@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.65</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.66</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2207,8 +2207,8 @@ function renderFermentos(receta){
       estiloFila = 'background:rgba(34,139,34,0.08);border-left:3px solid #228b22';
       marcaNombre = ' <span style="font-size:0.7rem;color:#228b22;font-weight:700">✅ HOY</span>';
     } else if(esInactivoHoy){
-      estiloFila = 'opacity:0.5';
-      marcaNombre = ' <span style="font-size:0.7rem;color:var(--text3);font-weight:700">⏭️ otro día</span>';
+      // No se atenúa ni se bloquea: cualquier fermento se puede usar. Solo nota informativa.
+      marcaNombre = ' <span style="font-size:0.68rem;color:var(--text3);font-weight:600">· hoy tocaría el otro, pero puedes usarlo</span>';
     }
 
     h += '<div class="ferm-tabla-fila" style="'+estiloFila+'">'
