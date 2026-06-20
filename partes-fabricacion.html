@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.72</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.74</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3059,6 +3059,7 @@ function editarParteCompleto(id){
   if(!p.tanque_oveja)  p.tanque_oveja  = '';
 
   window._parteEditando = p;
+  _EP_CAS_RANGOS = []; // forzar recarga de rangos desde este parte al pintar
 
   var tipos = Object.keys(TIPOS_VARIEDADES);
   var tipoOpts = '<option value="">— Tipo —</option>';
@@ -3085,9 +3086,9 @@ function editarParteCompleto(id){
 }
 
 // Renderiza todo el formulario del editor de parte
-function renderEpForm(){
+function renderEpForm(skipRecoger){
   // Recoger valores actuales del DOM ANTES de repintar (para no perderlos)
-  _epRecogerEnEstado();
+  if(!skipRecoger) _epRecogerEnEstado();
 
   var p = window._parteEditando;
   if(!p) return;
@@ -3196,16 +3197,22 @@ function renderEpForm(){
 
   // ── DESUERADO ──
   h += _epSep('🌊 Desuerado en cuba');
-  h += _epGrupoMomento('Inicio', [
-    ['Hora', _epInp('ep-rec-hi', p.desuerado.rec_hi, 'time')],
-    ['Tª (°C)', _epInp('ep-rec-ti', p.desuerado.rec_ti, 'number')],
-    ['pH suero', _epInp('ep-rec-ph', p.desuerado.rec_ph, 'number')],
-    ['°D suero', _epInp('ep-rec-dor', p.desuerado.rec_dornic, 'number')]
-  ]);
-  h += _epGrupoMomento('Fin', [
-    ['Hora', _epInp('ep-rec-hf', p.desuerado.rec_hf, 'time')],
-    ['Tª (°C)', _epInp('ep-rec-tf', p.desuerado.rec_tf, 'number')]
-  ]);
+  h += _epBloqueAlineado('Recalentamiento',
+    ['Hora','Tª (°C)','pH suero','°D suero'],
+    [
+      {titulo:'Inicio', valores:[
+        _epInp('ep-rec-hi', p.desuerado.rec_hi, 'time'),
+        _epInp('ep-rec-ti', p.desuerado.rec_ti, 'number'),
+        _epInp('ep-rec-ph', p.desuerado.rec_ph, 'number'),
+        _epInp('ep-rec-dor', p.desuerado.rec_dornic, 'number')
+      ]},
+      {titulo:'Fin', valores:[
+        _epInp('ep-rec-hf', p.desuerado.rec_hf, 'time'),
+        _epInp('ep-rec-tf', p.desuerado.rec_tf, 'number'),
+        null,
+        null
+      ]}
+    ]);
   h += _ep2('Agit. inicio', _epInp('ep-agit-hi', p.desuerado.agit_hi, 'time'),
            'Agit. fin', _epInp('ep-agit-hf', p.desuerado.agit_hf, 'time'));
 
@@ -3285,13 +3292,17 @@ function renderEpForm(){
 
   // ── CASEÍNAS (múltiples rangos) ──
   h += _epSep('🏷️ Caseínas (D.O.)');
-  // Estado del editor: cargar los rangos del parte (soporta formato antiguo de un rango)
-  if(p.caseinas && p.caseinas.rangos && p.caseinas.rangos.length){
-    _EP_CAS_RANGOS = p.caseinas.rangos.map(function(r){ return {serie:r.serie||'', primera:r.primera||'', ultima:r.ultima||''}; });
-  } else if(p.caseinas && (p.caseinas.primera || p.caseinas.ultima)){
-    _EP_CAS_RANGOS = [{serie:p.caseinas.serie||'', primera:p.caseinas.primera||'', ultima:p.caseinas.ultima||''}];
-  } else {
-    _EP_CAS_RANGOS = [{serie:'',primera:'',ultima:''}];
+  // Cargar los rangos del parte SOLO si el estado del editor aún no tiene datos en curso
+  // (evita perder ediciones al repintar, p.ej. al borrar un fermento).
+  var _casEnCurso = (typeof _EP_CAS_RANGOS!=='undefined' && _EP_CAS_RANGOS && _EP_CAS_RANGOS.some(function(r){ return (r.serie||'')!=='' || (r.primera||'')!=='' || (r.ultima||'')!==''; }));
+  if(!_casEnCurso){
+    if(p.caseinas && p.caseinas.rangos && p.caseinas.rangos.length){
+      _EP_CAS_RANGOS = p.caseinas.rangos.map(function(r){ return {serie:r.serie||'', primera:r.primera||'', ultima:r.ultima||''}; });
+    } else if(p.caseinas && (p.caseinas.primera || p.caseinas.ultima)){
+      _EP_CAS_RANGOS = [{serie:p.caseinas.serie||'', primera:p.caseinas.primera||'', ultima:p.caseinas.ultima||''}];
+    } else {
+      _EP_CAS_RANGOS = [{serie:'',primera:'',ultima:''}];
+    }
   }
   h += '<div id="ep-cas-rangos"></div>';
   h += '<button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="_epAddCaseina()">➕ Añadir rango de caseínas</button>';
@@ -3340,15 +3351,27 @@ function _ep2(l1, h1, l2, h2){
     + '<div>'+_epLbl(l2)+h2+'</div>'
     + '</div>';
 }
-// Agrupa una etiqueta de momento (ej. "Inicio", "Fin") con sus campos en una fila,
-// para que se lea "a esta hora, estas condiciones". campos = [[label, inputHTML], ...]
-function _epGrupoMomento(titulo, campos){
-  var cols = campos.length;
-  var h = '<div style="background:var(--bg2);border-radius:8px;padding:7px 9px;margin-bottom:8px">';
-  h += '<div style="font-size:0.72rem;font-weight:700;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.03em">'+titulo+'</div>';
-  h += '<div style="display:grid;grid-template-columns:repeat('+cols+',1fr);gap:8px">';
-  campos.forEach(function(c){ h += '<div>'+_epLbl(c[0])+c[1]+'</div>'; });
-  h += '</div></div>';
+// Bloque inicio/fin con columnas ALINEADAS: ambas filas comparten la misma rejilla,
+// de modo que Hora queda sobre Hora, Tª sobre Tª, etc. Las celdas sin dato van vacías.
+// columnas = [{label}], filas = [{titulo, valores:[htmlOrNull,...]}]
+function _epBloqueAlineado(tituloBloque, columnas, filas){
+  var nc = columnas.length;
+  var gridCols = '70px repeat('+nc+',1fr)'; // 1ª col estrecha para la etiqueta INICIO/FIN
+  var h = '<div style="background:var(--bg2);border-radius:8px;padding:9px 10px;margin-bottom:10px;border:1px solid var(--border)">';
+  if(tituloBloque) h += '<div style="font-size:0.74rem;font-weight:700;color:var(--brand);margin-bottom:7px">'+tituloBloque+'</div>';
+  // Cabecera de columnas
+  h += '<div style="display:grid;grid-template-columns:'+gridCols+';gap:8px;margin-bottom:4px">';
+  h += '<div></div>';
+  columnas.forEach(function(c){ h += '<div style="font-size:0.66rem;font-weight:700;color:var(--text3);text-transform:uppercase">'+c+'</div>'; });
+  h += '</div>';
+  // Filas (inicio / fin)
+  filas.forEach(function(f){
+    h += '<div style="display:grid;grid-template-columns:'+gridCols+';gap:8px;margin-bottom:6px;align-items:center">';
+    h += '<div style="font-size:0.7rem;font-weight:700;color:var(--text2)">'+f.titulo+'</div>';
+    f.valores.forEach(function(v){ h += '<div>'+(v||'')+'</div>'; });
+    h += '</div>';
+  });
+  h += '</div>';
   return h;
 }
 function _epItemEditable(prefix, i, item){
@@ -3388,14 +3411,20 @@ function _epAdd(lista){
   } else if(lista==='salmueras'){
     p[lista].push({formato:'',hi:'',hf:''});
   }
-  renderEpForm();
+  renderEpForm(true);
 }
 function _epDel(lista, idx){
+  // 1) Recoger el estado actual del DOM (índices aún coinciden con el array visible)
   _epRecogerEnEstado();
   var p = window._parteEditando;
-  if(!p[lista]) return;
-  p[lista].splice(idx,1);
-  renderEpForm();
+  if(!p || !p[lista]) return;
+  // 2) Borrar EXACTAMENTE el elemento en la posición idx del array de estado
+  p[lista].splice(idx, 1);
+  // 3) Limpiar el contenedor del formulario para que el repintado no relea filas viejas,
+  //    y repintar SIN volver a recoger (el DOM viejo ya no debe contaminar el estado)
+  var epForm = document.getElementById('ep-form');
+  if(epForm) epForm.innerHTML = '';
+  renderEpForm(true);
 }
 
 // ── Caseínas (múltiples rangos) en el editor de Calidad ──
@@ -3443,6 +3472,10 @@ function _epDelConfirm(lista, idx, etiqueta){
 function _epRecogerEnEstado(){
   var p = window._parteEditando;
   if(!p) return;
+  // Si el formulario del editor aún no está pintado (primera pasada), NO recoger nada:
+  // leeríamos campos vacíos y machacaríamos los datos del parte (caseínas, fermentos…).
+  var epForm = document.getElementById('ep-form');
+  if(!epForm || !epForm.children.length) return;
   function v(id){ var el=document.getElementById(id); return el?el.value:undefined; }
   function n(id){ var x=parseFloat(v(id)); return isNaN(x)?undefined:x; }
   function i(id){ var x=parseInt(v(id)); return isNaN(x)?undefined:x; }
