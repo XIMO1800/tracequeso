@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.77</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.78</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3200,8 +3200,26 @@ function renderEpForm(skipRecoger){
   h += '<button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="_epAdd(\'fermentos\')">+ Añadir fermento</button>';
 
   // ── CUAJO ──
-  h += _epSep('⚗️ Cuajo');
-  h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px">';
+  // ── COAGULACIÓN (fase que incluye el cuajo dentro) ──
+  h += _epSep('⏱️ Coagulación');
+  h += _epBloqueAlineado('Coagulación',
+    ['Hora','pH','Tª (°C)'],
+    [
+      {titulo:'Adición', valores:[
+        _epInp('ep-coag-had', p.coag.hadicion, 'time'),
+        _epInp('ep-coag-ph', p.coag.ph, 'number'),
+        _epInp('ep-coag-temp', p.coag.temp, 'number')
+      ]},
+      {titulo:'Corte', valores:[
+        _epInp('ep-coag-hc', p.coag.hc, 'time'),
+        null,
+        null
+      ]}
+    ]);
+  h += _ep1('Coagulación total (min)', _epInp('ep-coag-total', p.coag.total, 'number'));
+  // Cuajo: dentro de la fase de coagulación
+  h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin:6px 0 8px;border:1px dashed var(--border)">';
+  h += '<div style="font-size:0.72rem;font-weight:700;color:var(--text3);margin-bottom:6px">⚗️ Cuajo</div>';
   h += _ep2('Nombre', _epInp('ep-cuajo-nom', p.cuajo.nombre||''),
            'Dosis utilizada', _epInp('ep-cuajo-cons', p.cuajo.consumo_total||p.cuajo.dosis_utilizada||0, 'number'));
   h += _ep2('Proveedor', _epInp('ep-cuajo-prov', p.cuajo.proveedor||''),
@@ -3209,15 +3227,7 @@ function renderEpForm(skipRecoger){
   h += _ep1('Caducidad', _epInp('ep-cuajo-cad', p.cuajo.caducidad||'', 'date'));
   h += '</div>';
 
-  // ── COAGULACIÓN ──
-  h += _epSep('⏱️ Coagulación');
-  h += _ep2('Hora adición', _epInp('ep-coag-had', p.coag.hadicion, 'time'),
-           'Hora corte', _epInp('ep-coag-hc', p.coag.hc, 'time'));
-  h += _ep2('pH coagulación', _epInp('ep-coag-ph', p.coag.ph, 'number'),
-           'Tª coagulación (°C)', _epInp('ep-coag-temp', p.coag.temp, 'number'));
-  h += _ep1('Total (min)', _epInp('ep-coag-total', p.coag.total, 'number'));
-
-  // ── DESUERADO ──
+  // ── DESUERADO EN CUBA (bloque con 3 subfases con el MISMO formato) ──
   h += _epSep('🌊 Desuerado en cuba');
   h += _epBloqueAlineado('Recalentamiento',
     ['Hora','Tª (°C)','pH suero','°D suero'],
@@ -3235,8 +3245,30 @@ function renderEpForm(skipRecoger){
         null
       ]}
     ]);
-  h += _ep2('Agit. inicio', _epInp('ep-agit-hi', p.desuerado.agit_hi, 'time'),
-           'Agit. fin', _epInp('ep-agit-hf', p.desuerado.agit_hf, 'time'));
+  h += _epBloqueAlineado('Lavado de cuajada',
+    ['Hora','Tª agua (°C)'],
+    [
+      {titulo:'Inicio', valores:[
+        _epInp('ep-lav-hi', p.desuerado.lavado_hi, 'time'),
+        _epInp('ep-lav-temp', p.desuerado.lavado_temp, 'number')
+      ]},
+      {titulo:'Fin', valores:[
+        _epInp('ep-lav-hf', p.desuerado.lavado_hf, 'time'),
+        null
+      ]}
+    ]);
+  h += _epBloqueAlineado('Agitación',
+    ['Hora','Total (min)'],
+    [
+      {titulo:'Inicio', valores:[
+        _epInp('ep-agit-hi', p.desuerado.agit_hi, 'time'),
+        _epInp('ep-agit-total', p.desuerado.agit_total, 'number')
+      ]},
+      {titulo:'Fin', valores:[
+        _epInp('ep-agit-hf', p.desuerado.agit_hf, 'time'),
+        null
+      ]}
+    ]);
 
   // ── MOLDEO ──
   h += _epSep('🧱 Moldeo');
@@ -3600,6 +3632,10 @@ function _epRecogerEnEstado(){
   if(v('ep-rec-dor')!==undefined) p.desuerado.rec_dornic = v('ep-rec-dor');
   if(v('ep-agit-hi')!==undefined) p.desuerado.agit_hi = v('ep-agit-hi');
   if(v('ep-agit-hf')!==undefined) p.desuerado.agit_hf = v('ep-agit-hf');
+  if(v('ep-agit-total')!==undefined) p.desuerado.agit_total = v('ep-agit-total');
+  if(v('ep-lav-hi')!==undefined)  { p.desuerado.lavado_hi = v('ep-lav-hi'); if(v('ep-lav-hi')) p.desuerado.lavado_aplicado = true; }
+  if(v('ep-lav-hf')!==undefined)  p.desuerado.lavado_hf = v('ep-lav-hf');
+  if(v('ep-lav-temp')!==undefined) p.desuerado.lavado_temp = v('ep-lav-temp');
 
   // Moldeo
   if(!p.moldeo) p.moldeo = {};
