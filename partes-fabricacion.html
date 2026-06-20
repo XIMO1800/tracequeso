@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.67</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.69</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -762,19 +762,13 @@ input[type="email"] {
       <!-- Caseínas: solo visible para D.O. PAST. y D.O. CRUDA -->
       <div id="bloque-caseinas" style="display:none">
         <div class="sep-label">Caseínas (D.O.)</div>
-        <div class="form-row">
-          <label class="form-label">Serie</label>
-          <input type="text" id="cas-serie" placeholder="Ej: AZX" style="text-transform:uppercase">
-        </div>
-        <div class="form-cols">
-          <div class="form-row"><label class="form-label">Primera caseína</label><input type="number" id="cas-primera" inputmode="numeric" oninput="calcCaseinas()"></div>
-          <div class="form-row"><label class="form-label">Última caseína</label><input type="number" id="cas-ultima" inputmode="numeric" oninput="calcCaseinas()"></div>
-        </div>
+        <div id="cas-rangos"></div>
+        <button type="button" class="btn btn-secondary btn-sm" style="margin:2px 0 10px" onclick="addCaseinaRango()">➕ Añadir rango de caseínas</button>
         <div id="cas-resultado" style="display:none;background:var(--bluel);border:1.5px solid var(--blue);border-radius:8px;padding:10px 14px;margin-bottom:14px">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div>
               <div style="font-size:1.3rem;font-weight:800;color:var(--blue)" id="cas-total">0</div>
-              <div style="font-size:0.7rem;color:var(--blue)">caseínas = última − primera + 1</div>
+              <div style="font-size:0.7rem;color:var(--blue)">caseínas = suma de (última − primera + 1) de cada rango</div>
             </div>
             <div id="cas-aviso" style="font-size:0.78rem;font-weight:700;padding:5px 10px;border-radius:6px"></div>
           </div>
@@ -1364,10 +1358,16 @@ function rellenarCampos(p){
     v('pzas-barra', p.piezas['barra']); v('pzas-gigante', p.piezas['gigante']);
   }
   // Caseínas
-  if(p.caseinas){
-    v('cas-serie', p.caseinas.serie);
-    v('cas-primera', p.caseinas.primera); v('cas-ultima', p.caseinas.ultima);
+  // Caseínas: reconstruir los rangos (soporta formato antiguo de un solo rango)
+  if(p.caseinas && p.caseinas.rangos && p.caseinas.rangos.length){
+    CAS_RANGOS = p.caseinas.rangos.map(function(r){ return {serie:r.serie||'', primera:r.primera||'', ultima:r.ultima||''}; });
+  } else if(p.caseinas && (p.caseinas.primera || p.caseinas.ultima)){
+    CAS_RANGOS = [{serie:p.caseinas.serie||'', primera:p.caseinas.primera||'', ultima:p.caseinas.ultima||''}];
+  } else {
+    CAS_RANGOS = [{serie:'',primera:'',ultima:''}];
   }
+  renderCaseinasRangos();
+  calcCaseinas();
   v('np-obs', p.observaciones);
 
   // Añadir botones al final: Firmar (quesero) / Cerrar parte / Eliminar
@@ -1466,7 +1466,12 @@ function autoGuardarParte(parteId){
   p.desmoldeos = (typeof recogerDesmoldeos === 'function') ? recogerDesmoldeos() : [];
   p.salmueras = (typeof recogerSalmueras === 'function') ? recogerSalmueras() : [];
   p.piezas = {'3kg':gi('pzas-3kg'),'2kg':gi('pzas-2kg'),'1kg':gi('pzas-1kg'),'05kg':gi('pzas-05kg'),'barra':gi('pzas-barra'),'gigante':gi('pzas-gigante')};
-  p.caseinas = {serie:g('cas-serie'), primera:gi('cas-primera'), ultima:gi('cas-ultima'), total:(gi('cas-ultima')-gi('cas-primera')+1)};
+  p.caseinas = (function(){
+    var rangos = CAS_RANGOS.filter(function(r){ return _casTotalRango(r)>0; }).map(function(r){ return {serie:(r.serie||'').toUpperCase(), primera:parseInt(r.primera)||0, ultima:parseInt(r.ultima)||0, total:_casTotalRango(r)}; });
+    var total = rangos.reduce(function(s,r){ return s+r.total; }, 0);
+    var p0 = rangos[0] || {serie:'',primera:0,ultima:0};
+    return {serie:p0.serie, primera:p0.primera, ultima:p0.ultima, total:total, rangos:rangos};
+  })();
   var co2Chk = document.getElementById('co2-aplicado');
   p.co2 = {aplicado: co2Chk ? co2Chk.checked : true, ph_leche:gn('aux-ph'), temp_leche:gn('aux-temp'), caudal_lh:gn('co2-caudal'), tiempo_seg:gi('co2-tiempo'), ph_objetivo:6.48};
   p.otrosAuxiliares = (typeof recogerOtrosAuxiliares === 'function') ? recogerOtrosAuxiliares() : [];
@@ -2100,6 +2105,15 @@ function _quePareTocaHoy(){
   return null; // domingo: decide el quesero
 }
 
+// Redondeo AL ALZA de 5 en 5 para la dosis utilizada (la báscula no afina al gramo).
+// Ej.: 87 → 90, 291 → 295, 290 → 290. Se aplica a la PROPUESTA de fermentos y auxiliares,
+// no a los sobres TA-054 (que tienen su propio reparto en unidades enteras).
+function _redondeaAlza5(v){
+  var n = parseFloat(v)||0;
+  if(n<=0) return 0;
+  return Math.ceil(n/5)*5;
+}
+
 // ¿Es un fermento "principal" del grupo EXCLUYENTE (se elige uno solo)?
 // Incluye la pareja de rotación R-603/R-604 y el CC-08 (anti-fagos).
 // Flora Danica, TA-054 y demás NO son excluyentes (son complementarios).
@@ -2424,9 +2438,9 @@ function calcularDosis(){
       if(el.tagName==='INPUT'){ if(document.activeElement!==el) el.value = String(ov); }
       else el.textContent = String(ov);
     } else {
-      var total=litros*p.dosis_ml_1000L/1000;
-      if(el.tagName==='INPUT') el.value=litros>0?total.toFixed(1):'';
-      else el.textContent=litros>0?total.toFixed(1):'—';
+      var total=_redondeaAlza5(litros*p.dosis_ml_1000L/1000);
+      if(el.tagName==='INPUT') el.value=litros>0?String(total):'';
+      else el.textContent=litros>0?String(total):'—';
     }
   });
   // Si el parte activo está bloqueado, reaplicar el bloqueo a los campos de dosis recién escritos
@@ -2475,13 +2489,64 @@ function calcCoagTotal(){
   hidden.value=diff;
 }
 
+// ─────────── CASEÍNAS: múltiples rangos (serie + primera + última) ───────────
+// Lo normal es UN rango, pero a veces una serie sale en dos tramos (caseínas revueltas).
+// El total es la SUMA de (última − primera + 1) de cada rango, y se compara con las piezas.
+var CAS_RANGOS = []; // [{serie, primera, ultima}]
+
+function _casTotalRango(r){
+  var pri = parseInt(r.primera)||0, ult = parseInt(r.ultima)||0;
+  if(!pri || !ult || ult < pri) return 0;
+  return ult - pri + 1;
+}
+
+function renderCaseinasRangos(){
+  var cont = document.getElementById('cas-rangos');
+  if(!cont) return;
+  if(!CAS_RANGOS.length) CAS_RANGOS = [{serie:'',primera:'',ultima:''}];
+  var h = '';
+  CAS_RANGOS.forEach(function(r, i){
+    var sub = _casTotalRango(r);
+    h += '<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px">'
+       + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+       + '<span style="font-size:0.72rem;font-weight:700;color:var(--text3)">Rango '+(i+1)+(sub?' · '+sub+' uds':'')+'</span>'
+       + (CAS_RANGOS.length>1 ? '<span onclick="delCaseinaRango('+i+')" style="cursor:pointer;color:var(--brand);font-size:0.8rem">🗑 quitar</span>' : '')
+       + '</div>'
+       + '<div class="form-row"><label class="form-label">Serie</label><input type="text" value="'+(r.serie||'').replace(/"/g,'&quot;')+'" oninput="updCaseinaRango('+i+',\'serie\',this.value)" placeholder="Ej: 9P" style="text-transform:uppercase"></div>'
+       + '<div class="form-cols">'
+       + '<div class="form-row"><label class="form-label">Primera caseína</label><input type="number" inputmode="numeric" value="'+(r.primera||'')+'" oninput="updCaseinaRango('+i+',\'primera\',this.value)"></div>'
+       + '<div class="form-row"><label class="form-label">Última caseína</label><input type="number" inputmode="numeric" value="'+(r.ultima||'')+'" oninput="updCaseinaRango('+i+',\'ultima\',this.value)"></div>'
+       + '</div>'
+       + '</div>';
+  });
+  cont.innerHTML = h;
+}
+
+function addCaseinaRango(){
+  CAS_RANGOS.push({serie:'',primera:'',ultima:''});
+  renderCaseinasRangos();
+  calcCaseinas();
+}
+function delCaseinaRango(i){
+  CAS_RANGOS.splice(i,1);
+  if(!CAS_RANGOS.length) CAS_RANGOS=[{serie:'',primera:'',ultima:''}];
+  renderCaseinasRangos();
+  calcCaseinas();
+}
+function updCaseinaRango(i, campo, val){
+  if(!CAS_RANGOS[i]) return;
+  CAS_RANGOS[i][campo] = val;
+  calcCaseinas();
+  try{ autoGuardarParte(CUBA_ACTIVA_ID); }catch(e){}
+}
+
 function calcCaseinas(){
-  var primera=parseInt(document.getElementById('cas-primera').value)||0;
-  var ultima=parseInt(document.getElementById('cas-ultima').value)||0;
-  if(!primera||!ultima){document.getElementById('cas-resultado').style.display='none';return;}
-  var total=ultima-primera+1;
-  document.getElementById('cas-total').textContent=total;
-  document.getElementById('cas-resultado').style.display='block';
+  var total = 0;
+  CAS_RANGOS.forEach(function(r){ total += _casTotalRango(r); });
+  var resEl = document.getElementById('cas-resultado');
+  if(!total){ if(resEl) resEl.style.display='none'; return; }
+  document.getElementById('cas-total').textContent = total;
+  if(resEl) resEl.style.display='block';
   var piezas=(parseInt(document.getElementById('pzas-3kg').value)||0)+(parseInt(document.getElementById('pzas-2kg').value)||0)+(parseInt(document.getElementById('pzas-1kg').value)||0)+(parseInt(document.getElementById('pzas-05kg').value)||0);
   var av=document.getElementById('cas-aviso');
   if(!piezas){av.textContent='';return;}
@@ -2564,7 +2629,12 @@ function guardarParte(){
     prensado:{etapa1:document.getElementById('pren-e1').value,etapa2:document.getElementById('pren-e2').value},
     desmoldeo:{formato:document.getElementById('des-formato').value,ph:document.getElementById('des-ph').value,hi:document.getElementById('des-hi').value,hf:document.getElementById('des-hf').value},
     piezas:{'3kg':parseInt(document.getElementById('pzas-3kg').value)||0,'2kg':parseInt(document.getElementById('pzas-2kg').value)||0,'1kg':parseInt(document.getElementById('pzas-1kg').value)||0,'05kg':parseInt(document.getElementById('pzas-05kg').value)||0,'barra':parseInt(document.getElementById('pzas-barra').value)||0,'gigante':parseInt(document.getElementById('pzas-gigante').value)||0},
-    caseinas:{serie:document.getElementById('cas-serie').value,primera:parseInt(document.getElementById('cas-primera').value)||0,ultima:parseInt(document.getElementById('cas-ultima').value)||0,total:(parseInt(document.getElementById('cas-ultima').value)||0)-(parseInt(document.getElementById('cas-primera').value)||0)+1},
+    caseinas:(function(){
+      var rangos = CAS_RANGOS.filter(function(r){ return _casTotalRango(r)>0; }).map(function(r){ return {serie:(r.serie||'').toUpperCase(), primera:parseInt(r.primera)||0, ultima:parseInt(r.ultima)||0, total:_casTotalRango(r)}; });
+      var total = rangos.reduce(function(s,r){ return s+r.total; }, 0);
+      var p0 = rangos[0] || {serie:'',primera:0,ultima:0};
+      return {serie:p0.serie, primera:p0.primera, ultima:p0.ultima, total:total, rangos:rangos};
+    })(),
     observaciones:document.getElementById('np-obs').value,
     dosis_override: Object.assign({}, parteActual.dosis_override||{}),
     ferm_seleccionado: parteActual.ferm_seleccionado||null
@@ -2585,7 +2655,7 @@ function guardarParte(){
       return 0;
     }
     if(parteActual.dosis_override.hasOwnProperty(p.nombre)) return parteActual.dosis_override[p.nombre];
-    return litros*p.dosis_ml_1000L/1000;
+    return _redondeaAlza5(litros*p.dosis_ml_1000L/1000);
   }
   function recogerProd(p){
     var consumo=_consumoProd(p);
@@ -2615,12 +2685,14 @@ function descontarStock(producto,cantidad){
 }
 
 function limpiarParte(){
-  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-dornic','np-operario','aux-hadicion','aux-ph','aux-temp','ferm-hadicion','ferm-ph','ferm-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','rec-ph','rec-dornic','agit-hi','agit-hf','agit-total','lavado-hi','lavado-hf','lavado-temp','mol-hi','mol-hf','mol-ph','mol-temp','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','cas-serie','cas-primera','cas-ultima','co2-tiempo','past-valvula','past-temp','past-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-dornic','np-operario','aux-hadicion','aux-ph','aux-temp','ferm-hadicion','ferm-ph','ferm-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','rec-ph','rec-dornic','agit-hi','agit-hf','agit-total','lavado-hi','lavado-hf','lavado-temp','mol-hi','mol-hf','mol-ph','mol-temp','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','co2-tiempo','past-valvula','past-temp','past-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('np-tipo').value='';
   var ts=document.getElementById('np-tipo-sel');if(ts)ts.value='';
   var vs=document.getElementById('np-var-sel');if(vs){vs.innerHTML='<option value="">— Variedad —</option>';vs.disabled=true;}
   document.getElementById('np-fecha').value=new Date().toISOString().slice(0,10);
   parteActual={receta:null,litros:0,dosis_override:{},lotes_seleccionados:{}};
+  CAS_RANGOS=[{serie:'',primera:'',ultima:''}];
+  try{ renderCaseinasRangos(); }catch(e){}
   onTipoChange();
 }
 
@@ -2879,7 +2951,12 @@ function _verParteRender(id){
     if(p.piezas['05kg']) pi += fila('1/2 KG', p.piezas['05kg']+' pzas');
     if(p.piezas['barra'])pi += fila('Barra',  p.piezas['barra']+' pzas');
     if(p.piezas['gigante'])pi += fila('Gigante', p.piezas['gigante']+' pzas');
-    if(p.caseinas && p.caseinas.total) pi += fila('Caseínas', (p.caseinas.serie ? p.caseinas.serie+' · ' : '') + p.caseinas.primera+' → '+p.caseinas.ultima+' ('+p.caseinas.total+')');
+    if(p.caseinas && p.caseinas.total){
+      var casRangos = (p.caseinas.rangos && p.caseinas.rangos.length) ? p.caseinas.rangos : [{serie:p.caseinas.serie,primera:p.caseinas.primera,ultima:p.caseinas.ultima,total:p.caseinas.total}];
+      var casTxt = casRangos.map(function(r){ return (r.serie ? r.serie+' · ' : '') + r.primera+' → '+r.ultima+' ('+r.total+')'; }).join('<br>');
+      if(casRangos.length>1) casTxt += '<br><b>Total: '+p.caseinas.total+'</b>';
+      pi += fila('Caseínas', casTxt);
+    }
     if(pi) h += bloque('🧀 Piezas fabricadas', pi);
   }
 
