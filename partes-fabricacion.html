@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.75</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.76</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3469,7 +3469,14 @@ function _epRenderCaseinas(){
 }
 function _epAddCaseina(){ _EP_CAS_RANGOS.push({serie:'',primera:'',ultima:''}); _epRenderCaseinas(); }
 function _epDelCaseina(i){ _EP_CAS_RANGOS.splice(i,1); if(!_EP_CAS_RANGOS.length)_EP_CAS_RANGOS=[{serie:'',primera:'',ultima:''}]; _epRenderCaseinas(); }
-function _epUpdCaseina(i,campo,val){ if(_EP_CAS_RANGOS[i]){ _EP_CAS_RANGOS[i][campo]=val; _epRenderCaseinas(); } }
+function _epUpdCaseina(i,campo,val){
+  if(!_EP_CAS_RANGOS[i]) return;
+  _EP_CAS_RANGOS[i][campo]=val;
+  // NO repintar aquí (perdería el foco y cerraría el teclado). Solo refrescar el total.
+  var tot=0; _EP_CAS_RANGOS.forEach(function(r){ tot+=_epCasTotalRango(r); });
+  var totEl=document.getElementById('ep-cas-total');
+  if(totEl) totEl.textContent = tot ? ('Total caseínas: '+tot) : '';
+}
 
 
 // Borrado de una sola fila (programa/desmoldeo/salmuera) con confirmación
