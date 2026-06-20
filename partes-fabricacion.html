@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.69</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.72</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2889,9 +2889,16 @@ function _verParteRender(id){
   // Desuerado
   if(p.desuerado){
     var de='';
-    de += fila('Recal. inicio', p.desuerado.rec_hi); de += fila('Tª inicial', p.desuerado.rec_ti ? p.desuerado.rec_ti+'°C' : '');
-    de += fila('pH suero', p.desuerado.rec_ph); de += fila('°D suero', p.desuerado.rec_dornic);
-    de += fila('Recal. fin', p.desuerado.rec_hf); de += fila('Tª final', p.desuerado.rec_tf ? p.desuerado.rec_tf+'°C' : '');
+    var recIni = [];
+    if(p.desuerado.rec_hi) recIni.push(p.desuerado.rec_hi);
+    if(p.desuerado.rec_ti) recIni.push(p.desuerado.rec_ti+'°C');
+    if(p.desuerado.rec_ph) recIni.push('pH '+p.desuerado.rec_ph);
+    if(p.desuerado.rec_dornic) recIni.push(p.desuerado.rec_dornic+'°D');
+    var recFin = [];
+    if(p.desuerado.rec_hf) recFin.push(p.desuerado.rec_hf);
+    if(p.desuerado.rec_tf) recFin.push(p.desuerado.rec_tf+'°C');
+    if(recIni.length) de += fila('Recal. inicio', recIni.join(' · '));
+    if(recFin.length) de += fila('Recal. fin', recFin.join(' · '));
     if(p.desuerado.lavado_aplicado){
       de += fila('Lavado cuajada', (p.desuerado.lavado_metodo||'pasteurizador'));
       de += fila('Lavado inicio', p.desuerado.lavado_hi); de += fila('Lavado fin', p.desuerado.lavado_hf);
@@ -2953,8 +2960,9 @@ function _verParteRender(id){
     if(p.piezas['gigante'])pi += fila('Gigante', p.piezas['gigante']+' pzas');
     if(p.caseinas && p.caseinas.total){
       var casRangos = (p.caseinas.rangos && p.caseinas.rangos.length) ? p.caseinas.rangos : [{serie:p.caseinas.serie,primera:p.caseinas.primera,ultima:p.caseinas.ultima,total:p.caseinas.total}];
-      var casTxt = casRangos.map(function(r){ return (r.serie ? r.serie+' · ' : '') + r.primera+' → '+r.ultima+' ('+r.total+')'; }).join('<br>');
-      if(casRangos.length>1) casTxt += '<br><b>Total: '+p.caseinas.total+'</b>';
+      var casTotalReal = casRangos.reduce(function(s,r){ var t=(r.total!=null?r.total:((parseInt(r.ultima)||0)-(parseInt(r.primera)||0)+1)); return s+(t>0?t:0); }, 0);
+      var casTxt = casRangos.map(function(r){ var t=(r.total!=null?r.total:((parseInt(r.ultima)||0)-(parseInt(r.primera)||0)+1)); return (r.serie ? r.serie+' · ' : '') + r.primera+' → '+r.ultima+' ('+t+')'; }).join('<br>');
+      if(casRangos.length>1) casTxt += '<br><b>Total: '+casTotalReal+'</b>';
       pi += fila('Caseínas', casTxt);
     }
     if(pi) h += bloque('🧀 Piezas fabricadas', pi);
@@ -3188,12 +3196,16 @@ function renderEpForm(){
 
   // ── DESUERADO ──
   h += _epSep('🌊 Desuerado en cuba');
-  h += _ep2('Recal. inicio', _epInp('ep-rec-hi', p.desuerado.rec_hi, 'time'),
-           'Recal. fin', _epInp('ep-rec-hf', p.desuerado.rec_hf, 'time'));
-  h += _ep2('Tª inicio (°C)', _epInp('ep-rec-ti', p.desuerado.rec_ti, 'number'),
-           'Tª fin (°C)', _epInp('ep-rec-tf', p.desuerado.rec_tf, 'number'));
-  h += _ep2('pH suero', _epInp('ep-rec-ph', p.desuerado.rec_ph, 'number'),
-           '°Dornic suero', _epInp('ep-rec-dor', p.desuerado.rec_dornic, 'number'));
+  h += _epGrupoMomento('Inicio', [
+    ['Hora', _epInp('ep-rec-hi', p.desuerado.rec_hi, 'time')],
+    ['Tª (°C)', _epInp('ep-rec-ti', p.desuerado.rec_ti, 'number')],
+    ['pH suero', _epInp('ep-rec-ph', p.desuerado.rec_ph, 'number')],
+    ['°D suero', _epInp('ep-rec-dor', p.desuerado.rec_dornic, 'number')]
+  ]);
+  h += _epGrupoMomento('Fin', [
+    ['Hora', _epInp('ep-rec-hf', p.desuerado.rec_hf, 'time')],
+    ['Tª (°C)', _epInp('ep-rec-tf', p.desuerado.rec_tf, 'number')]
+  ]);
   h += _ep2('Agit. inicio', _epInp('ep-agit-hi', p.desuerado.agit_hi, 'time'),
            'Agit. fin', _epInp('ep-agit-hf', p.desuerado.agit_hf, 'time'));
 
@@ -3271,17 +3283,26 @@ function renderEpForm(){
   h += _ep2('1 KG', _epInp('ep-pz-1', p.piezas['1kg']||0, 'number'), '1/2 KG', _epInp('ep-pz-05', p.piezas['05kg']||0, 'number'));
   h += _ep2('BARRA', _epInp('ep-pz-bar', p.piezas['barra']||0, 'number'), 'GIGANTE', _epInp('ep-pz-gig', p.piezas['gigante']||0, 'number'));
 
-  // ── CASEÍNAS ──
+  // ── CASEÍNAS (múltiples rangos) ──
   h += _epSep('🏷️ Caseínas (D.O.)');
-  h += _ep1('Serie', _epInp('ep-cas-serie', p.caseinas.serie||''));
-  h += _ep2('Primera', _epInp('ep-cas-pri', p.caseinas.primera||0, 'number'),
-           'Última', _epInp('ep-cas-ult', p.caseinas.ultima||0, 'number'));
+  // Estado del editor: cargar los rangos del parte (soporta formato antiguo de un rango)
+  if(p.caseinas && p.caseinas.rangos && p.caseinas.rangos.length){
+    _EP_CAS_RANGOS = p.caseinas.rangos.map(function(r){ return {serie:r.serie||'', primera:r.primera||'', ultima:r.ultima||''}; });
+  } else if(p.caseinas && (p.caseinas.primera || p.caseinas.ultima)){
+    _EP_CAS_RANGOS = [{serie:p.caseinas.serie||'', primera:p.caseinas.primera||'', ultima:p.caseinas.ultima||''}];
+  } else {
+    _EP_CAS_RANGOS = [{serie:'',primera:'',ultima:''}];
+  }
+  h += '<div id="ep-cas-rangos"></div>';
+  h += '<button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="_epAddCaseina()">➕ Añadir rango de caseínas</button>';
+  h += '<div id="ep-cas-total" style="font-size:0.8rem;font-weight:700;color:var(--blue);margin-top:6px"></div>';
 
   // ── OBSERVACIONES ──
   h += _epSep('📝 Observaciones');
   h += '<textarea id="ep-obs" style="width:100%;min-height:60px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;background:var(--bg);font-family:inherit;resize:vertical">'+(p.observaciones||'').replace(/</g,'&lt;')+'</textarea>';
 
   document.getElementById('ep-form').innerHTML = h;
+  try{ _epRenderCaseinas(); }catch(e){}
 
   // Tras pintar, repoblar selects que tienen value seleccionado
   setTimeout(function(){
@@ -3319,11 +3340,24 @@ function _ep2(l1, h1, l2, h2){
     + '<div>'+_epLbl(l2)+h2+'</div>'
     + '</div>';
 }
+// Agrupa una etiqueta de momento (ej. "Inicio", "Fin") con sus campos en una fila,
+// para que se lea "a esta hora, estas condiciones". campos = [[label, inputHTML], ...]
+function _epGrupoMomento(titulo, campos){
+  var cols = campos.length;
+  var h = '<div style="background:var(--bg2);border-radius:8px;padding:7px 9px;margin-bottom:8px">';
+  h += '<div style="font-size:0.72rem;font-weight:700;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.03em">'+titulo+'</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat('+cols+',1fr);gap:8px">';
+  campos.forEach(function(c){ h += '<div>'+_epLbl(c[0])+c[1]+'</div>'; });
+  h += '</div></div>';
+  return h;
+}
 function _epItemEditable(prefix, i, item){
+  var lista = (prefix==='aux'?'auxiliares':'fermentos');
+  var etiqueta = (prefix==='aux'?'Auxiliar':'Fermento')+' '+(i+1);
   var h = '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
-  h += '<b style="font-size:0.85rem">'+(prefix==='aux'?'Auxiliar':'Fermento')+' '+(i+1)+'</b>';
-  h += '<button class="ferm-row-del" onclick="_epDel(\''+(prefix==='aux'?'auxiliares':'fermentos')+'\','+i+')">Eliminar</button>';
+  h += '<b style="font-size:0.85rem">'+etiqueta+'</b>';
+  h += '<button onclick="_epDelConfirm(\''+lista+'\','+i+',\''+etiqueta+'\')" title="Eliminar '+etiqueta+'" style="border:none;background:rgba(160,40,40,0.10);color:var(--brand);width:30px;height:30px;border-radius:50%;font-size:1rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button>';
   h += '</div>';
   h += _ep2('Nombre', _epInp('ep-'+prefix+'-nom-'+i, item.nombre||''),
           'Dosis utilizada', _epInp('ep-'+prefix+'-cons-'+i, item.consumo_total||item.dosis_utilizada||0, 'number'));
@@ -3363,6 +3397,40 @@ function _epDel(lista, idx){
   p[lista].splice(idx,1);
   renderEpForm();
 }
+
+// ── Caseínas (múltiples rangos) en el editor de Calidad ──
+var _EP_CAS_RANGOS = [];
+function _epCasTotalRango(r){
+  var pri=parseInt(r.primera)||0, ult=parseInt(r.ultima)||0;
+  if(!pri||!ult||ult<pri) return 0;
+  return ult-pri+1;
+}
+function _epRenderCaseinas(){
+  var cont=document.getElementById('ep-cas-rangos');
+  if(!cont) return;
+  if(!_EP_CAS_RANGOS.length) _EP_CAS_RANGOS=[{serie:'',primera:'',ultima:''}];
+  var h='';
+  _EP_CAS_RANGOS.forEach(function(r,i){
+    var sub=_epCasTotalRango(r);
+    h+='<div style="border:1px solid var(--border);border-radius:6px;padding:7px 9px;margin-bottom:7px">'
+     + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">'
+     + '<span style="font-size:0.7rem;font-weight:700;color:var(--text3)">Rango '+(i+1)+(sub?' · '+sub+' uds':'')+'</span>'
+     + (_EP_CAS_RANGOS.length>1?'<span onclick="_epDelCaseina('+i+')" style="cursor:pointer;color:var(--brand);font-size:0.78rem">🗑 quitar</span>':'')
+     + '</div>'
+     + _ep1('Serie', '<input type="text" value="'+(r.serie||'').replace(/"/g,'&quot;')+'" oninput="_epUpdCaseina('+i+',\'serie\',this.value)" style="text-transform:uppercase">')
+     + _ep2('Primera', '<input type="number" value="'+(r.primera||'')+'" oninput="_epUpdCaseina('+i+',\'primera\',this.value)">',
+            'Última', '<input type="number" value="'+(r.ultima||'')+'" oninput="_epUpdCaseina('+i+',\'ultima\',this.value)">')
+     + '</div>';
+  });
+  cont.innerHTML=h;
+  var tot=0; _EP_CAS_RANGOS.forEach(function(r){ tot+=_epCasTotalRango(r); });
+  var totEl=document.getElementById('ep-cas-total');
+  if(totEl) totEl.textContent = tot ? ('Total caseínas: '+tot) : '';
+}
+function _epAddCaseina(){ _EP_CAS_RANGOS.push({serie:'',primera:'',ultima:''}); _epRenderCaseinas(); }
+function _epDelCaseina(i){ _EP_CAS_RANGOS.splice(i,1); if(!_EP_CAS_RANGOS.length)_EP_CAS_RANGOS=[{serie:'',primera:'',ultima:''}]; _epRenderCaseinas(); }
+function _epUpdCaseina(i,campo,val){ if(_EP_CAS_RANGOS[i]){ _EP_CAS_RANGOS[i][campo]=val; _epRenderCaseinas(); } }
+
 
 // Borrado de una sola fila (programa/desmoldeo/salmuera) con confirmación
 // que deja claro exactamente cuál se elimina. NO afecta al resto del parte.
@@ -3513,12 +3581,13 @@ function _epRecogerEnEstado(){
   if(i('ep-pz-05')!==undefined)  p.piezas['05kg']    = i('ep-pz-05');
   if(i('ep-pz-bar')!==undefined) p.piezas['barra']   = i('ep-pz-bar');
   if(i('ep-pz-gig')!==undefined) p.piezas['gigante'] = i('ep-pz-gig');
-  // Caseínas
-  if(!p.caseinas) p.caseinas = {};
-  if(v('ep-cas-serie')!==undefined) p.caseinas.serie = v('ep-cas-serie');
-  if(i('ep-cas-pri')!==undefined)   p.caseinas.primera = i('ep-cas-pri');
-  if(i('ep-cas-ult')!==undefined)   p.caseinas.ultima = i('ep-cas-ult');
-  if(p.caseinas.primera!=null && p.caseinas.ultima!=null) p.caseinas.total = p.caseinas.ultima - p.caseinas.primera + 1;
+  // Caseínas (múltiples rangos)
+  if(typeof _EP_CAS_RANGOS !== 'undefined' && _EP_CAS_RANGOS){
+    var rangos = _EP_CAS_RANGOS.filter(function(r){ return _epCasTotalRango(r)>0; }).map(function(r){ return {serie:(r.serie||'').toUpperCase(), primera:parseInt(r.primera)||0, ultima:parseInt(r.ultima)||0, total:_epCasTotalRango(r)}; });
+    var totalCas = rangos.reduce(function(s,r){ return s+r.total; }, 0);
+    var c0 = rangos[0] || {serie:'',primera:0,ultima:0};
+    p.caseinas = {serie:c0.serie, primera:c0.primera, ultima:c0.ultima, total:totalCas, rangos:rangos};
+  }
 
   // Observaciones
   if(v('ep-obs')!==undefined) p.observaciones = v('ep-obs');
