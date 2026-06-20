@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.80</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.82</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3114,50 +3114,70 @@ function renderEpForm(skipRecoger){
 
   // ── CABECERA ──
   h += _epSep('📋 Cabecera');
-  h += _epBloqueAlineado('Datos del parte',
-    ['Tipo','Variedad','Cuba','Operario'],
-    [
-      {titulo:'', valores:[
-        '<select id="ep-tipo" style="'+_epStyle()+';text-align:center" onchange="onEpTipoChange()">'+tipoOpts+'</select>',
-        '<select id="ep-variedad" style="'+_epStyle()+';text-align:center"></select>',
-        _epInpC('ep-cuba', p.cuba),
-        _epInpC('ep-operario', p.operario)
-      ]}
-    ]);
-  h += _epBloqueAlineado('',
-    ['Fecha','Lote del queso'],
-    [
-      {titulo:'', valores:[
-        _epInpC('ep-fecha', p.fecha, 'date'),
-        _epInpC('ep-lote-queso', p.lote_queso||'')
-      ]}
-    ]);
+  // Una sola línea de 6 columnas: Fecha · Tipo · Variedad · Lote · Cuba · Operario
+  var gcCab='repeat(6,1fr)';
+  h += '<div style="background:var(--bg2);border-radius:8px;padding:7px 9px;margin-bottom:7px;border:1px solid var(--border)">';
+  h += '<div style="font-size:0.74rem;font-weight:700;color:var(--brand);margin-bottom:5px">Datos del parte</div>';
+  h += '<div style="display:grid;grid-template-columns:'+gcCab+';gap:6px;margin-bottom:3px">'
+     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Fecha</div>'
+     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Tipo</div>'
+     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Variedad</div>'
+     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Lote</div>'
+     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Cuba</div>'
+     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Operario</div></div>';
+  h += '<div style="display:grid;grid-template-columns:'+gcCab+';gap:6px;align-items:center">'
+     + '<div>'+_epInpC('ep-fecha', p.fecha, 'date')+'</div>'
+     + '<div><select id="ep-tipo" style="'+_epStyle()+';text-align:center" onchange="onEpTipoChange()">'+tipoOpts+'</select></div>'
+     + '<div><select id="ep-variedad" style="'+_epStyle()+';text-align:center"></select></div>'
+     + '<div>'+_epInpC('ep-lote-queso', p.lote_queso||'')+'</div>'
+     + '<div>'+_epInpC('ep-cuba', p.cuba)+'</div>'
+     + '<div>'+_epInpC('ep-operario', p.operario)+'</div></div>';
+  h += '</div>';
 
   // ── DATOS GENERALES DE LECHE ──
   var esMezcla = (p.tipo||'').toUpperCase() === 'MEZCLA';
   h += _epSep('🥛 Leche');
-  h += _epBloqueAlineado('Leche',
-    ['Litros','pH','Tª (°C)','°D'],
-    [
-      {titulo:'', valores:[
-        _epInpC('ep-litros', p.litros||0, 'number'),
-        _epInpC('ep-ph', p.ph, 'number'),
-        _epInpC('ep-temp', p.temp, 'number'),
-        _epInpC('ep-dornic', p.dornic_leche, 'number')
-      ]}
-    ]);
-
-  // Distribución por tanques (subordinada a los datos generales)
   if(esMezcla){
+    // Mezcla: datos generales + distribución por tanques (cada leche su tanque)
+    h += _epBloqueAlineado('Leche',
+      ['Litros','pH','Tª (°C)','°D'],
+      [
+        {titulo:'', valores:[
+          _epInpC('ep-litros', p.litros||0, 'number'),
+          _epInpC('ep-ph', p.ph, 'number'),
+          _epInpC('ep-temp', p.temp, 'number'),
+          _epInpC('ep-dornic', p.dornic_leche, 'number')
+        ]}
+      ]);
     h += '<div style="font-size:0.7rem;color:var(--text3);margin:8px 0 4px"><b>Distribución por tanques</b> · El total debe coincidir con los litros totales.</div>';
     h += _epTanqueMezclaRow('vaca',   'L. Vaca',  p.lvaca||0,  p.tanque_vaca   || _tanqueDefault('VACA'));
     h += _epTanqueMezclaRow('cabra',  'L. Cabra', p.lcabra||0, p.tanque_cabra  || _tanqueDefault('CABRA'));
     h += _epTanqueMezclaRow('oveja',  'L. Oveja', p.loveja||0, p.tanque_oveja  || _tanqueDefault('OVEJA'));
   } else {
-    h += _epBloqueAlineado('',
-      ['Tanque procedencia'],
-      [ {titulo:'', valores:[ _epInpC('ep-tanque', p.tanque || _tanqueDefault(p.tipo)) ]} ]);
-    h += '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px">Por defecto: cabra=1, vaca=2, manchega=3, oveja=4. Editable si hay excepción. Para varios tanques, escribe ej: "3+4".</div>';
+    // Caso normal: UN solo bloque con dos líneas (Litros·pH·Tª·°D / Tanque)
+    var gcLe='64px repeat(5,1fr)';
+    h += '<div style="background:var(--bg2);border-radius:8px;padding:7px 9px;margin-bottom:7px;border:1px solid var(--border)">';
+    h += '<div style="font-size:0.74rem;font-weight:700;color:var(--brand);margin-bottom:5px">Leche</div>';
+    // Línea 1
+    h += '<div style="display:grid;grid-template-columns:'+gcLe+';gap:6px;margin-bottom:3px"><div></div>'
+       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Litros</div>'
+       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">pH</div>'
+       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Tª (°C)</div>'
+       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">°D</div><div></div></div>';
+    h += '<div style="display:grid;grid-template-columns:'+gcLe+';gap:6px;align-items:center;margin-bottom:4px"><div></div>'
+       + '<div>'+_epInpC('ep-litros', p.litros||0, 'number')+'</div>'
+       + '<div>'+_epInpC('ep-ph', p.ph, 'number')+'</div>'
+       + '<div>'+_epInpC('ep-temp', p.temp, 'number')+'</div>'
+       + '<div>'+_epInpC('ep-dornic', p.dornic_leche, 'number')+'</div><div></div></div>';
+    // Línea 2: Tanque procedencia
+    h += '<div style="display:grid;grid-template-columns:'+gcLe+';gap:6px;margin-bottom:3px"><div></div>'
+       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Tanque</div>'
+       + '<div></div><div></div><div></div><div></div></div>';
+    h += '<div style="display:grid;grid-template-columns:'+gcLe+';gap:6px;align-items:center"><div></div>'
+       + '<div>'+_epInpC('ep-tanque', p.tanque || _tanqueDefault(p.tipo))+'</div>'
+       + '<div></div><div></div><div></div><div></div></div>';
+    h += '</div>';
+    h += '<div style="font-size:0.68rem;color:var(--text3);margin-bottom:8px">Por defecto: cabra=1, vaca=2, manchega=3, oveja=4. Editable. Varios tanques: ej. "3+4".</div>';
   }
 
   // ── PASTEURIZACIÓN ──
@@ -3166,19 +3186,19 @@ function renderEpForm(skipRecoger){
   var _condPast = (!p.pasteurizacion.cruda&&p.pasteurizacion.temp)?' selected':'';
   var _fosfActual = p.pasteurizacion.fosfatasa; if(_fosfActual===true) _fosfActual='P'; else if(_fosfActual===false) _fosfActual='';
   h += _epBloqueAlineado('Pasteurización',
-    ['Válvula C/I','Condiciones','Tª (°C)','Tiempo (s)','Fosfatasa'],
+    ['Válvula C/I','Condiciones','Fosfatasa','Tª (°C)','Tiempo (s)'],
     [
       {titulo:'', valores:[
         _epInpC('ep-past-valv', p.pasteurizacion.valvula||''),
         '<select id="ep-past-cond" style="'+_epStyle()+';text-align:center"><option value=""></option><option value="CRUDA"'+_condCruda+'>CRUDA</option><option value="PAST"'+_condPast+'>PASTEUR.</option></select>',
+        '<select id="ep-past-fosf" style="'+_epStyle()+';text-align:center"><option value="">—</option><option value="P"'+(_fosfActual==='P'?' selected':'')+'>P</option><option value="N"'+(_fosfActual==='N'?' selected':'')+'>N</option></select>',
         _epInpC('ep-past-temp', p.pasteurizacion.temp, 'number'),
-        _epInpC('ep-past-tiempo', p.pasteurizacion.tiempo, 'number'),
-        '<select id="ep-past-fosf" style="'+_epStyle()+';text-align:center"><option value="">—</option><option value="P"'+(_fosfActual==='P'?' selected':'')+'>P</option><option value="N"'+(_fosfActual==='N'?' selected':'')+'>N</option></select>'
+        _epInpC('ep-past-tiempo', p.pasteurizacion.tiempo, 'number')
       ]}
     ]);
 
   // ── AUXILIARES ──
-  h += _epSep('🧪 Auxiliares de fabricación');
+  h += _epSep('🧪 Auxiliares de fabricación', 'auxiliares', 'auxiliar');
   // Momento de adición de auxiliares: hora + pH/Tª de la leche en ese instante (editable).
   // El pH/Tª son los mismos que pH leche / Tª leche (co2.ph_leche / co2.temp_leche).
   h += _epBloqueAlineado('Adición de auxiliares',
@@ -3215,17 +3235,25 @@ function renderEpForm(skipRecoger){
   p.auxiliares.forEach(function(a, i){
     h += _epItemEditable('aux', i, a);
   });
-  h += '<button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="_epAdd(\'auxiliares\')">+ Añadir auxiliar</button>';
 
   // ── FERMENTOS ──
-  h += _epSep('🦠 Fermentos');
+  h += _epSep('🦠 Fermentos', 'fermentos', 'fermento');
+  // Momento de adición de fermentos: hora + pH + Tª (mismo formato que auxiliares)
+  h += _epBloqueAlineado('Adición de fermentos',
+    ['Hora','pH','Tª (°C)'],
+    [
+      {titulo:'Adición', valores:[
+        _epInpC('ep-ferm-hadicion', (p.ferm_meta&&p.ferm_meta.hadicion)||'', 'time'),
+        _epInpC('ep-ferm-ph', (p.ferm_meta&&p.ferm_meta.ph)||'', 'number'),
+        _epInpC('ep-ferm-temp', (p.ferm_meta&&p.ferm_meta.temp)||'', 'number')
+      ]}
+    ]);
   if(p.fermentos.length===0){
     h += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:6px;padding:6px 8px;background:var(--bg2);border-radius:6px">Sin fermentos registrados.</div>';
   }
   p.fermentos.forEach(function(f, i){
     h += _epItemEditable('fer', i, f);
   });
-  h += '<button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="_epAdd(\'fermentos\')">+ Añadir fermento</button>';
 
   // ── CUAJO ──
   // ── COAGULACIÓN (fase completa: adición/corte + total + cuajo, todo en el mismo bloque) ──
@@ -3277,18 +3305,34 @@ function renderEpForm(skipRecoger){
         null, null
       ]}
     ]);
-  h += _epBloqueAlineado('Lavado de cuajada',
-    ['Hora','Tª agua (°C)'],
-    [
-      {titulo:'Inicio', valores:[
-        _epInpC('ep-lav-hi', p.desuerado.lavado_hi, 'time'),
-        _epInpC('ep-lav-temp', p.desuerado.lavado_temp, 'number')
-      ]},
-      {titulo:'Fin', valores:[
-        _epInpC('ep-lav-hf', p.desuerado.lavado_hf, 'time'),
-        null
-      ]}
-    ]);
+  // Lavado de cuajada: con selector de método (manguera / pasteurizador) en la cabecera
+  var _lavMet = p.desuerado.lavado_metodo||'';
+  var gcLav='64px repeat(5,1fr)';
+  h += '<div style="background:var(--bg2);border-radius:8px;padding:7px 9px;margin-bottom:7px;border:1px solid var(--border)">';
+  h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
+     + '<b style="font-size:0.74rem;font-weight:700;color:var(--brand);white-space:nowrap">Lavado de cuajada</b>'
+     + '<select id="ep-lav-metodo" style="'+_epStyle()+';text-align:center;max-width:150px">'
+     + '<option value="">— Método —</option>'
+     + '<option value="manguera"'+(_lavMet==='manguera'?' selected':'')+'>Manguera</option>'
+     + '<option value="pasteurizador"'+(_lavMet==='pasteurizador'?' selected':'')+'>Pasteurizador</option>'
+     + '</select></div>';
+  // Cabecera de columnas
+  h += '<div style="display:grid;grid-template-columns:'+gcLav+';gap:6px;margin-bottom:3px"><div></div>'
+     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Hora</div>'
+     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Tª agua (°C)</div>'
+     + '<div></div><div></div><div></div></div>';
+  // Fila Inicio
+  h += '<div style="display:grid;grid-template-columns:'+gcLav+';gap:6px;align-items:center;margin-bottom:4px">'
+     + '<div style="font-size:0.7rem;font-weight:700;color:var(--text2)">Inicio</div>'
+     + '<div>'+_epInpC('ep-lav-hi', p.desuerado.lavado_hi, 'time')+'</div>'
+     + '<div>'+_epInpC('ep-lav-temp', p.desuerado.lavado_temp, 'number')+'</div>'
+     + '<div></div><div></div><div></div></div>';
+  // Fila Fin (solo hora; con manguera no se rellena)
+  h += '<div style="display:grid;grid-template-columns:'+gcLav+';gap:6px;align-items:center">'
+     + '<div style="font-size:0.7rem;font-weight:700;color:var(--text2)">Fin</div>'
+     + '<div>'+_epInpC('ep-lav-hf', p.desuerado.lavado_hf, 'time')+'</div>'
+     + '<div></div><div></div><div></div><div></div></div>';
+  h += '</div>';
   h += _epBloqueAlineado('Agitación',
     ['Inicio','Fin','Total (min)'],
     [
@@ -3316,7 +3360,7 @@ function renderEpForm(skipRecoger){
     ]);
 
   // ── PRENSADO (programas múltiples) ──
-  h += _epSep('🔩 Prensado');
+  h += _epSep('🔩 Prensado', 'prensados', 'programa');
   if(p.prensados.length===0){
     h += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:6px;padding:6px 8px;background:var(--bg2);border-radius:6px">Sin programas de prensado registrados.</div>';
   }
@@ -3351,10 +3395,10 @@ function renderEpForm(skipRecoger){
        + '<div>'+_epInpC('ep-pren-mnt-'+i, pr.mantenimiento_min||0, 'number')+'</div><div></div></div>';
     h += '</div>';
   });
-  h += '<button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="_epAdd(\'prensados\')">+ Añadir programa de prensado</button>';
+  // (botón "+ Añadir" ahora en la cabecera de la sección)
 
   // ── DESMOLDEO (uno por formato) ──
-  h += _epSep('📦 Desmoldeo');
+  h += _epSep('📦 Desmoldeo', 'desmoldeos', 'desmoldeo');
   if(p.desmoldeos.length===0){
     h += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:6px;padding:6px 8px;background:var(--bg2);border-radius:6px">Sin desmoldeos registrados.</div>';
   }
@@ -3364,36 +3408,42 @@ function renderEpForm(skipRecoger){
       foOpts += '<option value="'+f+'"'+(f===d.formato?' selected':'')+'>'+f+'</option>';
     });
     h += '<div style="background:var(--bg2);border-radius:8px;padding:9px 10px;margin-bottom:10px;border:1px solid var(--border)">';
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px"><b style="font-size:0.74rem;color:var(--brand)">Desmoldeo '+(i+1)+'</b><button onclick="_epDelConfirm(\'desmoldeos\','+i+',\'Desmoldeo '+(i+1)+'\')" title="Eliminar este desmoldeo" style="border:none;background:rgba(160,40,40,0.10);color:var(--brand);width:28px;height:28px;border-radius:50%;font-size:0.95rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button></div>';
+    // Cabecera: "Desmoldeo N" + selector de FORMATO al lado + ✕
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px">'
+       + '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">'
+       + '<b style="font-size:0.74rem;color:var(--brand);white-space:nowrap">Desmoldeo '+(i+1)+'</b>'
+       + '<select id="ep-des-fmt-'+i+'" style="'+_epStyle()+';text-align:center;max-width:130px">'+foOpts+'</select>'
+       + '</div>'
+       + '<button onclick="_epDelConfirm(\'desmoldeos\','+i+',\'Desmoldeo '+(i+1)+'\')" title="Eliminar este desmoldeo" style="border:none;background:rgba(160,40,40,0.10);color:var(--brand);width:28px;height:28px;border-radius:50%;font-size:0.95rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button>'
+       + '</div>';
     var gc='64px repeat(5,1fr)';
-    // Fila 1: Formato · Hora inicio · Hora fin
+    // Cabecera de columnas: Hora · pH · Tª
     h += '<div style="display:grid;grid-template-columns:'+gc+';gap:6px;margin-bottom:4px"><div></div>'
-       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Formato</div>'
-       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Hora inicio</div>'
-       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Hora fin</div>'
+       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Hora</div>'
+       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">pH</div>'
+       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Tª (°C)</div>'
        + '<div></div><div></div></div>';
-    h += '<div style="display:grid;grid-template-columns:'+gc+';gap:6px;align-items:center;margin-bottom:6px"><div></div>'
-       + '<div><select id="ep-des-fmt-'+i+'" style="'+_epStyle()+';text-align:center">'+foOpts+'</select></div>'
+    // Fila Inicio: Hora · pH · Tª
+    h += '<div style="display:grid;grid-template-columns:'+gc+';gap:6px;align-items:center;margin-bottom:6px">'
+       + '<div style="font-size:0.7rem;font-weight:700;color:var(--text2)">Inicio</div>'
        + '<div>'+_epInpC('ep-des-hi-'+i, d.hi, 'time')+'</div>'
-       + '<div>'+_epInpC('ep-des-hf-'+i, d.hf, 'time')+'</div>'
-       + '<div></div><div></div></div>';
-    // Fila 2: pH ini · Tª ini · pH fin · Tª fin
-    h += '<div style="display:grid;grid-template-columns:'+gc+';gap:6px;margin-bottom:4px"><div></div>'
-       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">pH ini</div>'
-       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Tª ini (°C)</div>'
-       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">pH fin</div>'
-       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Tª fin (°C)</div><div></div></div>';
-    h += '<div style="display:grid;grid-template-columns:'+gc+';gap:6px;align-items:center"><div></div>'
        + '<div>'+_epInpC('ep-des-phi-'+i, d.ph, 'number')+'</div>'
        + '<div>'+_epInpC('ep-des-ti-'+i, d.temp, 'number')+'</div>'
+       + '<div></div><div></div></div>';
+    // Fila Fin: Hora · pH · Tª
+    h += '<div style="display:grid;grid-template-columns:'+gc+';gap:6px;align-items:center">'
+       + '<div style="font-size:0.7rem;font-weight:700;color:var(--text2)">Fin</div>'
+       + '<div>'+_epInpC('ep-des-hf-'+i, d.hf, 'time')+'</div>'
        + '<div>'+_epInpC('ep-des-phf-'+i, d.ph_final, 'number')+'</div>'
-       + '<div>'+_epInpC('ep-des-tf-'+i, d.temp_final, 'number')+'</div><div></div></div>';
+       + '<div>'+_epInpC('ep-des-tf-'+i, d.temp_final, 'number')+'</div>'
+       + '<div></div><div></div></div>';
     h += '</div>';
   });
-  h += '<button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="_epAdd(\'desmoldeos\')">+ Añadir desmoldeo</button>';
+  // (botón "+ Añadir" ahora en la cabecera de la sección)
+  // fin desmoldeos
 
   // ── SALMUERA (uno por formato) ──
-  h += _epSep('🧂 Salmuera');
+  h += _epSep('🧂 Salmuera', 'salmueras', 'salmuera');
   if(p.salmueras.length===0){
     h += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:6px;padding:6px 8px;background:var(--bg2);border-radius:6px">Sin salmueras registradas.</div>';
   }
@@ -3418,31 +3468,41 @@ function renderEpForm(skipRecoger){
        + '<div></div><div></div></div>';
     h += '</div>';
   });
-  h += '<button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="_epAdd(\'salmueras\')">+ Añadir salmuera</button>';
+  // (botón "+ Añadir" ahora en la cabecera de la sección)
+  // fin salmueras
 
   // ── PIEZAS ──
   h += _epSep('🧀 Piezas fabricadas');
-  h += _epBloqueAlineado('Piezas fabricadas',
-    ['3 KG','2 KG','1 KG','1/2 KG'],
-    [
-      {titulo:'Uds', valores:[
-        _epInpC('ep-pz-3', p.piezas['3kg']||0, 'number'),
-        _epInpC('ep-pz-2', p.piezas['2kg']||0, 'number'),
-        _epInpC('ep-pz-1', p.piezas['1kg']||0, 'number'),
-        _epInpC('ep-pz-05', p.piezas['05kg']||0, 'number')
-      ]}
-    ]);
-  h += _epBloqueAlineado('',
-    ['Barra','Gigante'],
-    [
-      {titulo:'Uds', valores:[
-        _epInpC('ep-pz-bar', p.piezas['barra']||0, 'number'),
-        _epInpC('ep-pz-gig', p.piezas['gigante']||0, 'number')
-      ]}
-    ]);
+  // Un solo bloque con DOS líneas dentro (no dos bloques separados)
+  var gcPz='64px repeat(5,1fr)';
+  h += '<div style="background:var(--bg2);border-radius:8px;padding:7px 9px;margin-bottom:7px;border:1px solid var(--border)">';
+  h += '<div style="font-size:0.74rem;font-weight:700;color:var(--brand);margin-bottom:5px">Piezas fabricadas</div>';
+  // Línea 1: 3 KG · 2 KG · 1 KG · 1/2 KG
+  h += '<div style="display:grid;grid-template-columns:'+gcPz+';gap:6px;margin-bottom:3px"><div></div>'
+     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">3 KG</div>'
+     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">2 KG</div>'
+     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">1 KG</div>'
+     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">1/2 KG</div><div></div></div>';
+  h += '<div style="display:grid;grid-template-columns:'+gcPz+';gap:6px;align-items:center;margin-bottom:4px">'
+     + '<div style="font-size:0.7rem;font-weight:700;color:var(--text2)">Uds</div>'
+     + '<div>'+_epInpC('ep-pz-3', p.piezas['3kg']||0, 'number')+'</div>'
+     + '<div>'+_epInpC('ep-pz-2', p.piezas['2kg']||0, 'number')+'</div>'
+     + '<div>'+_epInpC('ep-pz-1', p.piezas['1kg']||0, 'number')+'</div>'
+     + '<div>'+_epInpC('ep-pz-05', p.piezas['05kg']||0, 'number')+'</div><div></div></div>';
+  // Línea 2: Barra · Gigante
+  h += '<div style="display:grid;grid-template-columns:'+gcPz+';gap:6px;margin-bottom:3px"><div></div>'
+     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Barra</div>'
+     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Gigante</div>'
+     + '<div></div><div></div><div></div></div>';
+  h += '<div style="display:grid;grid-template-columns:'+gcPz+';gap:6px;align-items:center">'
+     + '<div style="font-size:0.7rem;font-weight:700;color:var(--text2)">Uds</div>'
+     + '<div>'+_epInpC('ep-pz-bar', p.piezas['barra']||0, 'number')+'</div>'
+     + '<div>'+_epInpC('ep-pz-gig', p.piezas['gigante']||0, 'number')+'</div>'
+     + '<div></div><div></div><div></div></div>';
+  h += '</div>';
 
   // ── CASEÍNAS (múltiples rangos) ──
-  h += _epSep('🏷️ Caseínas (D.O.)');
+  h += _epSep('🏷️ Caseínas (D.O.)', 'js:_epAddCaseina()', 'rango');
   // Cargar los rangos del parte SOLO si el estado del editor aún no tiene datos en curso
   // (evita perder ediciones al repintar, p.ej. al borrar un fermento).
   var _casEnCurso = (typeof _EP_CAS_RANGOS!=='undefined' && _EP_CAS_RANGOS && _EP_CAS_RANGOS.some(function(r){ return (r.serie||'')!=='' || (r.primera||'')!=='' || (r.ultima||'')!==''; }));
@@ -3456,7 +3516,6 @@ function renderEpForm(skipRecoger){
     }
   }
   h += '<div id="ep-cas-rangos"></div>';
-  h += '<button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="_epAddCaseina()">➕ Añadir rango de caseínas</button>';
   h += '<div id="ep-cas-total" style="font-size:0.8rem;font-weight:700;color:var(--blue);margin-top:6px"></div>';
 
   // ── OBSERVACIONES ──
@@ -3482,7 +3541,7 @@ function renderEpForm(skipRecoger){
 }
 
 // Helpers de UI del editor
-function _epStyle(){ return 'width:100%;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;background:var(--bg)'; }
+function _epStyle(){ return 'width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:0.82rem;background:var(--bg)'; }
 function _epLbl(t){ return '<label style="font-size:0.7rem;color:var(--text3);font-weight:700;letter-spacing:0.5px;text-transform:uppercase;display:block;margin-bottom:2px">'+t+'</label>'; }
 function _epInp(id, val, tipo, ph){
   tipo = tipo || 'text';
@@ -3498,7 +3557,19 @@ function _epInpC(id, val, tipo, ph){
 function _epSel(id, opts, onchange){
   return '<select id="'+id+'" style="'+_epStyle()+'"'+(onchange?' onchange="'+onchange+'"':'')+'>'+opts+'</select>';
 }
-function _epSep(t){ return '<div class="sep-label" style="margin-top:14px;margin-bottom:6px">'+t+'</div>'; }
+function _epSep(t, addLista, addEtiqueta){
+  // Cabecera de sección. Si se pasa addLista, muestra un botón "+ Añadir" a la derecha
+  // (ahorra el botón ancho al final y reduce scroll).
+  // addLista puede ser un nombre de lista (usa _epAdd) o un onclick completo si empieza por "js:".
+  if(addLista){
+    var onclick = (addLista.indexOf('js:')===0) ? addLista.slice(3) : ('_epAdd(\''+addLista+'\')');
+    return '<div class="sep-label" style="margin-top:10px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;gap:8px">'
+      + '<span>'+t+'</span>'
+      + '<button onclick="'+onclick+'" title="Añadir '+(addEtiqueta||'')+'" style="border:none;background:#8b5a2b;color:#fff;padding:3px 10px;border-radius:14px;font-size:0.66rem;font-weight:700;cursor:pointer;white-space:nowrap;text-transform:none;letter-spacing:0">+ Añadir '+(addEtiqueta||'')+'</button>'
+      + '</div>';
+  }
+  return '<div class="sep-label" style="margin-top:10px;margin-bottom:5px">'+t+'</div>';
+}
 function _ep1(label, html){
   return '<div style="margin-bottom:8px">'+_epLbl(label)+html+'</div>';
 }
@@ -3517,10 +3588,10 @@ function _epBloqueAlineado(tituloBloque, columnas, filas){
   // se rellenan los huecos a la derecha y se mantiene la alineación.
   var NCOLS = 5;
   var gridCols = '64px repeat('+NCOLS+',1fr)';
-  var h = '<div style="background:var(--bg2);border-radius:8px;padding:9px 10px;margin-bottom:10px;border:1px solid var(--border)">';
-  if(tituloBloque) h += '<div style="font-size:0.74rem;font-weight:700;color:var(--brand);margin-bottom:7px">'+tituloBloque+'</div>';
+  var h = '<div style="background:var(--bg2);border-radius:8px;padding:7px 9px;margin-bottom:7px;border:1px solid var(--border)">';
+  if(tituloBloque) h += '<div style="font-size:0.74rem;font-weight:700;color:var(--brand);margin-bottom:5px">'+tituloBloque+'</div>';
   // Cabecera de columnas (rellena hasta NCOLS con huecos), centrada
-  h += '<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;margin-bottom:4px">';
+  h += '<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;margin-bottom:3px">';
   h += '<div></div>';
   for(var c=0;c<NCOLS;c++){
     var lbl = columnas[c] || '';
@@ -3529,7 +3600,7 @@ function _epBloqueAlineado(tituloBloque, columnas, filas){
   h += '</div>';
   // Filas, rellenando hasta NCOLS con celdas vacías
   filas.forEach(function(f){
-    h += '<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;margin-bottom:6px;align-items:center">';
+    h += '<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;margin-bottom:4px;align-items:center">';
     h += '<div style="font-size:0.7rem;font-weight:700;color:var(--text2)">'+f.titulo+'</div>';
     for(var k=0;k<NCOLS;k++){
       var val = f.valores[k];
@@ -3544,15 +3615,15 @@ function _epItemEditable(prefix, i, item){
   var lista = (prefix==='aux'?'auxiliares':'fermentos');
   var etiqueta = (prefix==='aux'?'Auxiliar':'Fermento')+' '+(i+1);
   var gridCols = '64px repeat(5,1fr)';
-  var h = '<div style="background:var(--bg2);border-radius:8px;padding:9px 10px;margin-bottom:10px;border:1px solid var(--border)">';
+  var h = '<div style="background:var(--bg2);border-radius:8px;padding:7px 9px;margin-bottom:7px;border:1px solid var(--border)">';
   // Cabecera: nombre del item a la izquierda + ✕ a la derecha
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">';
   h += '<b style="font-size:0.74rem;color:var(--brand)">'+etiqueta+'</b>';
-  h += '<button onclick="_epDelConfirm(\''+lista+'\','+i+',\''+etiqueta+'\')" title="Eliminar '+etiqueta+'" style="border:none;background:rgba(160,40,40,0.10);color:var(--brand);width:28px;height:28px;border-radius:50%;font-size:0.95rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button>';
+  h += '<button onclick="_epDelConfirm(\''+lista+'\','+i+',\''+etiqueta+'\')" title="Eliminar '+etiqueta+'" style="border:none;background:rgba(160,40,40,0.10);color:var(--brand);width:26px;height:26px;border-radius:50%;font-size:0.9rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button>';
   h += '</div>';
   // Cabecera de columnas (centradas)
   var cols = ['Nombre','Dosis','Proveedor','Lote','Caducidad'];
-  h += '<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;margin-bottom:4px">';
+  h += '<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;margin-bottom:3px">';
   h += '<div></div>';
   cols.forEach(function(c){ h += '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">'+c+'</div>'; });
   h += '</div>';
@@ -3617,32 +3688,29 @@ function _epRenderCaseinas(){
   if(!cont) return;
   if(!_EP_CAS_RANGOS.length) _EP_CAS_RANGOS=[{serie:'',primera:'',ultima:''}];
   var gridCols='64px repeat(5,1fr)';
-  var estiloInp='width:100%;padding:7px 4px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;background:var(--bg);text-align:center';
-  var h='';
+  var estiloInp='width:100%;padding:5px 4px;border:1px solid var(--border);border-radius:6px;font-size:0.82rem;background:var(--bg);text-align:center';
+  // UN SOLO bloque que contiene todas las filas de rango (no un bloque por rango)
+  var h='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:7px 9px;margin-bottom:7px">';
+  // Cabecera de columnas (una vez)
+  var cols=['Serie','Primera','Última'];
+  h+='<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;margin-bottom:3px"><div></div>';
+  for(var c=0;c<5;c++){ h+='<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">'+(cols[c]||'')+'</div>'; }
+  h+='</div>';
+  // Una fila por rango
   _EP_CAS_RANGOS.forEach(function(r,i){
     var sub=_epCasTotalRango(r);
-    h+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 10px;margin-bottom:10px">';
-    // Cabecera: nº de rango + uds a la izquierda, "quitar" a la derecha
-    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">'
-     + '<b style="font-size:0.74rem;color:var(--brand)">Rango '+(i+1)+(sub?' · '+sub+' uds':'')+'</b>'
-     + (_EP_CAS_RANGOS.length>1?'<button onclick="_epDelCaseina('+i+')" title="Quitar rango" style="border:none;background:rgba(160,40,40,0.10);color:var(--brand);width:28px;height:28px;border-radius:50%;font-size:0.95rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button>':'')
-     + '</div>';
-    // Cabecera de columnas (centradas)
-    var cols=['Serie','Primera','Última'];
-    h+='<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;margin-bottom:4px">';
-    h+='<div></div>';
-    for(var c=0;c<5;c++){ h+='<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">'+(cols[c]||'')+'</div>'; }
-    h+='</div>';
-    // Fila única de datos (5 columnas; 3 con datos, 2 vacías)
-    h+='<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;align-items:center">';
-    h+='<div></div>';
+    var etiqueta='R'+(i+1)+(sub?' ('+sub+')':'');
+    h+='<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;align-items:center;margin-bottom:4px">';
+    h+='<div style="font-size:0.66rem;font-weight:700;color:var(--text2);white-space:nowrap">'+etiqueta+'</div>';
     h+='<div><input type="text" value="'+(r.serie||'').replace(/"/g,'&quot;')+'" oninput="_epUpdCaseina('+i+',\'serie\',this.value)" style="'+estiloInp+';text-transform:uppercase"></div>';
     h+='<div><input type="number" value="'+(r.primera||'')+'" oninput="_epUpdCaseina('+i+',\'primera\',this.value)" style="'+estiloInp+'"></div>';
     h+='<div><input type="number" value="'+(r.ultima||'')+'" oninput="_epUpdCaseina('+i+',\'ultima\',this.value)" style="'+estiloInp+'"></div>';
-    h+='<div></div><div></div>';
-    h+='</div>';
+    // Columna 4: vacía. Columna 5: botón quitar (solo si hay más de un rango)
+    h+='<div></div>';
+    h+='<div style="text-align:center">'+(_EP_CAS_RANGOS.length>1?'<button onclick="_epDelCaseina('+i+')" title="Quitar rango" style="border:none;background:rgba(160,40,40,0.10);color:var(--brand);width:26px;height:26px;border-radius:50%;font-size:0.9rem;font-weight:700;cursor:pointer;line-height:1">✕</button>':'')+'</div>';
     h+='</div>';
   });
+  h+='</div>';
   cont.innerHTML=h;
   var tot=0; _EP_CAS_RANGOS.forEach(function(r){ tot+=_epCasTotalRango(r); });
   var totEl=document.getElementById('ep-cas-total');
@@ -3723,6 +3791,10 @@ function _epRecogerEnEstado(){
   if(v('ep-aux-hadicion')!==undefined){ if(!p.aux_meta) p.aux_meta={}; p.aux_meta.hadicion = v('ep-aux-hadicion'); }
   if(n('ep-aux-ph')!==undefined){   p.co2.ph_leche = n('ep-aux-ph');   if(!p.aux_meta) p.aux_meta={}; p.aux_meta.ph = n('ep-aux-ph'); }
   if(n('ep-aux-temp')!==undefined){ p.co2.temp_leche = n('ep-aux-temp'); if(!p.aux_meta) p.aux_meta={}; p.aux_meta.temp = n('ep-aux-temp'); }
+  // Adición de fermentos (hora · pH · Tª)
+  if(v('ep-ferm-hadicion')!==undefined){ if(!p.ferm_meta) p.ferm_meta={}; p.ferm_meta.hadicion = v('ep-ferm-hadicion'); }
+  if(n('ep-ferm-ph')!==undefined){   if(!p.ferm_meta) p.ferm_meta={}; p.ferm_meta.ph = n('ep-ferm-ph'); }
+  if(n('ep-ferm-temp')!==undefined){ if(!p.ferm_meta) p.ferm_meta={}; p.ferm_meta.temp = n('ep-ferm-temp'); }
 
   // Auxiliares: reconstruir el array leyendo SOLO las tarjetas presentes en el DOM.
   if(p.auxiliares){
@@ -3790,6 +3862,7 @@ function _epRecogerEnEstado(){
   if(v('ep-lav-hi')!==undefined)  { p.desuerado.lavado_hi = v('ep-lav-hi'); if(v('ep-lav-hi')) p.desuerado.lavado_aplicado = true; }
   if(v('ep-lav-hf')!==undefined)  p.desuerado.lavado_hf = v('ep-lav-hf');
   if(v('ep-lav-temp')!==undefined) p.desuerado.lavado_temp = v('ep-lav-temp');
+  if(v('ep-lav-metodo')!==undefined){ p.desuerado.lavado_metodo = v('ep-lav-metodo'); if(v('ep-lav-metodo')) p.desuerado.lavado_aplicado = true; }
 
   // Moldeo
   if(!p.moldeo) p.moldeo = {};
