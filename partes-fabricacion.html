@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.66</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.67</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1242,6 +1242,14 @@ function rellenarCampos(p){
         if (existe) {
           vs.value = variedadDestino;
           onVarSelChange();
+          // Restaurar la dosis manual y el fermento elegido que tuviera el parte guardado
+          setTimeout(function(){
+            try{
+              if(p.dosis_override) parteActual.dosis_override = Object.assign({}, p.dosis_override);
+              if(p.ferm_seleccionado) parteActual.ferm_seleccionado = p.ferm_seleccionado;
+              if(parteActual.receta){ renderFermentos(parteActual.receta); calcularDosis(); }
+            }catch(e){}
+          }, 60);
           setTimeout(function(){ try{ refrescarPestanaCubaActiva(); }catch(e){} }, 50);
         } else if (intentos < 20) {
           setTimeout(intentarPonerVariedad, 50);
@@ -1464,6 +1472,8 @@ function autoGuardarParte(parteId){
   p.otrosAuxiliares = (typeof recogerOtrosAuxiliares === 'function') ? recogerOtrosAuxiliares() : [];
   p.pasteurizacion = {valvula:g('past-valvula'), temp:gn('past-temp'), tiempo:gn('past-tiempo'), cruda:document.getElementById('past-cruda')?document.getElementById('past-cruda').checked:false, fosfatasa:document.getElementById('past-fosfatasa')?document.getElementById('past-fosfatasa').value:''};
   p.observaciones = g('np-obs');
+  p.dosis_override = Object.assign({}, parteActual.dosis_override||{});
+  p.ferm_seleccionado = parteActual.ferm_seleccionado||null;
   persistir();
   // Refrescar las pestañas (cambia el nombre si cambió tipo/variedad)
   renderPestanasCubas();
@@ -2090,9 +2100,41 @@ function _quePareTocaHoy(){
   return null; // domingo: decide el quesero
 }
 
-// ── Fermentos que vienen en SOBRES de tamaño fijo (ej. TA-054 en sobres de 50 y 25) ──
-// No se dosifican por mililitros libres: se echan sobres enteros. El sistema calcula
-// el objetivo teórico (litros × dosis/1000L del sobre grande) y reparte en sobres,
+// ¿Es un fermento "principal" del grupo EXCLUYENTE (se elige uno solo)?
+// Incluye la pareja de rotación R-603/R-604 y el CC-08 (anti-fagos).
+// Flora Danica, TA-054 y demás NO son excluyentes (son complementarios).
+function _esFermentoExcluyente(nombre){
+  if(_codigoRotatorio(nombre)) return true; // R-603 / R-604
+  var s = String(nombre||'').toUpperCase().replace(/\s+/g,'').replace(/-/g,'');
+  if(/^CC0?8/.test(s) || /^CC08/.test(s)) return true; // CC-08 / CC08 / CC8
+  return false;
+}
+
+// El quesero pincha sobre la línea de un fermento principal → ese pasa a ser EL que se usa:
+// se rellena su dosis con la propuesta de la receta y los OTROS excluyentes se ponen a 0.
+// Flora, TA-054 y complementarios no se tocan. Al pinchar un complementario, no hace nada
+// (esos se rellenan/editan normal).
+function seleccionarFermento(nombre){
+  if(!parteActual || !parteActual.receta) return;
+  if(!_esFermentoExcluyente(nombre)) return; // solo aplica a R-603/R-604/CC-08
+  parteActual.ferm_seleccionado = nombre;
+  if(!parteActual.dosis_override) parteActual.dosis_override = {};
+  (parteActual.receta.fermentos||[]).forEach(function(f){
+    if(!_esFermentoExcluyente(f.nombre)) return; // dejar Flora/TA tal cual
+    if(f.nombre === nombre){
+      // El elegido: usar la propuesta de la receta (quitar override para que calcule solo)
+      delete parteActual.dosis_override[f.nombre];
+    } else {
+      // Los demás excluyentes: a 0
+      parteActual.dosis_override[f.nombre] = 0;
+    }
+  });
+  try{ autoGuardarParte(CUBA_ACTIVA_ID); }catch(e){}
+  renderFermentos(parteActual.receta); // repinta para mover el verde
+  calcularDosis();                      // rellena dosis (elegido con propuesta, otros a 0)
+}
+
+
 // tirando primero de los grandes y completando con los pequeños (redondeo al más cercano).
 // Detecta el tamaño del sobre a partir del nombre: "TA-054 (50)" → 50 ; "TA-054 (25)" → 25.
 function _sobreFermento(nombre){
@@ -2198,23 +2240,25 @@ function renderFermentos(receta){
     // Determinar si está en rotación y si es el activo hoy
     var cod = _codigoRotatorio(f.nombre);
     var enRotacion = hayRotacion && (cod==='R603' || cod==='R604');
-    var esActivoHoy = enRotacion && tocaHoy === cod;
-    var esInactivoHoy = enRotacion && tocaHoy && tocaHoy !== cod;
+    // Selección manual del quesero (si ha pinchado una línea): manda sobre la rotación
+    var selManual = parteActual && parteActual.ferm_seleccionado ? parteActual.ferm_seleccionado : null;
+    var esActivo;
+    if(selManual){ esActivo = (f.nombre === selManual); }
+    else { esActivo = enRotacion && tocaHoy === cod; }
 
-    var estiloFila = '';
+    var estiloFila = 'cursor:pointer';
     var marcaNombre = '';
-    if(esActivoHoy){
-      estiloFila = 'background:rgba(34,139,34,0.08);border-left:3px solid #228b22';
-      marcaNombre = ' <span style="font-size:0.7rem;color:#228b22;font-weight:700">✅ HOY</span>';
-    } else if(esInactivoHoy){
-      // No se atenúa ni se bloquea: cualquier fermento se puede usar. Solo nota informativa.
-      marcaNombre = ' <span style="font-size:0.68rem;color:var(--text3);font-weight:600">· hoy tocaría el otro, pero puedes usarlo</span>';
+    if(esActivo){
+      estiloFila = 'cursor:pointer;background:rgba(34,139,34,0.08);border-left:3px solid #228b22';
+      marcaNombre = ' <span style="font-size:0.7rem;color:#228b22;font-weight:700">✅ EN USO</span>';
+    } else {
+      marcaNombre = ' <span style="font-size:0.66rem;color:var(--text3);font-weight:600">· toca para usar este</span>';
     }
 
-    h += '<div class="ferm-tabla-fila" style="'+estiloFila+'">'
+    h += '<div class="ferm-tabla-fila" style="'+estiloFila+'" onclick="seleccionarFermento(\''+f.nombre.replace(/'/g,"\\'")+'\')">'
        + '<div class="nombre">'+f.nombre+marcaNombre+'</div>'
        + '<div class="dosis-base">'+f.dosis_ml_1000L+'</div>'
-       + '<div><input type="text" class="dosis-input" id="dosis-'+key+'" data-prod="'+f.nombre+'" oninput="onDosisOverride(this)" placeholder="—"></div>'
+       + '<div><input type="number" step="any" inputmode="decimal" class="dosis-input" id="dosis-'+key+'" data-prod="'+f.nombre+'" oninput="onDosisOverride(this)" onclick="event.stopPropagation()" placeholder="—"></div>'
        + '<div class="meta">'+provHTML+'</div>'
        + '<div class="meta">'+loteHTML+'</div>'
        + '<div class="meta">'+cadHTML+'</div>'
@@ -2314,11 +2358,12 @@ function onDosisOverride(input){
   var prod=input.dataset.prod;
   var v=parseFloat(input.value);
   var esSobreTA = !!_sobreFermento(prod);
+  var permiteCero = esSobreTA || _esFermentoExcluyente(prod);
   if(input.value.trim()===''){
     // Campo vacío: vuelve a la propuesta automática
     delete parteActual.dosis_override[prod];
-  } else if(esSobreTA){
-    // Sobres TA-054: se admite cualquier valor ≥ 0 (incluido 0 para "no echar de este sobre")
+  } else if(permiteCero){
+    // Sobres TA-054 y fermentos excluyentes: se admite cualquier valor ≥ 0 (incluido 0)
     parteActual.dosis_override[prod] = isNaN(v)?0:v;
   } else if(isNaN(v)||v<=0){
     delete parteActual.dosis_override[prod];
@@ -2371,10 +2416,18 @@ function calcularDosis(){
       else el.textContent = litros>0 ? String(val) : '—';
       return;
     }
-    var base=parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L;
-    var total=litros*base/1000;
-    if(el.tagName==='INPUT') el.value=litros>0?total.toFixed(1):'';
-    else el.textContent=litros>0?total.toFixed(1):'—';
+    // Si el quesero escribió a mano la dosis utilizada (override), ese valor ES el total
+    // directo que se muestra en la casilla (no se recalcula por litros). Si no, propuesta = litros×dosis/1000.
+    var tieneOv = parteActual.dosis_override.hasOwnProperty(p.nombre);
+    if(tieneOv){
+      var ov = parteActual.dosis_override[p.nombre];
+      if(el.tagName==='INPUT'){ if(document.activeElement!==el) el.value = String(ov); }
+      else el.textContent = String(ov);
+    } else {
+      var total=litros*p.dosis_ml_1000L/1000;
+      if(el.tagName==='INPUT') el.value=litros>0?total.toFixed(1):'';
+      else el.textContent=litros>0?total.toFixed(1):'—';
+    }
   });
   // Si el parte activo está bloqueado, reaplicar el bloqueo a los campos de dosis recién escritos
   try{
@@ -2512,7 +2565,9 @@ function guardarParte(){
     desmoldeo:{formato:document.getElementById('des-formato').value,ph:document.getElementById('des-ph').value,hi:document.getElementById('des-hi').value,hf:document.getElementById('des-hf').value},
     piezas:{'3kg':parseInt(document.getElementById('pzas-3kg').value)||0,'2kg':parseInt(document.getElementById('pzas-2kg').value)||0,'1kg':parseInt(document.getElementById('pzas-1kg').value)||0,'05kg':parseInt(document.getElementById('pzas-05kg').value)||0,'barra':parseInt(document.getElementById('pzas-barra').value)||0,'gigante':parseInt(document.getElementById('pzas-gigante').value)||0},
     caseinas:{serie:document.getElementById('cas-serie').value,primera:parseInt(document.getElementById('cas-primera').value)||0,ultima:parseInt(document.getElementById('cas-ultima').value)||0,total:(parseInt(document.getElementById('cas-ultima').value)||0)-(parseInt(document.getElementById('cas-primera').value)||0)+1},
-    observaciones:document.getElementById('np-obs').value
+    observaciones:document.getElementById('np-obs').value,
+    dosis_override: Object.assign({}, parteActual.dosis_override||{}),
+    ferm_seleccionado: parteActual.ferm_seleccionado||null
   };
   // Reparto propuesto de sobres TA-054 (para los que el quesero no haya tocado a mano)
   var _repTAg = _calcReparteTA054(r, litros);
@@ -2529,12 +2584,12 @@ function guardarParte(){
       if(_doseTAg.hasOwnProperty(p.nombre)) return _doseTAg[p.nombre];
       return 0;
     }
-    var base=parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L;
-    return litros*base/1000;
+    if(parteActual.dosis_override.hasOwnProperty(p.nombre)) return parteActual.dosis_override[p.nombre];
+    return litros*p.dosis_ml_1000L/1000;
   }
   function recogerProd(p){
     var consumo=_consumoProd(p);
-    var base = _sobreFermento(p.nombre) ? (p.dosis_ml_1000L||0) : (parteActual.dosis_override[p.nombre]||p.dosis_ml_1000L);
+    var base = p.dosis_ml_1000L||0;
     var lote=obtenerLoteActivo(p.nombre);
     return {nombre:p.nombre,dosis_1000L:base,consumo_total:consumo,lote:lote?lote.lote:'',caducidad:lote?lote.caducidad:'',proveedor:lote?lote.proveedor:''};
   }
