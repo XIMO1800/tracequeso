@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.82</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.83</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2664,7 +2664,34 @@ function guardarParte(){
     return {nombre:p.nombre,dosis_1000L:base,consumo_total:consumo,lote:lote?lote.lote:'',caducidad:lote?lote.caducidad:'',proveedor:lote?lote.proveedor:''};
   }
   (r.auxiliares||[]).forEach(function(p){parte.auxiliares.push(recogerProd(p));descontarStock(p.nombre,_consumoProd(p));});
-  (r.fermentos||[]).forEach(function(p){parte.fermentos.push(recogerProd(p));descontarStock(p.nombre,_consumoProd(p));});
+  // Fermentos: de los EXCLUYENTES (R-603/R-604/CC-08) se guarda SOLO el que se ha usado.
+  // Regla: 1) si el quesero seleccionó uno manualmente, ese; 2) si no, el que toca por
+  // rotación hoy (R-603/R-604); 3) en último caso, el excluyente con mayor consumo.
+  // Los complementarios (Flora, TA-054, etc.) se guardan siempre.
+  var _excluyenteUsado = (function(){
+    var excl = (r.fermentos||[]).filter(function(f){ return _esFermentoExcluyente(f.nombre); });
+    if(!excl.length) return null;
+    // 1) selección manual
+    if(parteActual.ferm_seleccionado){
+      var sel = excl.filter(function(f){ return f.nombre===parteActual.ferm_seleccionado; })[0];
+      if(sel) return sel.nombre;
+    }
+    // 2) rotación del día (solo entre R-603/R-604)
+    var toca = _quePareTocaHoy();
+    if(toca){
+      var rot = excl.filter(function(f){ return _codigoRotatorio(f.nombre)===toca; })[0];
+      if(rot) return rot.nombre;
+    }
+    // 3) el que tenga mayor consumo (por si el quesero editó dosis a mano)
+    var mejor=null, mejorC=-1;
+    excl.forEach(function(f){ var c=_consumoProd(f); if(c>mejorC){ mejorC=c; mejor=f.nombre; } });
+    return mejor;
+  })();
+  (r.fermentos||[]).forEach(function(p){
+    if(_esFermentoExcluyente(p.nombre) && p.nombre!==_excluyenteUsado) return; // excluyente no usado → no se guarda
+    parte.fermentos.push(recogerProd(p));
+    descontarStock(p.nombre, _consumoProd(p));
+  });
   if(r.cuajo){parte.cuajo=recogerProd(r.cuajo);descontarStock(r.cuajo.nombre,_consumoProd(r.cuajo));}
   var co2lote=obtenerLoteActivo('CO2');
   parte.co2={lote:co2lote?co2lote.lote:'',caducidad:co2lote?co2lote.caducidad:'',tiempo_seg:parseInt(document.getElementById('co2-tiempo').value)||0,caudal_lh:parseFloat(document.getElementById('co2-caudal').value)||100,ph_leche:parseFloat(document.getElementById('aux-ph').value)||0,temp_leche:parseFloat(document.getElementById('aux-temp').value)||0,ph_objetivo:6.48};
