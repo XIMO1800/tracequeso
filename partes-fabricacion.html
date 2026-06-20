@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.76</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.77</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3159,6 +3159,17 @@ function renderEpForm(skipRecoger){
   // ── AUXILIARES (siempre visibles, lista editable) ──
   // Incluye CO₂ como una fila especial dentro del bloque
   h += _epSep('🧪 Auxiliares de fabricación');
+  // Momento de adición de auxiliares: hora + pH/Tª de la leche en ese instante (editable).
+  // El pH/Tª son los mismos que pH leche / Tª leche (co2.ph_leche / co2.temp_leche).
+  h += _epBloqueAlineado('Adición de auxiliares',
+    ['Hora','pH','Tª (°C)'],
+    [
+      {titulo:'Adición', valores:[
+        _epInp('ep-aux-hadicion', (p.aux_meta&&p.aux_meta.hadicion)||'', 'time'),
+        _epInp('ep-aux-ph', (p.co2&&p.co2.ph_leche)||'', 'number'),
+        _epInp('ep-aux-temp', (p.co2&&p.co2.temp_leche)||'', 'number')
+      ]}
+    ]);
   // Fila especial CO₂ (siempre visible, con campos propios: tiempo/caudal + lote/proveedor/caducidad)
   h += '<div style="background:var(--bg2);padding:8px;border-radius:8px;margin-bottom:8px;border-left:3px solid #5A8AA8">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:0.85rem">🌫️ CO₂</b><span style="font-size:0.7rem;color:var(--text3)">Caudal fijo 100 L/h · Tiempo calculado</span></div>';
@@ -3538,6 +3549,10 @@ function _epRecogerEnEstado(){
   if(v('ep-co2-prov')!==undefined)   p.co2.proveedor = v('ep-co2-prov');
   if(i('ep-co2-seg')!==undefined)    p.co2.tiempo_seg = i('ep-co2-seg');
   if(n('ep-co2-caudal')!==undefined) p.co2.caudal_lh = n('ep-co2-caudal');
+  // Momento de adición de auxiliares (hora + pH/Tª leche), editable por Calidad
+  if(v('ep-aux-hadicion')!==undefined){ if(!p.aux_meta) p.aux_meta={}; p.aux_meta.hadicion = v('ep-aux-hadicion'); }
+  if(n('ep-aux-ph')!==undefined){   p.co2.ph_leche = n('ep-aux-ph');   if(!p.aux_meta) p.aux_meta={}; p.aux_meta.ph = n('ep-aux-ph'); }
+  if(n('ep-aux-temp')!==undefined){ p.co2.temp_leche = n('ep-aux-temp'); if(!p.aux_meta) p.aux_meta={}; p.aux_meta.temp = n('ep-aux-temp'); }
 
   // Auxiliares
   if(p.auxiliares){
