@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.83</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.84</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2665,30 +2665,43 @@ function guardarParte(){
   }
   (r.auxiliares||[]).forEach(function(p){parte.auxiliares.push(recogerProd(p));descontarStock(p.nombre,_consumoProd(p));});
   // Fermentos: de los EXCLUYENTES (R-603/R-604/CC-08) se guarda SOLO el que se ha usado.
-  // Regla: 1) si el quesero seleccionó uno manualmente, ese; 2) si no, el que toca por
-  // rotación hoy (R-603/R-604); 3) en último caso, el excluyente con mayor consumo.
   // Los complementarios (Flora, TA-054, etc.) se guardan siempre.
-  var _excluyenteUsado = (function(){
-    var excl = (r.fermentos||[]).filter(function(f){ return _esFermentoExcluyente(f.nombre); });
-    if(!excl.length) return null;
+  // RED DE SEGURIDAD: si por lo que sea el filtro dejara la lista vacía, se guardan todos
+  // (mejor de más que de menos; nunca un parte sin fermentos).
+  var _ferms = (r.fermentos||[]);
+  // Determinar el ÍNDICE del excluyente usado (comparación por código/normalizado, no por texto exacto)
+  function _normNom(x){ return String(x||'').toUpperCase().replace(/\s+/g,'').replace(/-/g,''); }
+  var _idxUsado = -1;
+  (function(){
+    var exclIdx = [];
+    _ferms.forEach(function(f,idx){ if(_esFermentoExcluyente(f.nombre)) exclIdx.push(idx); });
+    if(!exclIdx.length) return;
     // 1) selección manual
     if(parteActual.ferm_seleccionado){
-      var sel = excl.filter(function(f){ return f.nombre===parteActual.ferm_seleccionado; })[0];
-      if(sel) return sel.nombre;
+      var selN = _normNom(parteActual.ferm_seleccionado);
+      for(var a=0;a<exclIdx.length;a++){ if(_normNom(_ferms[exclIdx[a]].nombre)===selN){ _idxUsado=exclIdx[a]; return; } }
     }
-    // 2) rotación del día (solo entre R-603/R-604)
+    // 2) rotación del día (entre R-603/R-604)
     var toca = _quePareTocaHoy();
     if(toca){
-      var rot = excl.filter(function(f){ return _codigoRotatorio(f.nombre)===toca; })[0];
-      if(rot) return rot.nombre;
+      for(var b=0;b<exclIdx.length;b++){ if(_codigoRotatorio(_ferms[exclIdx[b]].nombre)===toca){ _idxUsado=exclIdx[b]; return; } }
     }
-    // 3) el que tenga mayor consumo (por si el quesero editó dosis a mano)
-    var mejor=null, mejorC=-1;
-    excl.forEach(function(f){ var c=_consumoProd(f); if(c>mejorC){ mejorC=c; mejor=f.nombre; } });
-    return mejor;
+    // 3) el de mayor consumo
+    var mejorC=-1;
+    exclIdx.forEach(function(idx){ var c=_consumoProd(_ferms[idx]); if(c>mejorC){ mejorC=c; _idxUsado=idx; } });
   })();
-  (r.fermentos||[]).forEach(function(p){
-    if(_esFermentoExcluyente(p.nombre) && p.nombre!==_excluyenteUsado) return; // excluyente no usado → no se guarda
+  // Construir lista filtrada: complementarios siempre; del excluyente, solo el de _idxUsado
+  var _fermFiltrados = [];
+  _ferms.forEach(function(f,idx){
+    if(_esFermentoExcluyente(f.nombre)){
+      if(idx===_idxUsado) _fermFiltrados.push(f);
+    } else {
+      _fermFiltrados.push(f);
+    }
+  });
+  // Red de seguridad: si quedó vacío pero había fermentos, no filtrar
+  if(!_fermFiltrados.length && _ferms.length) _fermFiltrados = _ferms.slice();
+  _fermFiltrados.forEach(function(p){
     parte.fermentos.push(recogerProd(p));
     descontarStock(p.nombre, _consumoProd(p));
   });
