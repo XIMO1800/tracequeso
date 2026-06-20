@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.74</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.75</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2847,7 +2847,7 @@ function _verParteRender(id){
   // CO2
   if(p.co2 && p.co2.aplicado){
     var co='';
-    co += fila('Lote', p.co2.lote); co += fila('Caducidad', p.co2.caducidad);
+    co += fila('Lote', p.co2.lote); co += fila('Caducidad', _fechaEsp(p.co2.caducidad));
     co += fila('pH leche', p.co2.ph_leche); co += fila('Tª leche', p.co2.temp_leche ? p.co2.temp_leche+'°C' : '');
     co += fila('Tiempo', p.co2.tiempo_seg ? p.co2.tiempo_seg+' s' : '');
     co += fila('Caudal', p.co2.caudal_lh ? p.co2.caudal_lh+' L/h' : '');
@@ -2858,7 +2858,7 @@ function _verParteRender(id){
   if(p.auxiliares && p.auxiliares.length){
     var au='';
     p.auxiliares.forEach(function(x){
-      au += '<div class="resumen-row"><span>'+x.nombre+'</span><b>'+(x.consumo_total||x.dosis_utilizada||'—')+' ml · lote '+(x.lote||'—')+'</b></div>';
+      au += '<div class="resumen-row"><span>'+x.nombre+'</span><b>'+(x.consumo_total||x.dosis_utilizada||'—')+' ml · lote '+(x.lote||'—')+(x.caducidad?(' · cad. '+_fechaEsp(x.caducidad)):'')+'</b></div>';
     });
     h += bloque('🧪 Auxiliares', au);
   }
@@ -2867,14 +2867,14 @@ function _verParteRender(id){
   if(p.fermentos && p.fermentos.length){
     var fe='';
     p.fermentos.forEach(function(x){
-      fe += '<div class="resumen-row"><span>'+x.nombre+'</span><b>'+(x.consumo_total||x.dosis_utilizada||'—')+' · lote '+(x.lote||'—')+'</b></div>';
+      fe += '<div class="resumen-row"><span>'+x.nombre+'</span><b>'+(x.consumo_total||x.dosis_utilizada||'—')+' · lote '+(x.lote||'—')+(x.caducidad?(' · cad. '+_fechaEsp(x.caducidad)):'')+'</b></div>';
     });
     h += bloque('🦠 Fermentos', fe);
   }
 
   // Cuajo
   if(p.cuajo){
-    var cu = fila(p.cuajo.nombre||'Cuajo', (p.cuajo.consumo_total||p.cuajo.dosis_utilizada||'—')+' · lote '+(p.cuajo.lote||'—'));
+    var cu = fila(p.cuajo.nombre||'Cuajo', (p.cuajo.consumo_total||p.cuajo.dosis_utilizada||'—')+' · lote '+(p.cuajo.lote||'—')+(p.cuajo.caducidad?(' · cad. '+_fechaEsp(p.cuajo.caducidad)):''));
     h += bloque('⚗️ Cuajo', cu);
   }
 
@@ -2958,11 +2958,21 @@ function _verParteRender(id){
     if(p.piezas['05kg']) pi += fila('1/2 KG', p.piezas['05kg']+' pzas');
     if(p.piezas['barra'])pi += fila('Barra',  p.piezas['barra']+' pzas');
     if(p.piezas['gigante'])pi += fila('Gigante', p.piezas['gigante']+' pzas');
-    if(p.caseinas && p.caseinas.total){
-      var casRangos = (p.caseinas.rangos && p.caseinas.rangos.length) ? p.caseinas.rangos : [{serie:p.caseinas.serie,primera:p.caseinas.primera,ultima:p.caseinas.ultima,total:p.caseinas.total}];
-      var casTotalReal = casRangos.reduce(function(s,r){ var t=(r.total!=null?r.total:((parseInt(r.ultima)||0)-(parseInt(r.primera)||0)+1)); return s+(t>0?t:0); }, 0);
-      var casTxt = casRangos.map(function(r){ var t=(r.total!=null?r.total:((parseInt(r.ultima)||0)-(parseInt(r.primera)||0)+1)); return (r.serie ? r.serie+' · ' : '') + r.primera+' → '+r.ultima+' ('+t+')'; }).join('<br>');
-      if(casRangos.length>1) casTxt += '<br><b>Total: '+casTotalReal+'</b>';
+    // Caseínas: mostrar siempre que haya rangos con datos (no depender del campo total,
+    // que en guardados antiguos pudo quedar en 0).
+    var _casR = (p.caseinas && p.caseinas.rangos && p.caseinas.rangos.length)
+                  ? p.caseinas.rangos
+                  : (p.caseinas && (p.caseinas.primera || p.caseinas.ultima)
+                      ? [{serie:p.caseinas.serie,primera:p.caseinas.primera,ultima:p.caseinas.ultima,total:p.caseinas.total}]
+                      : []);
+    _casR = _casR.filter(function(r){ return (parseInt(r.primera)||0)>0 || (parseInt(r.ultima)||0)>0; });
+    if(_casR.length){
+      var casTotalReal = _casR.reduce(function(s,r){ var t=(r.total!=null&&r.total!==''?parseInt(r.total):((parseInt(r.ultima)||0)-(parseInt(r.primera)||0)+1)); return s+(t>0?t:0); }, 0);
+      var casTxt = _casR.map(function(r){ var t=(r.total!=null&&r.total!==''?parseInt(r.total):((parseInt(r.ultima)||0)-(parseInt(r.primera)||0)+1)); return (r.serie ? r.serie+' · ' : '') + r.primera+' → '+r.ultima+' ('+t+')'; }).join('<br>');
+      if(_casR.length>1) casTxt += '<br><b>Total: '+casTotalReal+'</b>';
+      // Check de cuadre con piezas
+      var _pzTot=(parseInt(p.piezas&&p.piezas['3kg'])||0)+(parseInt(p.piezas&&p.piezas['2kg'])||0)+(parseInt(p.piezas&&p.piezas['1kg'])||0)+(parseInt(p.piezas&&p.piezas['05kg'])||0);
+      if(_pzTot){ casTxt += _pzTot===casTotalReal ? ' <span style="color:var(--green)">✓ cuadra</span>' : ' <span style="color:var(--amber)">⚠ '+_pzTot+' pzas (dif '+(casTotalReal-_pzTot)+')</span>'; }
       pi += fila('Caseínas', casTxt);
     }
     if(pi) h += bloque('🧀 Piezas fabricadas', pi);
@@ -3081,8 +3091,9 @@ function editarParteCompleto(id){
 
   abrirModal(h);
 
-  // Pintar el formulario completo
-  renderEpForm();
+  // Pintar el formulario completo. skipRecoger=true en la PRIMERA pintada para que
+  // no se ejecute _epRecogerEnEstado sobre un DOM vacío/anterior (machacaría caseínas y fermentos).
+  renderEpForm(true);
 }
 
 // Renderiza todo el formulario del editor de parte
