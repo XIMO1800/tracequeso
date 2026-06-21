@@ -350,6 +350,12 @@ input[type="email"] {
 .adicion-compact .form-row input{padding:4px 9px;font-size:0.9rem;line-height:1.2;height:auto}
 .adicion-compact .form-row input[type="time"]{min-height:0}
 .ferm-adicion-row{margin-bottom:14px}
+/* Bloque alineado tipo editor Calidad: rejilla de columnas iguales.
+   Las filas comparten el mismo grid, así los campos de la fila de abajo
+   caen justo debajo de los de arriba con idéntico ancho; los huecos
+   sobrantes quedan en blanco a la derecha. */
+.grid-alineado{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.grid-alineado .form-row{margin-bottom:0}
 .co2-card .co2-lote-val{font-size:0.88rem;font-weight:700;color:var(--text);padding:5px 0}
 .co2-card .co2-lote-cad{font-size:0.82rem;color:var(--text2);padding:5px 0}
 .co2-card .co2-lote-prov{font-size:0.82rem;color:var(--text2);padding:5px 0;font-weight:600}
@@ -388,7 +394,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.102</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.103</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -667,16 +673,13 @@ input[type="email"] {
     </div>
     <div class="seccion-body" id="body-des">
       <div class="sep-label">Recalentamiento</div>
-      <!-- Fila inicio: Hora ini · Tª ini · pH suero · °D suero -->
-      <div class="form-cols-4">
+      <!-- Fila inicio (4 col) + Fila fin (2 col debajo, alineadas) -->
+      <div class="grid-alineado">
         <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="rec-hi"></div>
         <div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" id="rec-ti" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">pH suero</label><input type="number" id="rec-ph" step="0.01" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">°D suero</label><input type="number" id="rec-dornic" step="0.1" inputmode="decimal"></div>
-      </div>
-      <!-- Fila fin: Hora fin · Tª final -->
-      <div class="form-cols">
-        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="rec-hf" onchange="propagarHora('rec-hf','agit-hi')"></div>
+        <div class="form-row" style="grid-column:1"><label class="form-label">Hora fin</label><input type="time" id="rec-hf" onchange="propagarHora('rec-hf','agit-hi')"></div>
         <div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" id="rec-tf" inputmode="decimal"></div>
       </div>
       <!-- Lavado cuajada (entre recalentamiento y agitación) -->
