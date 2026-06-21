@@ -431,6 +431,15 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .coag-rejilla .coag-total-box{padding:5px 6px;border-radius:6px;background:var(--bg)}
 .coag-rejilla .coag-total-val{font-size:0.9rem}
 .tema-editor .coag-rejilla .coag-total-box{background:#fff!important}
+/* Desmoldeo y Salmuera: estructura Inicio/Fin (o Entrada/Salida) a la izquierda,
+   columnas Hora·pH·Tª arriba, igual que coagulación y que el editor. */
+.io-rejilla{margin-bottom:2px}
+.io-fila{display:grid;grid-template-columns:64px repeat(3,1fr);gap:6px;align-items:center;margin-bottom:5px}
+.io-cabecera{margin-bottom:3px}
+.io-collbl{font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center}
+.io-rowlbl{font-size:0.72rem;font-weight:700;color:var(--text2)}
+.io-fila input{width:100%;text-align:center;padding:5px 6px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-size:0.9rem;box-sizing:border-box}
+.tema-editor .io-fila input{background:#fff!important}
 /* El "Total (min)" de agitación: mismo tono que Hora inicio/fin, sin fondo oscuro */
 .tema-editor #agit-total{
   background:#fff!important;
@@ -800,7 +809,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.155</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.156</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -6338,9 +6347,10 @@ function anadirSalmuera(datos){
     +   '<select class="salm-formato">'+optFmt+'</select>'
     +   (idx > 0 ? '<button type="button" class="prog-del-btn" onclick="quitarSalmuera(this)" title="Quitar esta salmuera">✕</button>' : '')
     + '</div>'
-    + '<div class="grid-alineado">'
-    +   '<div class="form-row"><label class="form-label">Hora entrada</label><input type="time" class="salm-hi" value="'+(datos.hi||'')+'"></div>'
-    +   '<div class="form-row"><label class="form-label">Hora salida</label><input type="time" class="salm-hf" value="'+(datos.hf||'')+'"></div>'
+    + '<div class="io-rejilla">'
+    +   '<div class="io-fila io-cabecera"><div class="io-rowlbl"></div><div class="io-collbl">Hora</div><div></div><div></div></div>'
+    +   '<div class="io-fila"><div class="io-rowlbl">Entrada</div><div><input type="time" class="salm-hi" value="'+(datos.hi||'')+'"></div><div></div><div></div></div>'
+    +   '<div class="io-fila"><div class="io-rowlbl">Salida</div><div><input type="time" class="salm-hf" value="'+(datos.hf||'')+'"></div><div></div><div></div></div>'
     + '</div>';
   cont.appendChild(div);
   // Al cambiar formato → recalcular hora fin
@@ -6530,13 +6540,16 @@ function anadirDesmoldeo(datos){
     +   '<select class="des-formato">'+optFmt+'</select>'
     +   (idx > 0 ? '<button type="button" class="prog-del-btn" onclick="quitarDesmoldeo(this)" title="Quitar este desmoldeo">✕</button>' : '')
     + '</div>'
-    + '<div class="grid-alineado" style="margin-top:4px">'
-    +   '<div class="form-row"><label class="form-label">Hora inicial</label><input type="time" class="des-hi" value="'+(datos.hi||'')+'"></div>'
-    +   '<div class="form-row"><label class="form-label">pH inicial</label><input type="number" step="0.01" class="des-ph" value="'+(datos.ph||'')+'"></div>'
-    +   '<div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" class="des-temp-i" value="'+(datos.temp_i||'')+'"></div>'
-    +   '<div class="form-row" style="grid-column:1"><label class="form-label">Hora final</label><input type="time" class="des-hf" value="'+(datos.hf||'')+'"></div>'
-    +   '<div class="form-row"><label class="form-label">pH final</label><input type="number" step="0.01" class="des-ph-f" value="'+(datos.ph_f||'')+'"></div>'
-    +   '<div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" class="des-temp-f" value="'+(datos.temp_f||'')+'"></div>'
+    + '<div class="io-rejilla" style="margin-top:4px">'
+    +   '<div class="io-fila io-cabecera"><div class="io-rowlbl"></div><div class="io-collbl">Hora</div><div class="io-collbl">pH</div><div class="io-collbl">Tª (°C)</div></div>'
+    +   '<div class="io-fila"><div class="io-rowlbl">Inicio</div>'
+    +     '<div><input type="time" class="des-hi" value="'+(datos.hi||'')+'"></div>'
+    +     '<div><input type="number" step="0.01" class="des-ph" value="'+(datos.ph||'')+'"></div>'
+    +     '<div><input type="number" class="des-temp-i" value="'+(datos.temp_i||'')+'"></div></div>'
+    +   '<div class="io-fila"><div class="io-rowlbl">Fin</div>'
+    +     '<div><input type="time" class="des-hf" value="'+(datos.hf||'')+'"></div>'
+    +     '<div><input type="number" step="0.01" class="des-ph-f" value="'+(datos.ph_f||'')+'"></div>'
+    +     '<div><input type="number" class="des-temp-f" value="'+(datos.temp_f||'')+'"></div></div>'
     + '</div>';
   cont.appendChild(div);
   div.querySelectorAll('input, select').forEach(function(inp){
