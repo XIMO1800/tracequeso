@@ -394,7 +394,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.104</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.106</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -542,7 +542,7 @@ input[type="email"] {
       <div class="sep-label">Adición auxiliares (leche en cuba)</div>
       <div class="grid-alineado adicion-compact">
         <div class="form-row">
-          <label class="form-label">Hora de adición</label>
+          <label class="form-label">Hora</label>
           <input type="time" id="aux-hadicion">
         </div>
         <div class="form-row">
@@ -619,7 +619,7 @@ input[type="email"] {
       <div class="sep-label">Adición fermentos</div>
       <div class="ferm-adicion-row adicion-compact grid-alineado">
         <div class="form-row">
-          <label class="form-label">Hora de adición</label>
+          <label class="form-label">Hora</label>
           <input type="time" id="ferm-hadicion">
         </div>
         <div class="form-row">
@@ -642,15 +642,12 @@ input[type="email"] {
     </div>
     <div class="seccion-body" id="body-coag">
       <div id="coag-proceso">
-        <!-- Fila 1: Hora adición · pH · Tª -->
-        <div class="form-cols-3">
+        <!-- Fila 1 (hora/pH/Tª) + Fila 2 (corte/total) alineadas en grid de 5 col -->
+        <div class="grid-alineado">
           <div class="form-row"><label class="form-label">Hora adición</label><input type="time" id="coag-hadicion" oninput="calcCoagTotal()"></div>
           <div class="form-row"><label class="form-label">pH coagulación</label><input type="number" id="coag-ph" step="0.01" inputmode="decimal"></div>
           <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="coag-temp" inputmode="decimal"></div>
-        </div>
-        <!-- Fila 2: Hora corte · Coag total -->
-        <div class="form-cols">
-          <div class="form-row"><label class="form-label">Hora de corte</label><input type="time" id="coag-hc" oninput="calcCoagTotal()"></div>
+          <div class="form-row" style="grid-column:1"><label class="form-label">Hora de corte</label><input type="time" id="coag-hc" oninput="calcCoagTotal()"></div>
           <div class="form-row">
             <label class="form-label">Coagulación total</label>
             <div class="coag-total-box">
@@ -701,6 +698,7 @@ input[type="email"] {
           <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="lavado-hi"></div>
           <div class="form-row" id="lavado-hf-row"><label class="form-label">Hora fin</label><input type="time" id="lavado-hf"></div>
           <div class="form-row" id="lavado-temp-row"><label class="form-label">Tª agua (°C)</label><input type="number" id="lavado-temp" inputmode="decimal" step="0.1"></div>
+          <div class="form-row" id="lavado-cantidad-row" style="display:none"><label class="form-label">Cantidad (L)</label><input type="number" id="lavado-cantidad" inputmode="numeric" placeholder="750"></div>
         </div>
       </div>
       <div class="sep-label">Agitación</div>
@@ -1328,16 +1326,17 @@ function rellenarCampos(p){
       if(lavBlock) lavBlock.style.display = lavAplicado ? '' : 'none';
       if(lavBlock) lavBlock.classList.toggle('cerrado', !lavAplicado);
       if(lavTitle) lavTitle.textContent = lavAplicado ? '💧 Lavado de cuajada' : '💧 Lavado de cuajada · NO se realizó';
-      // Restaurar método y ocultar campos si manguera
+      // Restaurar método (la visibilidad se ajusta tras fijar valores)
       if(lavAplicado && p.desuerado.lavado_metodo){
         var sel = document.getElementById('lavado-metodo');
         if(sel) sel.value = p.desuerado.lavado_metodo;
-        toggleLavadoMetodo();
       }
     }
     v('lavado-hi', p.desuerado.lavado_hi);
     v('lavado-hf', p.desuerado.lavado_hf);
     v('lavado-temp', p.desuerado.lavado_temp);
+    v('lavado-cantidad', p.desuerado.lavado_cantidad);
+    if(lavChk && lavChk.checked) toggleLavadoMetodo();
   }
   // Moldeo
   if(p.moldeo){
@@ -1464,7 +1463,7 @@ function autoGuardarParte(parteId){
     agit_hi:g('agit-hi'), agit_hf:g('agit-hf'), agit_total:g('agit-total'),
     lavado_aplicado: document.getElementById('lavado-aplicado') ? document.getElementById('lavado-aplicado').checked : false,
     lavado_metodo: g('lavado-metodo'),
-    lavado_hi:g('lavado-hi'), lavado_hf:g('lavado-hf'), lavado_temp:g('lavado-temp')};
+    lavado_hi:g('lavado-hi'), lavado_hf:g('lavado-hf'), lavado_temp:g('lavado-temp'), lavado_cantidad:g('lavado-cantidad')};
   p.moldeo = {hi:g('mol-hi'), hf:g('mol-hf'), ph:g('mol-ph'), temp:g('mol-temp')};
   // ── Bloqueo de las fases del quesero ──
   // Cuando el inicio de moldeo está completo (hora + pH + Tª), las fases del quesero
@@ -1814,6 +1813,7 @@ function _htmlParteImpresion(p){
   H.push('<tr><td class="t">Hora Inicial: '+n(ds.rec_hi)+'</td><td class="t">TºC Inicial: '+n(ds.rec_ti)+'</td><td class="t">pH: '+n(ds.rec_ph)+'</td><td class="t">ºD(suero): '+n(ds.rec_dornic)+'</td><td class="t">Hora Final: '+n(ds.rec_hf)+'</td><td class="t">TºC Final: '+n(ds.rec_tf)+'</td></tr>');
   H.push('<tr><td class="lbl" colspan="6">Lavado cuajada'+(ds.lavado_metodo?(' · '+e(ds.lavado_metodo)):'')+'</td></tr>');
   H.push('<tr><td colspan="2">Hora Inicial: '+n(ds.lavado_hi)+'</td><td colspan="2">Hora Final: '+n(ds.lavado_hf)+'</td><td colspan="2">TºC: '+n(ds.lavado_temp)+'</td></tr>');
+  if(ds.lavado_cantidad) H.push('<tr><td colspan="6">Cantidad: '+n(ds.lavado_cantidad)+' L</td></tr>');
   H.push('<tr><td class="lbl" colspan="6">Agitación</td></tr>');
   H.push('<tr><td colspan="2">Hora Inicial: '+n(ds.agit_hi)+'</td><td colspan="2">Hora Final: '+n(ds.agit_hf)+'</td><td colspan="2">Total: '+n(ds.agit_total)+(ds.agit_total?' min':'')+'</td></tr></table>');
   H.push('<div class="sec">Moldeo</div><table><tr><td>Hora Inicial: '+n(mo.hi)+'</td><td>pH: '+n(mo.ph)+'</td><td>TºC: '+n(mo.temp)+'</td><td>Hora Final: '+n(mo.hf)+'</td></tr></table>');
@@ -2738,7 +2738,7 @@ function descontarStock(producto,cantidad){
 }
 
 function limpiarParte(){
-  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-dornic','np-operario','aux-hadicion','aux-ph','aux-temp','ferm-hadicion','ferm-ph','ferm-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','rec-ph','rec-dornic','agit-hi','agit-hf','agit-total','lavado-hi','lavado-hf','lavado-temp','mol-hi','mol-hf','mol-ph','mol-temp','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','co2-tiempo','past-valvula','past-temp','past-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['np-litros','np-lvaca','np-lcabra','np-loveja','np-ph','np-temp','np-dornic','np-operario','aux-hadicion','aux-ph','aux-temp','ferm-hadicion','ferm-ph','ferm-temp','coag-hadicion','coag-hc','coag-ph','coag-temp','coag-total','rec-hi','rec-hf','rec-ti','rec-tf','rec-ph','rec-dornic','agit-hi','agit-hf','agit-total','lavado-hi','lavado-hf','lavado-temp','lavado-cantidad','mol-hi','mol-hf','mol-ph','mol-temp','pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante','co2-tiempo','past-valvula','past-temp','past-tiempo','np-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('np-tipo').value='';
   var ts=document.getElementById('np-tipo-sel');if(ts)ts.value='';
   var vs=document.getElementById('np-var-sel');if(vs){vs.innerHTML='<option value="">— Variedad —</option>';vs.disabled=true;}
@@ -2955,6 +2955,7 @@ function _verParteRender(id){
     if(p.desuerado.lavado_aplicado){
       de += fila('Lavado cuajada', (p.desuerado.lavado_metodo||'pasteurizador'));
       de += fila('Lavado inicio', p.desuerado.lavado_hi); de += fila('Lavado fin', p.desuerado.lavado_hf);
+      if(p.desuerado.lavado_cantidad) de += fila('Lavado cantidad', p.desuerado.lavado_cantidad+' L');
       de += fila('Tª agua', p.desuerado.lavado_temp ? p.desuerado.lavado_temp+'°C' : '');
     }
     de += fila('Agit. inicio', p.desuerado.agit_hi); de += fila('Agit. fin', p.desuerado.agit_hf);
@@ -3367,13 +3368,15 @@ function renderEpForm(skipRecoger){
   h += '<div style="display:grid;grid-template-columns:'+gcLav+';gap:6px;margin-bottom:3px"><div></div>'
      + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Hora</div>'
      + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Tª agua (°C)</div>'
-     + '<div></div><div></div><div></div></div>';
+     + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Cantidad (L)</div>'
+     + '<div></div><div></div></div>';
   // Fila Inicio
   h += '<div style="display:grid;grid-template-columns:'+gcLav+';gap:6px;align-items:center;margin-bottom:4px">'
      + '<div style="font-size:0.7rem;font-weight:700;color:var(--text2)">Inicio</div>'
      + '<div>'+_epInpC('ep-lav-hi', p.desuerado.lavado_hi, 'time')+'</div>'
      + '<div>'+_epInpC('ep-lav-temp', p.desuerado.lavado_temp, 'number')+'</div>'
-     + '<div></div><div></div><div></div></div>';
+     + '<div>'+_epInpC('ep-lav-cantidad', p.desuerado.lavado_cantidad, 'number')+'</div>'
+     + '<div></div><div></div></div>';
   // Fila Fin (solo hora; con manguera no se rellena)
   h += '<div style="display:grid;grid-template-columns:'+gcLav+';gap:6px;align-items:center">'
      + '<div style="font-size:0.7rem;font-weight:700;color:var(--text2)">Fin</div>'
@@ -3974,6 +3977,7 @@ function _epRecogerEnEstado(){
   if(v('ep-lav-hi')!==undefined)  { p.desuerado.lavado_hi = v('ep-lav-hi'); if(v('ep-lav-hi')) p.desuerado.lavado_aplicado = true; }
   if(v('ep-lav-hf')!==undefined)  p.desuerado.lavado_hf = v('ep-lav-hf');
   if(v('ep-lav-temp')!==undefined) p.desuerado.lavado_temp = v('ep-lav-temp');
+  if(v('ep-lav-cantidad')!==undefined) p.desuerado.lavado_cantidad = v('ep-lav-cantidad');
   if(v('ep-lav-metodo')!==undefined){ p.desuerado.lavado_metodo = v('ep-lav-metodo'); if(v('ep-lav-metodo')) p.desuerado.lavado_aplicado = true; }
 
   // Moldeo
@@ -5109,10 +5113,12 @@ function toggleLavadoMetodo(){
   var sel = document.getElementById('lavado-metodo');
   var hfRow = document.getElementById('lavado-hf-row');
   var tempRow = document.getElementById('lavado-temp-row');
+  var cantRow = document.getElementById('lavado-cantidad-row');
   if (!sel) return;
   var esManguera = sel.value === 'manguera';
   if(hfRow)   hfRow.style.display   = esManguera ? 'none' : '';
   if(tempRow) tempRow.style.display = esManguera ? 'none' : '';
+  if(cantRow) cantRow.style.display = esManguera ? '' : 'none';
   if (CUBA_ACTIVA_ID && typeof autoGuardarParte === 'function') autoGuardarParte(CUBA_ACTIVA_ID);
 }
 
@@ -5319,11 +5325,11 @@ function anadirPrensado(datos){
     + '<div class="pren-card-head"><b class="pren-card-titulo">Programa '+(idx+1)+'</b>'
     +   '<button type="button" class="prog-del-btn" onclick="quitarPrensado(this)" title="Eliminar este programa">🗑️</button>'
     + '</div>'
-    + '<div class="form-cols">'
+    + '<div class="grid-alineado">'
     +   '<div class="form-row"><label class="form-label">Formato</label><select class="pren-formato" onchange="onFormatoPrensadoChange(this)">'+optFmt+'</select></div>'
     +   '<div class="form-row"><label class="form-label">Programa</label><select class="pren-programa" onchange="onProgramaPrensadoChange(this)"><option value="">—</option></select></div>'
     + '</div>'
-    + '<div class="form-cols-4 pren-valores" style="margin-top:6px">'
+    + '<div class="grid-alineado pren-valores" style="margin-top:6px">'
     +   '<div class="form-row"><label class="form-label">Bar inicial</label><input type="number" class="pren-bar-ini" step="0.1" inputmode="decimal"></div>'
     +   '<div class="form-row"><label class="form-label">Bar final</label><input type="number" class="pren-bar-fin" step="0.1" inputmode="decimal"></div>'
     +   '<div class="form-row"><label class="form-label">Rampa (min)</label><input type="number" class="pren-rampa" inputmode="numeric"></div>'
@@ -5554,7 +5560,7 @@ function anadirSalmuera(datos){
   div.dataset.idx = idx;
   div.innerHTML = ''
     + (idx > 0 ? '<button type="button" class="quitar-btn" onclick="quitarSalmuera(this)" title="Quitar">×</button>' : '')
-    + '<div class="form-cols-3">'
+    + '<div class="grid-alineado">'
     +   '<div class="form-row"><label class="form-label">Formato</label><select class="salm-formato">'+optFmt+'</select></div>'
     +   '<div class="form-row"><label class="form-label">Hora entrada</label><input type="time" class="salm-hi" value="'+(datos.hi||'')+'"></div>'
     +   '<div class="form-row"><label class="form-label">Hora salida</label><input type="time" class="salm-hf" value="'+(datos.hf||'')+'"></div>'
@@ -5722,13 +5728,11 @@ function anadirDesmoldeo(datos){
   div.innerHTML = ''
     + (idx > 0 ? '<button type="button" class="quitar-btn" onclick="quitarDesmoldeo(this)" title="Quitar">×</button>' : '')
     + '<div class="form-row" style="margin-bottom:6px"><label class="form-label">Formato</label><select class="des-formato">'+optFmt+'</select></div>'
-    + '<div class="form-cols-3">'
+    + '<div class="grid-alineado" style="margin-top:4px">'
     +   '<div class="form-row"><label class="form-label">Hora inicial</label><input type="time" class="des-hi" value="'+(datos.hi||'')+'"></div>'
     +   '<div class="form-row"><label class="form-label">pH inicial</label><input type="number" step="0.01" class="des-ph" value="'+(datos.ph||'')+'"></div>'
     +   '<div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" class="des-temp-i" value="'+(datos.temp_i||'')+'"></div>'
-    + '</div>'
-    + '<div class="form-cols-3" style="margin-top:4px">'
-    +   '<div class="form-row"><label class="form-label">Hora final</label><input type="time" class="des-hf" value="'+(datos.hf||'')+'"></div>'
+    +   '<div class="form-row" style="grid-column:1"><label class="form-label">Hora final</label><input type="time" class="des-hf" value="'+(datos.hf||'')+'"></div>'
     +   '<div class="form-row"><label class="form-label">pH final</label><input type="number" step="0.01" class="des-ph-f" value="'+(datos.ph_f||'')+'"></div>'
     +   '<div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" class="des-temp-f" value="'+(datos.temp_f||'')+'"></div>'
     + '</div>';
