@@ -241,6 +241,40 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   color:var(--brand);
   font-weight:700;
 }
+/* Papelera de eliminar Programa de prensado: en HOY v2 sin el fondo rosa,
+   solo el icono en granate (como el ✕ del editor, discreto). */
+.tema-editor .prog-del-btn{
+  background:none!important;
+  border:none!important;
+  color:var(--brand)!important;
+  font-size:0.95rem!important;
+  padding:2px 6px!important;
+}
+/* Jerarquía de letras: el título "Programa N" debe ser MÁS PEQUEÑO que la cabecera
+   de la fase (la cabecera manda). Lo igualamos al tamaño de sub-cabecera del editor. */
+.tema-editor .pren-card-titulo{
+  font-size:0.68rem!important;
+  color:var(--text3)!important;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.03em;
+}
+/* El total de coagulación ("20 min"): mantener la NEGRITA (destaca el tiempo) pero
+   al MISMO tamaño que los demás datos (no más grande). */
+.tema-editor .coag-total-val{
+  font-size:0.82rem!important;
+  font-weight:700;
+}
+/* Quitar las sub-cabeceras que REPITEN el nombre del bloque ("Adición auxiliares
+   (leche en cuba)", "Adición fermentos"): en HOY v2 sobran porque la cabecera granate
+   ya lo dice. Las condiciones (hora/pH/Tª) quedan como primer sub-bloque del bloque. */
+.tema-editor .sep-repetida{ display:none; }
+/* El CO₂ (checkbox + tarjeta) debe verse integrado DENTRO del bloque de auxiliares,
+   no colgando. Le damos marco de tarjeta y un respiro superior. */
+.tema-editor .opt-aux-header{
+  margin-top:8px;
+  padding:4px 2px;
+}
 /* NIVEL 3 — Casillas de datos: MISMO tono EXACTO que el editor/historial (#FCF9F3).
    Tres niveles bien diferenciados, idénticos al editor:
      · Cabecera (Nivel 1): granate #8B2A2A + texto blanco
@@ -573,7 +607,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.133</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.137</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -719,7 +753,7 @@ input[type="email"] {
     </div>
     <div class="seccion-body" id="body-aux">
       <!-- Hora de adición + pH y Tª de la leche en el momento de adición de auxiliares -->
-      <div class="sep-label">Adición auxiliares (leche en cuba)</div>
+      <div class="sep-label sep-repetida">Adición auxiliares (leche en cuba)</div>
       <div class="grid-alineado adicion-compact">
         <div class="form-row">
           <label class="form-label">Hora</label>
@@ -796,7 +830,7 @@ input[type="email"] {
       <span class="seccion-chevron" id="chev-ferm">▼</span>
     </div>
     <div class="seccion-body" id="body-ferm">
-      <div class="sep-label">Adición fermentos</div>
+      <div class="sep-label sep-repetida">Adición fermentos</div>
       <div class="ferm-adicion-row adicion-compact grid-alineado">
         <div class="form-row">
           <label class="form-label">Hora</label>
@@ -6172,6 +6206,29 @@ function calcHoraIniSalmuera(){
   return String(Math.floor(media/60)).padStart(2,'0') + ':' + String(media%60).padStart(2,'0');
 }
 
+// Recalcular la salmuera a partir del DESMOLDEO: hora entrada = punto medio del desmoldeo,
+// y a partir de ahí la hora de salida según la config de horas del formato.
+// Se llama cuando el quesero rellena/cambia las horas del desmoldeo.
+function recalcSalmueraDesdeDesmoldeo(){
+  var cards = document.querySelectorAll('#salmueras-container .pren-card');
+  if (!cards.length) return;
+  var horaIni = calcHoraIniSalmuera();
+  if (!horaIni) return;
+  cards.forEach(function(c){
+    var inpHi = c.querySelector('.salm-hi');
+    var inpHf = c.querySelector('.salm-hf');
+    var selFmt = c.querySelector('.salm-formato');
+    if (!inpHi) return;
+    // Rellena la hora de entrada con el punto medio del desmoldeo
+    inpHi.value = horaIni;
+    // Y recalcula la salida según el formato
+    if (inpHf && selFmt && selFmt.value){
+      inpHf.value = calcHoraFinSalmuera(selFmt.value, horaIni);
+    }
+  });
+  if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
+}
+
 // Calcular hora fin según formato y hora inicio
 function calcHoraFinSalmuera(formato, horaIni){
   if (!SALMUERA_CONFIG) cargarSalmueraConfig();
@@ -6270,6 +6327,12 @@ function anadirDesmoldeo(datos){
     inp.addEventListener('input',  function(){ if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID); });
     inp.addEventListener('change', function(){ if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID); });
   });
+  // Al cambiar la hora INICIAL o FINAL del desmoldeo, recalcular la salmuera
+  // (hora de entrada = punto medio del desmoldeo → hora de salida según formato).
+  var dHi = div.querySelector('.des-hi');
+  var dHf = div.querySelector('.des-hf');
+  if (dHi) dHi.addEventListener('change', function(){ try{ recalcSalmueraDesdeDesmoldeo(); }catch(e){} });
+  if (dHf) dHf.addEventListener('change', function(){ try{ recalcSalmueraDesdeDesmoldeo(); }catch(e){} });
 }
 function quitarDesmoldeo(btn){
   var card = btn.closest('.pren-card');
