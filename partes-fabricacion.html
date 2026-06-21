@@ -397,7 +397,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.111</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.112</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1938,7 +1938,7 @@ function hoyv2CubaPrueba(){
     '<button class="btn btn-primary" style="margin-top:16px;width:100%" onclick="hoyv2Guardar()">💾 Guardar (prueba)</button>';
 
   // Pintar con el MISMO render del editor de Calidad
-  try{ renderEpForm(true); }catch(e){ toast('Error pintando formulario','err'); }
+  try{ renderEpForm(true); }catch(e){ toast('Error pintando formulario','err'); try{ console.error('HOY v2 renderEpForm:', e); }catch(_){} }
   window.scrollTo(0,0);
 }
 
@@ -3230,6 +3230,23 @@ function renderEpForm(skipRecoger){
 
   var p = window._parteEditando;
   if(!p) return;
+
+  // Red de seguridad: asegurar que existan todos los objetos/arrays que el render
+  // da por hechos. Así renderEpForm es seguro la llame quien la llame (editor de
+  // Calidad o pestaña HOY v2), sin depender de que el llamante los inicialice antes.
+  if(!p.pasteurizacion) p.pasteurizacion = {valvula:'',temp:'',tiempo:'',cruda:false,fosfatasa:''};
+  if(!p.co2)        p.co2        = {lote:'',caducidad:'',tiempo_seg:0,caudal_lh:0,ph_leche:0,temp_leche:0};
+  if(!p.coag)       p.coag       = {hadicion:'',hc:'',ph:'',temp:'',total:''};
+  if(!p.desuerado)  p.desuerado  = {rec_hi:'',rec_hf:'',rec_ti:'',rec_tf:'',rec_ph:'',rec_dornic:'',agit_hi:'',agit_hf:''};
+  if(!p.moldeo)     p.moldeo     = {hi:'',hf:'',ph:'',temp:''};
+  if(!p.piezas)     p.piezas     = {'3kg':0,'2kg':0,'1kg':0,'05kg':0,'barra':0,'gigante':0};
+  if(!p.caseinas)   p.caseinas   = {serie:'',primera:0,ultima:0,total:0};
+  if(!p.cuajo)      p.cuajo      = {nombre:'',consumo_total:0,proveedor:'',lote:'',caducidad:''};
+  if(!p.auxiliares) p.auxiliares = [];
+  if(!p.fermentos)  p.fermentos  = [];
+  if(!p.prensados)  p.prensados  = [];
+  if(!p.desmoldeos) p.desmoldeos = [];
+  if(!p.salmueras)  p.salmueras  = [];
 
   var tipos = Object.keys(TIPOS_VARIEDADES);
   var tipoOpts = '<option value="">— Tipo —</option>';
