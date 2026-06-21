@@ -322,10 +322,10 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   max-width:90px;
   text-align:center;
 }
-/* ── TRUCO VISUAL (solo HOY v2): que Moldeo · Prensado · Desmoldeo PAREZCAN
-   tres bloques separados sin tocar la estructura HTML. Las tres sub-cabeceras
-   internas (#body-mol > .sep-label) se pintan como cabeceras de bloque granate,
-   con separación entre ellas, igual que el editor. ── */
+/* ── HOY v2: Moldeo · Prensado · Desmoldeo con la estética del editor.
+   Cabeceras de bloque (Moldeo/Prensado/Desmoldeo) en granate, y DENTRO de
+   cada uno las sub-cabeceras (Programa 1, Programa 2, Desmoldeo 1...) en
+   CREMA con texto granate y su ✕, igual que Fermento 1 / Recalentamiento. ── */
 .tema-editor #body-mol > .sep-label{
   background:var(--brand)!important;
   color:#fff!important;
@@ -344,8 +344,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   color:var(--brand)!important;
   border:none!important;
 }
-/* el contenido de cada bloque va dentro de una "tarjeta" crema/blanca,
-   pegada bajo su cabecera, para reforzar la sensación de bloque propio */
+/* El contenido de cada bloque, pegado bajo su cabecera granate, en tarjeta blanca */
 .tema-editor #body-mol > .grid-alineado,
 .tema-editor #body-mol > #prensados-container,
 .tema-editor #body-mol > #desmoldeos-container{
@@ -353,26 +352,46 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   border:1px solid var(--border);
   border-top:none;
   border-radius:0 0 8px 8px;
-  padding:12px 10px;
+  padding:10px;
   margin:0 0 4px;
 }
-/* Si el contenedor de prensados/desmoldeos está vacío, no pintar tarjeta vacía */
 .tema-editor #body-mol > #prensados-container:empty,
 .tema-editor #body-mol > #desmoldeos-container:empty{
-  border:none;
-  padding:0;
-  margin:0;
+  border:none; padding:0; margin:0;
 }
-/* La línea del FORMATO del desmoldeo (3 KG) no debe ir de lado a lado:
-   etiqueta + select estrechos y centrados. */
+/* Sub-cabecera CREMA de cada tarjeta (Programa N / Desmoldeo N): igual que el editor */
+.tema-editor #body-mol .pren-card{
+  border:none!important;
+  border-radius:6px!important;
+  padding:0 0 8px!important;
+  margin-bottom:10px!important;
+  overflow:hidden;
+  background:var(--card)!important;
+}
+.tema-editor #body-mol .pren-card-head{
+  background:#f4ebd8!important;
+  border-bottom:1px solid var(--border);
+  min-height:26px;
+  margin:0 0 8px!important;
+  padding:2px 10px!important;
+}
+.tema-editor #body-mol .pren-card-titulo{
+  font-size:0.72rem!important;
+  color:var(--brand)!important;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.03em;
+}
+.tema-editor #body-mol .pren-card-head .prog-del-btn{
+  color:var(--brand)!important;
+  font-size:0.9rem!important;
+}
+/* El FORMATO del desmoldeo no debe ir de lado a lado: estrecho y centrado. */
 .tema-editor #desmoldeos-container .des-formato{
   max-width:160px;
   margin:0 auto;
   text-align:center;
   text-align-last:center;
-}
-.tema-editor #desmoldeos-container > .pren-card > .form-row:first-of-type{
-  align-items:center;
 }
 /* NIVEL 3 — Casillas de datos: MISMO tono EXACTO que el editor/historial (#FCF9F3).
    Tres niveles bien diferenciados, idénticos al editor:
@@ -706,7 +725,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.141</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.142</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -6411,7 +6430,9 @@ function anadirDesmoldeo(datos){
   div.className = 'pren-card';
   div.dataset.idx = idx;
   div.innerHTML = ''
-    + (idx > 0 ? '<button type="button" class="quitar-btn" onclick="quitarDesmoldeo(this)" title="Quitar">×</button>' : '')
+    + '<div class="pren-card-head"><b class="pren-card-titulo">Desmoldeo '+(idx+1)+'</b>'
+    +   (idx > 0 ? '<button type="button" class="prog-del-btn" onclick="quitarDesmoldeo(this)" title="Quitar este desmoldeo">✕</button>' : '')
+    + '</div>'
     + '<div class="form-row" style="margin-bottom:6px"><label class="form-label">Formato</label><select class="des-formato">'+optFmt+'</select></div>'
     + '<div class="grid-alineado" style="margin-top:4px">'
     +   '<div class="form-row"><label class="form-label">Hora inicial</label><input type="time" class="des-hi" value="'+(datos.hi||'')+'"></div>'
