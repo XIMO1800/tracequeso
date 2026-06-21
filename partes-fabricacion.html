@@ -354,7 +354,7 @@ input[type="email"] {
    Las filas comparten el mismo grid, así los campos de la fila de abajo
    caen justo debajo de los de arriba con idéntico ancho; los huecos
    sobrantes quedan en blanco a la derecha. */
-.grid-alineado{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.grid-alineado{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 .grid-alineado .form-row{margin-bottom:0}
 .co2-card .co2-lote-val{font-size:0.88rem;font-weight:700;color:var(--text);padding:5px 0}
 .co2-card .co2-lote-cad{font-size:0.82rem;color:var(--text2);padding:5px 0}
@@ -394,7 +394,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.103</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.104</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -540,7 +540,7 @@ input[type="email"] {
     <div class="seccion-body" id="body-aux">
       <!-- Hora de adición + pH y Tª de la leche en el momento de adición de auxiliares -->
       <div class="sep-label">Adición auxiliares (leche en cuba)</div>
-      <div class="form-cols-3 adicion-compact">
+      <div class="grid-alineado adicion-compact">
         <div class="form-row">
           <label class="form-label">Hora de adición</label>
           <input type="time" id="aux-hadicion">
@@ -617,7 +617,7 @@ input[type="email"] {
     </div>
     <div class="seccion-body" id="body-ferm">
       <div class="sep-label">Adición fermentos</div>
-      <div class="form-cols-3 ferm-adicion-row adicion-compact">
+      <div class="ferm-adicion-row adicion-compact grid-alineado">
         <div class="form-row">
           <label class="form-label">Hora de adición</label>
           <input type="time" id="ferm-hadicion">
@@ -704,7 +704,7 @@ input[type="email"] {
         </div>
       </div>
       <div class="sep-label">Agitación</div>
-      <div class="form-cols-3">
+      <div class="grid-alineado">
         <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="agit-hi"></div>
         <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="agit-hf" onchange="calcAgitTotal()"></div>
         <div class="form-row"><label class="form-label">Total (min)</label><input type="number" id="agit-total" inputmode="numeric" readonly style="background:var(--bg2);color:var(--text2)"></div>
@@ -719,8 +719,8 @@ input[type="email"] {
     </div>
     <div class="seccion-body" id="body-mol">
       <div class="sep-label">Moldeo</div>
-      <!-- Hora ini · pH · Tª · Hora fin (4 cols, 1 sola fila) -->
-      <div class="form-cols-4">
+      <!-- Hora ini · pH · Tª · Hora fin (4 de 5 cols, 1 hueco a la derecha) -->
+      <div class="grid-alineado">
         <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="mol-hi"></div>
         <div class="form-row"><label class="form-label">pH moldeo</label><input type="number" id="mol-ph" step="0.01" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="mol-temp" inputmode="decimal"></div>
