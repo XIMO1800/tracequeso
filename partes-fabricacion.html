@@ -200,6 +200,33 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .tema-editor .form-row textarea{
   text-align:center;
 }
+/* COMPACTAR HOY v2 al tamaño del editor: letra 0.82rem y recuadros más bajos
+   (padding 5px 6px como _epStyle), y filas más juntas → scroll más rápido. */
+.tema-editor .form-row input,
+.tema-editor .form-row select,
+.tema-editor .form-row textarea,
+.tema-editor input[type=text],
+.tema-editor input[type=number],
+.tema-editor input[type=date],
+.tema-editor input[type=time],
+.tema-editor select,
+.tema-editor textarea{
+  font-size:0.82rem!important;
+  padding:5px 6px!important;
+}
+.tema-editor .form-row{ margin-bottom:7px!important; }
+.tema-editor .form-cols,
+.tema-editor .form-cols-3,
+.tema-editor .form-cols-4{ gap:6px!important; }
+/* Selects "sueltos" que en HOY v2 ocupaban toda la fila de lado a lado
+   (método de lavado "Pasteurizador", formato "3 KG" de desmoldeo): se limitan
+   en ancho y se centran, como en el editor, para que no queden "fuera de juego". */
+.tema-editor .sep-label select,
+.tema-editor .sep-label input{
+  max-width:150px;
+  margin:0 auto;
+  text-align:center;
+}
 /* NIVEL 3 — Casillas de datos: MISMO tono EXACTO que el editor/historial (#FCF9F3).
    Tres niveles bien diferenciados, idénticos al editor:
      · Cabecera (Nivel 1): granate #8B2A2A + texto blanco
@@ -532,7 +559,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.130</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.132</div>
   </div>
 </div>
 <div class="nav-tabs">
