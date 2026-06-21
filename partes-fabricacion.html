@@ -116,6 +116,10 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .lote-row-meta{font-size:0.7rem;color:var(--text3)}
 .sep{height:1px;background:var(--border);margin:14px 0}
 .sep-label{text-align:left;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#5b3a1f;margin:10px 0 6px;padding:3px 0 3px 8px;border-left:3px solid #8b5a2b;background:#f4ebd8;border-radius:3px}
+/* Centrado fiable de inputs date/time en el editor (Chrome/Android no obedece a text-align normal) */
+.ep-dt{text-align:center}
+.ep-dt::-webkit-datetime-edit{text-align:center;width:100%}
+.ep-dt::-webkit-datetime-edit-fields-wrapper{justify-content:center;display:flex}
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:white;padding:10px 20px;border-radius:20px;font-size:0.85rem;font-weight:700;opacity:0;transition:all 0.3s;z-index:999;pointer-events:none;white-space:nowrap;max-width:90%}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:flex-end}
@@ -378,7 +382,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.88</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.89</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3582,18 +3586,13 @@ function _epInp(id, val, tipo, ph){
   return '<input type="'+tipo+'" id="'+id+'" value="'+v+'" placeholder="'+(ph||'')+'" style="'+_epStyle()+'">';
 }
 function _epInpC(id, val, tipo, ph){
-  // Input centrado, para usar dentro de los bloques alineados.
-  // Para time/date, Chrome no centra con text-align: hay que usar flex en el propio input,
-  // que centra el contenido nativo (el valor del selector de hora/fecha).
+  // Input centrado para los bloques alineados.
+  // date/time usan la clase .ep-dt (CSS con ::-webkit-datetime-edit) que sí centra en Chrome.
   tipo = tipo || 'text';
   var v = (val===undefined||val===null) ? '' : String(val).replace(/"/g,'&quot;');
-  var extra;
-  if(tipo==='time' || tipo==='date'){
-    extra = ';text-align:center;text-align-last:center;-webkit-text-align-last:center;display:flex;justify-content:center;align-items:center;padding-left:4px;padding-right:4px';
-  } else {
-    extra = ';text-align:center;text-align-last:center;padding-left:4px;padding-right:4px';
-  }
-  return '<input type="'+tipo+'" id="'+id+'" value="'+v+'" placeholder="'+(ph||'')+'" style="'+_epStyle()+extra+'">';
+  var cls = (tipo==='time' || tipo==='date') ? ' class="ep-dt"' : '';
+  var extra = ';text-align:center;text-align-last:center;padding-left:4px;padding-right:4px';
+  return '<input type="'+tipo+'"'+cls+' id="'+id+'" value="'+v+'" placeholder="'+(ph||'')+'" style="'+_epStyle()+extra+'">';
 }
 function _epSel(id, opts, onchange){
   return '<select id="'+id+'" style="'+_epStyle()+'"'+(onchange?' onchange="'+onchange+'"':'')+'>'+opts+'</select>';
@@ -3624,27 +3623,25 @@ function _ep2(l1, h1, l2, h2){
 // de modo que Hora queda sobre Hora, Tª sobre Tª, etc. Las celdas sin dato van vacías.
 // columnas = [{label}], filas = [{titulo, valores:[htmlOrNull,...]}]
 function _epCondicionAdicion(idHora, hora, idPh, ph, idTemp, temp){
-  // Tira de contexto de la fase ("en la adición"): una sola línea, tono suave (no compite
-  // con la cabecera). Etiqueta delante del dato. Va pegada bajo la cabecera de sección.
-  var et='font-size:0.62rem;font-weight:700;color:var(--brand);white-space:nowrap';
-  var celda='display:flex;align-items:center;gap:4px;justify-content:center';
-  var h = '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 9px;margin-bottom:7px">';
-  h += '<div style="display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:8px;align-items:center">';
-  h += '<div style="font-size:0.6rem;font-style:italic;color:var(--text2);white-space:nowrap">en la adición</div>';
-  h += '<div style="'+celda+'"><span style="'+et+'">Hora:</span>'+_epInpMini(idHora, hora, 'time')+'</div>';
-  h += '<div style="'+celda+'"><span style="'+et+'">pH:</span>'+_epInpMini(idPh, ph, 'number')+'</div>';
-  h += '<div style="'+celda+'"><span style="'+et+'">Tª:</span>'+_epInpMini(idTemp, temp, 'number')+'</div>';
-  h += '</div></div>';
+  // Continuación de la cabecera de sección (mismo tono crema), pegada arriba, una línea.
+  // Recuadros pequeños (los datos son cortos). No compite con la cabecera.
+  var et='font-size:0.62rem;font-weight:700;color:var(--text2);white-space:nowrap';
+  var h = '<div style="background:#f4ebd8;border-left:3px solid #8b5a2b;border-radius:0 0 3px 3px;padding:4px 9px;margin-top:-5px;margin-bottom:7px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">';
+  h += '<span style="font-size:0.6rem;font-style:italic;color:var(--text3);white-space:nowrap">en la adición:</span>';
+  h += '<span style="display:flex;align-items:center;gap:4px"><span style="'+et+'">Hora</span>'+_epInpMini(idHora, hora, 'time')+'</span>';
+  h += '<span style="display:flex;align-items:center;gap:4px"><span style="'+et+'">pH</span>'+_epInpMini(idPh, ph, 'number')+'</span>';
+  h += '<span style="display:flex;align-items:center;gap:4px"><span style="'+et+'">Tª</span>'+_epInpMini(idTemp, temp, 'number')+'</span>';
+  h += '</div>';
   return h;
 }
 function _epInpMini(id, val, tipo){
-  // Input compacto y claro para la franja de adición
+  // Input compacto para la franja de adición. Ancho pequeño ajustado al dato.
   tipo = tipo || 'text';
   var v = (val===undefined||val===null) ? '' : String(val).replace(/"/g,'&quot;');
-  var extra = (tipo==='time'||tipo==='date')
-    ? ';text-align:center;text-align-last:center;-webkit-text-align-last:center;display:flex;justify-content:center;align-items:center'
-    : ';text-align:center;text-align-last:center';
-  return '<input type="'+tipo+'" id="'+id+'" value="'+v+'" style="width:100%;padding:3px 4px;border:1px solid var(--border);border-radius:5px;font-size:0.78rem;background:var(--card)'+extra+'">';
+  var ancho = (tipo==='time') ? '74px' : '58px';
+  var cls = (tipo==='time' || tipo==='date') ? ' class="ep-dt"' : '';
+  var extra = ';text-align:center;text-align-last:center;-webkit-text-align-last:center';
+  return '<input type="'+tipo+'"'+cls+' id="'+id+'" value="'+v+'" style="width:'+ancho+';padding:3px 4px;border:1px solid var(--border);border-radius:5px;font-size:0.78rem;background:var(--card)'+extra+'">';
 }
 function _epBloqueAlineado(tituloBloque, columnas, filas){
   // Rejilla FIJA de 5 columnas de datos: TODAS las fases comparten el mismo ancho de columna.
