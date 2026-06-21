@@ -293,6 +293,87 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
    Los achicamos para que la cabecera mande. */
 .tema-editor .papel-prod-nombre{ font-size:0.82rem!important; }
 .tema-editor .opt-aux-title{ font-size:0.82rem!important; font-weight:700; }
+/* Hora · pH · Tª (condiciones de adición de auxiliares y fermentos) en UNA SOLA LÍNEA:
+   cada par "Etiqueta valor" en horizontal, los tres juntos con una raya separadora. */
+.tema-editor .adicion-compact{
+  display:flex!important;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:0;
+  grid-template-columns:none!important;
+}
+.tema-editor .adicion-compact .form-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:0;
+  padding:0 14px;
+  border-right:1px solid var(--border);
+}
+.tema-editor .adicion-compact .form-row:first-child{ padding-left:0; }
+.tema-editor .adicion-compact .form-row:last-child{ border-right:none; }
+.tema-editor .adicion-compact .form-label{
+  margin:0;
+  text-align:left;
+  white-space:nowrap;
+}
+.tema-editor .adicion-compact .form-row input{
+  width:auto;
+  max-width:90px;
+  text-align:center;
+}
+/* ── TRUCO VISUAL (solo HOY v2): que Moldeo · Prensado · Desmoldeo PAREZCAN
+   tres bloques separados sin tocar la estructura HTML. Las tres sub-cabeceras
+   internas (#body-mol > .sep-label) se pintan como cabeceras de bloque granate,
+   con separación entre ellas, igual que el editor. ── */
+.tema-editor #body-mol > .sep-label{
+  background:var(--brand)!important;
+  color:#fff!important;
+  border-left:5px solid #5b1a1a!important;
+  border-radius:6px!important;
+  min-height:30px!important;
+  font-size:0.78rem!important;
+  letter-spacing:0.05em;
+  margin:18px 0 0!important;
+  box-shadow:0 1px 3px rgba(91,26,26,0.25);
+}
+.tema-editor #body-mol > .sep-label:first-child{ margin-top:6px!important; }
+/* el botón ⚙️/+ Añadir dentro de esas cabeceras: que se vea sobre el granate */
+.tema-editor #body-mol > .sep-label .sep-action-btn{
+  background:rgba(255,255,255,0.92)!important;
+  color:var(--brand)!important;
+  border:none!important;
+}
+/* el contenido de cada bloque va dentro de una "tarjeta" crema/blanca,
+   pegada bajo su cabecera, para reforzar la sensación de bloque propio */
+.tema-editor #body-mol > .grid-alineado,
+.tema-editor #body-mol > #prensados-container,
+.tema-editor #body-mol > #desmoldeos-container{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-top:none;
+  border-radius:0 0 8px 8px;
+  padding:12px 10px;
+  margin:0 0 4px;
+}
+/* Si el contenedor de prensados/desmoldeos está vacío, no pintar tarjeta vacía */
+.tema-editor #body-mol > #prensados-container:empty,
+.tema-editor #body-mol > #desmoldeos-container:empty{
+  border:none;
+  padding:0;
+  margin:0;
+}
+/* La línea del FORMATO del desmoldeo (3 KG) no debe ir de lado a lado:
+   etiqueta + select estrechos y centrados. */
+.tema-editor #desmoldeos-container .des-formato{
+  max-width:160px;
+  margin:0 auto;
+  text-align:center;
+  text-align-last:center;
+}
+.tema-editor #desmoldeos-container > .pren-card > .form-row:first-of-type{
+  align-items:center;
+}
 /* NIVEL 3 — Casillas de datos: MISMO tono EXACTO que el editor/historial (#FCF9F3).
    Tres niveles bien diferenciados, idénticos al editor:
      · Cabecera (Nivel 1): granate #8B2A2A + texto blanco
@@ -625,7 +706,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.139</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.141</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -790,7 +871,7 @@ input[type="email"] {
       <div class="opt-aux-header">
         <label class="opt-aux-label">
           <input type="checkbox" id="co2-aplicado" checked onchange="toggleCO2Aplicado()">
-          <span class="opt-aux-title" id="co2-title">🌫️ CO₂</span>
+          <span class="opt-aux-title" id="co2-title">CO₂</span>
         </label>
       </div>
       <div id="co2-block" class="opt-aux-block">
@@ -1510,7 +1591,7 @@ function rellenarCampos(p){
     if (co2Block) co2Block.style.display = p.co2.aplicado ? '' : 'none';
     var co2Title = document.getElementById('co2-title');
     if (co2Title) {
-      co2Title.textContent = p.co2.aplicado ? '🌫️ CO₂' : '🌫️ CO₂ · NO se aplicó';
+      co2Title.textContent = p.co2.aplicado ? 'CO₂' : 'CO₂ · NO se aplicó';
       co2Title.style.color = p.co2.aplicado ? '' : 'var(--brand)';
     }
   }
@@ -5671,7 +5752,7 @@ function toggleCO2Aplicado(){
   bloque.style.display = chk.checked ? '' : 'none';
   // Cambiar etiqueta: solo se nota cuando NO se aplicó (caso excepcional)
   if (titulo) {
-    titulo.textContent = chk.checked ? '🌫️ CO₂' : '🌫️ CO₂ · NO se aplicó';
+    titulo.textContent = chk.checked ? 'CO₂' : 'CO₂ · NO se aplicó';
     titulo.style.color = chk.checked ? '' : 'var(--brand)';
   }
   if (CUBA_ACTIVA_ID && typeof autoGuardarParte === 'function') autoGuardarParte(CUBA_ACTIVA_ID);
