@@ -410,13 +410,25 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
    en cajita BLANCA, igual que el 3 KG del desmoldeo/salmuera. */
 .tema-editor #lavado-metodo{
   background:#fff!important;
-  color:var(--text)!important;
-  font-weight:600!important;
+  color:var(--brand)!important;
+  font-weight:700!important;
   border:1px solid var(--border)!important;
   max-width:140px;
   text-align:center;
   text-align-last:center;
 }
+/* Coagulación con estructura Adición/Corte/Total a la izquierda (igual que el editor). */
+.coag-rejilla{margin-bottom:6px}
+.coag-fila{display:grid;grid-template-columns:64px repeat(3,1fr);gap:6px;align-items:center;margin-bottom:5px}
+.coag-cabecera{margin-bottom:3px}
+.coag-collbl{font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center}
+.coag-rowlbl{font-size:0.72rem;font-weight:700;color:var(--text2)}
+.coag-fila input{width:100%;text-align:center;padding:5px 6px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-size:0.9rem;box-sizing:border-box}
+.tema-editor .coag-fila input{background:#fff!important}
+/* El "Total" alineado a la misma altura que los inputs de las otras filas */
+.coag-rejilla .coag-total-box{padding:5px 6px;border-radius:6px;background:var(--bg)}
+.coag-rejilla .coag-total-val{font-size:0.9rem}
+.tema-editor .coag-rejilla .coag-total-box{background:#fff!important}
 /* El FORMATO va DENTRO de la subcabecera crema (Desmoldeo N / Salmuera N),
    junto al título, en cajita blanca, igual que el editor. */
 .tema-editor #body-mol .pren-card-head,
@@ -772,7 +784,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.148</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.149</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1021,17 +1033,32 @@ input[type="email"] {
     </div>
     <div class="seccion-body" id="body-coag">
       <div id="coag-proceso">
-        <!-- Fila 1 (hora/pH/Tª) + Fila 2 (corte/total) alineadas en grid de 5 col -->
-        <div class="grid-alineado">
-          <div class="form-row"><label class="form-label">Hora adición</label><input type="time" id="coag-hadicion" oninput="calcCoagTotal()"></div>
-          <div class="form-row"><label class="form-label">pH</label><input type="number" id="coag-ph" step="0.01" inputmode="decimal"></div>
-          <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="coag-temp" inputmode="decimal"></div>
-          <div class="form-row" style="grid-column:1"><label class="form-label">Hora de corte</label><input type="time" id="coag-hc" oninput="calcCoagTotal()"></div>
-          <div class="form-row">
-            <label class="form-label">COAG. TOTAL</label>
-            <div class="coag-total-box">
-              <div class="coag-total-val" id="coag-total-display">—</div>
-            </div>
+        <!-- Estructura tipo editor/historial: filas Adición/Corte/Total a la izquierda,
+             columnas Hora·pH·Tª arriba. IDs intactos para no romper calcCoagTotal(). -->
+        <div class="coag-rejilla">
+          <div class="coag-fila coag-cabecera">
+            <div class="coag-rowlbl"></div>
+            <div class="coag-collbl">Hora</div>
+            <div class="coag-collbl">pH</div>
+            <div class="coag-collbl">Tª (°C)</div>
+          </div>
+          <div class="coag-fila">
+            <div class="coag-rowlbl">Adición</div>
+            <div><input type="time" id="coag-hadicion" oninput="calcCoagTotal()"></div>
+            <div><input type="number" id="coag-ph" step="0.01" inputmode="decimal"></div>
+            <div><input type="number" id="coag-temp" inputmode="decimal"></div>
+          </div>
+          <div class="coag-fila">
+            <div class="coag-rowlbl">Corte</div>
+            <div><input type="time" id="coag-hc" oninput="calcCoagTotal()"></div>
+            <div></div>
+            <div></div>
+          </div>
+          <div class="coag-fila">
+            <div class="coag-rowlbl">Total</div>
+            <div class="coag-total-box"><div class="coag-total-val" id="coag-total-display">—</div></div>
+            <div></div>
+            <div></div>
             <input type="hidden" id="coag-total">
           </div>
         </div>
