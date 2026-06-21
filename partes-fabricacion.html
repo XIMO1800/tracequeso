@@ -753,8 +753,9 @@ input[type="email"] {
 .grid-alineado{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 /* Distribución por tanques: 4 columnas (en línea con Litros·pH·Tª·°D de arriba) */
 .tanques-4col{grid-template-columns:repeat(4,1fr)}
+.tanques-4col .form-row{display:flex;flex-direction:column;justify-content:flex-end;margin-bottom:0}
 /* Pasteurización: 5 columnas. Todas las casillas con la MISMA altura y alineadas. */
-.past-5col .form-row{justify-content:flex-end}
+.past-5col .form-row{display:flex;flex-direction:column;justify-content:flex-end;margin-bottom:0}
 .past-5col input:not([type=checkbox]),
 .past-5col select,
 .past-cruda-box{height:38px;box-sizing:border-box}
@@ -799,7 +800,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.153</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.155</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -924,7 +925,7 @@ input[type="email"] {
           </select>
         </div>
         <div class="form-row">
-          <label class="form-label">Cruda (auto)</label>
+          <label class="form-label">Cruda<br>(auto)</label>
           <div class="past-cruda-box"><input type="checkbox" id="past-cruda" disabled></div>
         </div>
       </div>
@@ -3858,19 +3859,24 @@ function renderEpForm(skipRecoger){
         null, null
       ]}
     ]);
-  // Cuajo: dentro de la fase de coagulación, en una sola fila (6 columnas centradas)
-  h += _epBloqueAlineado('Cuajo',
-    ['Nombre','Dosis /1000L','Dosis utiliz.','Proveedor','Lote','Caducidad'],
-    [
-      {titulo:'', valores:[
-        _epInpC('ep-cuajo-nom', p.cuajo.nombre||''),
-        _epInpC('ep-cuajo-d1000', p.cuajo.dosis_ml_1000L||0, 'number'),
-        _epInpC('ep-cuajo-cons', p.cuajo.consumo_total||p.cuajo.dosis_utilizada||0, 'number'),
-        _epInpC('ep-cuajo-prov', p.cuajo.proveedor||''),
-        _epInpC('ep-cuajo-lote', p.cuajo.lote||''),
-        _epInpC('ep-cuajo-cad', p.cuajo.caducidad||'', 'date')
-      ]}
-    ], 6);
+  // Cuajo: misma rejilla de 6 columnas que los fermentos, aprovechando todo el ancho
+  // (sin la columna de etiqueta de fila, que dejaba un hueco a la izquierda).
+  var gcCuajo = '1.25fr 0.6fr 0.7fr 1fr 0.95fr 1fr';
+  h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
+  h += '<div style="background:#f4ebd8;border-bottom:1px solid var(--border);color:var(--brand);font-size:0.72rem;font-weight:700;padding:4px 9px;min-height:26px;display:flex;align-items:center">Cuajo</div>';
+  h += '<div style="background:var(--card);padding:7px 9px">';
+  var colsCuajo = ['Nombre','/1000L','Dosis util.','Proveedor','Lote','Caducidad'];
+  h += '<div style="display:grid;grid-template-columns:'+gcCuajo+';gap:6px;margin-bottom:3px">';
+  colsCuajo.forEach(function(c){ h += '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">'+c+'</div>'; });
+  h += '</div>';
+  h += '<div style="display:grid;grid-template-columns:'+gcCuajo+';gap:6px;align-items:center">'
+     + '<div>'+_epInpC('ep-cuajo-nom', p.cuajo.nombre||'')+'</div>'
+     + '<div>'+_epInpC('ep-cuajo-d1000', p.cuajo.dosis_ml_1000L||0, 'number')+'</div>'
+     + '<div>'+_epInpC('ep-cuajo-cons', p.cuajo.consumo_total||p.cuajo.dosis_utilizada||0, 'number')+'</div>'
+     + '<div>'+_epInpC('ep-cuajo-prov', p.cuajo.proveedor||'')+'</div>'
+     + '<div>'+_epInpC('ep-cuajo-lote', p.cuajo.lote||'')+'</div>'
+     + '<div>'+_epInpC('ep-cuajo-cad', p.cuajo.caducidad||'', 'date')+'</div></div>';
+  h += '</div></div>';
 
   // ── DESUERADO EN CUBA (bloque con 3 subfases con el MISMO formato) ──
   h += _epSep('🌊 Desuerado en cuba');
