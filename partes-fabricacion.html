@@ -326,20 +326,21 @@ input[type="email"] {
 
 /* Botones discretos en cabecera de subsección (+ Añadir, ⚙️ Configurar) */
 .sep-action-btn{
-  background:none;
-  border:none;
-  color:var(--brand);
+  background:rgba(255,255,255,0.15);
+  border:1px solid rgba(255,255,255,0.7);
+  color:#fff;
   font-size:0.72rem;
-  font-weight:600;
+  font-weight:700;
   cursor:pointer;
-  padding:2px 6px;
+  padding:3px 9px;
+  border-radius:5px;
   text-transform:none;
   letter-spacing:0;
   font-family:inherit;
 }
 .sep-action-btn:hover{
-  background:rgba(122,31,31,0.08);
-  border-radius:4px;
+  background:rgba(255,255,255,0.3);
+  border-radius:5px;
 }
 
 
@@ -394,7 +395,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.107</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.108</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -652,7 +653,6 @@ input[type="email"] {
             <label class="form-label">COAG. TOTAL</label>
             <div class="coag-total-box">
               <div class="coag-total-val" id="coag-total-display">—</div>
-              <div class="coag-total-lbl">min (corte − adición)</div>
             </div>
             <input type="hidden" id="coag-total">
           </div>
@@ -680,12 +680,10 @@ input[type="email"] {
         <div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" id="rec-tf" inputmode="decimal"></div>
       </div>
       <!-- Lavado cuajada (entre recalentamiento y agitación) -->
-      <div class="opt-aux-header" style="margin-top:14px">
-        <label class="opt-aux-label">
-          <input type="checkbox" id="lavado-aplicado" onchange="toggleLavadoAplicado()">
-          <span class="opt-aux-title" id="lavado-title">💧 Lavado de cuajada</span>
-        </label>
-      </div>
+      <label class="sep-label" id="lavado-banda" for="lavado-aplicado" style="cursor:pointer;justify-content:flex-start;gap:9px">
+        <input type="checkbox" id="lavado-aplicado" onchange="toggleLavadoAplicado()" style="width:18px;height:18px;accent-color:#fff;cursor:pointer;margin:0">
+        <span id="lavado-title">Lavado de cuajada</span>
+      </label>
       <div id="lavado-block" class="opt-aux-block cerrado">
         <div class="form-row" style="margin-bottom:8px">
           <label class="form-label">Método</label>
@@ -1325,7 +1323,7 @@ function rellenarCampos(p){
       var lavTitle = document.getElementById('lavado-title');
       if(lavBlock) lavBlock.style.display = lavAplicado ? '' : 'none';
       if(lavBlock) lavBlock.classList.toggle('cerrado', !lavAplicado);
-      if(lavTitle) lavTitle.textContent = lavAplicado ? '💧 Lavado de cuajada' : '💧 Lavado de cuajada · NO se realizó';
+      if(lavTitle) lavTitle.textContent = lavAplicado ? 'Lavado de cuajada' : 'Lavado de cuajada · NO se realizó';
       // Restaurar método (la visibilidad se ajusta tras fijar valores)
       if(lavAplicado && p.desuerado.lavado_metodo){
         var sel = document.getElementById('lavado-metodo');
