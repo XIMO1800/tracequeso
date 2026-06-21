@@ -421,7 +421,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.122</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.123</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3170,8 +3170,13 @@ function _bloqueFirmasHTML(p, soloLectura){
     if(p.firma_calidad){
       fb += '<div style="border:1px solid var(--border);border-radius:8px;background:#fff;padding:6px;text-align:center;margin-top:6px"><img src="'+p.firma_calidad+'" alt="Firma Calidad" style="max-width:100%;max-height:120px"></div>';
     }
-    if(!soloLectura && esCalidadOAdmin()) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="revisarPorCalidad(\''+p.id+'\')">✓ Volver a firmar la revisión</button>';
-  } else {
+    if(!soloLectura && esCalidadOAdmin()){
+      // Dos botones a la par, justo debajo de la firma: volver a firmar | eliminar visto bueno
+      fb += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">';
+      fb += '<button class="btn btn-secondary" onclick="revisarPorCalidad(\''+p.id+'\')">✓ Volver a firmar</button>';
+      fb += '<button class="btn btn-danger" onclick="eliminarParte(\''+p.id+'\')">🗑️ Eliminar visto bueno</button>';
+      fb += '</div>';
+    }
     fb += '<div style="margin-top:8px;font-size:0.82rem;color:var(--text3);padding:8px;background:var(--bg2);border-radius:8px">Sin visto bueno de Calidad.</div>';
     if(!soloLectura && esCalidadOAdmin()) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="revisarPorCalidad(\''+p.id+'\')">✓ Revisar y firmar (Calidad)</button>';
   }
@@ -3873,13 +3878,15 @@ function _epItemEditable(prefix, i, item){
   h += '</div>';
   h += '<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;align-items:center">';
   // Nombre: al tocarlo abre el SELECTOR de producto del stock (no se escribe a mano).
-  // Se rellena solo nombre·dosis·proveedor·lote(FIFO)·caducidad al elegir.
+  // No usamos readonly (dispararía el estilo granate global y se vería distinto al resto);
+  // bloqueamos el tecleo con onkeydown/inputmode para que se vea IGUAL que los demás campos.
   var nomVal = (item.nombre||'').replace(/"/g,'&quot;');
   h += '<div>'
-     + '<input type="text" id="ep-'+prefix+'-nom-'+i+'" value="'+nomVal+'" readonly '
+     + '<input type="text" id="ep-'+prefix+'-nom-'+i+'" value="'+nomVal+'" '
+     +   'onkeydown="return false" inputmode="none" autocomplete="off" '
      +   'onclick="_epAbrirSelProducto(\''+prefix+'\','+i+')" '
      +   'placeholder="— Elegir —" '
-     +   'style="'+_epStyle()+';text-align:center;cursor:pointer;background:var(--bg)">'
+     +   'style="'+_epStyle()+';text-align:center;cursor:pointer">'
      + '</div>';
   h += '<div>'+_epInpC('ep-'+prefix+'-cons-'+i, item.consumo_total||item.dosis_utilizada||0, 'number')+'</div>';
   h += '<div>'+_epInpC('ep-'+prefix+'-prov-'+i, item.proveedor||'')+'</div>';
@@ -5057,22 +5064,19 @@ function _validarParteCompleto(p){
         faltan.push(etiqueta+' '+(idx+1)+': sin nombre (elígelo o quita la fila con la ✕).');
         return;
       }
-      var huecos = [];
-      if(consumo<=0) huecos.push('consumo/dosis');
-      if(!lote)      huecos.push('lote');
-      if(huecos.length) faltan.push(nombre+' ('+etiqueta.toLowerCase()+'): falta '+huecos.join(' y ')+'.');
+      // Si la dosis es 0, ese producto NO se usó: no se le exige lote (se da por no aplicado).
+      // Si tiene dosis > 0, entonces el LOTE es obligatorio (trazabilidad).
+      if(consumo<=0) return;
+      if(!lote) faltan.push(nombre+' ('+etiqueta.toLowerCase()+', dosis '+consumo+'): falta el LOTE. Elígelo del desplegable o pon la dosis a 0 si no se usó.');
     });
   }
   revisarLista(p.auxiliares, 'Auxiliar');
   revisarLista(p.fermentos, 'Fermento');
-  // Cuajo (es uno solo): si tiene nombre, exigir consumo y lote
+  // Cuajo (es uno solo): si tiene nombre y dosis > 0, el lote es obligatorio
   if(p.cuajo && String(p.cuajo.nombre||'').trim()){
     var cCons = parseFloat(p.cuajo.consumo_total!=null?p.cuajo.consumo_total:p.cuajo.dosis_utilizada)||0;
     var cLote = String(p.cuajo.lote||'').trim();
-    var ch = [];
-    if(cCons<=0) ch.push('consumo/dosis');
-    if(!cLote)   ch.push('lote');
-    if(ch.length) faltan.push(p.cuajo.nombre+' (cuajo): falta '+ch.join(' y ')+'.');
+    if(cCons>0 && !cLote) faltan.push(p.cuajo.nombre+' (cuajo, dosis '+cCons+'): falta el LOTE.');
   }
   // AVISO (no bloquea por sí solo, pero suma al aviso): 2+ fermentos EXCLUYENTES con dosis.
   // R-603 / R-604 / CC-08 son excluyentes entre sí (normalmente se usa UNO). Si hay varios
