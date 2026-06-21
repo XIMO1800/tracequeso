@@ -20,7 +20,7 @@
   --text:#3D2817;--text2:#7A5A3F;--text3:#A89175;
   /* Primario: granate/burdeos del logo */
   --green:#8B2A2A;--green2:#A84545;--greenl:#FBEEEC;
-  --brand:#8B2A2A;
+  --brand:#8B2A2A;--brand2:#B5635F;
   /* Secundario: ocre/dorado */
   --amber:#C8821C;--amberl:#FDF4E3;
   --red:#9B2B2B;--redl:#FDEAEA;
@@ -116,7 +116,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .lote-row-lote{font-family:'Courier New',monospace;font-size:0.85rem;color:var(--green);font-weight:700}
 .lote-row-meta{font-size:0.7rem;color:var(--text3)}
 .sep{height:1px;background:var(--border);margin:14px 0}
-.sep-label{text-align:left;font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#5b3a1f;margin:10px 0 6px;padding:3px 0 3px 8px;border-left:3px solid #8b5a2b;background:#f4ebd8;border-radius:3px}
+.sep-label{text-align:left;font-size:0.84rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#fff;margin:14px 0 6px;padding:8px 12px;border-left:5px solid #5b1a1a;background:#8B2A2A;border-radius:5px;box-shadow:0 1px 3px rgba(91,26,26,0.25)}
 /* Centrado fiable de inputs date/time en el editor (Chrome/Android no obedece a text-align normal) */
 .ep-dt{text-align:center}
 .ep-dt::-webkit-datetime-edit{text-align:center;width:100%}
@@ -383,7 +383,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.91</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.92</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3163,7 +3163,7 @@ function renderEpForm(skipRecoger){
   // y el espacio sobrante para Tipo, Variedad y Operario.
   var gcCab='96px 1.3fr 1.3fr 84px 40px 1.2fr';
   h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-  h += '<div style="background:var(--brand);color:#fff;font-size:0.72rem;font-weight:700;padding:4px 9px">Datos del parte</div>';
+  h += '<div style="background:var(--brand2);color:#fff;font-size:0.72rem;font-weight:700;padding:3px 9px">Datos del parte</div>';
   h += '<div style="background:var(--card);padding:7px 9px">';
   h += '<div style="display:grid;grid-template-columns:'+gcCab+';gap:6px;margin-bottom:3px">'
      + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Fecha</div>'
@@ -3204,7 +3204,7 @@ function renderEpForm(skipRecoger){
     // Caso normal: UN solo bloque, UNA línea con los 5 datos (Litros·pH·Tª·°D·Tanque)
     var gcLe='repeat(5,1fr)';
     h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-    h += '<div style="background:var(--brand);color:#fff;font-size:0.72rem;font-weight:700;padding:4px 9px">Leche</div>';
+    h += '<div style="background:var(--brand2);color:#fff;font-size:0.72rem;font-weight:700;padding:3px 9px">Leche</div>';
     h += '<div style="background:var(--card);padding:7px 9px">';
     h += '<div style="display:grid;grid-template-columns:'+gcLe+';gap:6px;margin-bottom:3px">'
        + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Litros</div>'
@@ -3249,7 +3249,7 @@ function renderEpForm(skipRecoger){
     'ep-aux-temp', (p.co2&&p.co2.temp_leche)||'');
   // Fila especial CO₂ (siempre visible, con campos propios: tiempo/caudal + lote/proveedor/caducidad)
   h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--brand);padding:4px 9px"><b style="font-size:0.72rem;color:#fff">🌫️ CO₂</b><span style="font-size:0.62rem;color:rgba(255,255,255,0.85)">Caudal fijo 100 L/h · Tiempo calculado</span></div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--brand2);padding:3px 9px"><b style="font-size:0.72rem;color:#fff">🌫️ CO₂</b><span style="font-size:0.62rem;color:rgba(255,255,255,0.85)">Caudal fijo 100 L/h · Tiempo calculado</span></div>';
   h += '<div style="background:var(--card);padding:7px 9px">';
   var gcco2='64px repeat(5,1fr)';
   h += '<div style="display:grid;grid-template-columns:'+gcco2+';gap:6px;margin-bottom:3px"><div></div>'
@@ -3342,7 +3342,7 @@ function renderEpForm(skipRecoger){
   var _lavMet = p.desuerado.lavado_metodo||'';
   var gcLav='64px repeat(5,1fr)';
   h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-  h += '<div style="display:flex;align-items:center;gap:8px;background:var(--brand);padding:4px 9px">'
+  h += '<div style="display:flex;align-items:center;gap:8px;background:var(--brand2);padding:3px 9px">'
      + '<b style="font-size:0.72rem;font-weight:700;color:#fff;white-space:nowrap">Lavado de cuajada</b>'
      + '<select id="ep-lav-metodo" style="padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-size:0.74rem;background:var(--card);text-align:center;max-width:150px">'
      + '<option value="">— Método —</option>'
@@ -3405,7 +3405,7 @@ function renderEpForm(skipRecoger){
       foOpts += '<option value="'+f+'"'+(f===pr.formato?' selected':'')+'>'+f+'</option>';
     });
     h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--brand);padding:4px 9px"><b style="font-size:0.72rem;color:#fff">Programa '+(i+1)+'</b><button onclick="_epDelConfirm(\'prensados\','+i+',\'Programa '+(i+1)+'\')" title="Eliminar este programa" style="border:none;background:rgba(255,255,255,0.22);color:#fff;width:24px;height:24px;border-radius:50%;font-size:0.85rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button></div>';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--brand2);padding:3px 9px"><b style="font-size:0.72rem;color:#fff">Programa '+(i+1)+'</b><button onclick="_epDelConfirm(\'prensados\','+i+',\'Programa '+(i+1)+'\')" title="Eliminar este programa" style="border:none;background:rgba(255,255,255,0.22);color:#fff;width:24px;height:24px;border-radius:50%;font-size:0.85rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button></div>';
     h += '<div style="background:var(--card);padding:7px 9px">';
     var gc='64px repeat(5,1fr)';
     // Fila 1: Formato · Programa nº
@@ -3444,7 +3444,7 @@ function renderEpForm(skipRecoger){
     });
     h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
     // Cabecera OSCURA: "Desmoldeo N" + selector de FORMATO al lado + ✕
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--brand);padding:4px 9px">'
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--brand2);padding:3px 9px">'
        + '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">'
        + '<b style="font-size:0.72rem;color:#fff;white-space:nowrap">Desmoldeo '+(i+1)+'</b>'
        + '<select id="ep-des-fmt-'+i+'" style="padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-size:0.74rem;background:var(--card);text-align:center;max-width:130px">'+foOpts+'</select>'
@@ -3489,7 +3489,7 @@ function renderEpForm(skipRecoger){
       foOpts += '<option value="'+f+'"'+(f===s.formato?' selected':'')+'>'+f+'</option>';
     });
     h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--brand);padding:4px 9px"><b style="font-size:0.72rem;color:#fff">Salmuera '+(i+1)+'</b><button onclick="_epDelConfirm(\'salmueras\','+i+',\'Salmuera '+(i+1)+'\')" title="Eliminar esta salmuera" style="border:none;background:rgba(255,255,255,0.22);color:#fff;width:24px;height:24px;border-radius:50%;font-size:0.85rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button></div>';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--brand2);padding:3px 9px"><b style="font-size:0.72rem;color:#fff">Salmuera '+(i+1)+'</b><button onclick="_epDelConfirm(\'salmueras\','+i+',\'Salmuera '+(i+1)+'\')" title="Eliminar esta salmuera" style="border:none;background:rgba(255,255,255,0.22);color:#fff;width:24px;height:24px;border-radius:50%;font-size:0.85rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button></div>';
     h += '<div style="background:var(--card);padding:7px 9px">';
     // Formato + horas en una rejilla de 5 columnas
     var gc='64px repeat(5,1fr)';
@@ -3513,7 +3513,7 @@ function renderEpForm(skipRecoger){
   // Un solo bloque con DOS líneas dentro (no dos bloques separados)
   var gcPz='64px repeat(5,1fr)';
   h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-  h += '<div style="background:var(--brand);color:#fff;font-size:0.72rem;font-weight:700;padding:4px 9px">Piezas fabricadas</div>';
+  h += '<div style="background:var(--brand2);color:#fff;font-size:0.72rem;font-weight:700;padding:3px 9px">Piezas fabricadas</div>';
   h += '<div style="background:var(--card);padding:7px 9px">';
   // Línea 1: 3 KG · 2 KG · 1 KG · 1/2 KG
   h += '<div style="display:grid;grid-template-columns:'+gcPz+';gap:6px;margin-bottom:3px"><div></div>'
@@ -3604,9 +3604,9 @@ function _epSep(t, addLista, addEtiqueta){
   // addLista puede ser un nombre de lista (usa _epAdd) o un onclick completo si empieza por "js:".
   if(addLista){
     var onclick = (addLista.indexOf('js:')===0) ? addLista.slice(3) : ('_epAdd(\''+addLista+'\')');
-    return '<div class="sep-label" style="margin-top:10px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;gap:8px">'
+    return '<div class="sep-label" style="margin-top:14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px">'
       + '<span>'+t+'</span>'
-      + '<button onclick="'+onclick+'" title="Añadir '+(addEtiqueta||'')+'" style="border:none;background:#8b5a2b;color:#fff;padding:3px 10px;border-radius:14px;font-size:0.66rem;font-weight:700;cursor:pointer;white-space:nowrap;text-transform:none;letter-spacing:0">+ Añadir '+(addEtiqueta||'')+'</button>'
+      + '<button onclick="'+onclick+'" title="Añadir '+(addEtiqueta||'')+'" style="border:none;background:#f4ebd8;color:#8B2A2A;padding:4px 12px;border-radius:14px;font-size:0.68rem;font-weight:800;cursor:pointer;white-space:nowrap;text-transform:none;letter-spacing:0">+ Añadir '+(addEtiqueta||'')+'</button>'
       + '</div>';
   }
   return '<div class="sep-label" style="margin-top:10px;margin-bottom:5px">'+t+'</div>';
@@ -3650,7 +3650,7 @@ function _epBloqueAlineado(tituloBloque, columnas, filas){
   var NCOLS = 5;
   var gridCols = '64px repeat('+NCOLS+',1fr)';
   var h = '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-  if(tituloBloque) h += '<div style="background:var(--brand);color:#fff;font-size:0.72rem;font-weight:700;padding:4px 9px">'+tituloBloque+'</div>';
+  if(tituloBloque) h += '<div style="background:var(--brand2);color:#fff;font-size:0.72rem;font-weight:700;padding:3px 9px">'+tituloBloque+'</div>';
   h += '<div style="background:var(--card);padding:7px 9px">';
   // Cabecera de columnas (rellena hasta NCOLS con huecos), centrada
   h += '<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;margin-bottom:3px">';
@@ -3680,7 +3680,7 @@ function _epItemEditable(prefix, i, item){
   // Tarjeta: CABECERA OSCURA (granate, texto blanco) + CUERPO CLARO
   var h = '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
   // Cabecera oscura con nombre + ✕ blanca
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--brand);padding:5px 9px">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--brand2);padding:3px 9px">';
   h += '<b style="font-size:0.72rem;color:#fff;letter-spacing:0.02em">'+etiqueta+'</b>';
   h += '<button onclick="_epDelConfirm(\''+lista+'\','+i+',\''+etiqueta+'\')" title="Eliminar '+etiqueta+'" style="border:none;background:rgba(255,255,255,0.22);color:#fff;width:24px;height:24px;border-radius:50%;font-size:0.85rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button>';
   h += '</div>';
