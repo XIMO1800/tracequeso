@@ -117,10 +117,11 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .lote-row-meta{font-size:0.7rem;color:var(--text3)}
 .sep{height:1px;background:var(--border);margin:14px 0}
 .sep-label{text-align:left;font-size:0.84rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#fff;margin:14px 0 6px;padding:8px 12px;border-left:5px solid #5b1a1a;background:#8B2A2A;border-radius:5px;box-shadow:0 1px 3px rgba(91,26,26,0.25)}
-/* Centrado fiable de inputs date/time en el editor (Chrome/Android no obedece a text-align normal) */
+/* Centrado de inputs date/time sin estrangular el campo (el flex recortaba el año).
+   Damos sitio suficiente al valor y centramos solo el contenido editable. */
 .ep-dt{text-align:center}
-.ep-dt::-webkit-datetime-edit{text-align:center;width:100%}
-.ep-dt::-webkit-datetime-edit-fields-wrapper{justify-content:center;display:flex}
+.ep-dt::-webkit-datetime-edit{text-align:center}
+.ep-dt::-webkit-calendar-picker-indicator{margin-left:0;padding:0}
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:white;padding:10px 20px;border-radius:20px;font-size:0.85rem;font-weight:700;opacity:0;transition:all 0.3s;z-index:999;pointer-events:none;white-space:nowrap;max-width:90%}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:flex-end}
@@ -383,7 +384,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.94</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.95</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3161,7 +3162,7 @@ function renderEpForm(skipRecoger){
   h += _epSep('📋 Cabecera');
   // Una sola línea, anchos a medida: Fecha y Lote a su tamaño, Cuba muy estrecha (1 díg),
   // y el espacio sobrante para Tipo, Variedad y Operario.
-  var gcCab='96px 1.3fr 1.3fr 84px 40px 1.2fr';
+  var gcCab='118px 1.25fr 1.25fr 80px 38px 1.15fr';
   h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
   h += '<div style="background:#f4ebd8;border-bottom:1px solid var(--border);color:var(--brand);font-size:0.72rem;font-weight:700;padding:4px 9px;min-height:26px;display:flex;align-items:center">Datos del parte</div>';
   h += '<div style="background:var(--card);padding:7px 9px">';
@@ -3247,18 +3248,23 @@ function renderEpForm(skipRecoger){
     'ep-aux-hadicion', (p.aux_meta&&p.aux_meta.hadicion)||'',
     'ep-aux-ph', (p.co2&&p.co2.ph_leche)||'',
     'ep-aux-temp', (p.co2&&p.co2.temp_leche)||'');
-  // Fila especial CO₂ (siempre visible, con campos propios: tiempo/caudal + lote/proveedor/caducidad)
+  // Fila especial CO₂ (siempre visible). Lleva ✕ para que Calidad pueda quitarlo
+  // si se metió por error (p.ej. botella agotada y no se llegó a aplicar).
   h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;min-height:26px;background:#f4ebd8;border-bottom:1px solid var(--border);padding:1px 9px"><b style="font-size:0.72rem;color:var(--brand)">🌫️ CO₂</b><span style="font-size:0.62rem;color:var(--text3)">Caudal fijo 100 L/h · Tiempo calculado</span></div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;min-height:26px;background:#f4ebd8;border-bottom:1px solid var(--border);padding:1px 9px">'
+     + '<div style="display:flex;align-items:center;gap:8px"><b style="font-size:0.72rem;color:var(--brand)">CO₂</b><span style="font-size:0.62rem;color:var(--text3)">Caudal fijo 100 L/h · Tiempo calculado</span></div>'
+     + '<button onclick="_epQuitarCO2()" title="Quitar CO₂ (no se aplicó)" style="border:none;background:rgba(139,42,42,0.12);color:var(--brand);width:22px;height:22px;border-radius:50%;font-size:0.8rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button>'
+     + '</div>';
   h += '<div style="background:var(--card);padding:7px 9px">';
-  var gcco2='64px repeat(5,1fr)';
-  h += '<div style="display:grid;grid-template-columns:'+gcco2+';gap:6px;margin-bottom:3px"><div></div>'
-     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Tiempo (s)</div>'
-     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Caudal (L/h)</div>'
-     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Proveedor</div>'
-     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Lote</div>'
-     + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Caducidad</div></div>';
-  h += '<div style="display:grid;grid-template-columns:'+gcco2+';gap:6px;align-items:center"><div></div>'
+  // Anchos a medida: Tiempo y Caudal estrechos; Proveedor y Lote anchos (el lote de CO₂ es largo)
+  var gcco2='70px 72px 1fr 1.5fr 92px';
+  h += '<div style="display:grid;grid-template-columns:'+gcco2+';gap:6px;margin-bottom:3px">'
+     + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Tiempo (s)</div>'
+     + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Caudal</div>'
+     + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Proveedor</div>'
+     + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Lote</div>'
+     + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Caducidad</div></div>';
+  h += '<div style="display:grid;grid-template-columns:'+gcco2+';gap:6px;align-items:center">'
      + '<div>'+_epInpC('ep-co2-seg', p.co2.tiempo_seg, 'number')+'</div>'
      + '<div>'+_epInpC('ep-co2-caudal', p.co2.caudal_lh||100, 'number')+'</div>'
      + '<div>'+_epInpC('ep-co2-prov', (p.co2.proveedor||''))+'</div>'
@@ -3489,20 +3495,30 @@ function renderEpForm(skipRecoger){
       foOpts += '<option value="'+f+'"'+(f===s.formato?' selected':'')+'>'+f+'</option>';
     });
     h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;min-height:26px;background:#f4ebd8;border-bottom:1px solid var(--border);padding:1px 9px"><b style="font-size:0.72rem;color:var(--brand)">Salmuera '+(i+1)+'</b><button onclick="_epDelConfirm(\'salmueras\','+i+',\'Salmuera '+(i+1)+'\')" title="Eliminar esta salmuera" style="border:none;background:rgba(139,42,42,0.12);color:var(--brand);width:22px;height:22px;border-radius:50%;font-size:0.8rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button></div>';
+    // Cabecera: "Salmuera N" + selector de FORMATO al lado + ✕ (igual que Desmoldeo)
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:26px;background:#f4ebd8;border-bottom:1px solid var(--border);padding:1px 9px">'
+       + '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">'
+       + '<b style="font-size:0.72rem;color:var(--brand);white-space:nowrap">Salmuera '+(i+1)+'</b>'
+       + '<select id="ep-sal-fmt-'+i+'" style="padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-size:0.74rem;background:var(--card);text-align:center;max-width:130px">'+foOpts+'</select>'
+       + '</div>'
+       + '<button onclick="_epDelConfirm(\'salmueras\','+i+',\'Salmuera '+(i+1)+'\')" title="Eliminar esta salmuera" style="border:none;background:rgba(139,42,42,0.12);color:var(--brand);width:22px;height:22px;border-radius:50%;font-size:0.8rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button>'
+       + '</div>';
     h += '<div style="background:var(--card);padding:7px 9px">';
-    // Formato + horas en una rejilla de 5 columnas
     var gc='64px repeat(5,1fr)';
+    // Cabecera de columnas: solo Hora (salmuera no mide pH ni Tª)
     h += '<div style="display:grid;grid-template-columns:'+gc+';gap:6px;margin-bottom:3px"><div></div>'
-       + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Formato</div>'
-       + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Hora inicio</div>'
-       + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Hora fin</div>'
-       + '<div></div><div></div></div>';
-    h += '<div style="display:grid;grid-template-columns:'+gc+';gap:6px;align-items:center"><div></div>'
-       + '<div><select id="ep-sal-fmt-'+i+'" style="'+_epStyle()+';text-align:center">'+foOpts+'</select></div>'
+       + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Hora</div>'
+       + '<div></div><div></div><div></div><div></div></div>';
+    // Fila Inicio
+    h += '<div style="display:grid;grid-template-columns:'+gc+';gap:6px;align-items:center;margin-bottom:6px">'
+       + '<div style="font-size:0.7rem;font-weight:700;color:var(--text2)">Inicio</div>'
        + '<div>'+_epInpC('ep-sal-hi-'+i, s.hi, 'time')+'</div>'
+       + '<div></div><div></div><div></div><div></div></div>';
+    // Fila Fin
+    h += '<div style="display:grid;grid-template-columns:'+gc+';gap:6px;align-items:center">'
+       + '<div style="font-size:0.7rem;font-weight:700;color:var(--text2)">Fin</div>'
        + '<div>'+_epInpC('ep-sal-hf-'+i, s.hf, 'time')+'</div>'
-       + '<div></div><div></div></div>';
+       + '<div></div><div></div><div></div><div></div></div>';
     h += '</div></div>';
   });
   // (botón "+ Añadir" ahora en la cabecera de la sección)
@@ -3592,7 +3608,13 @@ function _epInpC(id, val, tipo, ph){
   tipo = tipo || 'text';
   var v = (val===undefined||val===null) ? '' : String(val).replace(/"/g,'&quot;');
   var cls = (tipo==='time' || tipo==='date') ? ' class="ep-dt"' : '';
-  var extra = ';text-align:center;text-align-last:center;padding-left:4px;padding-right:4px';
+  var extra;
+  if(tipo==='time' || tipo==='date'){
+    // padding lateral mínimo: el valor (incluido el año de 4 cifras) debe caber entero
+    extra = ';text-align:center;padding-left:1px;padding-right:1px';
+  } else {
+    extra = ';text-align:center;text-align-last:center;padding-left:4px;padding-right:4px';
+  }
   return '<input type="'+tipo+'"'+cls+' id="'+id+'" value="'+v+'" placeholder="'+(ph||'')+'" style="'+_epStyle()+extra+'">';
 }
 function _epSel(id, opts, onchange){
@@ -3675,7 +3697,9 @@ function _epBloqueAlineado(tituloBloque, columnas, filas){
 function _epItemEditable(prefix, i, item){
   var lista = (prefix==='aux'?'auxiliares':'fermentos');
   var etiqueta = (prefix==='aux'?'Auxiliar':'Fermento')+' '+(i+1);
-  var gridCols = 'repeat(5,1fr)';
+  // Nombre más ancho (cabe "FLORA DANIC..."), Dosis estrecho (máx mil y pico),
+  // y caducidad con sitio para el año completo.
+  var gridCols = '1.5fr 0.7fr 1.1fr 1.1fr 1fr';
   // Tarjeta: cabecera de ELEMENTO (Nivel 2): fondo crema, texto granate + ✕ granate
   var h = '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;min-height:26px;background:#f4ebd8;border-bottom:1px solid var(--border);padding:1px 9px">';
@@ -3793,6 +3817,24 @@ function _epDelConfirm(lista, idx, etiqueta){
   if(!confirm('¿Eliminar solo "'+etiqueta+'"?\n\nEsto borra únicamente esta tarjeta. El resto del parte y los demás programas no se tocan.')) return;
   _epDel(lista, idx);
 }
+// Quitar el CO₂ del parte (caso: se metió por error y no se llegó a aplicar).
+// No borra una tarjeta de lista: marca el CO₂ como no aplicado y vacía sus datos.
+function _epQuitarCO2(){
+  if(!confirm('¿Quitar el CO₂ de este parte?\n\nMarca que NO se aplicó CO₂ y vacía sus datos. El resto del parte no se toca.')) return;
+  _epRecogerEnEstado();
+  var p = window._parteEditando;
+  if(!p) return;
+  if(!p.co2) p.co2 = {};
+  p.co2.aplicado = false;
+  p.co2.tiempo_seg = '';
+  p.co2.caudal_lh = '';
+  p.co2.proveedor = '';
+  p.co2.lote = '';
+  p.co2.caducidad = '';
+  var epForm = document.getElementById('ep-form');
+  if(epForm) epForm.innerHTML = '';
+  renderEpForm(true);
+}
 
 // Recoge valores del DOM y los vuelca al estado window._parteEditando
 function _epRecogerEnEstado(){
@@ -3846,6 +3888,10 @@ function _epRecogerEnEstado(){
   if(v('ep-co2-prov')!==undefined)   p.co2.proveedor = v('ep-co2-prov');
   if(i('ep-co2-seg')!==undefined)    p.co2.tiempo_seg = i('ep-co2-seg');
   if(n('ep-co2-caudal')!==undefined) p.co2.caudal_lh = n('ep-co2-caudal');
+  // Si hay lote o tiempo, el CO₂ se considera aplicado; si está todo vacío, no aplicado.
+  var _co2Lote = (p.co2.lote!==undefined && p.co2.lote!==null && String(p.co2.lote).trim()!=='');
+  var _co2Seg  = (p.co2.tiempo_seg!==undefined && p.co2.tiempo_seg!==null && String(p.co2.tiempo_seg).trim()!=='' && Number(p.co2.tiempo_seg)>0);
+  p.co2.aplicado = (_co2Lote || _co2Seg);
   // Momento de adición de auxiliares (hora + pH/Tª leche), editable por Calidad
   if(v('ep-aux-hadicion')!==undefined){ if(!p.aux_meta) p.aux_meta={}; p.aux_meta.hadicion = v('ep-aux-hadicion'); }
   if(n('ep-aux-ph')!==undefined){   p.co2.ph_leche = n('ep-aux-ph');   if(!p.aux_meta) p.aux_meta={}; p.aux_meta.ph = n('ep-aux-ph'); }
