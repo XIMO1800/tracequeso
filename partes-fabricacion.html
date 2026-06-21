@@ -124,7 +124,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
    Las casillas usan el MISMO tono suave que el editor en edición (--bg, muy claro),
    no el --bg2 (más oscuro), para que el historial se vea igual de suave que el editor. */
 .ep-readonly input,.ep-readonly select,.ep-readonly textarea{
-  background:#FCF9F3!important;
+  background:#fff!important;
   color:var(--text)!important;
   -webkit-text-fill-color:var(--text);
   opacity:1!important;
@@ -417,9 +417,11 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   text-align:center;
   text-align-last:center;
 }
-/* Coagulación con estructura Adición/Corte/Total a la izquierda (igual que el editor). */
+/* Coagulación con estructura Adición/Corte/Total a la izquierda (igual que el editor).
+   Rejilla de 5 columnas (64px + 5) para alinear con todas las demás fases:
+   Hora·pH·Tª ocupan 3, quedan 2 huecos a la derecha. */
 .coag-rejilla{margin-bottom:6px}
-.coag-fila{display:grid;grid-template-columns:64px repeat(3,1fr);gap:6px;align-items:center;margin-bottom:5px}
+.coag-fila{display:grid;grid-template-columns:64px repeat(5,1fr);gap:6px;align-items:center;margin-bottom:5px}
 .coag-cabecera{margin-bottom:3px}
 .coag-collbl{font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center}
 .coag-rowlbl{font-size:0.72rem;font-weight:700;color:var(--text2)}
@@ -429,6 +431,12 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .coag-rejilla .coag-total-box{padding:5px 6px;border-radius:6px;background:var(--bg)}
 .coag-rejilla .coag-total-val{font-size:0.9rem}
 .tema-editor .coag-rejilla .coag-total-box{background:#fff!important}
+/* El "Total (min)" de agitación: mismo tono que Hora inicio/fin, sin fondo oscuro */
+.tema-editor #agit-total{
+  background:#fff!important;
+  color:var(--text)!important;
+  font-weight:400!important;
+}
 /* El FORMATO va DENTRO de la subcabecera crema (Desmoldeo N / Salmuera N),
    junto al título, en cajita blanca, igual que el editor. */
 .tema-editor #body-mol .pren-card-head,
@@ -452,12 +460,10 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .tema-editor #body-salm .pren-card-head .prog-del-btn{
   margin-left:auto;
 }
-/* NIVEL 3 — Casillas de datos: MISMO tono EXACTO que el editor/historial (#FCF9F3).
-   Tres niveles bien diferenciados, idénticos al editor:
+/* NIVEL 3 — Casillas de datos en BLANCO, igual en las tres vistas (parte, editor, historial):
      · Cabecera (Nivel 1): granate #8B2A2A + texto blanco
      · Sub-cabecera (Nivel 2): crema #f4ebd8 + texto granate
-     · Cuerpo de tarjeta: blanco #FFFFFF (--card)
-     · Casillas de datos (Nivel 3): crema muy suave #FCF9F3, igual que _epStyle del editor */
+     · Cuerpo de tarjeta y casillas: blanco #FFFFFF */
 .tema-editor .seccion-body,
 .tema-editor .card-body{
   background:var(--card);
@@ -468,7 +474,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .tema-editor input[type=time],
 .tema-editor select,
 .tema-editor textarea{
-  background:#FCF9F3;
+  background:#fff;
   border-color:var(--border);
 }
 /* Tarjetas internas (auxiliares/fermentos en papel-prod, CO₂, prensado) con marco fino */
@@ -784,7 +790,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.149</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.150</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4136,7 +4142,7 @@ function renderEpForm(skipRecoger){
 }
 
 // Helpers de UI del editor
-function _epStyle(){ return 'width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:0.82rem;background:#FCF9F3'; }
+function _epStyle(){ return 'width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:0.82rem;background:#fff'; }
 function _epLbl(t){ return '<label style="font-size:0.7rem;color:var(--text3);font-weight:700;letter-spacing:0.5px;text-transform:uppercase;display:block;margin-bottom:2px">'+t+'</label>'; }
 function _epInp(id, val, tipo, ph){
   tipo = tipo || 'text';
