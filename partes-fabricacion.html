@@ -751,6 +751,11 @@ input[type="email"] {
    caen justo debajo de los de arriba con idéntico ancho; los huecos
    sobrantes quedan en blanco a la derecha. */
 .grid-alineado{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+/* Distribución por tanques: 4 columnas (en línea con Litros·pH·Tª·°D de arriba) */
+.tanques-4col{grid-template-columns:repeat(4,1fr)}
+/* Pasteurización: 5 columnas. La casilla "Cruda" es un check centrado en cajita */
+.past-cruda-box{display:flex;align-items:center;justify-content:center;height:34px;border:1.5px solid var(--border);border-radius:6px;background:#fff}
+.past-cruda-box input{width:18px;height:18px;cursor:default;margin:0}
 .grid-alineado .form-row{margin-bottom:0}
 .co2-card .co2-lote-val{font-size:0.88rem;font-weight:700;color:var(--text);padding:5px 0}
 .co2-card .co2-lote-cad{font-size:0.82rem;color:var(--text2);padding:5px 0}
@@ -790,7 +795,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.150</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.151</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -866,21 +871,19 @@ input[type="email"] {
         <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">°D leche</label><input type="number" id="np-dornic" step="0.1" inputmode="decimal"></div>
       </div>
-      <!-- Fila 2: Distribución por tanques -->
+      <!-- Fila 2: Distribución por tanques (4 columnas, en línea con los 4 datos de arriba) -->
       <div style="font-size:0.7rem;color:var(--text3);margin:8px 0 4px"><b>Distribución por tanques</b> — Para queso puro usa "Tanque procedencia". Para MEZCLA, rellena litros y tanque por tipo.</div>
-      <div class="form-cols-4">
+      <div class="grid-alineado tanques-4col">
         <div class="form-row"><label class="form-label">Tanque procedencia</label><input type="text" id="np-tanque" placeholder="ej: 4 ó 3+4"></div>
         <div></div><div></div><div></div>
-      </div>
-      <div class="form-cols-3">
-        <div class="form-row"><label class="form-label">L. Vaca</label><input type="number" id="np-lvaca" inputmode="numeric"></div>
+        <div class="form-row" style="grid-column:1"><label class="form-label">L. Vaca</label><input type="number" id="np-lvaca" inputmode="numeric"></div>
         <div class="form-row"><label class="form-label">L. Cabra</label><input type="number" id="np-lcabra" inputmode="numeric"></div>
         <div class="form-row"><label class="form-label">L. Oveja</label><input type="number" id="np-loveja" inputmode="numeric"></div>
-      </div>
-      <div class="form-cols-3">
-        <div class="form-row"><label class="form-label">Tanque vaca</label><input type="text" id="np-tanque-vaca" placeholder="2"></div>
+        <div></div>
+        <div class="form-row" style="grid-column:1"><label class="form-label">Tanque vaca</label><input type="text" id="np-tanque-vaca" placeholder="2"></div>
         <div class="form-row"><label class="form-label">Tanque cabra</label><input type="text" id="np-tanque-cabra" placeholder="1"></div>
         <div class="form-row"><label class="form-label">Tanque oveja</label><input type="text" id="np-tanque-oveja" placeholder="4"></div>
+        <div></div>
       </div>
     </div>
   </div>
@@ -892,8 +895,8 @@ input[type="email"] {
       <span class="seccion-chevron" id="chev-past">▼</span>
     </div>
     <div class="seccion-body" id="body-past">
-      <!-- Fila 1: Válvula · Temperatura · Tiempo (3 cols) -->
-      <div class="form-cols-3">
+      <!-- 5 columnas: Válvula · Temperatura · Tiempo · Fosfatasa · Cruda -->
+      <div class="grid-alineado past-5col">
         <div class="form-row">
           <label class="form-label">Func. válvula desvío</label>
           <select id="past-valvula">
@@ -910,21 +913,18 @@ input[type="email"] {
           <label class="form-label">Tiempo pasterización</label>
           <input type="number" id="past-tiempo" inputmode="decimal" oninput="marcarTocado('past-tiempo')">
         </div>
-      </div>
-      <!-- Cruda + Fosfatasa en una sola línea, discreto -->
-      <div style="display:flex;align-items:center;gap:24px;margin-top:6px;padding:4px 2px;flex-wrap:wrap">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.82rem;color:var(--text2)">
-          <input type="checkbox" id="past-cruda" style="width:18px;height:18px;cursor:pointer" disabled>
-          <span>Cruda (auto)</span>
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--text2)">
-          <span>Fosfatasa alcalina (calidad)</span>
-          <select id="past-fosfatasa" style="padding:5px 8px;font-size:0.85rem;border:1.5px solid var(--border);border-radius:6px;background:#fff">
+        <div class="form-row">
+          <label class="form-label">Fosfatasa alc. (calidad)</label>
+          <select id="past-fosfatasa">
             <option value="">—</option>
             <option value="P">P (Positiva)</option>
             <option value="N">N (Negativa)</option>
           </select>
-        </label>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Cruda (auto)</label>
+          <div class="past-cruda-box"><input type="checkbox" id="past-cruda" disabled></div>
+        </div>
       </div>
     </div>
   </div>
