@@ -397,11 +397,12 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.110</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.111</div>
   </div>
 </div>
 <div class="nav-tabs">
   <div class="nav-tab active" data-tab="hoy" onclick="switchTab('hoy')">📋 HOY</div>
+  <div class="nav-tab" data-tab="hoyv2" onclick="switchTab('hoyv2')">🧪 HOY v2</div>
   <div class="nav-tab" data-tab="historial" onclick="switchTab('historial')">📚 HISTORIAL</div>
   <div class="nav-tab" data-tab="recetas" onclick="switchTab('recetas')">📖 RECETAS</div>
   <div class="nav-tab" data-tab="lotes" onclick="switchTab('lotes')">🏷️ LOTES</div>
@@ -790,6 +791,15 @@ input[type="email"] {
   </div>
 
 
+</div>
+
+<!-- ════════════════════ HOY v2 (PRUEBA · estilo editor) ════════════════════ -->
+<div id="screen-hoyv2" class="screen" style="display:none">
+  <div style="background:#fff8e1;border-left:4px solid #f0b400;padding:8px 10px;border-radius:6px;font-size:0.78rem;color:#5a4500;margin:8px 0 12px">
+    🧪 Pestaña de PRUEBA. Aquí se introduce el parte con el mismo diseño que el editor de Calidad. No afecta a la pestaña HOY. Si no convence, se elimina sin perder nada.
+  </div>
+  <button class="btn btn-primary btn-sm" style="margin-bottom:12px" onclick="hoyv2CubaPrueba()">🧪 Cargar cuba de prueba</button>
+  <div id="hoyv2-cont"></div>
 </div>
 
 <!-- ════════════════════ HISTORIAL ════════════════════ -->
@@ -1873,10 +1883,73 @@ function switchTab(tab){
   if(badge) badge.style.display = (tab==='hoy' && CUBA_ACTIVA_ID) ? 'block' : 'none';
   // Refrescar contenido según pantalla
   if(tab==='hoy'){ try{ renderPestanasCubas(); }catch(e){} }
+  if(tab==='hoyv2'){ try{ hoyv2Init(); }catch(e){} }
   if(tab==='historial'){ try{ renderPartes(); }catch(e){} try{ cargarPartesSheets(_filtroFecha); }catch(e){} }
 }
 
 function toggleSec(id){var b=document.getElementById('body-'+id);var c=document.getElementById('chev-'+id);if(b)b.classList.toggle('open');if(c)c.classList.toggle('open');}
+
+// ═══════════════════════════════════════════════
+// HOY v2 (PRUEBA) — entrada de parte con el diseño del editor de Calidad.
+// Reutiliza renderEpForm() / _epRecogerEnEstado() tal cual: pinta el formulario
+// dentro de #hoyv2-cont creando un #ep-form propio (el del editor solo existe
+// cuando el modal está abierto, así que no hay conflicto). No toca la pestaña HOY.
+// ═══════════════════════════════════════════════
+function hoyv2Init(){
+  // Si aún no hay nada cargado, dejamos el contenedor con su botón. No autocargamos.
+}
+
+function hoyv2CubaPrueba(){
+  // Crear un parte de PRUEBA en memoria con la misma estructura que usa el editor.
+  var hoyISO = (function(){ try{ return new Date().toISOString().substring(0,10); }catch(e){ return ''; } })();
+  var p = {
+    id: 'PRUEBA-' + Date.now(),
+    fecha: hoyISO,
+    cuba: '1',
+    tipo: '',
+    variedad: '',
+    lote_queso: '',
+    operario: '',
+    litros: '',
+    lvaca:'', lcabra:'', loveja:'',
+    ph:'', temp:'', dornic_leche:'',
+    auxiliares: [],
+    fermentos:  [],
+    cuajo:      {nombre:'',consumo_total:0,proveedor:'',lote:'',caducidad:''},
+    co2:        {lote:'',caducidad:'',tiempo_seg:0,caudal_lh:0,ph_leche:0,temp_leche:0},
+    coag:       {hadicion:'',hc:'',ph:'',temp:'',total:''},
+    desuerado:  {rec_hi:'',rec_hf:'',rec_ti:'',rec_tf:'',rec_ph:'',rec_dornic:'',agit_hi:'',agit_hf:'',lavado_aplicado:'',lavado_metodo:'',lavado_hi:'',lavado_hf:'',lavado_temp:'',lavado_cantidad:''},
+    moldeo:     {hi:'',hf:'',ph:'',temp:''},
+    prensados:  [],
+    desmoldeos: [],
+    salmueras:  [],
+    piezas:     {'3kg':0,'2kg':0,'1kg':0,'05kg':0,'barra':0,'gigante':0},
+    caseinas:   {serie:'',primera:0,ultima:0,total:0},
+    observaciones:''
+  };
+  window._parteEditando = p;
+
+  // Preparar el contenedor con un #ep-form propio (donde renderEpForm volcará)
+  var cont = document.getElementById('hoyv2-cont');
+  if(!cont) return;
+  cont.innerHTML =
+    '<div style="font-size:0.75rem;color:var(--text3);margin-bottom:10px">Cuba de prueba · ' + (p.fecha||'') + ' · ID: ' + p.id + '</div>' +
+    '<div id="ep-form"></div>' +
+    '<button class="btn btn-primary" style="margin-top:16px;width:100%" onclick="hoyv2Guardar()">💾 Guardar (prueba)</button>';
+
+  // Pintar con el MISMO render del editor de Calidad
+  try{ renderEpForm(true); }catch(e){ toast('Error pintando formulario','err'); }
+  window.scrollTo(0,0);
+}
+
+// Guardado de prueba: recoge del DOM al estado y lo muestra (todavía NO envía a Sheets,
+// para no mezclar datos reales mientras validamos la pinta).
+function hoyv2Guardar(){
+  try{ _epRecogerEnEstado(); }catch(e){}
+  var p = window._parteEditando;
+  toast('Datos recogidos (prueba, no enviado)');
+  try{ console.log('HOY v2 · parte de prueba recogido:', JSON.parse(JSON.stringify(p))); }catch(e){}
+}
 
 // ═══════════════════════════════════════════════
 // NUEVO PARTE
