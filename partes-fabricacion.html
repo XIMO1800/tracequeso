@@ -421,7 +421,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.118</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.121</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3254,6 +3254,12 @@ function editarParteCompleto(id, soloLectura){
     h += '<button class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>';
     h += '<button id="btn-ep-guardar" class="btn btn-primary" onclick="guardarParteEditado(\''+p.id+'\')">💾 Guardar cambios</button>';
     h += '</div>';
+    // Eliminar parte: solo Calidad/Admin. Si es una versión revisada, al borrarla el
+    // original vuelve a quedar pendiente de revisar (lo gestiona eliminarParte).
+    if(esCalidadOAdmin()){
+      var esRev = (p.version==='revisado' || String(p.id||'').indexOf('PR-')===0);
+      h += '<button class="btn btn-danger" style="width:100%;margin-top:8px" onclick="eliminarParte(\''+p.id+'\')">🗑️ '+(esRev?'Eliminar visto bueno (vuelve a pendiente)':'Eliminar parte')+'</button>';
+    }
   }
 
   abrirModal(h);
@@ -4285,6 +4291,17 @@ function guardarParteEditado(id){
   _epRecogerEnEstado();
   var p = window._parteEditando;
 
+  // AVISO (no bloqueante) de datos incompletos: a diferencia de la firma, aquí se permite
+  // guardar a medias, pero se informa a Calidad de lo que falta para que decida.
+  try{
+    var _faltanG = _validarParteCompleto(p);
+    if(_faltanG.length){
+      var msgG = 'Este parte tiene datos incompletos:\n\n• ' + _faltanG.join('\n• ') +
+        '\n\n¿Guardar de todas formas?\n(Podrás completarlo más tarde, pero NO podrás dar el visto bueno de Calidad hasta arreglarlo.)';
+      if(!confirm(msgG)) return; // Cancelar = no guarda, vuelve al editor para corregir
+    }
+  }catch(e){}
+
   // Auditoría
   p.modificado_por   = (typeof CU!=='undefined' && CU && CU.n) ? CU.n : (window._operarioActual||'Calidad');
   p.fecha_modificado = new Date().toISOString();
@@ -4327,7 +4344,13 @@ function guardarParteEditado(id){
 function eliminarParte(id){
   var _pe=PARTES.find(function(x){return x.id===id;});
   if(_pe && !puedeEditarParte(_pe)){ toast('Solo Calidad puede eliminar partes de días anteriores','warn'); return; }
-  if(!confirm('¿Eliminar este parte? Se borrará también de Google Sheets.'))return;
+  // ¿Es una versión revisada por Calidad? Entonces el mensaje y el efecto son distintos:
+  // al borrarla, se devuelve el parte original a "pendiente de revisar".
+  var esRevision = !!(_pe && (_pe.version==='revisado' || String(_pe.id||'').indexOf('PR-')===0));
+  var msg = esRevision
+    ? '¿Eliminar el VISTO BUENO de Calidad de este parte?\n\nSe borrará esta versión revisada y el parte original volverá a aparecer como pendiente de revisar. Se borrará también de Google Sheets.'
+    : '¿Eliminar este parte? Se borrará también de Google Sheets.';
+  if(!confirm(msg))return;
   // Borrar en Google Sheets (por ID). El Apps Script tiene la rama _DELETE en gestionarPartes.
   try{
     var payload = {_SHEET:'PARTES', _DELETE:true, ID:id, id:id};
@@ -4335,8 +4358,22 @@ function eliminarParte(id){
       SYNC_PENDIENTE.push({tipo:'parte',data:payload}); persistir();
     });
   }catch(e){}
+  // Si borramos una revisión, localizar el original para reactivarlo si no quedan más revisiones
+  var origId = esRevision ? (_pe.original_id||'') : '';
   PARTES=PARTES.filter(function(p){return p.id!==id;});
-  persistir();cerrarModal();renderPartes();toast('Parte eliminado');
+  if(esRevision && origId){
+    // ¿Quedan otras revisiones vivas de ese mismo original?
+    var quedanRev = PARTES.some(function(p){ return (p.version==='revisado' || String(p.id||'').indexOf('PR-')===0) && p.original_id===origId; });
+    if(!quedanRev){
+      var orig = PARTES.find(function(p){ return p.id===origId; });
+      if(orig){
+        orig.tiene_revision = false;
+        try{ enviarParteSheets(orig); }catch(e){} // que vuelva a constar como sin revisión
+      }
+    }
+  }
+  persistir();cerrarModal();renderPartes();
+  toast(esRevision ? 'Visto bueno eliminado · original pendiente de revisar' : 'Parte eliminado');
 }
 
 // ═══════════════════════════════════════════════
@@ -4834,14 +4871,25 @@ function confirmarFirma(){
     // Calidad firma → se crea una COPIA REVISADA (nuevo id) y el original queda intacto,
     // solo marcado como "ya revisado" para no mostrarlo más a Calidad.
     var orig = _firmaParte;
-    // Recoger en el parte los datos que Calidad acaba de editar (litros, fosfatasa...) antes de clonar
-    try{ if(typeof autoGuardarParte==='function' && CUBA_ACTIVA_ID===orig.id) autoGuardarParte(orig.id); }catch(e){}
-    // OBLIGATORIO para Calidad: la fosfatasa debe quedar como P (positiva) o N (negativa).
-    var _fosf = orig.pasteurizacion ? orig.pasteurizacion.fosfatasa : '';
-    if(_fosf===true) _fosf='P'; // compat antiguo
-    var _fosfStr = String(_fosf||'').toUpperCase().trim();
-    if(_fosfStr!=='P' && _fosfStr!=='N'){
-      toast('Antes de firmar, indica la fosfatasa alcalina: P (positiva) o N (negativa)','warn');
+    // Recoger en el parte los datos que Calidad acaba de editar (litros, fosfatasa...) antes de clonar.
+    // Si está abierto el EDITOR (renderEpForm), volcamos su DOM al estado con _epRecogerEnEstado;
+    // si fuera la pantalla HOY, usamos autoGuardarParte. Así la fosfatasa editada SÍ llega a orig.
+    try{
+      if(window._parteEditando && window._parteEditando.id===orig.id && document.getElementById('ep-form')){
+        _epRecogerEnEstado();
+      } else if(typeof autoGuardarParte==='function' && CUBA_ACTIVA_ID===orig.id){
+        autoGuardarParte(orig.id);
+      }
+    }catch(e){}
+    // VALIDACIÓN COMPLETA antes del visto bueno de Calidad: junta TODO lo que falta
+    // (fosfatasa + auxiliares/fermentos/cuajo incompletos) en un solo aviso, para que
+    // Calidad lo corrija de una pasada y no descubra los fallos uno a uno.
+    var _faltan = _validarParteCompleto(orig);
+    if(_faltan.length){
+      var msgVal = 'No se puede firmar todavía. Revisa estos puntos:\n\n• ' + _faltan.join('\n• ') +
+        '\n\nComplétalos (o elimina con la ✕ lo que no se usó) y vuelve a firmar.';
+      try{ alert(msgVal); }catch(e){}
+      toast('Hay datos incompletos — revisa el aviso','warn');
       return;
     }
     var revisado = JSON.parse(JSON.stringify(orig));
@@ -4987,7 +5035,59 @@ function _ahoraSelloMadrid(){
 
 // VISTO BUENO DE CALIDAD: estampa nombre + fecha + hora en el parte.
 // Calidad lo da al revisar el parte (normalmente al día siguiente).
-function revisarPorCalidad(id){
+// Revisa un parte y devuelve una lista (array de textos) con TODO lo que está
+// incompleto de cara al visto bueno de Calidad. Lista vacía = todo correcto.
+// Comprueba: fosfatasa P/N, y que cada auxiliar/fermento/cuajo CON NOMBRE tenga
+// consumo (>0) y lote. Las filas totalmente vacías se avisan para que se quiten.
+function _validarParteCompleto(p){
+  var faltan = [];
+  if(!p) return faltan;
+  // Fosfatasa
+  var f = p.pasteurizacion ? p.pasteurizacion.fosfatasa : '';
+  if(f===true) f='P';
+  var fStr = String(f||'').toUpperCase().trim();
+  if(fStr!=='P' && fStr!=='N') faltan.push('Fosfatasa alcalina: marca P (positiva) o N (negativa) en Pasteurización.');
+  // Revisor de listas de ingredientes (auxiliares/fermentos)
+  function revisarLista(lista, etiqueta){
+    (lista||[]).forEach(function(x, idx){
+      var nombre = String((x&&x.nombre)||'').trim();
+      var consumo = parseFloat(x&&(x.consumo_total!=null?x.consumo_total:x.dosis_utilizada))||0;
+      var lote = String((x&&x.lote)||'').trim();
+      if(!nombre){
+        faltan.push(etiqueta+' '+(idx+1)+': sin nombre (elígelo o quita la fila con la ✕).');
+        return;
+      }
+      var huecos = [];
+      if(consumo<=0) huecos.push('consumo/dosis');
+      if(!lote)      huecos.push('lote');
+      if(huecos.length) faltan.push(nombre+' ('+etiqueta.toLowerCase()+'): falta '+huecos.join(' y ')+'.');
+    });
+  }
+  revisarLista(p.auxiliares, 'Auxiliar');
+  revisarLista(p.fermentos, 'Fermento');
+  // Cuajo (es uno solo): si tiene nombre, exigir consumo y lote
+  if(p.cuajo && String(p.cuajo.nombre||'').trim()){
+    var cCons = parseFloat(p.cuajo.consumo_total!=null?p.cuajo.consumo_total:p.cuajo.dosis_utilizada)||0;
+    var cLote = String(p.cuajo.lote||'').trim();
+    var ch = [];
+    if(cCons<=0) ch.push('consumo/dosis');
+    if(!cLote)   ch.push('lote');
+    if(ch.length) faltan.push(p.cuajo.nombre+' (cuajo): falta '+ch.join(' y ')+'.');
+  }
+  // AVISO (no bloquea por sí solo, pero suma al aviso): 2+ fermentos EXCLUYENTES con dosis.
+  // R-603 / R-604 / CC-08 son excluyentes entre sí (normalmente se usa UNO). Si hay varios
+  // con dosis > 0, probablemente sobra alguno; se avisa para que Calidad lo confirme o quite.
+  try{
+    var exclConDosis = (p.fermentos||[]).filter(function(x){
+      var nombre = String((x&&x.nombre)||'').trim();
+      var dosis = parseFloat(x&&(x.consumo_total!=null?x.consumo_total:x.dosis_utilizada))||0;
+      return nombre && dosis>0 && _esFermentoExcluyente(nombre);
+    }).map(function(x){ return x.nombre; });
+    if(exclConDosis.length>=2){
+      faltan.push('Hay varios fermentos excluyentes con dosis ('+exclConDosis.join(', ')+'). Normalmente solo se usa uno: pon a 0 (o quita con la ✕) los que no se utilizaron.');
+    }
+  }catch(e){}
+  return faltan;
   var p = PARTES.find(function(x){return x.id===id;});
   if(!p){ toast('Parte no encontrado'); return; }
   if(!esCalidadOAdmin()){ toast('Solo Calidad puede dar el visto bueno'); return; }
