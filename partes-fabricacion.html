@@ -294,13 +294,23 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .tema-editor .papel-prod-nombre{ font-size:0.82rem!important; }
 .tema-editor .opt-aux-title{ font-size:0.82rem!important; font-weight:700; }
 /* Hora · pH · Tª (condiciones de adición de auxiliares y fermentos) en UNA SOLA LÍNEA:
-   cada par "Etiqueta valor" en horizontal, los tres juntos con una raya separadora. */
+   cada par "Etiqueta valor" en horizontal, los tres juntos con una raya separadora,
+   y TODO el grupo dentro de un recuadro CREMA propio (refuerza que es un bloque). */
 .tema-editor .adicion-compact{
   display:flex!important;
   flex-wrap:wrap;
   align-items:center;
   gap:0;
   grid-template-columns:none!important;
+  background:#f4ebd8!important;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:8px 14px!important;
+  margin:8px 0 12px!important;
+}
+/* Las casillas dentro del grupo crema, en blanco, para que destaquen sobre la crema */
+.tema-editor .adicion-compact .form-row input{
+  background:#fff!important;
 }
 .tema-editor .adicion-compact .form-row{
   display:flex;
@@ -316,6 +326,8 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   margin:0;
   text-align:left;
   white-space:nowrap;
+  color:var(--brand)!important;
+  font-weight:700;
 }
 .tema-editor .adicion-compact .form-row input{
   width:auto;
@@ -725,7 +737,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.142</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.144</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1011,18 +1023,17 @@ input[type="email"] {
         <div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" id="rec-tf" inputmode="decimal"></div>
       </div>
       <!-- Lavado cuajada (entre recalentamiento y agitación) -->
-      <label class="sep-label" id="lavado-banda" for="lavado-aplicado" style="cursor:pointer;justify-content:flex-start;gap:8px">
-        <input type="checkbox" id="lavado-aplicado" onchange="toggleLavadoAplicado()" style="width:15px;height:15px;accent-color:var(--brand);cursor:pointer;margin:0;flex:none">
-        <span id="lavado-title">Lavado de cuajada</span>
+      <label class="sep-label" id="lavado-banda" for="lavado-aplicado" style="cursor:pointer;justify-content:space-between;gap:8px">
+        <span style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="lavado-aplicado" onchange="toggleLavadoAplicado()" style="width:15px;height:15px;accent-color:var(--brand);cursor:pointer;margin:0;flex:none">
+          <span id="lavado-title">Lavado de cuajada</span>
+        </span>
+        <select id="lavado-metodo" onchange="toggleLavadoMetodo()" onclick="event.stopPropagation()" style="padding:5px 8px;border-radius:6px;border:1.5px solid var(--border);background:#fff;font-size:0.85rem;max-width:160px">
+          <option value="pasteurizador">Pasteurizador</option>
+          <option value="manguera">Manguera</option>
+        </select>
       </label>
       <div id="lavado-block" class="opt-aux-block cerrado">
-        <div class="form-row" style="margin-bottom:8px">
-          <label class="form-label">Método</label>
-          <select id="lavado-metodo" onchange="toggleLavadoMetodo()" style="width:100%;padding:8px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg2);font-size:0.95rem">
-            <option value="pasteurizador">Pasteurizador</option>
-            <option value="manguera">Manguera</option>
-          </select>
-        </div>
         <div class="grid-alineado">
           <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="lavado-hi"></div>
           <div class="form-row" id="lavado-hf-row"><label class="form-label">Hora fin</label><input type="time" id="lavado-hf"></div>
@@ -5784,6 +5795,8 @@ function toggleLavadoAplicado(){
   if (!chk || !bloque) return;
   bloque.style.display = chk.checked ? '' : 'none';
   bloque.classList.toggle('cerrado', !chk.checked);
+  var selMetodo = document.getElementById('lavado-metodo');
+  if (selMetodo) selMetodo.style.display = chk.checked ? '' : 'none';
   if (titulo) {
     titulo.textContent = chk.checked ? 'Lavado de cuajada' : 'Lavado de cuajada · NO se realizó';
   }
