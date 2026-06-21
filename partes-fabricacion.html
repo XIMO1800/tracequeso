@@ -434,7 +434,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 /* Desmoldeo y Salmuera: estructura Inicio/Fin (o Entrada/Salida) a la izquierda,
    columnas Hora·pH·Tª arriba, igual que coagulación y que el editor. */
 .io-rejilla{margin-bottom:2px}
-.io-fila{display:grid;grid-template-columns:64px repeat(3,1fr);gap:6px;align-items:center;margin-bottom:5px}
+.io-fila{display:grid;grid-template-columns:64px repeat(5,1fr);gap:6px;align-items:center;margin-bottom:5px}
 .io-cabecera{margin-bottom:3px}
 .io-collbl{font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center}
 .io-rowlbl{font-size:0.72rem;font-weight:700;color:var(--text2)}
@@ -809,7 +809,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.156</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.157</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -6348,9 +6348,9 @@ function anadirSalmuera(datos){
     +   (idx > 0 ? '<button type="button" class="prog-del-btn" onclick="quitarSalmuera(this)" title="Quitar esta salmuera">✕</button>' : '')
     + '</div>'
     + '<div class="io-rejilla">'
-    +   '<div class="io-fila io-cabecera"><div class="io-rowlbl"></div><div class="io-collbl">Hora</div><div></div><div></div></div>'
-    +   '<div class="io-fila"><div class="io-rowlbl">Entrada</div><div><input type="time" class="salm-hi" value="'+(datos.hi||'')+'"></div><div></div><div></div></div>'
-    +   '<div class="io-fila"><div class="io-rowlbl">Salida</div><div><input type="time" class="salm-hf" value="'+(datos.hf||'')+'"></div><div></div><div></div></div>'
+    +   '<div class="io-fila io-cabecera"><div class="io-rowlbl"></div><div class="io-collbl">Hora</div><div></div><div></div><div></div><div></div></div>'
+    +   '<div class="io-fila"><div class="io-rowlbl">Entrada</div><div><input type="time" class="salm-hi" value="'+(datos.hi||'')+'"></div><div></div><div></div><div></div><div></div></div>'
+    +   '<div class="io-fila"><div class="io-rowlbl">Salida</div><div><input type="time" class="salm-hf" value="'+(datos.hf||'')+'"></div><div></div><div></div><div></div><div></div></div>'
     + '</div>';
   cont.appendChild(div);
   // Al cambiar formato → recalcular hora fin
@@ -6541,15 +6541,15 @@ function anadirDesmoldeo(datos){
     +   (idx > 0 ? '<button type="button" class="prog-del-btn" onclick="quitarDesmoldeo(this)" title="Quitar este desmoldeo">✕</button>' : '')
     + '</div>'
     + '<div class="io-rejilla" style="margin-top:4px">'
-    +   '<div class="io-fila io-cabecera"><div class="io-rowlbl"></div><div class="io-collbl">Hora</div><div class="io-collbl">pH</div><div class="io-collbl">Tª (°C)</div></div>'
+    +   '<div class="io-fila io-cabecera"><div class="io-rowlbl"></div><div class="io-collbl">Hora</div><div class="io-collbl">pH</div><div class="io-collbl">Tª (°C)</div><div></div><div></div></div>'
     +   '<div class="io-fila"><div class="io-rowlbl">Inicio</div>'
     +     '<div><input type="time" class="des-hi" value="'+(datos.hi||'')+'"></div>'
     +     '<div><input type="number" step="0.01" class="des-ph" value="'+(datos.ph||'')+'"></div>'
-    +     '<div><input type="number" class="des-temp-i" value="'+(datos.temp_i||'')+'"></div></div>'
+    +     '<div><input type="number" class="des-temp-i" value="'+(datos.temp_i||'')+'"></div><div></div><div></div></div>'
     +   '<div class="io-fila"><div class="io-rowlbl">Fin</div>'
     +     '<div><input type="time" class="des-hf" value="'+(datos.hf||'')+'"></div>'
     +     '<div><input type="number" step="0.01" class="des-ph-f" value="'+(datos.ph_f||'')+'"></div>'
-    +     '<div><input type="number" class="des-temp-f" value="'+(datos.temp_f||'')+'"></div></div>'
+    +     '<div><input type="number" class="des-temp-f" value="'+(datos.temp_f||'')+'"></div><div></div><div></div></div>'
     + '</div>';
   cont.appendChild(div);
   div.querySelectorAll('input, select').forEach(function(inp){
