@@ -306,12 +306,14 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   background:#f4ebd8!important;
   border:1px solid var(--border);
   border-radius:8px;
-  padding:5px 12px!important;
-  margin:8px 0 10px!important;
+  padding:3px 12px!important;
+  margin:4px 0 14px!important;
 }
-/* Las casillas dentro del grupo crema, en blanco, para que destaquen sobre la crema */
+/* Las casillas dentro del grupo crema, en blanco y más bajas, para afinar la altura */
 .tema-editor .adicion-compact .form-row input{
   background:#fff!important;
+  padding-top:3px!important;
+  padding-bottom:3px!important;
 }
 .tema-editor .adicion-compact .form-row{
   display:flex;
@@ -403,6 +405,17 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .tema-editor #body-salm .pren-card-head .prog-del-btn{
   color:var(--brand)!important;
   font-size:0.9rem!important;
+}
+/* El método de lavado (Pasteurizador/Manguera) dentro de la cabecera crema:
+   en cajita BLANCA, igual que el 3 KG del desmoldeo/salmuera. */
+.tema-editor #lavado-metodo{
+  background:#fff!important;
+  color:var(--text)!important;
+  font-weight:600!important;
+  border:1px solid var(--border)!important;
+  max-width:140px;
+  text-align:center;
+  text-align-last:center;
 }
 /* El FORMATO va DENTRO de la subcabecera crema (Desmoldeo N / Salmuera N),
    junto al título, en cajita blanca, igual que el editor. */
@@ -759,7 +772,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.147</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.148</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -912,11 +925,11 @@ input[type="email"] {
           <input type="time" id="aux-hadicion">
         </div>
         <div class="form-row">
-          <label class="form-label">pH leche</label>
+          <label class="form-label">pH</label>
           <input type="number" id="aux-ph" step="0.01" inputmode="decimal" oninput="calcCO2()">
         </div>
         <div class="form-row">
-          <label class="form-label">Tª leche (°C)</label>
+          <label class="form-label">Tª (°C)</label>
           <input type="number" id="aux-temp" step="0.1" inputmode="decimal">
         </div>
       </div>
