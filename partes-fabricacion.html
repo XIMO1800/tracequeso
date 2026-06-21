@@ -309,7 +309,7 @@ input[type="email"] {
 
 
 /* Tarjetas de prensado (una por formato producido en la cuba) */
-.pren-card{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;position:relative}
+.pren-card{background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;position:relative}
 .pren-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .pren-card-titulo{font-size:0.9rem;color:var(--green)}
 .pren-card .quitar-btn{position:absolute;top:4px;right:6px;background:none;border:none;color:var(--text2);font-size:1.1rem;cursor:pointer;padding:3px 7px}
@@ -394,7 +394,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.106</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.107</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -645,11 +645,11 @@ input[type="email"] {
         <!-- Fila 1 (hora/pH/Tª) + Fila 2 (corte/total) alineadas en grid de 5 col -->
         <div class="grid-alineado">
           <div class="form-row"><label class="form-label">Hora adición</label><input type="time" id="coag-hadicion" oninput="calcCoagTotal()"></div>
-          <div class="form-row"><label class="form-label">pH coagulación</label><input type="number" id="coag-ph" step="0.01" inputmode="decimal"></div>
+          <div class="form-row"><label class="form-label">pH</label><input type="number" id="coag-ph" step="0.01" inputmode="decimal"></div>
           <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="coag-temp" inputmode="decimal"></div>
           <div class="form-row" style="grid-column:1"><label class="form-label">Hora de corte</label><input type="time" id="coag-hc" oninput="calcCoagTotal()"></div>
           <div class="form-row">
-            <label class="form-label">Coagulación total</label>
+            <label class="form-label">COAG. TOTAL</label>
             <div class="coag-total-box">
               <div class="coag-total-val" id="coag-total-display">—</div>
               <div class="coag-total-lbl">min (corte − adición)</div>
@@ -694,7 +694,7 @@ input[type="email"] {
             <option value="manguera">Manguera</option>
           </select>
         </div>
-        <div class="form-cols-3">
+        <div class="grid-alineado">
           <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="lavado-hi"></div>
           <div class="form-row" id="lavado-hf-row"><label class="form-label">Hora fin</label><input type="time" id="lavado-hf"></div>
           <div class="form-row" id="lavado-temp-row"><label class="form-label">Tª agua (°C)</label><input type="number" id="lavado-temp" inputmode="decimal" step="0.1"></div>
