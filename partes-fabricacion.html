@@ -120,6 +120,15 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .sep-label>*{margin-top:0;margin-bottom:0}
 /* ── Tema EDITOR para HOY v2 (se va maquillando hacia la estética del editor) ── */
 .tema-editor{}
+/* ── Vista de SOLO LECTURA del editor (historial del quesero) ── */
+.ep-readonly input,.ep-readonly select,.ep-readonly textarea{
+  background:var(--bg2)!important;
+  color:var(--text)!important;
+  -webkit-text-fill-color:var(--text);
+  opacity:1!important;
+  cursor:default;
+}
+.ep-readonly button{opacity:0.45;cursor:default}
 /* Cabeceras de bloque (Nivel 1) idénticas al editor de Calidad:
    franja granate fina de altura fija, texto blanco compacto. */
 .tema-editor .seccion-header{
@@ -412,7 +421,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.115</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.116</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2853,9 +2862,32 @@ function renderPartes(){
   filtrados.forEach(function(p){
     var totalPzas=0;if(p.piezas)Object.keys(p.piezas).forEach(function(k){totalPzas+=(p.piezas[k]||0);});
     var badgeRev = (p.version==='revisado') ? '<span style="background:var(--greenl);color:var(--green);border:1px solid var(--green2);border-radius:10px;padding:1px 7px;font-size:0.62rem;font-weight:700;margin-left:6px">✓ CALIDAD</span>' : '';
-    h+='<div class="parte-item" onclick="verParte(\''+p.id+'\')"><div class="parte-item-top"><div class="parte-item-tipo">'+p.tipo+(p.variedad?' · '+p.variedad:'')+badgeRev+'</div><div class="parte-item-badge">Cuba '+p.cuba+'</div></div><div class="parte-item-meta">'+formatearFecha(p.fecha)+' · '+p.litros+'L · '+totalPzas+' pzas · '+(p.operario||'—')+'</div></div>';
+    h+='<div class="parte-item" onclick="verParteHist(\''+p.id+'\')"><div class="parte-item-top"><div class="parte-item-tipo">'+p.tipo+(p.variedad?' · '+p.variedad:'')+badgeRev+'</div><div class="parte-item-badge">Cuba '+p.cuba+'</div></div><div class="parte-item-meta">'+formatearFecha(p.fecha)+' · '+p.litros+'L · '+totalPzas+' pzas · '+(p.operario||'—')+'</div></div>';
   });
   c.innerHTML=h;
+}
+
+// Ver un parte del HISTORIAL con la MISMA vista del editor, pero en modo lectura.
+// Reutiliza editarParteCompleto(id, true). Si faltan ingredientes (viene del
+// histórico de Sheets), los pide primero y luego abre, igual que verParte.
+function verParteHist(id){
+  var p=PARTES.find(function(x){return x.id===id;});if(!p)return;
+  var sinIng = !(p.auxiliares && p.auxiliares.length) &&
+               !(p.fermentos && p.fermentos.length) &&
+               !(p.cuajo && p.cuajo.nombre);
+  if(sinIng && navigator.onLine && !p._ingFetched){
+    cargarIngredientesParte(id, function(data){
+      p._ingFetched = true;
+      if(data){
+        if(data.auxiliares && data.auxiliares.length) p.auxiliares = data.auxiliares;
+        if(data.fermentos  && data.fermentos.length)  p.fermentos  = data.fermentos;
+        if(data.cuajo && data.cuajo.nombre)           p.cuajo      = data.cuajo;
+      }
+      editarParteCompleto(id, true);
+    });
+    return;
+  }
+  editarParteCompleto(id, true);
 }
 
 function verParte(id){
@@ -3118,10 +3150,10 @@ function _tanqueDefault(tipo){
 
 function _formatosQueso(){ return ['3 KG','2 KG','1 KG','1/2 KG','BARRA','GIGANTE']; }
 
-function editarParteCompleto(id){
+function editarParteCompleto(id, soloLectura){
   var p = PARTES.find(function(x){return x.id===id;});
   if(!p){ toast('Parte no encontrado','err'); return; }
-  if(!puedeEditarParte(p)){ toast('Solo Calidad puede modificar partes de días anteriores','warn'); return; }
+  if(!soloLectura && !puedeEditarParte(p)){ toast('Solo Calidad puede modificar partes de días anteriores','warn'); return; }
 
   // Asegurar que existan los arrays/objetos para que siempre haya algo que editar
   if(!p.auxiliares) p.auxiliares = [];
@@ -3152,23 +3184,45 @@ function editarParteCompleto(id){
     tipoOpts += '<option value="'+t+'"'+(t===p.tipo?' selected':'')+'>'+t+'</option>';
   });
 
-  var h = '<div class="modal-title">✏️ Editar parte · Cuba '+p.cuba+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
+  var h = '<div class="modal-title">'+(soloLectura?'👁️ Ver parte · Cuba ':'✏️ Editar parte · Cuba ')+p.cuba+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
   h += '<div style="font-size:0.75rem;color:var(--text3);margin-bottom:10px">'+formatearFecha(p.fecha)+' · '+(p.operario||'—')+' · ID: '+p.id+'</div>';
-  h += '<div style="background:#fff8e1;border-left:4px solid #f0b400;padding:8px 10px;border-radius:6px;font-size:0.78rem;color:#5a4500;margin-bottom:14px">📝 Calidad puede modificar cualquier campo. Si el quesero olvidó algo, añade/edita las filas aquí.</div>';
+  if(soloLectura){
+    h += '<div style="background:#eef4ff;border-left:4px solid #5b8def;padding:8px 10px;border-radius:6px;font-size:0.78rem;color:#234;margin-bottom:14px">👁️ Vista de solo lectura. Para modificar un parte, el departamento de Calidad debe abrirlo desde su acceso.</div>';
+  } else {
+    h += '<div style="background:#fff8e1;border-left:4px solid #f0b400;padding:8px 10px;border-radius:6px;font-size:0.78rem;color:#5a4500;margin-bottom:14px">📝 Calidad puede modificar cualquier campo. Si el quesero olvidó algo, añade/edita las filas aquí.</div>';
+  }
 
   h += '<div id="ep-form"></div>';
 
   // Botones fijos abajo
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">';
-  h += '<button class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>';
-  h += '<button id="btn-ep-guardar" class="btn btn-primary" onclick="guardarParteEditado(\''+p.id+'\')">💾 Guardar cambios</button>';
-  h += '</div>';
+  if(soloLectura){
+    // En modo lectura: si es Calidad/Admin, ofrecer pasar a edición; si no, solo cerrar.
+    h += '<div style="display:grid;grid-template-columns:'+(esCalidadOAdmin()?'1fr 1fr':'1fr')+';gap:8px;margin-top:18px">';
+    h += '<button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>';
+    if(esCalidadOAdmin()) h += '<button class="btn btn-primary" onclick="editarParteCompleto(\''+p.id+'\')">✏️ Editar parte</button>';
+    h += '</div>';
+  } else {
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">';
+    h += '<button class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>';
+    h += '<button id="btn-ep-guardar" class="btn btn-primary" onclick="guardarParteEditado(\''+p.id+'\')">💾 Guardar cambios</button>';
+    h += '</div>';
+  }
 
   abrirModal(h);
 
   // Pintar el formulario completo. skipRecoger=true en la PRIMERA pintada para que
   // no se ejecute _epRecogerEnEstado sobre un DOM vacío/anterior (machacaría caseínas y fermentos).
   renderEpForm(true);
+
+  // Modo lectura: bloquear toda interacción del formulario (sin tocar la lógica de pintado).
+  if(soloLectura){
+    var form = document.getElementById('ep-form');
+    if(form){
+      form.classList.add('ep-readonly');
+      var campos = form.querySelectorAll('input,select,textarea,button');
+      for(var i=0;i<campos.length;i++){ campos[i].disabled = true; }
+    }
+  }
 }
 
 // Renderiza todo el formulario del editor de parte
