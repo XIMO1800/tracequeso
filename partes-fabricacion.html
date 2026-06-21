@@ -345,9 +345,11 @@ input[type="email"] {
 
 /* Tarjeta CO₂ compacta */
 .co2-card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:4px}
-/* Adición fermentos: inputs más bajos y separación del bloque de fermentos */
+/* Filas "Adición" (hora/pH/Tª) compactas e iguales entre sí.
+   Incluye el input[type=time], que el navegador renderiza más alto. */
+.adicion-compact .form-row input{padding:4px 9px;font-size:0.9rem;line-height:1.2;height:auto}
+.adicion-compact .form-row input[type="time"]{min-height:0}
 .ferm-adicion-row{margin-bottom:14px}
-.ferm-adicion-row .form-row input{padding:4px 9px;font-size:0.9rem}
 .co2-card .co2-lote-val{font-size:0.88rem;font-weight:700;color:var(--text);padding:5px 0}
 .co2-card .co2-lote-cad{font-size:0.82rem;color:var(--text2);padding:5px 0}
 .co2-card .co2-lote-prov{font-size:0.82rem;color:var(--text2);padding:5px 0;font-weight:600}
@@ -386,7 +388,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.101</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.102</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -532,7 +534,7 @@ input[type="email"] {
     <div class="seccion-body" id="body-aux">
       <!-- Hora de adición + pH y Tª de la leche en el momento de adición de auxiliares -->
       <div class="sep-label">Adición auxiliares (leche en cuba)</div>
-      <div class="form-cols-3">
+      <div class="form-cols-3 adicion-compact">
         <div class="form-row">
           <label class="form-label">Hora de adición</label>
           <input type="time" id="aux-hadicion">
@@ -609,7 +611,7 @@ input[type="email"] {
     </div>
     <div class="seccion-body" id="body-ferm">
       <div class="sep-label">Adición fermentos</div>
-      <div class="form-cols-3 ferm-adicion-row">
+      <div class="form-cols-3 ferm-adicion-row adicion-compact">
         <div class="form-row">
           <label class="form-label">Hora de adición</label>
           <input type="time" id="ferm-hadicion">
