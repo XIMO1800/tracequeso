@@ -227,6 +227,20 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   margin:0 auto;
   text-align:center;
 }
+/* El select del MÉTODO de lavado (#lavado-metodo) tiene width:100% inline y fondo gris,
+   y queda como un "pegote" ancho. En HOY v2 lo hacemos estrecho, centrado y con el
+   tono crema del editor, para que se integre como en el editor (no barra de lado a lado). */
+.tema-editor #lavado-metodo{
+  width:auto!important;
+  max-width:170px;
+  background:#f4ebd8!important;
+  border:1px solid var(--border)!important;
+  font-size:0.82rem!important;
+  padding:4px 8px!important;
+  text-align:center;
+  color:var(--brand);
+  font-weight:700;
+}
 /* NIVEL 3 — Casillas de datos: MISMO tono EXACTO que el editor/historial (#FCF9F3).
    Tres niveles bien diferenciados, idénticos al editor:
      · Cabecera (Nivel 1): granate #8B2A2A + texto blanco
@@ -559,7 +573,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.132</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.133</div>
   </div>
 </div>
 <div class="nav-tabs">
