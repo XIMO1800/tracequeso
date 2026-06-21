@@ -142,6 +142,105 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   font-size:0.82rem;
   letter-spacing:0.05em;
 }
+/* ── Acercar HOY v2 al EDITOR: cada bloque como TARJETA ──
+   Solo CSS, dentro de .tema-editor: no toca el HTML ni los automatismos de HOY. */
+/* El cuerpo de cada sección pasa a verse como cuerpo de tarjeta del editor:
+   marco con borde, fondo blanco y esquinas redondeadas. */
+.tema-editor .seccion{
+  border:none;
+  box-shadow:none;
+  background:transparent;
+  margin-bottom:7px;
+  overflow:visible;
+}
+.tema-editor .seccion-body{
+  border:1px solid var(--border);
+  border-top:none;
+  border-radius:0 0 8px 8px;
+  background:var(--card);
+  padding:10px 12px;
+  margin-bottom:2px;
+}
+/* La banda granate (cabecera de bloque) se pega a su cuerpo (sin separación) */
+.tema-editor .seccion-header{
+  border-radius:6px;
+  margin-top:14px;
+}
+/* Cuando la sección está ABIERTA, la cabecera solo redondea arriba (se une al cuerpo). */
+.tema-editor .seccion:has(.seccion-body.open) .seccion-header{
+  border-radius:6px 6px 0 0;
+}
+/* Las sub-cabeceras internas (.sep-label) toman el tono CREMA del editor:
+   fondo #f4ebd8, texto granate, altura fija — como "Recalentamiento", "Lavado", etc. */
+.tema-editor .sep-label{
+  background:#f4ebd8;
+  color:var(--brand);
+  border-left:none;
+  border-radius:6px;
+  min-height:26px;
+  padding:2px 10px;
+  margin:10px 0 7px;
+  font-size:0.72rem;
+}
+/* Etiquetas de campo: tono del editor (gris/granate suave), compactas */
+.tema-editor .form-label{
+  color:var(--text3);
+  font-size:0.62rem;
+  letter-spacing:0.04em;
+}
+/* NIVEL 3 — Casillas de datos: MISMOS colores EXACTOS que el editor.
+   Tres niveles bien diferenciados, como en el editor:
+     · Cabecera (Nivel 1): granate #8B2A2A + texto blanco
+     · Sub-cabecera (Nivel 2): crema #f4ebd8 + texto granate
+     · Cuerpo de tarjeta: blanco #FFFFFF (--card)
+     · Casillas de datos (Nivel 3): tono MUY LIGERO #FAF6EE (--bg), igual que _epStyle del editor */
+.tema-editor .seccion-body,
+.tema-editor .card-body{
+  background:var(--card);
+}
+.tema-editor input[type=text],
+.tema-editor input[type=number],
+.tema-editor input[type=date],
+.tema-editor input[type=time],
+.tema-editor select,
+.tema-editor textarea{
+  background:var(--bg);
+  border-color:var(--border);
+}
+/* Tarjetas internas (auxiliares/fermentos en papel-prod, CO₂, prensado) con marco fino */
+.tema-editor .papel-prod,
+.tema-editor .co2-card,
+.tema-editor .pren-card,
+.tema-editor .ferm-tabla{
+  border:1px solid var(--border);
+  border-radius:8px;
+}
+/* Bloque "Datos generales" (usa .card): cabecera granate fina + cuerpo de tarjeta */
+.tema-editor .card{
+  border:none;
+  box-shadow:none;
+  background:transparent;
+  margin-bottom:7px;
+  overflow:visible;
+}
+.tema-editor .card-header{
+  background:#8B2A2A;
+  border:none;
+  border-radius:6px 6px 0 0;
+  min-height:30px;
+  padding:2px 12px;
+}
+.tema-editor .card-title{
+  color:#fff;
+  font-size:0.82rem;
+}
+.tema-editor .card-body{
+  border:1px solid var(--border);
+  border-top:none;
+  border-radius:0 0 8px 8px;
+  background:var(--card);
+  padding:10px 12px;
+}
 /* Los inputs date/time nativos de la tablet no se dejan centrar de forma fiable
    (al forzarlo se recortaba el año o se añadía hueco). Se dejan en su comportamiento
    normal; lo prioritario es que el valor se vea completo y guarde bien. */
@@ -421,7 +520,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.123</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.127</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3174,7 +3273,7 @@ function _bloqueFirmasHTML(p, soloLectura){
       // Dos botones a la par, justo debajo de la firma: volver a firmar | eliminar visto bueno
       fb += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">';
       fb += '<button class="btn btn-secondary" onclick="revisarPorCalidad(\''+p.id+'\')">✓ Volver a firmar</button>';
-      fb += '<button class="btn btn-danger" onclick="eliminarParte(\''+p.id+'\')">🗑️ Eliminar visto bueno</button>';
+      fb += '<button class="btn btn-danger" onclick="eliminarVistoBueno(\''+p.id+'\')">🗑️ Eliminar visto bueno</button>';
       fb += '</div>';
     }
     fb += '<div style="margin-top:8px;font-size:0.82rem;color:var(--text3);padding:8px;background:var(--bg2);border-radius:8px">Sin visto bueno de Calidad.</div>';
@@ -3259,11 +3358,10 @@ function editarParteCompleto(id, soloLectura){
     h += '<button class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>';
     h += '<button id="btn-ep-guardar" class="btn btn-primary" onclick="guardarParteEditado(\''+p.id+'\')">💾 Guardar cambios</button>';
     h += '</div>';
-    // Eliminar parte: solo Calidad/Admin. Si es una versión revisada, al borrarla el
-    // original vuelve a quedar pendiente de revisar (lo gestiona eliminarParte).
+    // Eliminar PARTE entero: solo Calidad/Admin. (Quitar solo el visto bueno se hace
+    // con el botón de arriba, junto a la firma de Calidad.)
     if(esCalidadOAdmin()){
-      var esRev = (p.version==='revisado' || String(p.id||'').indexOf('PR-')===0);
-      h += '<button class="btn btn-danger" style="width:100%;margin-top:8px" onclick="eliminarParte(\''+p.id+'\')">🗑️ '+(esRev?'Eliminar visto bueno (vuelve a pendiente)':'Eliminar parte')+'</button>';
+      h += '<button class="btn btn-danger" style="width:100%;margin-top:8px" onclick="eliminarParteEntero(\''+p.id+'\')">🗑️ Eliminar parte</button>';
     }
   }
 
@@ -4346,6 +4444,50 @@ function guardarParteEditado(id){
     restaurar();
     toast('⚠️ Error: '+(err.message||err),'warn');
   }
+}
+
+// QUITAR SOLO EL VISTO BUENO: borra la versión revisada (PR-) y deja el parte ORIGINAL
+// completamente limpio y pendiente de revisar, abriéndolo para que Calidad pueda re-firmarlo.
+function eliminarVistoBueno(id){
+  var rev = PARTES.find(function(x){return x.id===id;});
+  if(!rev){ toast('Parte no encontrado','err'); return; }
+  if(!esCalidadOAdmin()){ toast('Solo Calidad puede quitar el visto bueno','warn'); return; }
+  if(!confirm('¿Eliminar el VISTO BUENO de Calidad?\n\nEl parte volverá a quedar PENDIENTE de revisar (no se borra el parte). Podrás volver a darle el visto bueno cuando quieras.')) return;
+
+  var esRevision = (rev.version==='revisado' || String(rev.id||'').indexOf('PR-')===0);
+  var origId = esRevision ? (rev.original_id||'') : rev.id;
+
+  // 1) Si lo que tenemos es la copia revisada (PR-), borrarla de memoria y de Sheets
+  if(esRevision){
+    try{
+      var payload = {_SHEET:'PARTES', _DELETE:true, ID:rev.id, id:rev.id};
+      fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){ SYNC_PENDIENTE.push({tipo:'parte',data:payload}); persistir(); });
+    }catch(e){}
+    PARTES = PARTES.filter(function(p){ return p.id!==rev.id; });
+  }
+
+  // 2) Localizar el ORIGINAL y limpiarlo del todo: quitar cualquier rastro de revisión
+  var orig = PARTES.find(function(p){ return p.id===origId; });
+  if(!orig && !esRevision) orig = rev; // caso raro: el propio parte llevaba el visto bueno
+  if(orig){
+    orig.tiene_revision   = false;
+    orig.revisado_calidad = false;
+    orig.revisado_calidad_por = '';
+    orig.revisado_calidad_ts  = '';
+    orig.firma_calidad    = '';
+    if(orig.version==='revisado') orig.version = 'original';
+    try{ enviarParteSheets(orig); }catch(e){}
+  }
+  persistir();
+  toast('Visto bueno eliminado · parte pendiente de revisar');
+  // 3) Reabrir el ORIGINAL en el editor para que se vea ya como pendiente (con "Revisar y firmar")
+  if(orig){ editarParteCompleto(orig.id); }
+  else { cerrarModal(); renderPartes(); }
+}
+
+// ELIMINAR EL PARTE ENTERO (borra de verdad). Si es una revisión, reactiva el original.
+function eliminarParteEntero(id){
+  eliminarParte(id);
 }
 
 function eliminarParte(id){
