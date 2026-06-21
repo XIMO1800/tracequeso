@@ -753,8 +753,12 @@ input[type="email"] {
 .grid-alineado{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 /* Distribución por tanques: 4 columnas (en línea con Litros·pH·Tª·°D de arriba) */
 .tanques-4col{grid-template-columns:repeat(4,1fr)}
-/* Pasteurización: 5 columnas. La casilla "Cruda" es un check centrado en cajita */
-.past-cruda-box{display:flex;align-items:center;justify-content:center;height:34px;border:1.5px solid var(--border);border-radius:6px;background:#fff}
+/* Pasteurización: 5 columnas. Todas las casillas con la MISMA altura y alineadas. */
+.past-5col .form-row{justify-content:flex-end}
+.past-5col input:not([type=checkbox]),
+.past-5col select,
+.past-cruda-box{height:38px;box-sizing:border-box}
+.past-cruda-box{display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border);border-radius:6px;background:#fff}
 .past-cruda-box input{width:18px;height:18px;cursor:default;margin:0}
 .grid-alineado .form-row{margin-bottom:0}
 .co2-card .co2-lote-val{font-size:0.88rem;font-weight:700;color:var(--text);padding:5px 0}
@@ -795,7 +799,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.151</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.153</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -875,15 +879,13 @@ input[type="email"] {
       <div style="font-size:0.7rem;color:var(--text3);margin:8px 0 4px"><b>Distribución por tanques</b> — Para queso puro usa "Tanque procedencia". Para MEZCLA, rellena litros y tanque por tipo.</div>
       <div class="grid-alineado tanques-4col">
         <div class="form-row"><label class="form-label">Tanque procedencia</label><input type="text" id="np-tanque" placeholder="ej: 4 ó 3+4"></div>
-        <div></div><div></div><div></div>
-        <div class="form-row" style="grid-column:1"><label class="form-label">L. Vaca</label><input type="number" id="np-lvaca" inputmode="numeric"></div>
+        <div class="form-row"><label class="form-label">L. Vaca</label><input type="number" id="np-lvaca" inputmode="numeric"></div>
         <div class="form-row"><label class="form-label">L. Cabra</label><input type="number" id="np-lcabra" inputmode="numeric"></div>
         <div class="form-row"><label class="form-label">L. Oveja</label><input type="number" id="np-loveja" inputmode="numeric"></div>
         <div></div>
-        <div class="form-row" style="grid-column:1"><label class="form-label">Tanque vaca</label><input type="text" id="np-tanque-vaca" placeholder="2"></div>
+        <div class="form-row"><label class="form-label">Tanque vaca</label><input type="text" id="np-tanque-vaca" placeholder="2"></div>
         <div class="form-row"><label class="form-label">Tanque cabra</label><input type="text" id="np-tanque-cabra" placeholder="1"></div>
         <div class="form-row"><label class="form-label">Tanque oveja</label><input type="text" id="np-tanque-oveja" placeholder="4"></div>
-        <div></div>
       </div>
     </div>
   </div>
@@ -3856,18 +3858,19 @@ function renderEpForm(skipRecoger){
         null, null
       ]}
     ]);
-  // Cuajo: dentro de la fase de coagulación, en una sola fila (5 columnas centradas)
+  // Cuajo: dentro de la fase de coagulación, en una sola fila (6 columnas centradas)
   h += _epBloqueAlineado('Cuajo',
-    ['Nombre','Dosis','Proveedor','Lote','Caducidad'],
+    ['Nombre','Dosis /1000L','Dosis utiliz.','Proveedor','Lote','Caducidad'],
     [
       {titulo:'', valores:[
         _epInpC('ep-cuajo-nom', p.cuajo.nombre||''),
+        _epInpC('ep-cuajo-d1000', p.cuajo.dosis_ml_1000L||0, 'number'),
         _epInpC('ep-cuajo-cons', p.cuajo.consumo_total||p.cuajo.dosis_utilizada||0, 'number'),
         _epInpC('ep-cuajo-prov', p.cuajo.proveedor||''),
         _epInpC('ep-cuajo-lote', p.cuajo.lote||''),
         _epInpC('ep-cuajo-cad', p.cuajo.caducidad||'', 'date')
       ]}
-    ]);
+    ], 6);
 
   // ── DESUERADO EN CUBA (bloque con 3 subfases con el MISMO formato) ──
   h += _epSep('🌊 Desuerado en cuba');
@@ -4212,10 +4215,10 @@ function _epInpMini(id, val, tipo){
   var extra = ';text-align:center;text-align-last:center;-webkit-text-align-last:center';
   return '<input type="'+tipo+'"'+cls+' id="'+id+'" value="'+v+'" style="width:'+ancho+';padding:3px 4px;border:1px solid var(--border);border-radius:5px;font-size:0.78rem;background:var(--card)'+extra+'">';
 }
-function _epBloqueAlineado(tituloBloque, columnas, filas){
-  // Rejilla FIJA de 5 columnas de datos: TODAS las fases comparten el mismo ancho de columna.
+function _epBloqueAlineado(tituloBloque, columnas, filas, nCols){
+  // Rejilla FIJA de columnas de datos (5 por defecto; el Cuajo usa 6 para meter dosis/1000L).
   // CABECERA DE BLOQUE OSCURA (granate) + CUERPO CLARO. Etiqueta de columna y dato CENTRADOS.
-  var NCOLS = 5;
+  var NCOLS = nCols || 5;
   var gridCols = '64px repeat('+NCOLS+',1fr)';
   var h = '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
   if(tituloBloque) h += '<div style="background:#f4ebd8;border-bottom:1px solid var(--border);color:var(--brand);font-size:0.72rem;font-weight:700;padding:4px 9px;min-height:26px;display:flex;align-items:center">'+tituloBloque+'</div>';
@@ -4246,7 +4249,9 @@ function _epItemEditable(prefix, i, item){
   var etiqueta = (prefix==='aux'?'Auxiliar':'Fermento')+' '+(i+1);
   // Nombre más ancho (cabe "FLORA DANIC..."), Dosis estrecho (máx mil y pico),
   // y caducidad con sitio para el año completo.
-  var gridCols = '1.5fr 0.7fr 1.1fr 1.1fr 1fr';
+  // Nombre, dosis/1000L (estrecho), dosis utilizada, proveedor, lote, caducidad.
+  // Se reduce Nombre y Lote para encajar la columna /1000L sin descuadrar.
+  var gridCols = '1.25fr 0.6fr 0.7fr 1fr 0.95fr 1fr';
   // Tarjeta: cabecera de ELEMENTO (Nivel 2): fondo crema, texto granate + ✕ granate
   var h = '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;min-height:26px;background:#f4ebd8;border-bottom:1px solid var(--border);padding:1px 9px">';
@@ -4255,7 +4260,7 @@ function _epItemEditable(prefix, i, item){
   h += '</div>';
   // Cuerpo claro
   h += '<div style="background:var(--card);padding:7px 9px">';
-  var cols = ['Nombre','Dosis','Proveedor','Lote','Caducidad'];
+  var cols = ['Nombre','/1000L','Dosis util.','Proveedor','Lote','Caducidad'];
   h += '<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;margin-bottom:3px">';
   cols.forEach(function(c){ h += '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">'+c+'</div>'; });
   h += '</div>';
@@ -4271,6 +4276,7 @@ function _epItemEditable(prefix, i, item){
      +   'placeholder="— Elegir —" '
      +   'style="'+_epStyle()+';text-align:center;cursor:pointer">'
      + '</div>';
+  h += '<div>'+_epInpC('ep-'+prefix+'-d1000-'+i, item.dosis_ml_1000L||0, 'number')+'</div>';
   h += '<div>'+_epInpC('ep-'+prefix+'-cons-'+i, item.consumo_total||item.dosis_utilizada||0, 'number')+'</div>';
   h += '<div>'+_epInpC('ep-'+prefix+'-prov-'+i, item.proveedor||'')+'</div>';
   h += '<div>'+_epInpC('ep-'+prefix+'-lote-'+i, item.lote||'')+'</div>';
@@ -4545,7 +4551,7 @@ function _epRecogerEnEstado(){
         proveedor: v('ep-aux-prov-'+ka),
         lote: v('ep-aux-lote-'+ka),
         caducidad: v('ep-aux-cad-'+ka),
-        dosis_ml_1000L: prevA.dosis_ml_1000L,
+        dosis_ml_1000L: (n('ep-aux-d1000-'+ka)!==undefined? n('ep-aux-d1000-'+ka) : prevA.dosis_ml_1000L),
         unidad: prevA.unidad
       });
     }
@@ -4563,7 +4569,7 @@ function _epRecogerEnEstado(){
         proveedor: v('ep-fer-prov-'+kf),
         lote: v('ep-fer-lote-'+kf),
         caducidad: v('ep-fer-cad-'+kf),
-        dosis_ml_1000L: prevF.dosis_ml_1000L,
+        dosis_ml_1000L: (n('ep-fer-d1000-'+kf)!==undefined? n('ep-fer-d1000-'+kf) : prevF.dosis_ml_1000L),
         _codigoRotatorio: prevF._codigoRotatorio,
         unidad: prevF.unidad
       });
@@ -4573,6 +4579,7 @@ function _epRecogerEnEstado(){
   // Cuajo
   if(!p.cuajo) p.cuajo = {};
   if(v('ep-cuajo-nom')!==undefined)  p.cuajo.nombre = v('ep-cuajo-nom');
+  if(n('ep-cuajo-d1000')!==undefined) p.cuajo.dosis_ml_1000L = n('ep-cuajo-d1000');
   if(n('ep-cuajo-cons')!==undefined) p.cuajo.consumo_total = n('ep-cuajo-cons');
   if(v('ep-cuajo-prov')!==undefined) p.cuajo.proveedor = v('ep-cuajo-prov');
   if(v('ep-cuajo-lote')!==undefined) p.cuajo.lote = v('ep-cuajo-lote');
