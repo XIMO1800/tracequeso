@@ -120,19 +120,19 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .sep-label>*{margin-top:0;margin-bottom:0}
 /* ── Tema EDITOR para HOY v2 (se va maquillando hacia la estética del editor) ── */
 .tema-editor{}
-.tema-editor input[type=text],
-.tema-editor input[type=number],
-.tema-editor input[type=date],
-.tema-editor input[type=time],
-.tema-editor select,
-.tema-editor textarea{
-  padding:5px 7px;
-  border:1px solid var(--border);
+/* Cabeceras de bloque (Nivel 1) idénticas al editor de Calidad:
+   franja granate fina de altura fija, texto blanco compacto. */
+.tema-editor .seccion-header{
+  min-height:30px;
+  padding:2px 12px;
+  border-left:none;
   border-radius:6px;
-  font-size:0.82rem;
+  margin-top:14px;
 }
-.tema-editor .form-row{margin-bottom:8px}
-.tema-editor .form-label{font-size:0.68rem;margin-bottom:2px;letter-spacing:0.04em}
+.tema-editor .seccion-label{
+  font-size:0.82rem;
+  letter-spacing:0.05em;
+}
 /* Los inputs date/time nativos de la tablet no se dejan centrar de forma fiable
    (al forzarlo se recortaba el año o se añadía hueco). Se dejan en su comportamiento
    normal; lo prioritario es que el valor se vea completo y guarde bien. */
@@ -412,7 +412,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.114</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.115</div>
   </div>
 </div>
 <div class="nav-tabs">
