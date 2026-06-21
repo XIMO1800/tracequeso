@@ -120,9 +120,11 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .sep-label>*{margin-top:0;margin-bottom:0}
 /* ── Tema EDITOR para HOY v2 (se va maquillando hacia la estética del editor) ── */
 .tema-editor{}
-/* ── Vista de SOLO LECTURA del editor (historial del quesero) ── */
+/* ── Vista de SOLO LECTURA del editor (historial del quesero) ──
+   Las casillas usan el MISMO tono suave que el editor en edición (--bg, muy claro),
+   no el --bg2 (más oscuro), para que el historial se vea igual de suave que el editor. */
 .ep-readonly input,.ep-readonly select,.ep-readonly textarea{
-  background:var(--bg2)!important;
+  background:var(--card)!important;
   color:var(--text)!important;
   -webkit-text-fill-color:var(--text);
   opacity:1!important;
@@ -520,7 +522,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.127</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.128</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3276,6 +3278,7 @@ function _bloqueFirmasHTML(p, soloLectura){
       fb += '<button class="btn btn-danger" onclick="eliminarVistoBueno(\''+p.id+'\')">🗑️ Eliminar visto bueno</button>';
       fb += '</div>';
     }
+  } else {
     fb += '<div style="margin-top:8px;font-size:0.82rem;color:var(--text3);padding:8px;background:var(--bg2);border-radius:8px">Sin visto bueno de Calidad.</div>';
     if(!soloLectura && esCalidadOAdmin()) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="revisarPorCalidad(\''+p.id+'\')">✓ Revisar y firmar (Calidad)</button>';
   }
