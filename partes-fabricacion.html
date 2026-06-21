@@ -187,18 +187,25 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   margin:10px 0 7px;
   font-size:0.72rem;
 }
-/* Etiquetas de campo: tono del editor (gris/granate suave), compactas */
+/* Etiquetas de campo: tono del editor (gris/granate suave), compactas y CENTRADAS
+   sobre el dato, igual que la rejilla del editor (etiqueta pequeña arriba, valor debajo). */
 .tema-editor .form-label{
   color:var(--text3);
   font-size:0.62rem;
   letter-spacing:0.04em;
+  text-align:center;
 }
-/* NIVEL 3 — Casillas de datos: MISMOS colores EXACTOS que el editor.
-   Tres niveles bien diferenciados, como en el editor:
+.tema-editor .form-row input,
+.tema-editor .form-row select,
+.tema-editor .form-row textarea{
+  text-align:center;
+}
+/* NIVEL 3 — Casillas de datos: MISMO tono EXACTO que el editor/historial (#FCF9F3).
+   Tres niveles bien diferenciados, idénticos al editor:
      · Cabecera (Nivel 1): granate #8B2A2A + texto blanco
      · Sub-cabecera (Nivel 2): crema #f4ebd8 + texto granate
      · Cuerpo de tarjeta: blanco #FFFFFF (--card)
-     · Casillas de datos (Nivel 3): tono MUY LIGERO #FAF6EE (--bg), igual que _epStyle del editor */
+     · Casillas de datos (Nivel 3): crema muy suave #FCF9F3, igual que _epStyle del editor */
 .tema-editor .seccion-body,
 .tema-editor .card-body{
   background:var(--card);
@@ -209,7 +216,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .tema-editor input[type=time],
 .tema-editor select,
 .tema-editor textarea{
-  background:var(--bg);
+  background:#FCF9F3;
   border-color:var(--border);
 }
 /* Tarjetas internas (auxiliares/fermentos en papel-prod, CO₂, prensado) con marco fino */
@@ -525,7 +532,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.129</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.130</div>
   </div>
 </div>
 <div class="nav-tabs">
