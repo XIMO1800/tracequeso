@@ -46,13 +46,13 @@ body{font-family:Georgia,'Times New Roman',serif;background:var(--bg);color:var(
 .card-title{font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--text2)}
 .card-body{padding:14px 16px}
 .seccion{background:var(--card);border-radius:12px;border:1px solid var(--border);margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow)}
-.seccion-header{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
-.seccion-header:active{background:var(--bg2)}
+.seccion-header{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;background:#8B2A2A;border-left:5px solid #5b1a1a;border-radius:6px;box-shadow:0 1px 3px rgba(91,26,26,0.25)}
+.seccion-header:active{background:#7a2424}
 .seccion-header-left{display:flex;align-items:center;gap:10px}
 .seccion-icon{display:none}
-.seccion-label{font-size:0.92rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:0.04em}
+.seccion-label{font-size:0.92rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.04em}
 .seccion-sublabel{display:none}
-.seccion-chevron{font-size:0.85rem;color:var(--text3);transition:transform 0.2s}
+.seccion-chevron{font-size:0.85rem;color:#fff;transition:transform 0.2s}
 .seccion-chevron.open{transform:rotate(180deg)}
 .seccion-body{padding:14px 16px;border-top:1px solid var(--border);display:none}
 .seccion-body.open{display:block}
@@ -116,7 +116,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .lote-row-lote{font-family:'Courier New',monospace;font-size:0.85rem;color:var(--green);font-weight:700}
 .lote-row-meta{font-size:0.7rem;color:var(--text3)}
 .sep{height:1px;background:var(--border);margin:14px 0}
-.sep-label{display:flex;align-items:center;text-align:left;font-size:0.84rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#fff;margin:14px 0 6px;padding:0 12px;min-height:34px;box-sizing:border-box;border-left:5px solid #5b1a1a;background:#8B2A2A;border-radius:5px;box-shadow:0 1px 3px rgba(91,26,26,0.25)}
+.sep-label{display:flex;align-items:center;text-align:left;font-size:0.84rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--brand);margin:14px 0 6px;padding:0 12px;min-height:34px;box-sizing:border-box;border-left:4px solid var(--brand);background:var(--bg2);border-radius:5px}
 .sep-label>*{margin-top:0;margin-bottom:0}
 /* Los inputs date/time nativos de la tablet no se dejan centrar de forma fiable
    (al forzarlo se recortaba el año o se añadía hueco). Se dejan en su comportamiento
@@ -327,9 +327,9 @@ input[type="email"] {
 
 /* Botones discretos en cabecera de subsección (+ Añadir, ⚙️ Configurar) */
 .sep-action-btn{
-  background:rgba(255,255,255,0.15);
-  border:1px solid rgba(255,255,255,0.7);
-  color:#fff;
+  background:#fff;
+  border:1px solid var(--brand);
+  color:var(--brand);
   font-size:0.72rem;
   font-weight:700;
   cursor:pointer;
@@ -341,7 +341,7 @@ input[type="email"] {
   font-family:inherit;
 }
 .sep-action-btn:hover{
-  background:rgba(255,255,255,0.3);
+  background:rgba(122,31,31,0.08);
   border-radius:5px;
 }
 
@@ -397,7 +397,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.109</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.110</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -683,7 +683,7 @@ input[type="email"] {
       </div>
       <!-- Lavado cuajada (entre recalentamiento y agitación) -->
       <label class="sep-label" id="lavado-banda" for="lavado-aplicado" style="cursor:pointer;justify-content:flex-start;gap:8px">
-        <input type="checkbox" id="lavado-aplicado" onchange="toggleLavadoAplicado()" style="width:15px;height:15px;accent-color:#fff;cursor:pointer;margin:0;flex:none">
+        <input type="checkbox" id="lavado-aplicado" onchange="toggleLavadoAplicado()" style="width:15px;height:15px;accent-color:var(--brand);cursor:pointer;margin:0;flex:none">
         <span id="lavado-title">Lavado de cuajada</span>
       </label>
       <div id="lavado-block" class="opt-aux-block cerrado">
