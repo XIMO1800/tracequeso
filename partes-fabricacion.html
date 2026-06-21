@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.87</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.88</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3583,14 +3583,15 @@ function _epInp(id, val, tipo, ph){
 }
 function _epInpC(id, val, tipo, ph){
   // Input centrado, para usar dentro de los bloques alineados.
-  // Los inputs time/date no obedecen a text-align normal: necesitan text-align-last
-  // y centrar el contenido nativo. Añadimos esas reglas cuando el tipo lo requiere.
+  // Para time/date, Chrome no centra con text-align: hay que usar flex en el propio input,
+  // que centra el contenido nativo (el valor del selector de hora/fecha).
   tipo = tipo || 'text';
   var v = (val===undefined||val===null) ? '' : String(val).replace(/"/g,'&quot;');
-  var extra = ';text-align:center;text-align-last:center;padding-left:4px;padding-right:4px';
+  var extra;
   if(tipo==='time' || tipo==='date'){
-    // Centrado del valor nativo en time/date
-    extra = ';text-align:center;text-align-last:center;-webkit-text-align-last:center;padding-left:4px;padding-right:4px';
+    extra = ';text-align:center;text-align-last:center;-webkit-text-align-last:center;display:flex;justify-content:center;align-items:center;padding-left:4px;padding-right:4px';
+  } else {
+    extra = ';text-align:center;text-align-last:center;padding-left:4px;padding-right:4px';
   }
   return '<input type="'+tipo+'" id="'+id+'" value="'+v+'" placeholder="'+(ph||'')+'" style="'+_epStyle()+extra+'">';
 }
@@ -3623,13 +3624,13 @@ function _ep2(l1, h1, l2, h2){
 // de modo que Hora queda sobre Hora, Tª sobre Tª, etc. Las celdas sin dato van vacías.
 // columnas = [{label}], filas = [{titulo, valores:[htmlOrNull,...]}]
 function _epCondicionAdicion(idHora, hora, idPh, ph, idTemp, temp){
-  // Franja fina OSCURA (granate) integrada como contexto de la fase: "en la adición".
-  // Una sola línea: Hora · pH · Tª, etiqueta delante del dato. Inputs claros centrados.
-  var et='font-size:0.62rem;font-weight:700;color:#fff;white-space:nowrap';
+  // Tira de contexto de la fase ("en la adición"): una sola línea, tono suave (no compite
+  // con la cabecera). Etiqueta delante del dato. Va pegada bajo la cabecera de sección.
+  var et='font-size:0.62rem;font-weight:700;color:var(--brand);white-space:nowrap';
   var celda='display:flex;align-items:center;gap:4px;justify-content:center';
-  var h = '<div style="background:var(--brand);border-radius:6px;padding:5px 9px;margin-bottom:7px">';
+  var h = '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 9px;margin-bottom:7px">';
   h += '<div style="display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:8px;align-items:center">';
-  h += '<div style="font-size:0.6rem;font-style:italic;color:rgba(255,255,255,0.85);white-space:nowrap">en la adición</div>';
+  h += '<div style="font-size:0.6rem;font-style:italic;color:var(--text2);white-space:nowrap">en la adición</div>';
   h += '<div style="'+celda+'"><span style="'+et+'">Hora:</span>'+_epInpMini(idHora, hora, 'time')+'</div>';
   h += '<div style="'+celda+'"><span style="'+et+'">pH:</span>'+_epInpMini(idPh, ph, 'number')+'</div>';
   h += '<div style="'+celda+'"><span style="'+et+'">Tª:</span>'+_epInpMini(idTemp, temp, 'number')+'</div>';
@@ -3640,7 +3641,9 @@ function _epInpMini(id, val, tipo){
   // Input compacto y claro para la franja de adición
   tipo = tipo || 'text';
   var v = (val===undefined||val===null) ? '' : String(val).replace(/"/g,'&quot;');
-  var extra = (tipo==='time'||tipo==='date') ? ';text-align:center;text-align-last:center;-webkit-text-align-last:center' : ';text-align:center;text-align-last:center';
+  var extra = (tipo==='time'||tipo==='date')
+    ? ';text-align:center;text-align-last:center;-webkit-text-align-last:center;display:flex;justify-content:center;align-items:center'
+    : ';text-align:center;text-align-last:center';
   return '<input type="'+tipo+'" id="'+id+'" value="'+v+'" style="width:100%;padding:3px 4px;border:1px solid var(--border);border-radius:5px;font-size:0.78rem;background:var(--card)'+extra+'">';
 }
 function _epBloqueAlineado(tituloBloque, columnas, filas){
