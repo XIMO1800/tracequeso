@@ -421,7 +421,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.117</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.118</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3866,7 +3866,15 @@ function _epItemEditable(prefix, i, item){
   cols.forEach(function(c){ h += '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">'+c+'</div>'; });
   h += '</div>';
   h += '<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;align-items:center">';
-  h += '<div>'+_epInpC('ep-'+prefix+'-nom-'+i, item.nombre||'')+'</div>';
+  // Nombre: al tocarlo abre el SELECTOR de producto del stock (no se escribe a mano).
+  // Se rellena solo nombre·dosis·proveedor·lote(FIFO)·caducidad al elegir.
+  var nomVal = (item.nombre||'').replace(/"/g,'&quot;');
+  h += '<div>'
+     + '<input type="text" id="ep-'+prefix+'-nom-'+i+'" value="'+nomVal+'" readonly '
+     +   'onclick="_epAbrirSelProducto(\''+prefix+'\','+i+')" '
+     +   'placeholder="— Elegir —" '
+     +   'style="'+_epStyle()+';text-align:center;cursor:pointer;background:var(--bg)">'
+     + '</div>';
   h += '<div>'+_epInpC('ep-'+prefix+'-cons-'+i, item.consumo_total||item.dosis_utilizada||0, 'number')+'</div>';
   h += '<div>'+_epInpC('ep-'+prefix+'-prov-'+i, item.proveedor||'')+'</div>';
   h += '<div>'+_epInpC('ep-'+prefix+'-lote-'+i, item.lote||'')+'</div>';
@@ -3874,6 +3882,82 @@ function _epItemEditable(prefix, i, item){
   h += '</div>';
   h += '</div></div>';
   return h;
+}
+
+// Abre un selector con los productos del stock para esa categoría (auxiliar o fermento).
+// Al elegir uno, rellena nombre + lote (FIFO) + proveedor + caducidad en la fila i,
+// y propone la dosis utilizada (litros × dosis/1000) si la receta la conoce.
+function _epAbrirSelProducto(prefix, i){
+  if(window._epSoloLectura) return; // en modo lectura no se edita
+  var categoria = (prefix==='aux') ? 'AUXILIAR FABRICACION' : 'FERMENTO';
+  var productos = [];
+  try{ productos = articulosDeCategoria(categoria) || []; }catch(e){}
+  var titulo = (prefix==='aux') ? 'Elegir auxiliar' : 'Elegir fermento';
+  var h = '<div class="modal-title">'+titulo+' <button class="modal-close" onclick="_epCerrarSelProducto()">×</button></div>';
+  if(!productos.length){
+    h += '<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">No hay '+(prefix==='aux'?'auxiliares':'fermentos')+' en stock.<br>Calidad debe registrar una entrada desde TraceQueso.</div></div>';
+  } else {
+    h += '<div style="margin-bottom:8px;font-size:0.8rem;color:var(--text2)">Toca un producto para rellenar lote, proveedor y caducidad automáticamente:</div>';
+    productos.forEach(function(nom){
+      var lote = null; try{ lote = obtenerLoteActivo(nom); }catch(e){}
+      var meta = lote ? ('Lote '+lote.lote+(lote.caducidad?(' · cad '+formatearFecha(lote.caducidad)):'')+(lote.proveedor?(' · '+lote.proveedor):'')) : 'Sin lote en stock';
+      h += '<div class="opt-row" onclick="_epElegirProducto(\''+prefix+'\','+i+',\''+String(nom).replace(/'/g,"\\'")+'\')">'
+        +    '<div class="opt-row-info"><div class="opt-row-lote">'+nom+'</div><div class="opt-row-meta">'+meta+'</div></div>'
+        +    (lote && lote.cantidad!=null ? '<div class="opt-row-stock">'+lote.cantidad+' '+(lote.unidad||'')+'</div>' : '')
+        +  '</div>';
+    });
+  }
+  // Usar un overlay propio para no pisar el modal del editor que está abierto debajo
+  var ov = document.getElementById('ep-selprod-overlay');
+  if(ov) ov.remove();
+  ov = document.createElement('div');
+  ov.id = 'ep-selprod-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:6000;display:flex;align-items:flex-end';
+  ov.innerHTML = '<div style="background:var(--card);border-radius:20px 20px 0 0;width:100%;max-height:80vh;overflow-y:auto;padding:18px 16px">'+h+'</div>';
+  document.body.appendChild(ov);
+}
+function _epCerrarSelProducto(){
+  var ov = document.getElementById('ep-selprod-overlay');
+  if(ov) ov.remove();
+}
+function _epElegirProducto(prefix, i, nombre){
+  // 1) Recoger el estado actual del DOM para no perder lo escrito en otras filas
+  _epRecogerEnEstado();
+  var p = window._parteEditando;
+  var lista = (prefix==='aux') ? 'auxiliares' : 'fermentos';
+  if(!p[lista] || !p[lista][i]) { _epCerrarSelProducto(); return; }
+  var item = p[lista][i];
+  item.nombre = nombre;
+  // 2) Lote activo (FIFO) → proveedor, lote, caducidad, unidad
+  var lote = null; try{ lote = obtenerLoteActivo(nombre); }catch(e){}
+  if(lote){
+    item.proveedor = lote.proveedor || '';
+    item.lote      = lote.lote || '';
+    item.caducidad = lote.caducidad || '';
+    item.unidad    = lote.unidad || item.unidad || '';
+  }
+  // 3) Dosis utilizada: si una receta del mismo tipo·variedad conoce la dosis/1000L
+  //    de este producto, proponer litros × dosis/1000. Si no, dejar lo que hubiera.
+  try{
+    var receta = RECETAS_DEMO.find(function(r){ return r.tipo===p.tipo && (r.variedad||'')===(p.variedad||''); });
+    if(receta){
+      var fuente = (prefix==='aux') ? (receta.auxiliares||[]) : (receta.fermentos||[]);
+      var def = fuente.find(function(x){ return String(x.nombre||'').toUpperCase().trim()===String(nombre).toUpperCase().trim(); });
+      if(def && def.dosis_ml_1000L){
+        item.dosis_ml_1000L = def.dosis_ml_1000L;
+        var litros = parseFloat(p.litros)||0;
+        if(litros>0){
+          var prop = (typeof _redondeaAlza5==='function') ? _redondeaAlza5(litros*def.dosis_ml_1000L/1000) : Math.round(litros*def.dosis_ml_1000L/1000);
+          if(!item.consumo_total || item.consumo_total===0) item.consumo_total = prop;
+        }
+      }
+    }
+  }catch(e){}
+  _epCerrarSelProducto();
+  // 4) Repintar el formulario para reflejar los datos rellenados
+  var epForm = document.getElementById('ep-form');
+  if(epForm) epForm.innerHTML = '';
+  renderEpForm(true);
 }
 function _epTanqueMezclaRow(tipoLeche, label, litros, tanque){
   return '<div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px;padding:6px;background:var(--bg2);border-radius:6px">'
