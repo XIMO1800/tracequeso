@@ -378,7 +378,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.84</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.86</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3154,8 +3154,9 @@ function renderEpForm(skipRecoger){
 
   // ── CABECERA ──
   h += _epSep('📋 Cabecera');
-  // Una sola línea de 6 columnas: Fecha · Tipo · Variedad · Lote · Cuba · Operario
-  var gcCab='repeat(6,1fr)';
+  // Una sola línea, anchos a medida: Fecha y Lote a su tamaño, Cuba muy estrecha (1 díg),
+  // y el espacio sobrante para Tipo, Variedad y Operario.
+  var gcCab='96px 1.3fr 1.3fr 84px 40px 1.2fr';
   h += '<div style="background:var(--bg2);border-radius:8px;padding:7px 9px;margin-bottom:7px;border:1px solid var(--border)">';
   h += '<div style="font-size:0.74rem;font-weight:700;color:var(--brand);margin-bottom:5px">Datos del parte</div>';
   h += '<div style="display:grid;grid-template-columns:'+gcCab+';gap:6px;margin-bottom:3px">'
@@ -3194,30 +3195,24 @@ function renderEpForm(skipRecoger){
     h += _epTanqueMezclaRow('cabra',  'L. Cabra', p.lcabra||0, p.tanque_cabra  || _tanqueDefault('CABRA'));
     h += _epTanqueMezclaRow('oveja',  'L. Oveja', p.loveja||0, p.tanque_oveja  || _tanqueDefault('OVEJA'));
   } else {
-    // Caso normal: UN solo bloque con dos líneas (Litros·pH·Tª·°D / Tanque)
-    var gcLe='64px repeat(5,1fr)';
+    // Caso normal: UN solo bloque, UNA línea con los 5 datos (Litros·pH·Tª·°D·Tanque)
+    var gcLe='repeat(5,1fr)';
     h += '<div style="background:var(--bg2);border-radius:8px;padding:7px 9px;margin-bottom:7px;border:1px solid var(--border)">';
     h += '<div style="font-size:0.74rem;font-weight:700;color:var(--brand);margin-bottom:5px">Leche</div>';
-    // Línea 1
-    h += '<div style="display:grid;grid-template-columns:'+gcLe+';gap:6px;margin-bottom:3px"><div></div>'
+    h += '<div style="display:grid;grid-template-columns:'+gcLe+';gap:6px;margin-bottom:3px">'
        + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Litros</div>'
        + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">pH</div>'
        + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Tª (°C)</div>'
-       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">°D</div><div></div></div>';
-    h += '<div style="display:grid;grid-template-columns:'+gcLe+';gap:6px;align-items:center;margin-bottom:4px"><div></div>'
+       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">°D</div>'
+       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Tanque</div></div>';
+    h += '<div style="display:grid;grid-template-columns:'+gcLe+';gap:6px;align-items:center">'
        + '<div>'+_epInpC('ep-litros', p.litros||0, 'number')+'</div>'
        + '<div>'+_epInpC('ep-ph', p.ph, 'number')+'</div>'
        + '<div>'+_epInpC('ep-temp', p.temp, 'number')+'</div>'
-       + '<div>'+_epInpC('ep-dornic', p.dornic_leche, 'number')+'</div><div></div></div>';
-    // Línea 2: Tanque procedencia
-    h += '<div style="display:grid;grid-template-columns:'+gcLe+';gap:6px;margin-bottom:3px"><div></div>'
-       + '<div style="font-size:0.64rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Tanque</div>'
-       + '<div></div><div></div><div></div><div></div></div>';
-    h += '<div style="display:grid;grid-template-columns:'+gcLe+';gap:6px;align-items:center"><div></div>'
-       + '<div>'+_epInpC('ep-tanque', p.tanque || _tanqueDefault(p.tipo))+'</div>'
-       + '<div></div><div></div><div></div><div></div></div>';
+       + '<div>'+_epInpC('ep-dornic', p.dornic_leche, 'number')+'</div>'
+       + '<div>'+_epInpC('ep-tanque', p.tanque || _tanqueDefault(p.tipo))+'</div></div>';
     h += '</div>';
-    h += '<div style="font-size:0.68rem;color:var(--text3);margin-bottom:8px">Por defecto: cabra=1, vaca=2, manchega=3, oveja=4. Editable. Varios tanques: ej. "3+4".</div>';
+    h += '<div style="font-size:0.68rem;color:var(--text3);margin-bottom:8px">Tanque por defecto: cabra=1, vaca=2, manchega=3, oveja=4. Editable. Varios: ej. "3+4".</div>';
   }
 
   // ── PASTEURIZACIÓN ──
@@ -3241,15 +3236,10 @@ function renderEpForm(skipRecoger){
   h += _epSep('🧪 Auxiliares de fabricación', 'auxiliares', 'auxiliar');
   // Momento de adición de auxiliares: hora + pH/Tª de la leche en ese instante (editable).
   // El pH/Tª son los mismos que pH leche / Tª leche (co2.ph_leche / co2.temp_leche).
-  h += _epBloqueAlineado('Adición de auxiliares',
-    ['Hora','pH','Tª (°C)'],
-    [
-      {titulo:'Adición', valores:[
-        _epInpC('ep-aux-hadicion', (p.aux_meta&&p.aux_meta.hadicion)||'', 'time'),
-        _epInpC('ep-aux-ph', (p.co2&&p.co2.ph_leche)||'', 'number'),
-        _epInpC('ep-aux-temp', (p.co2&&p.co2.temp_leche)||'', 'number')
-      ]}
-    ]);
+  h += _epCondicionAdicion(
+    'ep-aux-hadicion', (p.aux_meta&&p.aux_meta.hadicion)||'',
+    'ep-aux-ph', (p.co2&&p.co2.ph_leche)||'',
+    'ep-aux-temp', (p.co2&&p.co2.temp_leche)||'');
   // Fila especial CO₂ (siempre visible, con campos propios: tiempo/caudal + lote/proveedor/caducidad)
   h += '<div style="background:var(--bg2);border-radius:8px;padding:9px 10px;margin-bottom:10px;border:1px solid var(--border)">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px"><b style="font-size:0.74rem;color:var(--brand)">🌫️ CO₂</b><span style="font-size:0.66rem;color:var(--text3)">Caudal fijo 100 L/h · Tiempo calculado</span></div>';
@@ -3278,16 +3268,11 @@ function renderEpForm(skipRecoger){
 
   // ── FERMENTOS ──
   h += _epSep('🦠 Fermentos', 'fermentos', 'fermento');
-  // Momento de adición de fermentos: hora + pH + Tª (mismo formato que auxiliares)
-  h += _epBloqueAlineado('Adición de fermentos',
-    ['Hora','pH','Tª (°C)'],
-    [
-      {titulo:'Adición', valores:[
-        _epInpC('ep-ferm-hadicion', (p.ferm_meta&&p.ferm_meta.hadicion)||'', 'time'),
-        _epInpC('ep-ferm-ph', (p.ferm_meta&&p.ferm_meta.ph)||'', 'number'),
-        _epInpC('ep-ferm-temp', (p.ferm_meta&&p.ferm_meta.temp)||'', 'number')
-      ]}
-    ]);
+  // Momento de adición de fermentos: tira fina discreta (no parece un fermento más)
+  h += _epCondicionAdicion(
+    'ep-ferm-hadicion', (p.ferm_meta&&p.ferm_meta.hadicion)||'',
+    'ep-ferm-ph', (p.ferm_meta&&p.ferm_meta.ph)||'',
+    'ep-ferm-temp', (p.ferm_meta&&p.ferm_meta.temp)||'');
   if(p.fermentos.length===0){
     h += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:6px;padding:6px 8px;background:var(--bg2);border-radius:6px">Sin fermentos registrados.</div>';
   }
@@ -3589,10 +3574,17 @@ function _epInp(id, val, tipo, ph){
   return '<input type="'+tipo+'" id="'+id+'" value="'+v+'" placeholder="'+(ph||'')+'" style="'+_epStyle()+'">';
 }
 function _epInpC(id, val, tipo, ph){
-  // Input centrado, para usar dentro de los bloques alineados de 5 columnas
+  // Input centrado, para usar dentro de los bloques alineados.
+  // Los inputs time/date no obedecen a text-align normal: necesitan text-align-last
+  // y centrar el contenido nativo. Añadimos esas reglas cuando el tipo lo requiere.
   tipo = tipo || 'text';
   var v = (val===undefined||val===null) ? '' : String(val).replace(/"/g,'&quot;');
-  return '<input type="'+tipo+'" id="'+id+'" value="'+v+'" placeholder="'+(ph||'')+'" style="'+_epStyle()+';text-align:center;padding-left:4px;padding-right:4px">';
+  var extra = ';text-align:center;text-align-last:center;padding-left:4px;padding-right:4px';
+  if(tipo==='time' || tipo==='date'){
+    // Centrado del valor nativo en time/date
+    extra = ';text-align:center;text-align-last:center;-webkit-text-align-last:center;padding-left:4px;padding-right:4px';
+  }
+  return '<input type="'+tipo+'" id="'+id+'" value="'+v+'" placeholder="'+(ph||'')+'" style="'+_epStyle()+extra+'">';
 }
 function _epSel(id, opts, onchange){
   return '<select id="'+id+'" style="'+_epStyle()+'"'+(onchange?' onchange="'+onchange+'"':'')+'>'+opts+'</select>';
@@ -3622,6 +3614,22 @@ function _ep2(l1, h1, l2, h2){
 // Bloque inicio/fin con columnas ALINEADAS: ambas filas comparten la misma rejilla,
 // de modo que Hora queda sobre Hora, Tª sobre Tª, etc. Las celdas sin dato van vacías.
 // columnas = [{label}], filas = [{titulo, valores:[htmlOrNull,...]}]
+function _epCondicionAdicion(idHora, hora, idPh, ph, idTemp, temp){
+  // Tira FINA y discreta (no parece un ítem de lista): "En el momento de añadir: Hora·pH·Tª".
+  // Tono y tamaño distintos a los bloques de fermento/auxiliar para que no se confunda.
+  var lblCol='font-size:0.6rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center';
+  var h = '<div style="background:rgba(139,90,43,0.06);border:1px dashed var(--border);border-radius:6px;padding:4px 8px;margin-bottom:7px">';
+  h += '<div style="display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:6px;align-items:center">';
+  h += '<div style="font-size:0.62rem;font-style:italic;color:var(--text3);white-space:nowrap;padding-right:2px">en la adición</div>';
+  h += '<div>'+_epInpC(idHora, hora, 'time')+'</div>';
+  h += '<div>'+_epInpC(idPh, ph, 'number')+'</div>';
+  h += '<div>'+_epInpC(idTemp, temp, 'number')+'</div>';
+  h += '</div>';
+  h += '<div style="display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:6px;margin-top:2px">';
+  h += '<div></div><div style="'+lblCol+'">Hora</div><div style="'+lblCol+'">pH</div><div style="'+lblCol+'">Tª (°C)</div>';
+  h += '</div></div>';
+  return h;
+}
 function _epBloqueAlineado(tituloBloque, columnas, filas){
   // Rejilla FIJA de 5 columnas de datos: TODAS las fases comparten el mismo ancho de columna.
   // Etiqueta de columna y dato CENTRADOS. Si una sección usa menos columnas/datos,
