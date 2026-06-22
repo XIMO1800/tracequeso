@@ -809,12 +809,11 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.157</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.159</div>
   </div>
 </div>
 <div class="nav-tabs">
-  <div class="nav-tab active" data-tab="hoy" onclick="switchTab('hoy')">📋 HOY</div>
-  <div class="nav-tab" data-tab="hoyv2" onclick="switchTab('hoyv2')">🧪 HOY v2</div>
+  <div class="nav-tab active" data-tab="hoy" onclick="switchTab('hoy')">📝 HOY</div>
   <div class="nav-tab" data-tab="historial" onclick="switchTab('historial')">📚 HISTORIAL</div>
   <div class="nav-tab" data-tab="recetas" onclick="switchTab('recetas')">📖 RECETAS</div>
   <div class="nav-tab" data-tab="lotes" onclick="switchTab('lotes')">🏷️ LOTES</div>
@@ -1225,8 +1224,8 @@ input[type="email"] {
 </div>
 
 <div id="screen-recetas" class="screen">
-  <div class="warn-banner">📖 Las recetas definen qué cuajo, fermentos y dosis usar para cada tipo·variedad. Cuando seleccionas una receta en un parte nuevo, todo se calcula automáticamente.</div>
-  <button class="btn btn-primary" style="margin-bottom:12px" onclick="abrirReceta(null)">➕ Nueva receta</button>
+  <div class="warn-banner" id="recetas-banner">📖 Las recetas definen qué cuajo, fermentos y dosis usar para cada tipo·variedad. Cuando seleccionas una receta en un parte nuevo, todo se calcula automáticamente.</div>
+  <button class="btn btn-primary" id="btn-nueva-receta" style="margin-bottom:12px" onclick="abrirReceta(null)">➕ Nueva receta</button>
   <div class="card" id="lista-recetas"></div>
 </div>
 
@@ -1349,6 +1348,12 @@ function operariosCalidad(){
     return r;
   }
   return OPERARIOS.slice();
+}
+
+// Permiso de EDICIÓN de recetas: solo Calidad o ADMIN pueden crear/modificar/eliminar
+// recetas (dosis, ingredientes). Queseros y operarios solo pueden consultarlas.
+function puedeEditarRecetas(){
+  return _rolContiene(ROL_ACTUAL,'CALIDAD') || _rolContiene(ROL_ACTUAL,'ADMIN');
 }
 
 function cargarOperarios(){
@@ -2285,19 +2290,17 @@ function switchTab(tab){
   }
   var screens = document.querySelectorAll('.screen');
   for(var i=0;i<screens.length;i++) screens[i].style.display='none';
-  // HOY v2 reutiliza la MISMA pantalla de HOY (mismos automatismos), solo cambia la
-  // "piel" visual mediante la clase tema-editor. Así no duplicamos lógica ni IDs.
-  var idPantalla = (tab==='hoyv2') ? 'hoy' : tab;
-  var target = document.getElementById('screen-'+idPantalla);
+  // La pantalla HOY usa siempre la estética del editor (tema-editor).
+  var target = document.getElementById('screen-'+tab);
   if(target) target.style.display='block';
   var scrHoy = document.getElementById('screen-hoy');
-  if(scrHoy){ if(tab==='hoyv2') scrHoy.classList.add('tema-editor'); else scrHoy.classList.remove('tema-editor'); }
+  if(scrHoy){ if(tab==='hoy') scrHoy.classList.add('tema-editor'); else scrHoy.classList.remove('tema-editor'); }
   window.scrollTo(0,0);
-  // Badge de cuba: visible en HOY y HOY v2
+  // Badge de cuba: visible en HOY
   var badge = document.getElementById('hdr-cuba-badge');
-  if(badge) badge.style.display = ((tab==='hoy'||tab==='hoyv2') && CUBA_ACTIVA_ID) ? 'block' : 'none';
+  if(badge) badge.style.display = (tab==='hoy' && CUBA_ACTIVA_ID) ? 'block' : 'none';
   // Refrescar contenido según pantalla
-  if(tab==='hoy'||tab==='hoyv2'){ try{ renderPestanasCubas(); }catch(e){} }
+  if(tab==='hoy'){ try{ renderPestanasCubas(); }catch(e){} }
   if(tab==='historial'){ try{ renderPartes(); }catch(e){} try{ cargarPartesSheets(_filtroFecha); }catch(e){} }
 }
 
@@ -4839,6 +4842,16 @@ function eliminarParte(id){
 function renderRecetas(){
   var c=document.getElementById('lista-recetas');
   if(!c)return;
+  // Permiso: solo Calidad/ADMIN pueden crear/editar. El resto, solo consulta.
+  var editable = puedeEditarRecetas();
+  var btnNueva = document.getElementById('btn-nueva-receta');
+  if(btnNueva) btnNueva.style.display = editable ? '' : 'none';
+  var banner = document.getElementById('recetas-banner');
+  if(banner){
+    banner.innerHTML = editable
+      ? '📖 Las recetas definen qué cuajo, fermentos y dosis usar para cada tipo·variedad. Cuando seleccionas una receta en un parte nuevo, todo se calcula automáticamente.'
+      : '🔒 Recetas en modo solo lectura. Puedes consultar dosis e ingredientes; las modifica el equipo de Calidad.';
+  }
   if(!RECETAS_DEMO.length){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📖</div><div class="empty-state-text">No hay recetas creadas.<br>Pulsa "Nueva receta" para empezar.</div></div>';return;}
   var h='';
   RECETAS_DEMO.forEach(function(r){
@@ -4867,19 +4880,27 @@ function abrirReceta(id){
 
 function renderEditorReceta(){
   var r=window._recetaEditando;
-  var h='<div class="modal-title">'+(r.id?'Editar receta':'Nueva receta')+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
+  var editable = puedeEditarRecetas();
+  var h='<div class="modal-title">'+(editable?(r.id?'Editar receta':'Nueva receta'):'Ver receta')+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
+  if(!editable) h+='<div class="warn-banner" style="margin-bottom:12px">🔒 Solo lectura. Las recetas las modifica el equipo de Calidad.</div>';
+  var dis = editable ? '' : ' disabled';
   var tipoOpts='<option value="">— Tipo —</option>';
   Object.keys(TIPOS_VARIEDADES).forEach(function(t){tipoOpts+='<option value="'+t+'"'+(t===r.tipo?' selected':'')+'>'+t+'</option>';});
   var varOpts='<option value="">— Variedad —</option>';
   if(r.tipo&&TIPOS_VARIEDADES[r.tipo]){TIPOS_VARIEDADES[r.tipo].forEach(function(v){varOpts+='<option value="'+v+'"'+(v===r.variedad?' selected':'')+'>'+v+'</option>';});}
-  h+='<div class="form-cols"><div class="form-row"><label class="form-label">Tipo</label><select id="rec-tipo" onchange="onRecTipoChange()">'+tipoOpts+'</select></div><div class="form-row"><label class="form-label">Variedad</label><select id="rec-var" onchange="onRecVarChange()">'+varOpts+'</select></div></div>';
-  h+='<div class="sep-label">Auxiliares</div><div id="aux-edit-list"></div><button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="addIng(\'auxiliares\')">➕ Añadir auxiliar</button>';
-  h+='<div class="sep-label">Fermentos</div><div id="ferm-edit-list"></div><button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="addIng(\'fermentos\')">➕ Añadir fermento</button>';
+  h+='<div class="form-cols"><div class="form-row"><label class="form-label">Tipo</label><select id="rec-tipo" onchange="onRecTipoChange()"'+dis+'>'+tipoOpts+'</select></div><div class="form-row"><label class="form-label">Variedad</label><select id="rec-var" onchange="onRecVarChange()"'+dis+'>'+varOpts+'</select></div></div>';
+  h+='<div class="sep-label">Auxiliares</div><div id="aux-edit-list"></div>';
+  if(editable) h+='<button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="addIng(\'auxiliares\')">➕ Añadir auxiliar</button>';
+  h+='<div class="sep-label">Fermentos</div><div id="ferm-edit-list"></div>';
+  if(editable) h+='<button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="addIng(\'fermentos\')">➕ Añadir fermento</button>';
   h+='<div class="sep-label">Cuajo</div><div id="cuajo-edit-list"></div>';
-  if(!r.cuajo)h+='<button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="addIng(\'cuajo\')">➕ Añadir cuajo</button>';
-  h+='<div style="margin-top:20px"><button class="btn btn-primary" onclick="guardarReceta()">💾 Guardar receta</button>';
-  if(r.id)h+='<button class="btn btn-danger" style="margin-top:8px" onclick="eliminarReceta(\''+r.id+'\')">🗑️ Eliminar</button>';
-  h+='<button class="btn btn-secondary" style="margin-top:8px" onclick="cerrarModal()">Cancelar</button></div>';
+  if(editable && !r.cuajo)h+='<button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="addIng(\'cuajo\')">➕ Añadir cuajo</button>';
+  h+='<div style="margin-top:20px">';
+  if(editable){
+    h+='<button class="btn btn-primary" onclick="guardarReceta()">💾 Guardar receta</button>';
+    if(r.id)h+='<button class="btn btn-danger" style="margin-top:8px" onclick="eliminarReceta(\''+r.id+'\')">🗑️ Eliminar</button>';
+  }
+  h+='<button class="btn btn-secondary" style="margin-top:8px" onclick="cerrarModal()">'+(editable?'Cancelar':'Cerrar')+'</button></div>';
   abrirModal(h);refrescarIngs();
 }
 
@@ -4909,6 +4930,8 @@ function getProductosStockPorCategoria(cat){
 
 function refrescarIngs(){
   var r=window._recetaEditando;
+  var editable = puedeEditarRecetas();
+  var dis = editable ? '' : ' disabled';
   function pintar(lista,contId,tipo){
     var c=document.getElementById(contId);if(!c)return;
     if(!lista||!lista.length){c.innerHTML='<div style="font-size:0.78rem;color:var(--text3);padding:8px 0">Sin ingredientes</div>';return;}
@@ -4925,11 +4948,11 @@ function refrescarIngs(){
         opts += '<option value="'+nom+'"'+(nom===p.nombre?' selected':'')+'>'+nom+'</option>';
       });
       h+='<div class="ferm-row">'
-        + '<button class="ferm-row-del" onclick="delIng(\''+tipo+'\','+i+')">Eliminar</button>'
+        + (editable ? '<button class="ferm-row-del" onclick="delIng(\''+tipo+'\','+i+')">Eliminar</button>' : '')
         + '<div class="form-row"><label class="form-label">Producto</label>'
-        +   '<select onchange="updIng(\''+tipo+'\','+i+',\'nombre\',this.value)">'+opts+'</select>'
+        +   '<select onchange="updIng(\''+tipo+'\','+i+',\'nombre\',this.value)"'+dis+'>'+opts+'</select>'
         + '</div>'
-        + '<div class="form-row"><label class="form-label">Dosis ml/g por 1000L</label><input type="number" value="'+(p.dosis_ml_1000L||'')+'" oninput="updIng(\''+tipo+'\','+i+',\'dosis_ml_1000L\',parseFloat(this.value))"></div>'
+        + '<div class="form-row"><label class="form-label">Dosis ml/g por 1000L</label><input type="number" value="'+(p.dosis_ml_1000L||'')+'" oninput="updIng(\''+tipo+'\','+i+',\'dosis_ml_1000L\',parseFloat(this.value))"'+dis+'></div>'
         + '</div>';
     });
     c.innerHTML=h;
@@ -4940,6 +4963,7 @@ function refrescarIngs(){
 }
 
 function addIng(tipo){
+  if(!puedeEditarRecetas()) return;
   var r=window._recetaEditando;
   // Guardar tipo/variedad actuales del DOM antes de repintar
   var tEl=document.getElementById('rec-tipo'); if(tEl) r.tipo=(tEl.value||'').trim().toUpperCase();
@@ -4950,6 +4974,7 @@ function addIng(tipo){
 }
 
 function delIng(tipo,i){
+  if(!puedeEditarRecetas()) return;
   var r=window._recetaEditando;
   // Guardar tipo/variedad actuales del DOM antes de repintar
   var tEl=document.getElementById('rec-tipo'); if(tEl) r.tipo=(tEl.value||'').trim().toUpperCase();
@@ -4964,6 +4989,7 @@ function updIng(tipo,i,campo,val){
 }
 
 function guardarReceta(){
+  if(!puedeEditarRecetas()){ toast('🔒 Solo Calidad puede modificar recetas'); return; }
   try {
     var r=window._recetaEditando;
     if(!r){ toast('⚠ Error: receta no inicializada'); return; }
@@ -4998,6 +5024,7 @@ function guardarReceta(){
 }
 
 function eliminarReceta(id){
+  if(!puedeEditarRecetas()){ toast('🔒 Solo Calidad puede eliminar recetas'); return; }
   if(!confirm('¿Eliminar esta receta?'))return;
   var recetaElim=RECETAS_DEMO.find(function(r){return r.id===id;});
   RECETAS_DEMO=RECETAS_DEMO.filter(function(r){return r.id!==id;});
@@ -5773,7 +5800,7 @@ function init(){
   var allScreens = document.querySelectorAll('.screen');
   for(var i=0; i<allScreens.length; i++) allScreens[i].style.display = 'none';
   var primera = document.getElementById('screen-hoy');
-  if(primera) primera.style.display = 'block';
+  if(primera){ primera.style.display = 'block'; primera.classList.add('tema-editor'); }
 
   // 4. Renderizar — cada render con su try/catch
   try{ poblarSelectTipos(); }catch(e){ console.error('poblarSelectTipos:', e); }
