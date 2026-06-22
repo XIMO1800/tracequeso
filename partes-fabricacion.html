@@ -80,10 +80,11 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
 .co2-card .co2-line5{align-items:start}
 .co2-card .co2-line5 .form-row{text-align:center}
 .co2-card .co2-line5 .form-label{text-align:center;display:block;min-height:14px;font-size:0.6rem;letter-spacing:0.04em;color:var(--text3);line-height:1.1;white-space:nowrap}
-.co2-cambiar-lnk{display:block;font-size:0.68rem;color:var(--brand);font-weight:700;cursor:pointer;text-decoration:underline;margin-top:1px}
+.co2-cambiar-lnk{position:absolute;top:36px;left:0;right:0;display:block;font-size:0.68rem;color:var(--brand);font-weight:700;cursor:pointer;text-decoration:underline;text-align:center}
 .co2-card .co2-line5 .co2-lote-val,
 .co2-card .co2-line5 .co2-lote-cad,
-.co2-card .co2-line5 .co2-lote-prov{text-align:center;min-height:34px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0}
+.co2-card .co2-line5 .co2-lote-prov{text-align:center;height:34px;display:flex;align-items:center;justify-content:center;padding:0;position:relative;font-size:0.82rem;font-weight:600;color:var(--text)}
+.co2-lote-num{font-size:0.82rem;font-weight:600;color:var(--text)}
 .co2-card .co2-line5 input{text-align:center;min-height:34px}
 .co2-cambiar-wrap{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:8px;margin-top:8px}
 .co2-cambiar-wrap .co2-cambiar-btn{width:100%}
@@ -613,17 +614,19 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .dot.active{background:var(--green)}
 
 /* ── Fila auxiliar/fermento estilo papel ── */
-.papel-prod{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.papel-prod{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px 26px;margin-bottom:10px}
 .papel-prod-l1{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px;align-items:end;margin-bottom:8px}
 .papel-prod-l6{display:grid;grid-template-columns:1.4fr 1fr 1fr 1.1fr 1.1fr 1fr;gap:10px;align-items:start}
-.papel-prod-l6 .papel-prod-meta{font-size:0.78rem}
 .papel-prod-l6 .papel-prod-label{min-height:14px;text-align:center;font-size:0.6rem;line-height:1.1;white-space:nowrap}
+/* Todos los datos a la MISMA altura de línea (34px) y el MISMO color */
 .papel-prod-l6 .papel-prod-nombre,
 .papel-prod-l6 .papel-prod-dosis-base,
-.papel-prod-l6 .papel-prod-meta{min-height:34px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0}
-.papel-prod-l6 .papel-prod-dosis-input{min-height:34px}
-.papel-prod-lote-num{font-size:0.78rem;font-weight:600;color:var(--text2)}
-.papel-prod-cambiar{display:block;font-size:0.68rem;color:var(--brand);font-weight:700;cursor:pointer;text-decoration:underline;margin-top:1px}
+.papel-prod-l6 .papel-prod-meta{height:34px;display:flex;align-items:center;justify-content:center;text-align:center;padding:0;font-size:0.82rem;font-weight:600;color:var(--text);line-height:1.1}
+.papel-prod-l6 .papel-prod-dosis-input{height:34px}
+.papel-prod-lote-num{font-size:0.82rem;font-weight:600;color:var(--text)}
+/* "cambiar" cuelga DEBAJO de la línea de datos, sin empujarla */
+.papel-prod-l6 .papel-prod-meta{position:relative}
+.papel-prod-cambiar{position:absolute;top:36px;left:0;right:0;display:block;font-size:0.68rem;color:var(--brand);font-weight:700;cursor:pointer;text-decoration:underline;text-align:center}
 .papel-prod-l2{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;align-items:end;font-size:0.78rem;border-top:1px dashed var(--border);padding-top:8px}
 .papel-prod-nombre{font-weight:700;font-size:0.95rem;color:var(--text);padding-bottom:6px}
 .papel-prod-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:0.04em;margin-bottom:3px;display:block}
@@ -775,7 +778,7 @@ input[type="email"] {
 
 
 /* Tarjeta CO₂ compacta */
-.co2-card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:4px}
+.co2-card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px 26px;margin-bottom:4px}
 /* Filas "Adición" (hora/pH/Tª) compactas e iguales entre sí.
    Incluye el input[type=time], que el navegador renderiza más alto. */
 .adicion-compact .form-row input{padding:4px 9px;font-size:0.9rem;line-height:1.2;height:auto}
@@ -838,7 +841,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.176</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.177</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3063,14 +3066,15 @@ function iniciarCO2(){
   var valEl=document.getElementById('co2-lote-val');
   var cadEl=document.getElementById('co2-lote-cad');
   var provEl=document.getElementById('co2-lote-prov');
+  var camb='<span class="co2-cambiar-lnk" onclick="abrirSelectorLote(\'CO2\')">cambiar</span>';
   if(lote){
-    if(valEl)  valEl.textContent  = lote.lote || 'Sin lote';
-    if(cadEl)  cadEl.textContent  = lote.caducidad ? formatearFecha(lote.caducidad) : '—';
+    if(valEl)  valEl.innerHTML  = '<span class="co2-lote-num">'+(lote.lote||'Sin lote')+'</span>'+camb;
+    if(cadEl)  cadEl.textContent = lote.caducidad ? formatearFecha(lote.caducidad) : '—';
     if(provEl) provEl.textContent = lote.proveedor || '—';
     if(chip) chip.classList.remove('empty');
   } else {
-    if(valEl)  valEl.textContent  = 'Sin lote';
-    if(cadEl)  cadEl.textContent  = '—';
+    if(valEl)  valEl.innerHTML  = '<span class="co2-lote-num">Sin lote</span>'+camb;
+    if(cadEl)  cadEl.textContent = '—';
     if(provEl) provEl.textContent = '—';
     if(chip) chip.classList.add('empty');
   }
