@@ -78,14 +78,14 @@ input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--gr
 .form-cols-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .form-cols-5{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:8px}
 .co2-card .co2-line5{align-items:start}
-.co2-card .co2-line5 .form-row{text-align:center}
-.co2-card .co2-line5 .form-label{text-align:center;display:block;min-height:14px;font-size:0.6rem;letter-spacing:0.04em;color:var(--text3);line-height:1.1;white-space:nowrap}
+.co2-card .co2-line5 .form-row{text-align:center;margin-bottom:0!important}
+.co2-card .co2-line5 .form-label{text-align:center;display:block;min-height:14px;max-height:14px;font-size:0.6rem;letter-spacing:0.04em;color:var(--text3);line-height:1.1;white-space:nowrap;margin:0}
 .co2-cambiar-lnk{position:absolute;top:22px;left:0;right:0;display:block;font-size:0.68rem;color:var(--brand);font-weight:700;cursor:pointer;text-decoration:underline;text-align:center}
 .co2-card .co2-line5 .co2-lote-val,
 .co2-card .co2-line5 .co2-lote-cad,
 .co2-card .co2-line5 .co2-lote-prov{text-align:center;height:34px;display:flex;align-items:center;justify-content:center;padding:0;position:relative;font-size:0.82rem;font-weight:600;color:var(--text)}
 .co2-lote-num{font-size:0.82rem;font-weight:600;color:var(--text)}
-.co2-card .co2-line5 input{text-align:center;min-height:34px}
+.co2-card .co2-line5 input{text-align:center;height:34px!important;min-height:34px;max-height:34px;padding:0 6px!important;box-sizing:border-box}
 .co2-cambiar-wrap{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:8px;margin-top:8px}
 .co2-cambiar-wrap .co2-cambiar-btn{width:100%}
 .form-cols-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
@@ -841,7 +841,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.181</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.183</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -995,7 +995,7 @@ input[type="email"] {
         </div>
       </div>
       <!-- CO2 con check on/off (marcado por defecto) -->
-      <div class="opt-aux-header" style="display:none">
+      <div class="opt-aux-header">
         <label class="opt-aux-label">
           <input type="checkbox" id="co2-aplicado" checked onchange="toggleCO2Aplicado()">
           <span class="opt-aux-title" id="co2-title">CO₂</span>
