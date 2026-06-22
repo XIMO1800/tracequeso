@@ -841,7 +841,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.183</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.184</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -6060,20 +6060,17 @@ function anadirOtroAuxiliar(datos){
   listaAux.forEach(function(a){
     opciones += '<option value="'+a+'"'+((enLista && a===nombreActual)?' selected':'')+'>'+a+'</option>';
   });
-  // Opción para escribir uno que no está en stock
-  opciones += '<option value="__OTRO__"'+((nombreActual && !enLista)?' selected':'')+'>✏️ Otro (escribir)…</option>';
-  var mostrarTexto = (nombreActual && !enLista);
   div.innerHTML = ''
     + '<button type="button" class="quitar-btn" onclick="quitarOtroAuxiliar(this)" title="Quitar">×</button>'
     + '<div class="form-row"><label class="form-label">Auxiliar</label>'
     +   '<select class="oaux-sel" onchange="_onOtroAuxSel(this)">'+opciones+'</select></div>'
-    + '<div class="form-row oaux-nombre-row" style="display:'+(mostrarTexto?'block':'none')+'"><label class="form-label">Nombre / Descripción</label><input type="text" class="oaux-nombre" placeholder="Ej: Lisozima, Sales antibutíricas..." value="'+(nombreActual||'')+'"></div>'
+    + '<input type="hidden" class="oaux-nombre" value="'+(nombreActual||'')+'">'
     + '<div class="form-cols">'
-    +   '<div class="form-row"><label class="form-label">Lote</label><input type="text" class="oaux-lote" value="'+(datos.lote||'')+'"></div>'
-    +   '<div class="form-row"><label class="form-label">Caducidad</label><input type="date" class="oaux-cad" value="'+(datos.caducidad||'')+'"></div>'
+    +   '<div class="form-row"><label class="form-label">Lote</label><input type="text" class="oaux-lote" value="'+(datos.lote||'')+'" readonly></div>'
+    +   '<div class="form-row"><label class="form-label">Caducidad</label><input type="text" class="oaux-cad" value="'+(datos.caducidad||'')+'" readonly></div>'
     + '</div>'
     + '<div class="form-cols">'
-    +   '<div class="form-row"><label class="form-label">Proveedor</label><input type="text" class="oaux-prov" value="'+(datos.proveedor||'')+'"></div>'
+    +   '<div class="form-row"><label class="form-label">Proveedor</label><input type="text" class="oaux-prov" value="'+(datos.proveedor||'')+'" readonly></div>'
     +   '<div class="form-row"><label class="form-label">Dosis utilizada</label><input type="text" class="oaux-dosis" placeholder="ej: 500 ml" value="'+(datos.dosis||'')+'"></div>'
     + '</div>'
     + '<div class="form-row"><label class="form-label">Observaciones</label><input type="text" class="oaux-obs" placeholder="Opcional" value="'+(datos.obs||'')+'"></div>';
@@ -6086,19 +6083,27 @@ function anadirOtroAuxiliar(datos){
   });
 }
 
-// Al elegir en el desplegable de auxiliar: si es "Otro", muestra el campo de texto;
-// si es uno del stock, copia el nombre al campo oculto y oculta el texto libre.
+// Al elegir en el desplegable de auxiliar: copia el nombre al campo oculto y
+// autorrellena lote, caducidad y proveedor desde el stock (solo lectura).
 function _onOtroAuxSel(sel){
   var card = sel.closest('.otro-aux-card');
   if(!card) return;
-  var row = card.querySelector('.oaux-nombre-row');
-  var inp = card.querySelector('.oaux-nombre');
-  if(sel.value==='__OTRO__'){
-    if(row) row.style.display='block';
-    if(inp){ inp.value=''; inp.focus(); }
+  var inpNom = card.querySelector('.oaux-nombre');
+  var inpLote = card.querySelector('.oaux-lote');
+  var inpCad = card.querySelector('.oaux-cad');
+  var inpProv = card.querySelector('.oaux-prov');
+  var nombre = sel.value || '';
+  if(inpNom) inpNom.value = nombre;
+  var lote = null;
+  if(nombre){ try{ lote = obtenerLoteActivo(nombre); }catch(e){} }
+  if(lote){
+    if(inpLote) inpLote.value = lote.lote || '';
+    if(inpCad)  inpCad.value  = lote.caducidad ? formatearFecha(lote.caducidad) : '';
+    if(inpProv) inpProv.value = lote.proveedor || '';
   } else {
-    if(row) row.style.display='none';
-    if(inp) inp.value = sel.value; // el nombre real es el del stock elegido
+    if(inpLote) inpLote.value = '';
+    if(inpCad)  inpCad.value  = '';
+    if(inpProv) inpProv.value = '';
   }
   if(CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
 }
