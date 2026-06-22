@@ -73,7 +73,18 @@ input:focus,select:focus,textarea:focus{border-color:var(--green2);background:wh
 input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--green2);color:var(--green);font-weight:700}
 .campo-bloqueado,input.campo-bloqueado,select.campo-bloqueado{background:#eceff1 !important;border-color:#cfd8dc !important;color:#78909c !important;font-weight:600 !important;pointer-events:none}
 .form-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cas-fila4{display:grid;grid-template-columns:1.3fr 1fr 1fr 0.7fr;gap:10px;align-items:end}
+.cas-uds-val{font-weight:700;font-size:0.95rem;color:var(--text);padding:6px 0;text-align:center}
 .form-cols-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.form-cols-5{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:8px}
+.co2-card .co2-line5 .form-row{text-align:center}
+.co2-card .co2-line5 .form-label{text-align:center;display:block}
+.co2-card .co2-line5 .co2-lote-val,
+.co2-card .co2-line5 .co2-lote-cad,
+.co2-card .co2-line5 .co2-lote-prov{text-align:center}
+.co2-card .co2-line5 input{text-align:center}
+.co2-cambiar-wrap{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:8px;margin-top:8px}
+.co2-cambiar-wrap .co2-cambiar-btn{width:100%}
 .form-cols-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
 .dosis-calc{background:var(--bluel);border:1.5px solid var(--blue);border-radius:8px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .dosis-calc-val{font-size:1.4rem;font-weight:800;color:var(--blue);line-height:1}
@@ -598,6 +609,8 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 /* ── Fila auxiliar/fermento estilo papel ── */
 .papel-prod{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px}
 .papel-prod-l1{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px;align-items:end;margin-bottom:8px}
+.papel-prod-l6{display:grid;grid-template-columns:1.4fr 1fr 1fr 1.1fr 1.1fr 1fr;gap:10px;align-items:end}
+.papel-prod-l6 .papel-prod-meta{font-size:0.78rem}
 .papel-prod-l2{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;align-items:end;font-size:0.78rem;border-top:1px dashed var(--border);padding-top:8px}
 .papel-prod-nombre{font-weight:700;font-size:0.95rem;color:var(--text);padding-bottom:6px}
 .papel-prod-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:0.04em;margin-bottom:3px;display:block}
@@ -809,7 +822,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.167</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.171</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -971,21 +984,7 @@ input[type="email"] {
       </div>
       <div id="co2-block" class="opt-aux-block">
         <div class="co2-card">
-          <div class="form-cols-3" style="margin-bottom:6px">
-            <div class="form-row">
-              <label class="form-label">Lote</label>
-              <div class="co2-lote-val" id="co2-lote-val">Sin lote</div>
-            </div>
-            <div class="form-row">
-              <label class="form-label">Caducidad</label>
-              <div class="co2-lote-cad" id="co2-lote-cad">—</div>
-            </div>
-            <div class="form-row">
-              <label class="form-label">Proveedor</label>
-              <div class="co2-lote-prov" id="co2-lote-prov">—</div>
-            </div>
-          </div>
-          <div class="form-cols-3">
+          <div class="form-cols-5 co2-line5">
             <div class="form-row">
               <label class="form-label">Tiempo (seg)</label>
               <input type="number" id="co2-tiempo" placeholder="—" inputmode="numeric" readonly class="calc-filled">
@@ -994,9 +993,21 @@ input[type="email"] {
               <label class="form-label">Caudal (L/h)</label>
               <input type="number" id="co2-caudal" value="100" inputmode="numeric" oninput="calcCO2()">
             </div>
-            <div class="form-row" style="display:flex;align-items:end">
-              <button class="lote-chip-btn co2-cambiar-btn" onclick="abrirSelectorLote('CO2')">Cambiar lote</button>
+            <div class="form-row">
+              <label class="form-label">Proveedor</label>
+              <div class="co2-lote-prov" id="co2-lote-prov">—</div>
             </div>
+            <div class="form-row">
+              <label class="form-label">Lote</label>
+              <div class="co2-lote-val" id="co2-lote-val">Sin lote</div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Caducidad</label>
+              <div class="co2-lote-cad" id="co2-lote-cad">—</div>
+            </div>
+          </div>
+          <div class="co2-cambiar-wrap">
+            <button class="lote-chip-btn co2-cambiar-btn" onclick="abrirSelectorLote('CO2')">Cambiar lote</button>
           </div>
         </div>
       </div>
@@ -2516,6 +2527,7 @@ function onTipoChange(){
   if(!STOCK_REMOTO || !STOCK_REMOTO.stock || !STOCK_REMOTO.stock.length){
     try{ cargarStockMaterial(); }catch(e){}
   }
+  aplicarSeleccionInicialFermentos(receta);
   renderAuxiliares(receta);renderFermentos(receta);renderCuajo(receta);
   document.getElementById('coag-proceso').style.display='block';
   calcularDosis();
@@ -2569,6 +2581,34 @@ function _esFermentoExcluyente(nombre){
 // se rellena su dosis con la propuesta de la receta y los OTROS excluyentes se ponen a 0.
 // Flora, TA-054 y complementarios no se tocan. Al pinchar un complementario, no hace nada
 // (esos se rellenan/editan normal).
+// Al cargar la receta: si hay excluyentes (R-603/R-604/CC-08) y NO hay selección
+// manual previa, marcamos como "en uso" el que toca hoy por rotación y ponemos a 0
+// la dosis de los demás excluyentes (igual que haría seleccionarFermento al pulsar).
+// Así, de salida, los no usados ya salen a 0 y no se guardan con dosis.
+function aplicarSeleccionInicialFermentos(receta){
+  if(!parteActual || !receta || !receta.fermentos) return;
+  // Si el quesero ya eligió manualmente, respetarlo (no tocar).
+  if(parteActual.ferm_seleccionado) return;
+  var excl = receta.fermentos.filter(function(f){ return _esFermentoExcluyente(f.nombre); });
+  if(excl.length < 2) return; // si solo hay uno (o ninguno), no hay nada que poner a 0
+  // ¿Cuál toca hoy? Primero la rotación R-603/R-604; si no aplica, ninguno por defecto.
+  var toca = _quePareTocaHoy(); // 'R603' | 'R604' | null
+  var nombreUsado = null;
+  if(toca){
+    var match = excl.find(function(f){ return _codigoRotatorio(f.nombre) === toca; });
+    if(match) nombreUsado = match.nombre;
+  }
+  if(!parteActual.dosis_override) parteActual.dosis_override = {};
+  excl.forEach(function(f){
+    if(nombreUsado && f.nombre === nombreUsado){
+      delete parteActual.dosis_override[f.nombre]; // el usado: dosis propuesta
+    } else {
+      parteActual.dosis_override[f.nombre] = 0;     // los demás: a 0
+    }
+  });
+  if(nombreUsado) parteActual.ferm_seleccionado = nombreUsado;
+}
+
 function seleccionarFermento(nombre){
   if(!parteActual || !parteActual.receta) return;
   if(!_esFermentoExcluyente(nombre)) return; // solo aplica a R-603/R-604/CC-08
@@ -2744,13 +2784,11 @@ function renderProductoCard(prod){
     provHTML = '—';
   }
   return ''
-    + '<div class="papel-prod">'
-    +   '<div class="papel-prod-l1">'
+    + '<div class="papel-prod papel-prod-1fila">'
+    +   '<div class="papel-prod-l6">'
     +     '<div><span class="papel-prod-label">Nombre</span><div class="papel-prod-nombre">'+prod.nombre+'</div></div>'
     +     '<div><span class="papel-prod-label">Dosis /1000L</span><div class="papel-prod-dosis-base">'+prod.dosis_ml_1000L+'</div></div>'
     +     '<div><span class="papel-prod-label">Dosis utilizada</span><input type="text" class="papel-prod-dosis-input" id="dosis-'+key+'" data-prod="'+prod.nombre+'" oninput="onDosisOverride(this)" placeholder="—"></div>'
-    +   '</div>'
-    +   '<div class="papel-prod-l2">'
     +     '<div><span class="papel-prod-label">Proveedor</span><div class="papel-prod-meta">'+provHTML+'</div></div>'
     +     '<div><span class="papel-prod-label">Lote</span><div class="papel-prod-meta">'+loteHTML+'</div></div>'
     +     '<div><span class="papel-prod-label">Caducidad</span><div class="papel-prod-meta">'+cadHTML+'</div></div>'
@@ -2954,13 +2992,14 @@ function renderCaseinasRangos(){
     var sub = _casTotalRango(r);
     h += '<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px">'
        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
-       + '<span style="font-size:0.72rem;font-weight:700;color:var(--text3)">Rango '+(i+1)+(sub?' · '+sub+' uds':'')+'</span>'
+       + '<span style="font-size:0.72rem;font-weight:700;color:var(--text3)">Rango '+(i+1)+'</span>'
        + (CAS_RANGOS.length>1 ? '<span onclick="delCaseinaRango('+i+')" style="cursor:pointer;color:var(--brand);font-size:0.8rem">🗑 quitar</span>' : '')
        + '</div>'
+       + '<div class="cas-fila4">'
        + '<div class="form-row"><label class="form-label">Serie</label><input type="text" value="'+(r.serie||'').replace(/"/g,'&quot;')+'" oninput="updCaseinaRango('+i+',\'serie\',this.value)" placeholder="Ej: 9P" style="text-transform:uppercase"></div>'
-       + '<div class="form-cols">'
        + '<div class="form-row"><label class="form-label">Primera caseína</label><input type="number" inputmode="numeric" value="'+(r.primera||'')+'" oninput="updCaseinaRango('+i+',\'primera\',this.value)"></div>'
        + '<div class="form-row"><label class="form-label">Última caseína</label><input type="number" inputmode="numeric" value="'+(r.ultima||'')+'" oninput="updCaseinaRango('+i+',\'ultima\',this.value)"></div>'
+       + '<div class="form-row"><label class="form-label">Nº piezas</label><div class="cas-uds-val" id="cas-uds-'+i+'">'+(sub||'—')+'</div></div>'
        + '</div>'
        + '</div>';
   });
@@ -2987,7 +3026,12 @@ function updCaseinaRango(i, campo, val){
 
 function calcCaseinas(){
   var total = 0;
-  CAS_RANGOS.forEach(function(r){ total += _casTotalRango(r); });
+  CAS_RANGOS.forEach(function(r, i){
+    var sub = _casTotalRango(r);
+    total += sub;
+    var udsEl = document.getElementById('cas-uds-'+i);
+    if(udsEl) udsEl.textContent = sub || '—';
+  });
   var resEl = document.getElementById('cas-resultado');
   if(!total){ if(resEl) resEl.style.display='none'; return; }
   document.getElementById('cas-total').textContent = total;
@@ -4133,8 +4177,7 @@ function renderEpForm(skipRecoger){
      + '<div></div><div></div><div></div></div>';
   h += '</div></div>';
 
-  // ── CASEÍNAS (múltiples rangos) ──
-  h += _epSep('🏷️ Caseínas (D.O.)', 'js:_epAddCaseina()', 'rango');
+  // ── CASEÍNAS (múltiples rangos) — subgrupo dentro de Piezas fabricadas (crema, texto granate) ──
   // Cargar los rangos del parte SOLO si el estado del editor aún no tiene datos en curso
   // (evita perder ediciones al repintar, p.ej. al borrar un fermento).
   var _casEnCurso = (typeof _EP_CAS_RANGOS!=='undefined' && _EP_CAS_RANGOS && _EP_CAS_RANGOS.some(function(r){ return (r.serie||'')!=='' || (r.primera||'')!=='' || (r.ultima||'')!==''; }));
@@ -4147,8 +4190,15 @@ function renderEpForm(skipRecoger){
       _EP_CAS_RANGOS = [{serie:'',primera:'',ultima:''}];
     }
   }
+  h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;min-height:26px;background:#f4ebd8;border-bottom:1px solid var(--border);color:var(--brand);padding:1px 9px">'
+     + '<span style="font-size:0.72rem;font-weight:700">Caseínas (D.O.)</span>'
+     + '<button onclick="_epAddCaseina()" style="border:none;background:#8B2A2A;color:#fff;padding:2px 10px;border-radius:11px;font-size:0.62rem;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">+ Añadir rango</button>'
+     + '</div>';
+  h += '<div style="background:var(--card);padding:7px 9px">';
   h += '<div id="ep-cas-rangos"></div>';
   h += '<div id="ep-cas-total" style="font-size:0.8rem;font-weight:700;color:var(--blue);margin-top:6px"></div>';
+  h += '</div></div>';
 
   // ── OBSERVACIONES ──
   h += _epSep('📝 Observaciones');
