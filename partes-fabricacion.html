@@ -809,7 +809,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.165</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.167</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2765,10 +2765,14 @@ function obtenerLoteActivo(producto){
   // 2) Buscar en el stock real de Sheets (STOCK_REMOTO)
   if(STOCK_REMOTO && STOCK_REMOTO.stock && STOCK_REMOTO.stock.length){
     var nombreUp = String(producto).trim().toUpperCase();
+    // El CO2 se controla por caudal/tiempo, no por unidades en stock: su cantidad
+    // puede venir vacía. Para CO2 no exigimos stock>0; para el resto, sí.
+    var esCO2 = (nombreUp === 'CO2' || nombreUp === 'CO₂');
     var candidatos = STOCK_REMOTO.stock
       .map(normRowStock)
       .filter(function(r){
-        return String(r.articulo||'').trim().toUpperCase() === nombreUp && r.stockActual > 0;
+        var coincide = String(r.articulo||'').trim().toUpperCase() === nombreUp;
+        return coincide && (esCO2 || r.stockActual > 0);
       });
     if(candidatos.length){
       // Ordenar por caducidad ascendente (FIFO: el más antiguo primero)
@@ -3000,9 +3004,18 @@ function iniciarCO2(){
   var chip=document.getElementById('co2-lote-chip');
   var valEl=document.getElementById('co2-lote-val');
   var cadEl=document.getElementById('co2-lote-cad');
-  if(!chip)return;
-  if(lote){valEl.textContent=lote.lote;cadEl.textContent='Consumo preferente: '+formatearFecha(lote.caducidad)+' · '+lote.proveedor;chip.classList.remove('empty');}
-  else{valEl.textContent='Sin lote activo';cadEl.textContent='—';chip.classList.add('empty');}
+  var provEl=document.getElementById('co2-lote-prov');
+  if(lote){
+    if(valEl)  valEl.textContent  = lote.lote || 'Sin lote';
+    if(cadEl)  cadEl.textContent  = lote.caducidad ? formatearFecha(lote.caducidad) : '—';
+    if(provEl) provEl.textContent = lote.proveedor || '—';
+    if(chip) chip.classList.remove('empty');
+  } else {
+    if(valEl)  valEl.textContent  = 'Sin lote';
+    if(cadEl)  cadEl.textContent  = '—';
+    if(provEl) provEl.textContent = '—';
+    if(chip) chip.classList.add('empty');
+  }
 }
 
 function abrirSelectorLote(producto){
@@ -6602,13 +6615,19 @@ function recogerDesmoldeos(){
     var fmt = (c.querySelector('.des-formato')||{}).value || '';
     var hi  = (c.querySelector('.des-hi')||{}).value || '';
     if (!fmt && !hi) return;
+    var ph    = (c.querySelector('.des-ph')||{}).value || '';
+    var tempI = (c.querySelector('.des-temp-i')||{}).value || '';
+    var hf    = (c.querySelector('.des-hf')||{}).value || '';
+    var phF   = (c.querySelector('.des-ph-f')||{}).value || '';
+    var tempF = (c.querySelector('.des-temp-f')||{}).value || '';
+    // Guardamos con AMBOS nombres de clave: el código de impresión/historial lee
+    // 'temp'/'temp_final'/'ph_final', mientras que el editor lee 'temp_i'/'temp_f'/'ph_f'.
     out.push({
-      formato: fmt, hi: hi,
-      ph: (c.querySelector('.des-ph')||{}).value || '',
-      temp_i: (c.querySelector('.des-temp-i')||{}).value || '',
-      hf: (c.querySelector('.des-hf')||{}).value || '',
-      ph_f: (c.querySelector('.des-ph-f')||{}).value || '',
-      temp_f: (c.querySelector('.des-temp-f')||{}).value || ''
+      formato: fmt, hi: hi, hf: hf,
+      ph: ph,
+      temp_i: tempI, temp: tempI,
+      ph_f: phF,  ph_final: phF,
+      temp_f: tempF, temp_final: tempF
     });
   });
   return out;
