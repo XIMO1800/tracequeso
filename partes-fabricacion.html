@@ -809,7 +809,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.164</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.165</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2207,7 +2207,7 @@ function _htmlParteImpresion(p){
   H.push('<table class="mt"><tr><td></td><td class="t lbl">VACA</td><td class="t lbl">CABRA</td><td class="t lbl">OVEJA</td><td class="t lbl">MEZCLA</td><td class="t lbl">TOTAL</td></tr>');
   H.push('<tr><td class="lbl lft">LITROS DE LECHE</td><td class="t">'+z(p.lvaca)+'</td><td class="t">'+z(p.lcabra)+'</td><td class="t">'+z(p.loveja)+'</td><td class="t"></td><td class="t">'+n(p.litros)+'</td></tr>');
   H.push('<tr><td class="lbl lft">TANQUE PROCEDENCIA</td><td class="t">'+z(p.tanque_vaca)+'</td><td class="t">'+z(p.tanque_cabra)+'</td><td class="t">'+z(p.tanque_oveja)+'</td><td class="t"></td><td class="t">'+z(p.tanque)+'</td></tr></table>');
-  H.push('<table class="grid6"><tr><td class="lbl lft">Nº CUBA: <span style="font-weight:normal">'+n(p.cuba)+'</span></td><td class="lbl lft">pH: <span style="font-weight:normal">'+n(p.ph)+'</span></td><td class="lbl lft">ºD: <span style="font-weight:normal">'+n(p.dornic_leche)+'</span></td><td class="lbl lft">TºC: <span style="font-weight:normal">'+n(p.temp)+'</span></td></tr></table>');
+  H.push('<table class="grid6"><tr><td class="lbl lft">Nº CUBA: <span style="font-weight:normal">'+n(p.cuba)+'</span></td><td class="lbl">pH: <span style="font-weight:normal">'+n(p.ph)+'</span></td><td class="lbl">ºD: <span style="font-weight:normal">'+n(p.dornic_leche)+'</span></td><td class="lbl">TºC: <span style="font-weight:normal">'+n(p.temp)+'</span></td></tr></table>');
   var pcond = pa.temp ? ('Tºc '+e(pa.temp)+(pa.tiempo?(' - '+e(pa.tiempo)+'s'):'')) : '';
   H.push('<div class="sec">Pasteurización</div><table><tr><td class="t lbl">Válvula desvío (C/I)</td><td class="t lbl">Fosfatasa alcalina</td><td class="t lbl">Condiciones pasteurización</td><td class="t lbl">Cruda</td></tr>');
   H.push('<tr><td class="t">'+n(pa.valvula)+'</td><td class="t">'+_fosfatasaTxt(pa.fosfatasa)+'</td><td class="t">'+pcond+'</td><td class="t">'+(pa.cruda?'Sí':'')+'</td></tr></table>');
@@ -2261,8 +2261,8 @@ function _htmlParteImpresion(p){
   H.push('<tr><td class="t">'+z(pz['3kg'])+'</td><td class="t">'+z(pz['2kg'])+'</td><td class="t">'+z(pz['1kg'])+'</td><td class="t">'+z(pz['05kg'])+'</td><td class="t">'+z(pz.barra)+'</td><td class="t">'+z(pz.gigante)+'</td></tr></table>');
   var casVacio = (!cas.serie && !cas.primera && !cas.ultima);
   var casTxt = casVacio ? '' : ((cas.serie?(e(cas.serie)+' · '):'')+n(cas.primera)+' → '+n(cas.ultima)+(cas.total?(' ('+e(cas.total)+')'):''));
-  H.push('<table><tr><td><span class="lbl">Nº Caseínas:</span> '+casTxt+'</td></tr></table>');
-  H.push('<table class="mt"><tr><td style="height:34px"><span class="lbl">Acciones correctoras:</span> '+n(p.observaciones)+'</td></tr></table>');
+  H.push('<table><tr><td class="lft" style="width:192mm"><span class="lbl">Nº Caseínas:</span> '+casTxt+'</td></tr></table>');
+  H.push('<table class="mt"><tr><td class="lft" style="width:192mm;height:34px"><span class="lbl">Acciones correctoras:</span> '+n(p.observaciones)+'</td></tr></table>');
   var firmaImg = p.firma_quesero ? ('<img src="'+p.firma_quesero+'">') : '';
   var firmaNom = p.firma_quesero_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_quesero_nombre)+(p.firma_quesero_ts?(' · '+e(p.firma_quesero_ts)):'')+'</div>') : '';
   var salaImg = p.firma_sala ? ('<img src="'+p.firma_sala+'">') : '';
