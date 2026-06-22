@@ -101,22 +101,12 @@ function actualizarAvisoPendientes() {
     }
 }
 
-function getDeviceId(){
-    try{
-        var d=localStorage.getItem('tq_device_id');
-        if(!d){
-            d=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():('dev-'+Date.now()+'-'+Math.random().toString(36).substring(2,10));
-            localStorage.setItem('tq_device_id',d);
-        }
-        return d;
-    }catch(e){ return 'dev-desconocido'; }
-}
 function guardarRegistro(datos, sec, paleId) {
     var p = pales.find(function(x) { return x.id === paleId; });
     
     // Generar IDs únicos para asegurar la trazabilidad
     datos['ID'] = 'ID-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
-    datos['ID_DISPOSITIVO'] = getDeviceId();
+    datos['ID_DISPOSITIVO'] = navigator.userAgent.substring(0, 30);
     if(!datos['FECHA']) datos['FECHA'] = fechaHoraEspana();
 
     // 1. Guardar en la libreta del móvil siempre
@@ -134,14 +124,11 @@ function guardarRegistro(datos, sec, paleId) {
     }catch(e){}
 
     // 2. Mostrarlo en la pantalla de "Mis registros de hoy"
-    // Guardar en la libreta el mismo ID PALET completo que viaja a la hoja,
-    // para que renderRegs no muestre la entrada local Y la de la hoja como dos
-    // (la hoja conserva el sufijo *VARIEDAD !, paleId se queda con el ID corto).
     misRegs.push({
         id: datos['ID'], 
         datos: datos, 
         sec: sec, 
-        pale: datos['ID PALET'] || paleId, 
+        pale: paleId, 
         op: CU.n,
         hora: horaEspana()
     });
@@ -241,7 +228,6 @@ html,body{height:100%;overflow:hidden;font-family:'Karla',sans-serif;background:
 .secbtn{background:var(--bg2);border:2px solid var(--border);border-radius:14px;padding:18px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:var(--shadow);width:100%;text-align:left;}
 .secbtn:active{transform:scale(0.97);}
 .secbtn.locked{opacity:0.45;}
-.secbtn.spartes{border-left:5px solid var(--gold);}
 .secbtn-icon{font-size:1.6rem;width:40px;text-align:center;flex-shrink:0;}
 .secbtn-name{font-family:'Karla',sans-serif;font-weight:700;font-size:0.95rem;color:var(--text);}
 .locktag{margin-left:auto;background:var(--red-bg);color:var(--red);border:1px solid rgba(192,40,40,0.2);border-radius:6px;padding:3px 8px;font-size:0.65rem;font-family:'Inconsolata',monospace;font-weight:700;flex-shrink:0;}
@@ -368,7 +354,7 @@ textarea.finput{resize:vertical;min-height:60px;}
   <div class="lcard">
     <div style="text-align:center;margin-bottom:6px;"><img src="data:image/jpeg;base64,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" style="height:54px;object-fit:contain;"></div>
     <div class="lsub">Trazabilidad · Lácteos Cuquerella</div>
-    <div style="font-size:0.65rem;color:var(--text3);margin-top:4px;font-family:'Inconsolata',monospace;opacity:0.6;">v172</div>
+    <div style="font-size:0.65rem;color:var(--text3);margin-top:4px;font-family:'Inconsolata',monospace;opacity:0.6;">v126</div>
     <select class="lsel" id="l-nombre" onchange="resetPin()">
       <option value="">— ¿Quién eres? —</option>
     </select>
@@ -394,7 +380,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v172</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v126</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -486,7 +472,7 @@ textarea.finput{resize:vertical;min-height:60px;}
         </div>
         <div class="fg full" id="c1-nuevo-lote-wrap" style="display:none;">
           <div class="flabel">Nuevo lote (transición 2 palés)</div>
-          <input class="finput" type="text" id="c1-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLoteC1(this.value)" autocomplete="off">
+          <input class="finput" type="text" id="c1-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLoteC1(this.value)" autocomplete="off" inputmode="none">
           <button onclick="abrirScanner('c1-lote')" style="margin-top:6px;width:100%;padding:10px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;font-size:0.85rem;cursor:pointer;">📷 Escanear lote</button>
         </div>
 
@@ -639,7 +625,7 @@ textarea.finput{resize:vertical;min-height:60px;}
         </div>
         <div class="fg full" id="c2-nuevo-lote-wrap" style="display:none;">
           <div class="flabel">Nuevo lote (transición 2 palés)</div>
-          <input class="finput" type="text" id="c2-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLoteC2(this.value)" autocomplete="off">
+          <input class="finput" type="text" id="c2-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLoteC2(this.value)" autocomplete="off" inputmode="none">
           <button onclick="abrirScanner('c2-lote')" style="margin-top:6px;width:100%;padding:10px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;font-size:0.85rem;cursor:pointer;">📷 Escanear lote</button>
         </div>
         <div class="fg full">
@@ -793,7 +779,7 @@ textarea.finput{resize:vertical;min-height:60px;}
         </div>
         <div class="fg full" id="pint-nuevo-lote-wrap" style="display:none;">
           <div class="flabel">Nuevo lote (transición 2 palés)</div>
-          <input class="finput" type="text" id="pint-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLotePint(this.value)" autocomplete="off">
+          <input class="finput" type="text" id="pint-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLotePint(this.value)" autocomplete="off" inputmode="none">
           <button onclick="abrirScanner('pint-lote')" style="margin-top:6px;width:100%;padding:10px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;font-size:0.85rem;cursor:pointer;">📷 Escanear lote</button>
         </div>
         <div class="fg full">
@@ -1050,27 +1036,6 @@ textarea.finput{resize:vertical;min-height:60px;}
   <div class="topbar">
     <button class="tbback" onclick="ir('s-main')">←</button>
     <div class="tbtitle">🏭 Control de stock</div>
-  </div>
-  <div class="scrl">
-    <div class="infobanner">¿Cómo quieres ver el stock?</div>
-    <div class="seclist">
-      <button class="secbtn" onclick="irStockSalas()" style="border-left:4px solid #2a7a4a;">
-        <div class="secbtn-icon">🏭</div>
-        <div><div class="secbtn-name">Por salas</div><div style="font-size:0.78rem;color:var(--text3);margin-top:2px;">Stock en cada secadero, cámara y sala</div></div>
-      </button>
-      <button class="secbtn" id="stock-opt-disp" onclick="irDisponibilidad()" style="border-left:4px solid #5a2d82;display:none;">
-        <div class="secbtn-icon">💼</div>
-        <div><div class="secbtn-name">Por tipo y fecha</div><div style="font-size:0.78rem;color:var(--text3);margin-top:2px;">Disponibilidad por tipo, variedad, formato y fechas de fabricación</div></div>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- STOCK POR SALAS -->
-<div class="scr" id="s-stock-salas">
-  <div class="topbar">
-    <button class="tbback" onclick="ir('s-stock')">←</button>
-    <div class="tbtitle">🏭 Stock por salas</div>
     <div class="tbright"><button onclick="renderStock()" style="background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:0.75rem;cursor:pointer;">🔄</button></div>
   </div>
   <div class="scrl">
@@ -1093,7 +1058,7 @@ textarea.finput{resize:vertical;min-height:60px;}
 <!-- STOCK DRILL-DOWN nivel 1: tipo en sala -->
 <div class="scr" id="s-stock-drill">
   <div class="topbar">
-    <button class="tbback" onclick="ir('s-stock-salas')">←</button>
+    <button class="tbback" onclick="ir('s-stock')">←</button>
     <div class="tbtitle" id="drill-title">Detalle</div>
   </div>
   <div class="scrl">
@@ -1253,8 +1218,8 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div style="padding:14px;">
         <div class="flabel" style="margin-bottom:6px;">Proveedor</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-          <button id="env-prov-tofilm" onclick="selEnvProv('TOFILM')"
-            style="padding:12px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.88rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">TOFILM</button>
+          <button id="env-prov-tofil" onclick="selEnvProv('TOFIL')"
+            style="padding:12px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.88rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">TOFIL</button>
           <button id="env-prov-anduflex" onclick="selEnvProv('ANDUFLEX')"
             style="padding:12px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.88rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">ANDUFLEX</button>
         </div>
@@ -1264,34 +1229,32 @@ textarea.finput{resize:vertical;min-height:60px;}
           <button onclick="toggleEnvCambioFondo()" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;padding:10px 12px;font-size:0.75rem;cursor:pointer;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:700;">Cambiar</button>
         </div>
         <div id="env-fondo-cambio-wrap" style="display:none;margin-top:8px;background:var(--blue-bg);border:1px solid rgba(26,58,106,0.2);border-radius:10px;padding:12px;">
-          <div class="flabel" style="margin-bottom:6px;">Nuevo lote bobina fondo</div>
-          <select class="finput" id="env-fondo-nuevo-lote" style="font-family:'Inconsolata',monospace;background:white;padding:10px 12px;">
-            <option value="">— Elige un lote del stock —</option>
-          </select>
-          <div class="flabel" style="margin-top:12px;margin-bottom:6px;">¿Qué tipo de cambio es?</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-            <button id="env-fondo-tipo-lote" onclick="selEnvFondoTipoCambio('lote')" style="padding:10px 6px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.78rem;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);line-height:1.2;">🔄 Solo cambiar lote<br><span style="font-weight:500;font-size:0.68rem;opacity:.85;">(no descuenta stock)</span></button>
-            <button id="env-fondo-tipo-bobina" onclick="selEnvFondoTipoCambio('bobina')" style="padding:10px 6px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.78rem;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);line-height:1.2;">📦 Cambio de bobina<br><span style="font-weight:500;font-size:0.68rem;opacity:.85;">(consume 1 del stock)</span></button>
-          </div>
-          <div id="env-fondo-mid-wrap" style="display:none;margin-top:10px;padding:10px;background:rgba(0,0,0,0.04);border-radius:8px;">
-            <div class="flabel" style="margin-bottom:6px;">¿En mitad del palé actual?</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-              <button id="env-fondo-mid-si" onclick="selEnvFondoMid(true)" style="padding:9px 4px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.76rem;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);line-height:1.2;">SÍ<br><span style="font-weight:500;font-size:0.66rem;opacity:.85;">guardará ambos lotes</span></button>
-              <button id="env-fondo-mid-no" onclick="selEnvFondoMid(false)" style="padding:9px 4px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.76rem;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);line-height:1.2;">NO<br><span style="font-weight:500;font-size:0.66rem;opacity:.85;">palé entero con la nueva</span></button>
-            </div>
-          </div>
-          <button onclick="confirmarCambioFondo()" style="width:100%;margin-top:10px;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">✅ Confirmar</button>
-        </div>
-        <!-- Alternativa al termoformado: envasado con BOLSA / FILM CAMPANA -->
-        <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--border);">
-          <div class="flabel" style="margin-bottom:4px;">O bien: Lote bolsa / film campana</div>
-          <input class="finput" type="text" id="env-lote-bolsa" placeholder="Solo si envasado con campana (sin bobinas)" autocomplete="off" autocapitalize="characters">
-          <div style="font-size:0.72rem;color:var(--text3);margin-top:4px;">Alternativa al termoformado. Rellénalo solo cuando se envase con la máquina de campana.</div>
+          <div class="flabel" style="margin-bottom:6px;">⚠️ Nuevo lote bobina fondo</div>
+          <input class="finput" type="text" id="env-fondo-nuevo-lote" placeholder="Nº lote nueva bobina" autocomplete="off" autocapitalize="characters" style="font-family:'Inconsolata',monospace;">
+          <button onclick="confirmarCambioFondo()" style="width:100%;margin-top:8px;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">✅ Confirmar cambio</button>
         </div>
       </div>
     </div>
 
-    <!-- BLOQUE 4: PORCIONADO -->
+    <!-- BLOQUE 4: MATERIAL TAPA -->
+    <div id="env-bloque-tapa" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
+      <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">🎞️ Material tapa — <span id="env-tapa-ancho-label">—</span> mm</div>
+      <div style="padding:14px;">
+        <div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px;">Ancho asignado automáticamente según formato: 245mm=3KG · 200mm=2KG · 330mm=resto</div>
+        <div class="flabel" style="margin-bottom:4px;">Lote bobina tapa activo</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="flex:1;background:rgba(200,120,10,0.08);border:1.5px solid var(--env);border-radius:8px;padding:10px 12px;font-family:'Inconsolata',monospace;font-size:0.95rem;color:var(--env);font-weight:600;" id="env-tapa-lote-display">—</div>
+          <button onclick="toggleEnvCambioTapa()" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;padding:10px 12px;font-size:0.75rem;cursor:pointer;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:700;">Cambiar</button>
+        </div>
+        <div id="env-tapa-cambio-wrap" style="display:none;margin-top:8px;background:var(--blue-bg);border:1px solid rgba(26,58,106,0.2);border-radius:10px;padding:12px;">
+          <div class="flabel" style="margin-bottom:6px;">⚠️ Nuevo lote bobina tapa</div>
+          <input class="finput" type="text" id="env-tapa-nuevo-lote" placeholder="Nº lote nueva bobina tapa" autocomplete="off" autocapitalize="characters" style="font-family:'Inconsolata',monospace;">
+          <button onclick="confirmarCambioTapa()" style="width:100%;margin-top:8px;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">✅ Confirmar cambio</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOQUE 5: PORCIONADO -->
     <div id="env-bloque-porcionado" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
       <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">🔪 Porcionado</div>
       <div style="padding:14px;">
@@ -1327,38 +1290,6 @@ textarea.finput{resize:vertical;min-height:60px;}
       </div>
     </div>
 
-    <!-- BLOQUE 5: MATERIAL TAPA -->
-    <div id="env-bloque-tapa" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
-      <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">🎞️ Material tapa — <span id="env-tapa-ancho-label">—</span> mm</div>
-      <div style="padding:14px;">
-        <div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px;">Ancho asignado automáticamente según formato: 240mm=3KG · 200mm=2KG · 330mm=resto (TAPA DIA % en porcionado)</div>
-        <div class="flabel" style="margin-bottom:4px;">Lote bobina tapa activo</div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <div style="flex:1;background:rgba(200,120,10,0.08);border:1.5px solid var(--env);border-radius:8px;padding:10px 12px;font-family:'Inconsolata',monospace;font-size:0.95rem;color:var(--env);font-weight:600;" id="env-tapa-lote-display">—</div>
-          <button onclick="toggleEnvCambioTapa()" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;padding:10px 12px;font-size:0.75rem;cursor:pointer;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:700;">Cambiar</button>
-        </div>
-        <div id="env-tapa-cambio-wrap" style="display:none;margin-top:8px;background:var(--blue-bg);border:1px solid rgba(26,58,106,0.2);border-radius:10px;padding:12px;">
-          <div class="flabel" style="margin-bottom:6px;">Nuevo lote bobina tapa</div>
-          <select class="finput" id="env-tapa-nuevo-lote" style="font-family:'Inconsolata',monospace;background:white;padding:10px 12px;">
-            <option value="">— Elige un lote del stock —</option>
-          </select>
-          <div class="flabel" style="margin-top:12px;margin-bottom:6px;">¿Qué tipo de cambio es?</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-            <button id="env-tapa-tipo-lote" onclick="selEnvTapaTipoCambio('lote')" style="padding:10px 6px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.78rem;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);line-height:1.2;">🔄 Solo cambiar lote<br><span style="font-weight:500;font-size:0.68rem;opacity:.85;">(no descuenta stock)</span></button>
-            <button id="env-tapa-tipo-bobina" onclick="selEnvTapaTipoCambio('bobina')" style="padding:10px 6px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.78rem;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);line-height:1.2;">📦 Cambio de bobina<br><span style="font-weight:500;font-size:0.68rem;opacity:.85;">(consume 1 del stock)</span></button>
-          </div>
-          <div id="env-tapa-mid-wrap" style="display:none;margin-top:10px;padding:10px;background:rgba(0,0,0,0.04);border-radius:8px;">
-            <div class="flabel" style="margin-bottom:6px;">¿En mitad del palé actual?</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-              <button id="env-tapa-mid-si" onclick="selEnvTapaMid(true)" style="padding:9px 4px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.76rem;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);line-height:1.2;">SÍ<br><span style="font-weight:500;font-size:0.66rem;opacity:.85;">guardará ambos lotes</span></button>
-              <button id="env-tapa-mid-no" onclick="selEnvTapaMid(false)" style="padding:9px 4px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.76rem;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);line-height:1.2;">NO<br><span style="font-weight:500;font-size:0.66rem;opacity:.85;">palé entero con la nueva</span></button>
-            </div>
-          </div>
-          <button onclick="confirmarCambioTapa()" style="width:100%;margin-top:10px;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;">✅ Confirmar</button>
-        </div>
-      </div>
-    </div>
-
     <!-- BLOQUE 6: ETIQUETADO -->
     <div id="env-bloque-etiquetado" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
       <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">🏷️ Etiquetado</div>
@@ -1381,17 +1312,6 @@ textarea.finput{resize:vertical;min-height:60px;}
             </div>
             <div class="fg"><div class="flabel">Nº etiquetas</div><input class="finput" type="number" id="env-etiq-num" placeholder="0" min="0" inputmode="numeric"></div>
             <div class="fg"><div class="flabel">Etiquetas no conformes</div><input class="finput" type="number" id="env-etiq-nc" placeholder="0" min="0" inputmode="numeric"></div>
-            <div class="fg full">
-              <div class="flabel">Lote etiquetas</div>
-              <input class="finput" type="text" id="env-lote-etiquetas" placeholder="Ej: ET-2026-001" autocomplete="off" autocapitalize="characters">
-            </div>
-            <div class="fg full">
-              <div class="flabel">Caducidad en etiquetado (C/I)</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-                <button id="env-caduc-c" onclick="selEnvCaduc('C')" style="padding:11px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.9rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">✓ Conforme</button>
-                <button id="env-caduc-i" onclick="selEnvCaduc('I')" style="padding:11px 8px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.9rem;border-radius:10px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">✗ No conforme</button>
-              </div>
-            </div>
           </div>
         </div>
         <!-- Contraetiquetas D.O. — dentro del bloque etiquetado -->
@@ -1400,24 +1320,6 @@ textarea.finput{resize:vertical;min-height:60px;}
           <div class="fgrid">
             <div class="fg"><div class="flabel">Primera contraetiqueta</div><input class="finput" type="text" id="env-contra-primera" placeholder="Ej: MI11326" autocomplete="off" autocapitalize="characters" oninput="validarContraetiquetas()"></div>
             <div class="fg"><div class="flabel">Última contraetiqueta</div><input class="finput" type="text" id="env-contra-ultima" placeholder="Ej: MI12525" autocomplete="off" autocapitalize="characters" oninput="validarContraetiquetas()"></div>
-            <div class="fg">
-              <div class="flabel">Curación</div>
-              <select class="finput" id="env-curacion">
-                <option value="">— Selecciona —</option>
-                <option value="TIERNO">TIERNO</option>
-                <option value="SEMICURADO">SEMICURADO</option>
-                <option value="CURADO">CURADO</option>
-                <option value="AÑEJO">AÑEJO</option>
-                <option value="VIEJO">VIEJO</option>
-              </select>
-            </div>
-            <div class="fg">
-              <div class="flabel">Cliente</div>
-              <select class="finput" id="env-cliente" onchange="onClienteChange()">
-                <option value="">— Selecciona cliente —</option>
-                <option value="__NUEVO__">➕ Nuevo cliente…</option>
-              </select>
-            </div>
           </div>
           <div id="env-contra-resultado" style="display:none;margin-top:8px;">
             <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:0.82rem;display:flex;justify-content:space-between;align-items:center;">
@@ -1438,43 +1340,63 @@ textarea.finput{resize:vertical;min-height:60px;}
     <div id="env-bloque-aux" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
       <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">🧴 Materiales auxiliares (si aplica)</div>
       <div style="padding:14px;">
-        <div style="font-size:0.72rem;color:var(--text3);margin-bottom:10px;">Se rellena automáticamente con el último valor usado. Modifícalo solo si hace falta.</div>
+        <div style="font-size:0.72rem;color:var(--text3);margin-bottom:10px;">Se muestra el último valor registrado. Pulsa &quot;Cambiar&quot; solo si ha cambiado.</div>
 <div style="margin-bottom:10px;">
           <div class="flabel" style="margin-bottom:4px;">Lote manteca</div>
-          <select class="finput" id="env-lote-manteca" data-aux-articulo="MANTECA" style="background:white;padding:10px 12px;">
-            <option value="">— Sin uso en este envasado —</option>
-          </select>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="flex:1;background:rgba(200,120,10,0.08);border:1.5px solid var(--env);border-radius:8px;padding:10px 12px;font-family:'Inconsolata',monospace;font-size:0.9rem;color:var(--env);font-weight:600;min-height:42px;" id="env-lote-manteca-display">—</div>
+            <button onclick="toggleEnvAux('env-lote-manteca')" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;padding:10px 12px;font-size:0.75rem;cursor:pointer;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:700;flex-shrink:0;">Cambiar</button>
+          </div>
+          <input class="finput" type="text" id="env-lote-manteca" placeholder="Nuevo lote..." autocomplete="off" autocapitalize="characters" style="display:none;margin-top:6px;" oninput="actualizarDisplayAux('env-lote-manteca')">
         </div><div style="margin-bottom:10px;">
           <div class="flabel" style="margin-bottom:4px;">Lote romero</div>
-          <select class="finput" id="env-lote-romero" data-aux-articulo="ROMERO" style="background:white;padding:10px 12px;">
-            <option value="">— Sin uso en este envasado —</option>
-          </select>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="flex:1;background:rgba(200,120,10,0.08);border:1.5px solid var(--env);border-radius:8px;padding:10px 12px;font-family:'Inconsolata',monospace;font-size:0.9rem;color:var(--env);font-weight:600;min-height:42px;" id="env-lote-romero-display">—</div>
+            <button onclick="toggleEnvAux('env-lote-romero')" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;padding:10px 12px;font-size:0.75rem;cursor:pointer;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:700;flex-shrink:0;">Cambiar</button>
+          </div>
+          <input class="finput" type="text" id="env-lote-romero" placeholder="Nuevo lote..." autocomplete="off" autocapitalize="characters" style="display:none;margin-top:6px;" oninput="actualizarDisplayAux('env-lote-romero')">
         </div><div style="margin-bottom:10px;">
           <div class="flabel" style="margin-bottom:4px;">Lote finas hierbas</div>
-          <select class="finput" id="env-lote-finas-hierbas" data-aux-articulo="FINAS HIERBAS" style="background:white;padding:10px 12px;">
-            <option value="">— Sin uso en este envasado —</option>
-          </select>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="flex:1;background:rgba(200,120,10,0.08);border:1.5px solid var(--env);border-radius:8px;padding:10px 12px;font-family:'Inconsolata',monospace;font-size:0.9rem;color:var(--env);font-weight:600;min-height:42px;" id="env-lote-finas-hierbas-display">—</div>
+            <button onclick="toggleEnvAux('env-lote-finas-hierbas')" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;padding:10px 12px;font-size:0.75rem;cursor:pointer;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:700;flex-shrink:0;">Cambiar</button>
+          </div>
+          <input class="finput" type="text" id="env-lote-finas-hierbas" placeholder="Nuevo lote..." autocomplete="off" autocapitalize="characters" style="display:none;margin-top:6px;" oninput="actualizarDisplayAux('env-lote-finas-hierbas')">
         </div><div style="margin-bottom:10px;">
           <div class="flabel" style="margin-bottom:4px;">Lote pimienta</div>
-          <select class="finput" id="env-lote-pimienta" data-aux-articulo="PIMIENTA" style="background:white;padding:10px 12px;">
-            <option value="">— Sin uso en este envasado —</option>
-          </select>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="flex:1;background:rgba(200,120,10,0.08);border:1.5px solid var(--env);border-radius:8px;padding:10px 12px;font-family:'Inconsolata',monospace;font-size:0.9rem;color:var(--env);font-weight:600;min-height:42px;" id="env-lote-pimienta-display">—</div>
+            <button onclick="toggleEnvAux('env-lote-pimienta')" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;padding:10px 12px;font-size:0.75rem;cursor:pointer;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:700;flex-shrink:0;">Cambiar</button>
+          </div>
+          <input class="finput" type="text" id="env-lote-pimienta" placeholder="Nuevo lote..." autocomplete="off" autocapitalize="characters" style="display:none;margin-top:6px;" oninput="actualizarDisplayAux('env-lote-pimienta')">
         </div><div style="margin-bottom:10px;">
           <div class="flabel" style="margin-bottom:4px;">Lote trufa</div>
-          <select class="finput" id="env-lote-trufa" data-aux-articulo="TRUFA" style="background:white;padding:10px 12px;">
-            <option value="">— Sin uso en este envasado —</option>
-          </select>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="flex:1;background:rgba(200,120,10,0.08);border:1.5px solid var(--env);border-radius:8px;padding:10px 12px;font-family:'Inconsolata',monospace;font-size:0.9rem;color:var(--env);font-weight:600;min-height:42px;" id="env-lote-trufa-display">—</div>
+            <button onclick="toggleEnvAux('env-lote-trufa')" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;padding:10px 12px;font-size:0.75rem;cursor:pointer;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:700;flex-shrink:0;">Cambiar</button>
+          </div>
+          <input class="finput" type="text" id="env-lote-trufa" placeholder="Nuevo lote..." autocomplete="off" autocapitalize="characters" style="display:none;margin-top:6px;" oninput="actualizarDisplayAux('env-lote-trufa')">
         </div><div style="margin-bottom:10px;">
-          <div class="flabel" style="margin-bottom:4px;">Cantidad trufa (g/queso)</div>
-          <input class="finput" type="number" id="env-cant-trufa" placeholder="0" min="0" inputmode="numeric">
+          <div class="flabel" style="margin-bottom:4px;">Cantidad trufa (g)</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="flex:1;background:rgba(200,120,10,0.08);border:1.5px solid var(--env);border-radius:8px;padding:10px 12px;font-family:'Inconsolata',monospace;font-size:0.9rem;color:var(--env);font-weight:600;min-height:42px;" id="env-cant-trufa-display">—</div>
+            <button onclick="toggleEnvAux('env-cant-trufa')" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;padding:10px 12px;font-size:0.75rem;cursor:pointer;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:700;flex-shrink:0;">Cambiar</button>
+          </div>
+          <input class="finput" type="number" id="env-cant-trufa" placeholder="0" min="0" inputmode="numeric" style="display:none;margin-top:6px;" oninput="actualizarDisplayAux('env-cant-trufa')">
         </div><div style="margin-bottom:10px;">
           <div class="flabel" style="margin-bottom:4px;">Lote aceite</div>
-          <select class="finput" id="env-lote-aceite" data-aux-articulo="ACEITE" style="background:white;padding:10px 12px;">
-            <option value="">— Sin uso en este envasado —</option>
-          </select>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="flex:1;background:rgba(200,120,10,0.08);border:1.5px solid var(--env);border-radius:8px;padding:10px 12px;font-family:'Inconsolata',monospace;font-size:0.9rem;color:var(--env);font-weight:600;min-height:42px;" id="env-lote-aceite-display">—</div>
+            <button onclick="toggleEnvAux('env-lote-aceite')" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;padding:10px 12px;font-size:0.75rem;cursor:pointer;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:700;flex-shrink:0;">Cambiar</button>
+          </div>
+          <input class="finput" type="text" id="env-lote-aceite" placeholder="Nuevo lote..." autocomplete="off" autocapitalize="characters" style="display:none;margin-top:6px;" oninput="actualizarDisplayAux('env-lote-aceite')">
         </div><div style="margin-bottom:10px;">
-          <div class="flabel" style="margin-bottom:4px;">Cantidad aceite (g/queso)</div>
-          <input class="finput" type="number" id="env-cant-aceite" placeholder="0" min="0" inputmode="numeric">
+          <div class="flabel" style="margin-bottom:4px;">Cantidad aceite (g)</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="flex:1;background:rgba(200,120,10,0.08);border:1.5px solid var(--env);border-radius:8px;padding:10px 12px;font-family:'Inconsolata',monospace;font-size:0.9rem;color:var(--env);font-weight:600;min-height:42px;" id="env-cant-aceite-display">—</div>
+            <button onclick="toggleEnvAux('env-cant-aceite')" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;padding:10px 12px;font-size:0.75rem;cursor:pointer;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:700;flex-shrink:0;">Cambiar</button>
+          </div>
+          <input class="finput" type="number" id="env-cant-aceite" placeholder="0" min="0" inputmode="numeric" style="display:none;margin-top:6px;" oninput="actualizarDisplayAux('env-cant-aceite')">
         </div>      </div>
     </div>
 
@@ -1482,31 +1404,6 @@ textarea.finput{resize:vertical;min-height:60px;}
     <div id="env-bloque-cierre" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);">
       <div style="background:rgba(200,120,10,0.08);border-bottom:2px solid var(--env);padding:10px 14px;font-family:'Karla',sans-serif;font-weight:800;font-size:0.9rem;color:var(--env);">✅ Cierre del registro</div>
       <div style="padding:14px;">
-        <!-- Control materiales envasado (C/I) — 3 puntos del turno -->
-        <div style="margin-bottom:14px;padding:12px;background:rgba(200,120,10,0.04);border:1px solid var(--border);border-radius:10px;">
-          <div class="flabel" style="margin-bottom:8px;">Control materiales envasado (C/I)</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center;margin-bottom:6px;">
-            <div style="font-size:0.78rem;color:var(--text3);">Inicio</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
-              <button id="env-ctrlmat-ini-c" onclick="selEnvCtrlMat('ini','C')" style="padding:9px 4px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.78rem;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">✓ C</button>
-              <button id="env-ctrlmat-ini-i" onclick="selEnvCtrlMat('ini','I')" style="padding:9px 4px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.78rem;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">✗ I</button>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center;margin-bottom:6px;">
-            <div style="font-size:0.78rem;color:var(--text3);">Durante uso</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
-              <button id="env-ctrlmat-dur-c" onclick="selEnvCtrlMat('dur','C')" style="padding:9px 4px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.78rem;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">✓ C</button>
-              <button id="env-ctrlmat-dur-i" onclick="selEnvCtrlMat('dur','I')" style="padding:9px 4px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.78rem;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">✗ I</button>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center;">
-            <div style="font-size:0.78rem;color:var(--text3);">Final</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
-              <button id="env-ctrlmat-fin-c" onclick="selEnvCtrlMat('fin','C')" style="padding:9px 4px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.78rem;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">✓ C</button>
-              <button id="env-ctrlmat-fin-i" onclick="selEnvCtrlMat('fin','I')" style="padding:9px 4px;font-family:'Karla',sans-serif;font-weight:700;font-size:0.78rem;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);">✗ I</button>
-            </div>
-          </div>
-        </div>
         <!-- Conforme vacío y sellado — primera pregunta del cierre -->
         <div style="margin-bottom:14px;">
           <div class="flabel">Conforme vacío y sellado</div>
@@ -1526,10 +1423,6 @@ textarea.finput{resize:vertical;min-height:60px;}
             </div>
           </div>
           <div class="fg full"><div class="flabel">Observaciones</div><textarea class="finput" id="env-obs" placeholder="Opcional..." style="min-height:60px;"></textarea></div>
-          <div class="fg full">
-            <div class="flabel">Acciones correctoras (si hubo anomalía)</div>
-            <textarea class="finput" id="env-acciones-correctoras" placeholder="Indicar lote y medidas aplicadas" style="min-height:60px;"></textarea>
-          </div>
         </div>
         <div class="errbanner" id="env-err-guardar"></div>
         <button onclick="guardarEnvasado()"
@@ -1588,7 +1481,7 @@ textarea.finput{resize:vertical;min-height:60px;}
 <!-- DISPONIBILIDAD COMERCIAL (solo GERENCIA/ADMIN) -->
 <div class="scr" id="s-disponibilidad">
   <div class="topbar">
-    <button class="tbback" onclick="ir('s-stock')">←</button>
+    <button class="tbback" onclick="ir('s-main')">←</button>
     <div class="tbtitle">💼 Disponibilidad comercial</div>
   </div>
   <div class="scrl">
@@ -1671,8 +1564,8 @@ function horaEspana(){
   }
 }
 var CFG={golpeH:24,volteoW:4,volteoC:7,anti2W:18,anti2C:25,secW:50,secC:60,tiernoD:6,superminiD:12,bajoSalD:3};
-var SALAS=['1.SALADERO','2.GOLPE FRIO','3.SECADERO 1','4.SECADERO 2','5.SECADERO 3','6.CAMARA FRIO','7.CAMARA MADURACION','8.FABRICA VIEJA','9.VENTA'];
-var SLBL={'1.SALADERO':'Saladero','2.GOLPE FRIO':'Golpe Frío','3.SECADERO 1':'Secadero 1','4.SECADERO 2':'Secadero 2','5.SECADERO 3':'Secadero 3','6.CAMARA FRIO':'Cámara Frío','7.CAMARA MADURACION':'C. Maduración','8.FABRICA VIEJA':'Fábrica Vieja','9.VENTA':'Venta'};
+var SALAS=['1.SALADERO','2.GOLPE FRIO','3.SECADERO 1','4.SECADERO 2','5.SECADERO 3','6.CAMARA FRIO','7.CAMARA MADURACION','8.CAMARA FABRICA','9.VENTA'];
+var SLBL={'1.SALADERO':'Saladero','2.GOLPE FRIO':'Golpe Frío','3.SECADERO 1':'Secadero 1','4.SECADERO 2':'Secadero 2','5.SECADERO 3':'Secadero 3','6.CAMARA FRIO':'Cámara Frío','7.CAMARA MADURACION':'C. Maduración','8.CAMARA FABRICA':'C. Fábrica','9.VENTA':'Venta'};
 var SALAS_VOLTEO=['2.GOLPE FRIO','3.SECADERO 1','4.SECADERO 2','5.SECADERO 3'];
 var TQMAP={'1':'MEZCLA','2':'OVEJA','3':'D.O. PAST.','4':'D.O. CRUDA','5':'CABRA','6':'OVEJA CRUDA','7':'FINOS','8':'MESNERA'};
 var FMAP={'1':'1 KG','2':'2 KG','3':'3 KG','4':'BARRA','5':'SUPERMINIS'};
@@ -1684,12 +1577,11 @@ var SECCIONES=[
   {id:'MOVIMIENTO',nombre:'Movimiento quesos',icon:'🚛',cls:'s4',perm:'movimiento'},
   {id:'PINTURA',nombre:'Pintura / Encerado',icon:'🖌️',cls:'s5',perm:'pintura'},
   {id:'ENVASADO',nombre:'Envasado',icon:'📦',cls:'s6',perm:'envasado'},
-  {id:'PARTES',nombre:'Partes de fabricación',icon:'🧀',cls:'spartes',perm:'partes'},
 ];
 var PRODUCTOS_PINTURA=['BEIG CUBRICION CEPI','BEIG USAE BOLSA','BIO CLARO BIO C 6M BOLSA','BIO OSCURO 12 M C','MARON CHOCOLATE MAN 10','MARON OSCURO SPANI CEPI','MARRON BEIGE','MARRON CLAR0 USAE CEP','MARRON INTERMEDIO','NEGRO','ROJO CABRA','URSOPLAST 4M CEP MIEL'];
 var USUARIOS=[
-  {n:'JOAQUIN',   pin:'2205',rol:'ADMIN',    stock:true, plan:true, scan:true,  partes:true, p:{capa1:1,volteo:1,movimiento:1,capa2:1,pintura:1,envasado:1}},
-  {n:'CALIDAD',   pin:'2306',rol:'CALIDAD',  stock:false,plan:false,scan:false, partes:true, p:{capa1:1,volteo:1,movimiento:1,capa2:1,pintura:1,envasado:1}},
+  {n:'JOAQUIN',   pin:'2205',rol:'ADMIN',    stock:true, plan:true, scan:true,  p:{capa1:1,volteo:1,movimiento:1,capa2:1,pintura:1,envasado:1}},
+  {n:'CALIDAD',   pin:'2306',rol:'CALIDAD',  stock:false,plan:false,scan:false, p:{capa1:1,volteo:1,movimiento:1,capa2:1,pintura:1,envasado:1}},
   {n:'PACO',      pin:'1144',rol:'JEFE',     stock:false,plan:true, scan:true,  p:{capa1:1,volteo:1,movimiento:1,capa2:0,pintura:0,envasado:0}},
   {n:'ALFONSO',   pin:'3663',rol:'OPERARIO', stock:false,plan:false,scan:true,  p:{capa1:0,volteo:1,movimiento:1,capa2:0,pintura:0,envasado:0}},
   {n:'LOLI',      pin:'6336',rol:'JEFE',     stock:false,plan:true, scan:true,  p:{capa1:0,volteo:1,movimiento:1,capa2:0,pintura:0,envasado:0}},
@@ -1705,28 +1597,6 @@ var USUARIOS=[
   {n:'MOHAMED',   pin:'2004',rol:'OPERARIO', stock:false,plan:false,scan:false, p:{capa1:1,volteo:0,movimiento:1,capa2:0,pintura:0,envasado:0}},
 ];
 
-// ═══════ OPERARIOS DESDE LA HOJA "LISTADO OPERARIOS" (con copia local offline) ═══════
-// La lista USUARIOS de arriba es solo el respaldo de seguridad. Si hay una copia
-// guardada de la hoja, se usa esa; y si hay conexión, se refresca al arrancar.
-// Así los permisos (incluido ACCESO PARTES) se gestionan en la hoja, no en el código,
-// y el login sigue funcionando sin conexión gracias a la copia local.
-(function(){
-  try{ var c=JSON.parse(localStorage.getItem('tq_operarios')||'null'); if(c&&c.length) USUARIOS=c; }catch(e){}
-})();
-function cargarOperarios(){
-  if(!navigator.onLine) return;
-  fetch(API_URL+'?tipo=operarios')
-    .then(function(r){return r.json();})
-    .then(function(d){
-      if(d&&d.ok&&d.data&&d.data.length){
-        USUARIOS=d.data;
-        try{ localStorage.setItem('tq_operarios', JSON.stringify(USUARIOS)); }catch(e){}
-        try{ poblarSelectOperarios(); }catch(e){}
-      }
-    })
-    .catch(function(){});
-}
-
 var CU=null,cpin='',rawRows=[],pales=[],misRegs=[];
 // Estado de lotes persistentes
 var loteC1='60100808AZ', loteC2='60100808AZ';
@@ -1741,26 +1611,13 @@ var salaVolteoActual='2.GOLPE FRIO';
 function poblarSelectOperarios(){
   var s=document.getElementById('l-nombre');
   if(!s)return;
-  var existentes = Array.prototype.map.call(s.options, function(o){return o.value;}).slice(1);
-  var nuevos = USUARIOS.map(function(u){return u.n;});
-  // Si la lista no ha cambiado, no tocar nada (evita el parpadeo al volver del fetch)
-  if(existentes.length===nuevos.length && existentes.every(function(n,i){return n===nuevos[i];})) return;
-  // Si el usuario ya está interactuando (operario seleccionado o pin en curso),
-  // tampoco tocamos: se actualizará la próxima vez sin interrumpirle.
-  if(s.value || (typeof cpin==='string' && cpin.length>0)) return;
-  while(s.options.length>1){ s.remove(1); }
-  nuevos.forEach(function(n){var o=document.createElement('option');o.value=n;o.textContent=n;s.appendChild(o);});
+  USUARIOS.forEach(function(u){var o=document.createElement('option');o.value=u.n;o.textContent=u.n;s.appendChild(o);});
 }
-// Si la última lista de operarios sigue en caché local, la usamos ya desde el
-// principio (así JORGE y demás operarios de la hoja están disponibles desde el
-// primer momento, y el desplegable no parpadea cuando llegue la respuesta del fetch).
-try{ var _co=localStorage.getItem('tq_operarios'); if(_co){ var _cu=JSON.parse(_co); if(Array.isArray(_cu)&&_cu.length) USUARIOS=_cu; } }catch(_e){}
-// Llamadas síncronas (este script está al final del body: todos los .scr ya existen).
-// Llamar a restaurarSesionSiVuelve aquí, antes de que el navegador pinte por
-// primera vez, evita el flash de "login → main" al volver de Partes.
-restaurarSesionSiVuelve();
-poblarSelectOperarios();
-cargarOperarios();
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',poblarSelectOperarios);
+}else{
+  poblarSelectOperarios();
+}
 
 function toggleManualQR(inputId){
   var el=document.getElementById(inputId);
@@ -1814,23 +1671,7 @@ function pv(){
   if(cpin.length<4){toast('Introduce los 4 dígitos','err');return;}
   var u=USUARIOS.find(function(x){return x.n===nom;});
   if(!u||u.pin!==cpin){document.getElementById('l-err').style.display='block';resetPin();return;}
-  entrarComo(u);
-}
-// Detección de rol tolerante a roles compuestos (ej. 'ADMIN/QUESERO', 'CALIDAD, QUESERO').
-// Busca la palabra suelta dentro del rol, ignorando mayúsculas, separadores y espacios.
-function _rolTiene(rol, palabra){
-  var limpio = String(rol||'').toUpperCase().replace(/[\/,;|\.\-]+/g,' ').replace(/\s+/g,' ').trim();
-  return (' '+limpio+' ').indexOf(' '+String(palabra||'').toUpperCase().trim()+' ') >= 0;
-}
-function esRolAdmin(u){ return _rolTiene(u&&u.rol,'ADMIN'); }
-function esRolCalidad(u){ return _rolTiene(u&&u.rol,'CALIDAD'); }
-function esAdminOCalidad(u){ return esRolAdmin(u) || esRolCalidad(u); }
-
-function entrarComo(u){
   CU=u;
-  // Normalizar accesos para roles compuestos: si el rol contiene ADMIN, dar accesos admin
-  // (stock, etc.) aunque el rol sea 'ADMIN/QUESERO'. No quita nada a quien ya lo tuviera.
-  if(esRolAdmin(u)){ u.stock = true; }
   document.getElementById('tb-user').textContent=u.n;
   document.getElementById('tb-user2').textContent=u.n;
   document.getElementById('g-name').textContent=u.n;
@@ -1839,9 +1680,9 @@ function entrarComo(u){
   document.getElementById('btn-stock').style.display=u.stock?'':'none';
   document.getElementById('btn-scan').style.display=u.scan?'':'none';
   var sb=document.getElementById('stats-block');if(sb)sb.style.display=u.stock?'':'none';
-  document.getElementById('btn-trazabilidad').style.display=esAdminOCalidad(u)?'':'none';
-  document.getElementById('btn-materiales').style.display=esAdminOCalidad(u)?'':'none';
-  document.getElementById('btn-disponibilidad').style.display='none'; // integrado en Control de Stock
+  document.getElementById('btn-trazabilidad').style.display=(u.rol==='CALIDAD'||u.rol==='ADMIN')?'':'none';
+  document.getElementById('btn-materiales').style.display=(u.rol==='CALIDAD'||u.rol==='ADMIN')?'':'none';
+  document.getElementById('btn-disponibilidad').style.display=(u.rol==='ADMIN')?'':'none';
   ir('s-main');cargarDatos();iniciarAutoSync();
 }
 function iniciarAutoSync(){
@@ -1851,33 +1692,10 @@ function iniciarAutoSync(){
     _fetchDatosBackground();
   },300000);
 }
-function irPartes(){
-  // Entrega el operario logueado a la app de Partes y navega allí
-  try{ localStorage.setItem('tq_partes_handoff', JSON.stringify({operario: CU?CU.n:'', rol: CU?CU.rol:'', ts: Date.now()})); }catch(e){}
-  try{ localStorage.setItem('tq_volver_sesion', JSON.stringify({n: CU?CU.n:'', ts: Date.now()})); }catch(e){}
-  location.href='partes-fabricacion.html';
-}
 function cerrarSesion(){CU=null;cpin='';resetPin();document.getElementById('l-nombre').value='';ir('s-login');}
-function restaurarSesionSiVuelve(){
-  try{
-    var s=localStorage.getItem('tq_volver_sesion');
-    if(!s)return;
-    var d=JSON.parse(s);
-    localStorage.removeItem('tq_volver_sesion'); // un solo uso
-    if(!d||!d.n)return;
-    if(Date.now()-(d.ts||0)>600000)return; // caduca a los 10 min
-    var u=USUARIOS.find(function(x){return x.n===d.n;});
-    if(u)entrarComo(u);
-  }catch(e){}
-}
 
 // ═══════ NAVEGACIÓN ═══════
 var _lastSync=0;
-// Indica si la PRIMERA sincronización con Sheets de esta sesión ya terminó.
-// Se usa para impedir que el operario entre a registrar (1ª capa, envasado,
-// etc.) con datos viejos de caché antes de tener los del día. Solo aplica a
-// la PRIMERA vez: una vez sincronizado, ya no vuelve a bloquear.
-var _syncInicialOK=false;
 function ir(id){
   document.querySelectorAll('.scr').forEach(function(s){s.classList.remove('on');});
   document.getElementById(id).classList.add('on');
@@ -1891,7 +1709,7 @@ function ir(id){
   try{ inyectarBotonHistorico(id); }catch(e){}
 }
 // Inserta el botón de histórico completo en la pantalla de consulta indicada
-var PANTALLAS_CONSULTA={'s-traz':'hist-full-traz','s-regs':1,'s-stock':1,'s-stock-salas':1,'s-plan':1};
+var PANTALLAS_CONSULTA={'s-traz':'hist-full-traz','s-regs':1,'s-stock':1,'s-plan':1};
 function inyectarBotonHistorico(id){
   if(!PANTALLAS_CONSULTA[id])return;
   if(_historicoCompletoCargado)return;
@@ -1917,7 +1735,7 @@ function resetSeccion(id){
 }
 function irF(){renderSecs();ir('s-secs');}
 function irR(){
-  var esAdmin=esAdminOCalidad(CU);
+  var esAdmin=(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
   document.getElementById('regs-filtros').style.display=esAdmin?'block':'none';
   document.getElementById('regs-title').textContent=esAdmin?'Registros':'Mis registros de hoy';
   document.getElementById('regs-banner').style.display=esAdmin?'none':'';
@@ -1949,22 +1767,8 @@ function tapFeedback(el){
 function removeTapLoading(){
   var o=document.getElementById('tap-ov');if(o&&o.parentNode)o.parentNode.removeChild(o);
 }
-function irPlan(){
-  // Cambiar a la pantalla de Plan AL INSTANTE con un indicador "Calculando…",
-  // y disparar el cálculo 50 ms después (mismo patrón que buscarDisponibilidad).
-  // Así el toque del botón se nota siempre y no parece colgado.
-  var cont = document.getElementById('plan-menu-content');
-  if(cont) cont.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text2);"><div style="font-size:1.8rem;margin-bottom:10px;">⏳</div><div style="font-family:\'Karla\',sans-serif;font-weight:700;">Calculando plan de trabajo...</div></div>';
-  ir('s-plan');
-  setTimeout(renderPlanMenu, 50);
-}
-function irStock(){
-  // Selector: la opción "Por tipo y fecha" (disponibilidad) solo para ADMIN
-  var optD=document.getElementById('stock-opt-disp');
-  if(optD)optD.style.display=(CU&&esRolAdmin(CU))?'':'none';
-  ir('s-stock');
-}
-function irStockSalas(){renderStock();ir('s-stock-salas');}
+function irPlan(){renderPlanMenu();ir('s-plan');}
+function irStock(){renderStock();ir('s-stock');}
 // ═══════ DISPONIBILIDAD COMERCIAL (solo gerencia) ═══════
 function irDisponibilidad(){
   // Aviso: para ver quesos curados (varios meses) hace falta el histórico completo
@@ -2053,8 +1857,7 @@ function _calcularDisponibilidad(){
 // ═══════ SECCIONES ═══════
 function renderSecs(){
   document.getElementById('sec-list').innerHTML=SECCIONES.map(function(s){
-    if(s.id==='PARTES' && !(CU&&CU.partes)) return ''; // Partes solo visible con acceso (ACCESO PARTES)
-    var ok=(s.id==='PARTES') ? !!(CU&&CU.partes) : (CU&&CU.p[s.perm]);
+    var ok=CU&&CU.p[s.perm];
     return '<button class="secbtn '+s.cls+(ok?'':' locked')+'" onclick="abrirSec(\''+s.id+'\')">'+
       '<div class="secbtn-icon">'+s.icon+'</div>'+
       '<div class="secbtn-name">'+s.nombre+'</div>'+
@@ -2064,32 +1867,11 @@ function renderSecs(){
 }
 function abrirSec(sec){
   if(!CU)return;
-  if(sec==='PARTES'){ if(!CU.partes){toast('Sin permiso para Partes de fabricación','err');return;} irPartes(); return; }
   var s=SECCIONES.find(function(x){return x.id===sec;});
   if(!CU.p[s.perm]){toast('Sin permiso para '+s.nombre,'err');return;}
-  // ── PROTECCIÓN: primera sincronización de la sesión ──
-  // Si aún no ha terminado la primera descarga de datos de Sheets, NO dejamos
-  // entrar a registrar todavía: se mostraría el último lote/datos de la caché
-  // de un día anterior (esto provocó que se registrara con el lote de
-  // antifúngico viejo). Mostramos un overlay de espera y abrimos la sección
-  // en cuanto la sync termine. Hay un límite de seguridad por si la red de la
-  // fábrica está caída: pasado ese tiempo, se abre igualmente para no dejar
-  // al operario atascado (la app sigue siendo offline-first).
-  if(!_syncInicialOK){
-    _mostrarEsperaSync(function(){ _abrirSecReal(sec); });
-    // Forzar el arranque de la descarga si no está ya en curso
-    if(!window.__tqFetching) cargarDatos(true);
-    return;
-  }
-  // Sync silencioso al abrir sección si han pasado más de 2 minutos (no bloquea)
+  // Sync silencioso al abrir sección si han pasado más de 2 minutos
   var ahora=Date.now();
   if(ahora-_lastSync>120000){_lastSync=ahora;cargarDatos();}
-  _abrirSecReal(sec);
-}
-
-// Abre realmente la pantalla de la sección (separado de abrirSec para poder
-// invocarlo tanto de inmediato como tras esperar la sincronización inicial).
-function _abrirSecReal(sec){
   if(sec==='1ª CAPA'){initC1();ir('s-capa1');setTimeout(function(){document.getElementById('c1-qr').focus();},200);}
   else if(sec==='VOLTEO'){initVolteo();ir('s-volteo');}
   else if(sec==='2ª CAPA'){initC2();ir('s-capa2');setTimeout(function(){document.getElementById('c2-qr').focus();},200);}
@@ -2097,58 +1879,6 @@ function _abrirSecReal(sec){
   else if(sec==='PINTURA'){initPintura();ir('s-pintura');setTimeout(function(){document.getElementById('pint-qr').focus();},200);}
   else if(sec==='ENVASADO'){initEnvasado();ir('s-envasado');}
   else toast('Sección '+sec+' próximamente','err');
-}
-
-// Overlay de espera mientras se completa la primera sincronización.
-// callback se ejecuta UNA sola vez: cuando la sync termina o cuando se agota
-// el límite de seguridad (lo que ocurra antes).
-var _esperaSyncTimer=null, _esperaSyncHecho=false, _onSyncInicialListo=null;
-function _mostrarEsperaSync(callback){
-  _esperaSyncHecho=false;
-  // Crear overlay si no existe
-  var ov=document.getElementById('tq-espera-sync');
-  if(!ov){
-    ov=document.createElement('div');
-    ov.id='tq-espera-sync';
-    ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(40,20,10,0.82);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;';
-    ov.innerHTML='<div style="background:var(--bg);border-radius:16px;padding:28px 24px;max-width:340px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.4);">'
-      +'<div style="font-size:2.6rem;margin-bottom:10px;">⏳</div>'
-      +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.1rem;color:var(--text);margin-bottom:8px;">Sincronizando datos…</div>'
-      +'<div style="font-family:\'Karla\',sans-serif;font-size:0.86rem;color:var(--text3);line-height:1.4;">Estamos descargando los últimos registros para que trabajes con los datos correctos (lote de antifúngico, etc.). Un momento…</div>'
-      +'<div id="tq-espera-sync-tarde" style="margin-top:14px;display:none;"></div>'
-      +'</div>';
-    document.body.appendChild(ov);
-  } else {
-    ov.style.display='flex';
-    var tard=document.getElementById('tq-espera-sync-tarde');
-    if(tard){tard.style.display='none';tard.innerHTML='';}
-  }
-  var cerrar=function(motivo){
-    if(_esperaSyncHecho)return;
-    _esperaSyncHecho=true;
-    if(_esperaSyncTimer){clearTimeout(_esperaSyncTimer);_esperaSyncTimer=null;}
-    _onSyncInicialListo=null;
-    var o=document.getElementById('tq-espera-sync');
-    if(o)o.style.display='none';
-    if(typeof callback==='function')callback();
-  };
-  // Cuando la sync inicial termine, cerrar el overlay y continuar
-  _onSyncInicialListo=function(){ cerrar('sync'); };
-  // Si ya estaba lista entre medias (carrera), cerrar de inmediato
-  if(_syncInicialOK){ cerrar('ya'); return; }
-  // Límite de seguridad: a los 12 s, ofrecer botón de "entrar de todas formas"
-  // (no abrimos solos por sorpresa; dejamos que el operario decida si la red
-  // está fallando, así no entra a ciegas pero tampoco se queda bloqueado).
-  _esperaSyncTimer=setTimeout(function(){
-    var tard=document.getElementById('tq-espera-sync-tarde');
-    if(tard){
-      tard.style.display='';
-      tard.innerHTML='<div style="font-size:0.82rem;color:var(--accent);margin-bottom:10px;">La conexión está tardando más de lo normal.</div>'
-        +'<button id="tq-espera-sync-btn" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;cursor:pointer;">Entrar de todas formas</button>';
-      var b=document.getElementById('tq-espera-sync-btn');
-      if(b)b.onclick=function(){ cerrar('manual'); };
-    }
-  },12000);
 }
 
 // ═══════ 1ª CAPA ═══════
@@ -2490,23 +2220,6 @@ function initMov(){
   renderLogMov();
 }
 function onMovKey(e){if(e.key==='Enter'){var v=document.getElementById('mov-qr').value.trim();if(v){registrarMov(v);document.getElementById('mov-qr').value='';}}}
-// Aviso visible cuando un movimiento NO se puede registrar.
-// Combina: texto rojo en el panel + toast emergente + vibración del móvil + scroll
-// para asegurar que el operario lo ve siempre (no parece que "no ha cogido el escaneo").
-function _bloquearMov(htmlMsg, textoPlano, errElParam){
-  try{ if(navigator.vibrate) navigator.vibrate([200,80,200]); }catch(_){}
-  try{ toast(textoPlano, 'err'); }catch(_){}
-  // El panel manual tiene su propio recuadro de error: si está visible, usamos ese
-  var manForm = document.getElementById('mov-manual-form');
-  var manErr  = document.getElementById('mov-man-err');
-  var dest = (manForm && manForm.style.display!=='none' && manErr) ? manErr : (errElParam || document.getElementById('mov-err'));
-  if(dest){
-    dest.innerHTML = htmlMsg;
-    dest.style.display = '';
-    try{ dest.scrollIntoView({behavior:'smooth', block:'center'}); }catch(_){}
-  }
-}
-
 function registrarMov(codigo){
   var paleId=codigo.split('*')[0];
   var codigoCompleto=normalizarQR(codigo);
@@ -2515,71 +2228,56 @@ function registrarMov(codigo){
   var dest=document.getElementById('mov-dest').value;
   var errEl=document.getElementById('mov-err');
   if(orig===dest){
-    _bloquearMov('<span style="font-size:1.1rem;font-weight:800;color:#c0392b;">⚠️ La sala origen y destino no pueden ser la misma</span>', 'Origen y destino no pueden ser iguales', errEl);
+    errEl.textContent='⚠️ La sala origen y destino no pueden ser la misma';
+    errEl.style.display='';
+    setTimeout(function(){errEl.style.display='none';},3500);
     return;
   }
-  // Buscar el palé. IMPORTANTE: si el código escaneado trae variedad (tras el *),
-  // la usamos para desambiguar. Antes se tiraba la variedad (paleId=split('*')[0])
-  // y la comparación exacta fallaba, cayendo a buscarPorDigitos que devolvía
-  // TODOS los palés con esos 12 dígitos → falso "hay varios palés".
-  // Estrategia: 1º match exacto con código completo (dígitos+variedad);
-  //             2º si no, match solo por dígitos (palés sin variedad);
-  //             3º si no, buscarPorDigitos (que ahora también filtra por variedad).
-  var _pkCompleto=normPaleKey(codigo);          // incluye variedad si la hay
-  var _pkBuscar=normPaleKey(paleId);            // solo dígitos
-  var p=pales.find(function(x){return normPaleKey(x.id)===_pkCompleto;});
-  if(!p) p=pales.find(function(x){return normPaleKey(x.id)===_pkBuscar;});
-  // Excepción "nacimiento del palé": para quesos TIERNOS (sin antifúngico), el palé
-  // entra en el sistema con un movimiento Saladero → Secadero. En ese caso NO hay
-  // registros previos, así que NO podemos exigir que el palé exista ni validar la
-  // coherencia con la sala anterior. La condición es estricta: SOLO si la sala
-  // origen es Saladero. Para cualquier otra sala el palé tiene que existir.
-  var _esNacimiento = (normSala(orig)==='1.SALADERO');
+  var _pkBuscar=normPaleKey(paleId);var p=pales.find(function(x){return normPaleKey(x.id)===_pkBuscar;});
   if(!p){
-    var _candidatos=buscarPorDigitos(codigo);   // pasamos código completo (con variedad)
+    var _candidatos=buscarPorDigitos(paleId);
     if(_candidatos.length===1){
       p=_candidatos[0];
     } else if(_candidatos.length>1){
-      _bloquearMov('<span style="font-size:1.1rem;font-weight:800;color:#c0392b;">⚠️ Hay '+_candidatos.length+' palés con ese número: '+_candidatos.map(function(x){return x.variedad||x.id;}).join(', ')+'. Escanea el QR para identificarlo.</span>', 'Hay varios palés con ese número, escanea el QR', errEl);
+      errEl.innerHTML='<span style="font-size:1.1rem;font-weight:800;">⚠️ Hay '+_candidatos.length+' palés con ese número: '+_candidatos.map(function(x){return x.variedad||x.id;}).join(', ')+'. Escanea el QR para identificarlo.</span>';
+      errEl.style.display='';
       return;
-    } else if(!_esNacimiento){
-      // Palé no existe Y la sala origen NO es saladero → bloquear (como antes)
-      _bloquearMov('<span style="font-size:1.1rem;font-weight:800;color:#c0392b;">⚠️ Este palé no existe en el sistema</span>', 'Este palé no existe en el sistema', errEl);
+    } else {
+      errEl.innerHTML='<span style="font-size:1.1rem;font-weight:800;">⚠️ Este palé no existe en el sistema</span>';
+      errEl.style.display='';
       return;
     }
-    // Si llegamos aquí (palé nuevo + sala origen = saladero), seguimos: nacimiento permitido
   }
   // Ubicación REAL del palet (mira todos los registros por fecha, no solo el caché)
-  // Para buscar la sala REAL hay que usar el ID con sufijo (*VARIEDAD), porque
-  // matchPaleId rechaza la comparación 'uno con variedad / otro sin'. Si pasamos
-  // sólo el ID corto, salaReal sale '' y la validación de origen no se aplica.
-  var salaReal = getSalaActualPale(codigoCompleto || paleId) || (p ? p.sala : '');
+  var salaReal = getSalaActualPale(paleId) || (p ? p.sala : '');
 
   if(salaReal && normSala(salaReal)!==normSala(orig)){
-    // El palet no está en la sala origen declarada → bloqueo MUY visible
-    var msgHtml='<span style="font-size:1.05rem;font-weight:800;color:#c0392b;">⚠️ No se puede registrar este movimiento.<br>Este palé está en <u>'+sl(salaReal)+'</u>, no en <u>'+sl(orig)+'</u>.<br>Cambia la sala origen o revisa dónde se encuentra.</span>';
-    var msgPlano='No se puede registrar: el palé está en '+sl(salaReal)+', no en '+sl(orig);
-    _bloquearMov(msgHtml, msgPlano, errEl);
+    // El palet no está en la sala origen declarada
+    var manForm=document.getElementById('mov-manual-form');
+    var manErr=document.getElementById('mov-man-err');
+    var msg='<span style="font-size:1.05rem;font-weight:800;color:#c0392b;">⚠️ Este palé está en <u>'+sl(salaReal)+'</u>, no en <u>'+sl(orig)+'</u>.<br>Ya se movió antes. Cambia la sala origen o revisa el registro.</span>';
+    if(manForm&&manForm.style.display!=='none'&&manErr){
+      manErr.innerHTML=msg;
+      manErr.style.display='';
+    } else {
+      errEl.innerHTML=msg;
+      errEl.style.display='';
+    }
     return;
   }
 
   // Comprobar que el palet no esté YA en la sala destino (el movimiento ya se hizo)
   if(salaReal && normSala(salaReal)===normSala(dest)){
-    _bloquearMov('<span style="font-size:1.05rem;font-weight:800;color:#c0392b;">⚠️ Este palé YA está en <u>'+sl(dest)+'</u>.<br>El movimiento ya se registró antes, no se puede repetir.</span>', 'Movimiento duplicado: ya estaba en '+sl(dest), errEl);
+    errEl.innerHTML='<span style="font-size:1.05rem;font-weight:800;color:#c0392b;">⚠️ Este palé YA está en <u>'+sl(dest)+'</u>.<br>El movimiento ya se registró antes, no se puede repetir.</span>';
+    errEl.style.display='';
+    toast('Movimiento duplicado','err');
     return;
   }
   errEl.style.display='none';
   var infoM=parsearId(codigoCompleto||paleId);
   var datos={'ID PALET':codigoCompleto,'SECCIÓN':'MOVIMIENTO','OPERARIO':CU.n,'FECHA':fechaHoraEspana(),'LOTE QUESO':infoM.lote||paleId.substring(0,7),'TIPO DE QUESO':infoM.tipo,'VARIEDAD':infoM.variedad,'FORMATO/PESO':infoM.fmt,'Nº DE PIEZAS':infoM.piezas||'','SALA ORIGEN':orig,'SALA DESTINO':dest};
   guardarRegistro(datos,'MOVIMIENTO',paleId);
-  if(p){
-    p.sala=dest;
-  } else {
-    // Palé nuevo nacido en este movimiento: lo añadimos al caché local para que
-    // aparezca inmediatamente en consultas siguientes sin esperar a refrescar.
-    pales.push({id:paleId, sala:dest, lote:infoM.lote||paleId.substring(0,7),
-                tipo:infoM.tipo, variedad:infoM.variedad, fmt:infoM.fmt, piezas:infoM.piezas||''});
-  }
+  if(p)p.sala=dest;
   // Recordar las últimas salas para el siguiente movimiento
   try{localStorage.setItem('tq_mov_ult_orig',orig);localStorage.setItem('tq_mov_ult_dest',dest);}catch(e){}
   cntMov++;document.getElementById('mov-cnt').textContent=cntMov;
@@ -2900,7 +2598,7 @@ function variedadDePale(paleId){
 }
 function renderRegs(){
   try{
-  var esAdmin=esAdminOCalidad(CU);
+  var esAdmin=(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
   var filtroOp=esAdmin?(document.getElementById('filtro-operario')?document.getElementById('filtro-operario').value:''):'';
   var filtroSec=esAdmin?(document.getElementById('filtro-seccion')?document.getElementById('filtro-seccion').value:''):'';
   var filtroFecha=esAdmin?(document.getElementById('filtro-fecha')?document.getElementById('filtro-fecha').value:''):'';
@@ -2921,16 +2619,12 @@ function renderRegs(){
     return f.toLocaleDateString('es-ES')===fechaRefLocal;
   });
   var porSec={};
-  var filasIgnoradas=0;
   var SECCIONES_ORDER=['1ª CAPA','VOLTEO','2ª CAPA','MOVIMIENTO','PINTURA','ENVASADO'];
   var SCOLOR={'1ª CAPA':'#6b4a4a','VOLTEO':'#4a5e4a','2ª CAPA':'#425470','MOVIMIENTO':'#7a5e3a','PINTURA':'#5a4568','ENVASADO':'#4a5a3a'};
   var SICON={'1ª CAPA':'🫧','VOLTEO':'🔄','2ª CAPA':'🫧','MOVIMIENTO':'🚚','PINTURA':'🎨','ENVASADO':'📦'};
   regsSheets.forEach(function(r){
     try{
-    var sec=(r['SECCIÓN']||'').toUpperCase();
-    // Solo mostrar las 6 secciones de palés. MATERIAL AUXILIAR (entradas/
-    // salidas de stock) tiene su propia vista en el menú y no son palés.
-    if(!sec || SECCIONES_ORDER.indexOf(sec)<0) return;
+    var sec=(r['SECCIÓN']||'').toUpperCase();if(!sec)return;
     if(!porSec[sec])porSec[sec]=[];
     var info=parsearId(r['ID PALET']||'');
     var rawIdx=rawRows.indexOf(r);
@@ -2942,7 +2636,7 @@ function renderRegs(){
       variedad:r['VARIEDAD']||info.variedad||variedadDePale(r['ID PALET']||'')||'—',
       fmt:r['FORMATO/PESO']||info.fmt||'—',
       piezas:parseInt(r['Nº DE PIEZAS'])||info.piezas||0,
-      lote:String(r['LOTE QUESO']||info.lote||''),
+      lote:r['LOTE QUESO']||info.lote||'',
       loteCorto:info.loteCorto||'',
       hora:parseFecha(r['FECHA'])?parseFecha(r['FECHA']).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'—',
       origen:r['SALA VOLTEO']||r['SALA ORIGEN']||'',
@@ -2950,40 +2644,23 @@ function renderRegs(){
       operario:r['OPERARIO']||'',
       fromSheets:true
     });
-    }catch(e){filasIgnoradas++;console.warn('Fila ignorada:',e);}
+    }catch(e){console.warn('Fila ignorada:',e);}
   });
-  // Añadir registros de la sesión local (misRegs) del propio usuario.
-  // Antes esto se hacía SÓLO si la fecha del filtro era HOY, lo que provocaba
-  // que un registro editado a fecha pasada siguiera apareciendo bajo HOY
-  // (porque misRegs estaba congelado en la fecha de creación). Ahora se
-  // procesa siempre y se filtra por r.datos['FECHA'] (que refleja las
-  // ediciones). Si no hubiese FECHA en datos, asumimos hoy.
+  // Añadir sesión si es el propio usuario y es hoy
   var hoy=new Date().toLocaleDateString('es-ES');
-  misRegs.filter(function(r){return r.op===CU.n;}).forEach(function(r){
-    var sec=r.sec.toUpperCase();
-    if(filtroSec&&sec!==filtroSec)return;
-    if(SECCIONES_ORDER.indexOf(sec)<0) return;
-    // Filtro por fecha del registro: si tiene FECHA en datos, parsear y
-    // comparar; si no la tiene, fallback a hoy.
-    var fechaRegLocal = hoy;
-    if(r.datos && r.datos['FECHA']){
-      var fReg = parseFecha(r.datos['FECHA']);
-      if(fReg) fechaRegLocal = fReg.toLocaleDateString('es-ES');
-    }
-    if(fechaRegLocal !== fechaRefLocal) return;
-    if(!porSec[sec])porSec[sec]=[];
-    // Evitar duplicar con un registro que ya venga de Sheets (rawRows).
-    // Match por sesionId/rowId o por ID PALET (suficiente para palés).
-    var ya=porSec[sec].find(function(x){
-      if(x.rowId && r.id && x.rowId===r.id) return true;
-      return x.pale===r.pale;
+  if(fechaRefLocal===hoy){
+    misRegs.filter(function(r){return r.op===CU.n;}).forEach(function(r){
+      var sec=r.sec.toUpperCase();
+      if(filtroSec&&sec!==filtroSec)return;
+      if(!porSec[sec])porSec[sec]=[];
+      var ya=porSec[sec].find(function(x){return x.pale===r.pale;});
+      if(!ya){
+        var info=parsearId(r.pale);
+        var varReg=(info.variedad&&info.variedad!=='—')?info.variedad:(variedadDePale(r.pale)||info.variedad);
+        porSec[sec].push({rowId:r.id,pale:r.pale,tipo:r.tipo||info.tipo,variedad:varReg,fmt:r.fmt||info.fmt,piezas:info.piezas,lote:info.lote,loteCorto:info.loteCorto,hora:r.hora,origen:r.datos?r.datos['SALA ORIGEN']||'':'',destino:r.datos?r.datos['SALA DESTINO']||'':'',operario:CU.n,fromSheets:false,sesionId:r.id});
+      }
     });
-    if(!ya){
-      var info=parsearId(r.pale);
-      var varReg=(info.variedad&&info.variedad!=='—')?info.variedad:(variedadDePale(r.pale)||info.variedad);
-      porSec[sec].push({rowId:r.id,pale:r.pale,tipo:r.tipo||info.tipo,variedad:varReg,fmt:r.fmt||info.fmt,piezas:info.piezas,lote:info.lote,loteCorto:info.loteCorto,hora:r.hora,origen:r.datos?r.datos['SALA ORIGEN']||'':'',destino:r.datos?r.datos['SALA DESTINO']||'':'',operario:CU.n,fromSheets:false,sesionId:r.id});
-    }
-  });
+  }
   var secs=Object.keys(porSec);
   if(!secs.length){
     // Distinguir: ¿no hay datos descargados aún, o sí hay pero no para estos filtros?
@@ -3047,67 +2724,13 @@ function renderRegs(){
         tkeys.forEach(function(tKey){
           var g=ruta.grupos[tKey];
           var bgColor=tipoColor(g.tipo,'light');var fgColor=tipoColor(g.tipo,'bg');
-          // ¿Es este grupo el "nacimiento" del palé? (todos los palés desde Saladero).
-          // Si lo es, abrimos un carril lateral con caja de peso (igual UX que 1ª CAPA),
-          // para los quesos tiernos que nacen con un movimiento directo Saladero → Secadero.
-          var esNacMov = g.pales.length>0 && g.pales.every(function(_r){
-            return _r.origen && normSala(_r.origen)==='1.SALADERO';
-          });
           html+='<div style="background:'+bgColor+';padding:8px 14px;border-top:2px solid '+fgColor+';display:flex;justify-content:space-between;align-items:center;">'
             +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1rem;color:'+fgColor+';">'+g.tipo+(g.variedad?' · '+g.variedad:'')+(g.fmt?' · '+g.fmt:'')+'</span>'
             +(g.agrupador&&g.agrupador!=='—'?'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.9rem;color:'+fgColor+';">'+g.agrupador+'</span>':'')
             +'</div>';
-          if(esNacMov){
-            html+='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:var(--bg2);">'
-              +'<div style="width:max-content;min-width:100%;">';
-          }
           g.pales.sort(function(a,b){return ordenPorDigitos(a.pale||'')-ordenPorDigitos(b.pale||'');});
           g.pales.forEach(function(r){
             var rowIdM=r.rowId||'';var sesionIdM=r.sesionId||'';var rawIdxM=r.rawIdx!==undefined?r.rawIdx:-1;
-            if(esNacMov){
-              // Render con caja de peso a la derecha (igual UX que 1ª CAPA)
-              var pesoActM='', pmActM='';
-              try{
-                var filaPM = (rawIdxM>=0 && rawIdxM<rawRows.length) ? rawRows[rawIdxM] : null;
-                if(filaPM){
-                  if(filaPM['PESO PALET']) pesoActM = filaPM['PESO PALET'];
-                  if(filaPM['PESO MEDIO']) pmActM = filaPM['PESO MEDIO'];
-                }
-              }catch(eM){}
-              var pesoActMDot = pesoActM ? pesoActM.toString().replace(',','.') : '';
-              var tienePeM = (pesoActMDot!=='');
-              var inpIdM2 = 'pwm_'+(rowIdM||r.pale).replace(/[^a-zA-Z0-9]/g,'_');
-              var btnIdM2 = 'chkm_'+inpIdM2;
-              var chkStyleM = tienePeM ? 'display:none;' : '';
-              var onInpAttrM = tienePeM
-                ? 'oninput="var b=document.getElementById(\''+btnIdM2+'\');if(b)b.style.display=(parseFloat(this.value)===parseFloat(\''+pesoActMDot+'\'))?\'none\':\'\'" '
-                : '';
-              var pmNumM = pmActM ? pmActM.toString().replace('.',',') : '';
-              var rightVisM = tienePeM
-                ? '<div style="flex-shrink:0;text-align:right;padding-left:8px;">'
-                  +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.62rem;color:var(--text3);white-space:nowrap;">'+pesoActM.toString().replace('.',',')+' kg</div>'
-                  +(pmNumM?'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.82rem;color:var(--text);margin-top:1px;">'+pmNumM+'</div>':'')
-                  +'</div>'
-                : '<span style="color:var(--text3);font-size:0.7rem;opacity:0.6;white-space:nowrap;flex-shrink:0;">peso ‹</span>';
-              html+='<div style="display:flex;border-top:1px solid var(--border);">'
-                +'<div onclick="event.stopPropagation();abrirRegFicha(\''+rowIdM+'\',\''+sesionIdM+'\','+rawIdxM+')" style="flex:0 0 calc(100vw - 28px);max-width:calc(100vw - 28px);padding:8px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;box-sizing:border-box;background:var(--bg2);">'
-                +'<div style="min-width:0;">'
-                +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.88rem;color:var(--text);">'+r.piezas+' pzas</div>'
-                +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.62rem;color:var(--text3);margin-top:1px;">'+r.pale+'</div>'
-                +(esAdmin&&r.operario?'<div style="font-size:0.62rem;color:var(--text3);margin-top:1px;">'+r.operario+'</div>':'')
-                +'</div>'
-                +rightVisM
-                +'</div>'
-                +'<div style="flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--bg3);border-left:1px solid var(--border);">'
-                +'<input type="number" inputmode="decimal" step="0.1" id="'+inpIdM2+'" value="'+pesoActMDot+'" placeholder="peso kg" '
-                +'data-orig="'+pesoActMDot+'" '+onInpAttrM
-                +'onkeydown="if(event.key===\'Enter\'){guardarPesoInline(\''+rowIdM+'\',\''+sesionIdM+'\','+rawIdxM+',\''+inpIdM2+'\');}" '
-                +'style="width:100px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-family:\'Karla\',sans-serif;font-size:0.9rem;text-align:right;background:var(--bg2);">'
-                +'<button id="'+btnIdM2+'" onclick="guardarPesoInline(\''+rowIdM+'\',\''+sesionIdM+'\','+rawIdxM+',\''+inpIdM2+'\')" style="'+chkStyleM+'padding:8px 13px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:0.95rem;cursor:pointer;">✓</button>'
-                +'</div>'
-                +'</div>';
-              return;
-            }
             html+='<div onclick="event.stopPropagation();abrirRegFicha(\''+rowIdM+'\',\''+sesionIdM+'\','+rawIdxM+')" style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);cursor:pointer;">'
               +'<div>'
               +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.88rem;color:var(--text);">'+r.piezas+' pzas</div>'
@@ -3117,7 +2740,6 @@ function renderRegs(){
               +'<span style="color:var(--text3);font-size:1rem;">›</span>'
               +'</div>';
           });
-          if(esNacMov) html+='</div></div>';
         });
         html+='</div>';
       });
@@ -3223,7 +2845,7 @@ function renderRegs(){
       });
       // Registros SIN QR: agrupar por lote manual → tipo·variedad·formato
       regssin.forEach(function(r){
-        var loteMan=String(r.lote||'SIN LOTE').trim().toUpperCase();
+        var loteMan=(r.lote||'SIN LOTE').trim().toUpperCase();
         var t=r.tipo||'?';var v=r.variedad&&r.variedad!=='—'?r.variedad:'';var f=r.fmt||'—';
         var key='SIN|||'+loteMan+'|||'+t+'|||'+v+'|||'+f;
         if(!gruposDir[key])gruposDir[key]={tipo:t,variedad:v,fmt:f,lote:loteMan,agrupador:loteMan,sinQR:true,pales:[]};
@@ -3317,22 +2939,10 @@ function renderRegs(){
           return ordenPorDigitos(a.pale||'')-ordenPorDigitos(b.pale||'');
         });
         var esC1=(sec==='1ª CAPA'||sec==='1A CAPA');
-        // El "carril lateral" con la caja del peso se abre en dos casos:
-        //  · Cuando la sección es 1ª CAPA (caso original).
-        //  · Cuando es MOVIMIENTO y todos los palés del grupo tienen sala origen = SALADERO.
-        //    Eso significa que el grupo es el "nacimiento" del palé (típico de quesos tiernos
-        //    que entran directos del saladero al secadero, sin pasar por antifúngico).
-        var esNacGrupo = esC1;
-        if(!esNacGrupo && sec==='MOVIMIENTO'){
-          // Tanto los palés que vienen de Sheets como los de la sesión local llevan
-          // _r.origen ya seteado al construirse porSec[] (líneas ~2840 y ~2867).
-          // Usamos esa propiedad directamente — no buscamos en rawRows porque
-          // si el palé es de misRegs no tiene rawIdx y rompía la comprobación.
-          esNacGrupo = g.pales.length>0 && g.pales.every(function(_r){
-            return _r.origen && normSala(_r.origen)==='1.SALADERO';
-          });
-        }
-        if(esNacGrupo){
+        // En 1ª CAPA: un ÚNICO carril de scroll lateral para TODO el bloque de la partida.
+        // Al deslizar una vez, los palés se mueven juntos y aparecen sus casillas de peso
+        // alineadas a la derecha. Así se meten los pesos del bloque sin deslizar uno a uno.
+        if(esC1){
           html+='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:var(--bg2);">'
             +'<div style="width:max-content;min-width:100%;">';
         }
@@ -3340,67 +2950,36 @@ function renderRegs(){
           var rowId=r.rowId||'';
           var sesionId=r.sesionId||'';
           var rawIdx=r.rawIdx!==undefined?r.rawIdx:-1;
-          if(esNacGrupo){
+          if(esC1){
             var pesoActual='',pmActual='';
             try{
-              // En 1ª CAPA buscamos en el registro de 1ª capa del palé (puede haber otros
-              // registros encima). En MOVIMIENTO desde saladero usamos el propio registro
-              // (rawRows[rawIdx]), porque ese ES el registro de nacimiento.
-              var filaP;
-              if(esC1){
-                filaP=rawRows.find(function(x){return matchPaleId(x['ID PALET'],r.pale)&&normSeccion(x['SECCIÓN'])==='1ª CAPA';});
-              } else {
-                filaP = (rawIdx>=0 && rawIdx<rawRows.length) ? rawRows[rawIdx] : null;
-              }
+              var filaP=rawRows.find(function(x){return matchPaleId(x['ID PALET'],r.pale)&&normSeccion(x['SECCIÓN'])==='1ª CAPA';});
               if(filaP){
                 if(filaP['PESO PALET'])pesoActual=filaP['PESO PALET'];
                 if(filaP['PESO MEDIO'])pmActual=filaP['PESO MEDIO'];
               }
             }catch(e){}
-            // Fallback peso medio desde pales[] (ya con parseFloat corregido)
-            if(!pmActual){
-              try{var pF=pales.find(function(px){return matchPaleId(px.id,r.pale);});if(pF&&pF.pesoMedio)pmActual=pF.pesoMedio;}catch(e){}
-            }
-            // Convertir pesoActual a punto para input type=number (Sheets guarda con coma)
-            var pesoActualDot=pesoActual?pesoActual.toString().replace(',','.'):'' ;
-            var tienepe=(pesoActualDot!=='');
             var inpId='pw_'+(rowId||r.pale).replace(/[^a-zA-Z0-9]/g,'_');
-            var btnId='chk_'+inpId;
-            // Check verde: oculto si ya hay peso (aparece solo al modificar el valor)
-            var chkStyle=tienepe?'display:none;':'';
-            var onInpAttr=tienepe
-              ?'oninput="var b=document.getElementById(\''+btnId+'\');if(b)b.style.display=(parseFloat(this.value)===parseFloat(\''+pesoActualDot+'\'))?\'none\':\'\'" '
-              :'';
-            // Columna derecha de la vista inicial:
-            // - Si hay datos: peso bruto gris pequeño + peso medio en color oscuro (destaca)
-            // - Si no hay datos: pista "peso <"
-            var pmNum=pmActual?pmActual.toString().replace('.',','):'';
-            var rightVis=tienepe
-              ?'<div style="flex-shrink:0;text-align:right;padding-left:8px;">'
-                +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.62rem;color:var(--text3);white-space:nowrap;">'+pesoActual.toString().replace('.',',')+' kg</div>'
-                +(pmNum?'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.82rem;color:var(--text);margin-top:1px;">'+pmNum+'</div>':'')
-                +'</div>'
-              :'<span style="color:var(--text3);font-size:0.7rem;opacity:0.6;white-space:nowrap;flex-shrink:0;">peso ‹</span>';
+            var pmTxt=pmActual?('<div style="font-size:0.62rem;color:var(--green);margin-top:1px;font-weight:600;">⚖️ '+(pmActual.toString().replace('.',','))+' kg/pza</div>'):'';
             // Fila del palé: zona relevante (ancho = pantalla) + zona peso (a la derecha).
             // Todas las filas comparten el mismo scroll del contenedor del bloque.
             html+='<div style="display:flex;border-top:1px solid var(--border);">'
               // Zona visible: relevante, ocupa el ancho de la pantalla
-              +'<div onclick="abrirRegFicha(\''+rowId+'\',\''+sesionId+'\','+rawIdx+')" style="flex:0 0 calc(100vw - 28px);max-width:calc(100vw - 28px);padding:8px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;box-sizing:border-box;">'
+              +'<div onclick="abrirRegFicha(\''+rowId+'\',\''+sesionId+'\','+rawIdx+')" style="flex:0 0 100vw;max-width:100%;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;box-sizing:border-box;">'
               +'<div style="min-width:0;">'
               +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.88rem;color:var(--text);">'+r.piezas+' pzas</div>'
               +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.62rem;color:var(--text3);margin-top:1px;">'+r.pale+'</div>'
+              +pmTxt
               +(esAdmin&&r.operario?'<div style="font-size:0.62rem;color:var(--text3);margin-top:1px;">'+r.operario+'</div>':'')
               +'</div>'
-              +rightVis
+              +'<span style="color:var(--text3);font-size:0.7rem;opacity:0.6;white-space:nowrap;">peso ‹</span>'
               +'</div>'
               // Zona de peso (a la derecha, se ve al deslizar el bloque)
               +'<div style="flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--bg3);border-left:1px solid var(--border);">'
-              +'<input type="number" inputmode="decimal" step="0.1" id="'+inpId+'" value="'+pesoActualDot+'" placeholder="peso kg" '
-              +'data-orig="'+pesoActualDot+'" '
-              +onInpAttr
+              +'<input type="number" inputmode="decimal" step="0.1" id="'+inpId+'" value="'+pesoActual+'" placeholder="peso kg" '
               +'onkeydown="if(event.key===\'Enter\'){guardarPesoInline(\''+rowId+'\',\''+sesionId+'\','+rawIdx+',\''+inpId+'\');}" '
               +'style="width:100px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-family:\'Karla\',sans-serif;font-size:0.9rem;text-align:right;background:var(--bg2);">'
-              +'<button id="'+btnId+'" onclick="guardarPesoInline(\''+rowId+'\',\''+sesionId+'\','+rawIdx+',\''+inpId+'\')" style="'+chkStyle+'padding:8px 13px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:0.95rem;cursor:pointer;">✓</button>'
+              +'<button onclick="guardarPesoInline(\''+rowId+'\',\''+sesionId+'\','+rawIdx+',\''+inpId+'\')" style="padding:8px 13px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:0.95rem;cursor:pointer;">✓</button>'
               +'</div>'
               +'</div>';
           } else {
@@ -3414,7 +2993,7 @@ function renderRegs(){
             +'</div>';
           }
         });
-        if(esNacGrupo)html+='</div></div>';
+        if(esC1)html+='</div></div>';
       });
       // Cerrar div colapsable (todas las secciones plegables)
       if(cont.esSala||cont.plegable)html+='</div>';
@@ -3422,9 +3001,6 @@ function renderRegs(){
     } // fin else MOVIMIENTO
     html+='</div>';
   });
-  if(filasIgnoradas>0){
-    html='<div style="background:#fdecea;border:1px solid #e0b4b4;border-left:5px solid #c0392b;border-radius:10px;padding:10px 14px;margin-bottom:10px;color:#922;font-size:0.82rem;line-height:1.4;">\u26a0\ufe0f '+filasIgnoradas+' registro'+(filasIgnoradas>1?'s':'')+' de este d\u00eda tiene'+(filasIgnoradas>1?'n':'')+' un dato err\u00f3neo y no se '+(filasIgnoradas>1?'han':'ha')+' podido mostrar. Rev\u00edsalo en la hoja.</div>'+html;
-  }
   document.getElementById('reg-lista').innerHTML=html;
   }catch(e){
     console.error('renderRegs error:',e);
@@ -3450,18 +3026,8 @@ function guardarPesoInline(rowId,sesionId,rawIdx,inpId){
   var pesoTxt=peso.replace('.',',');
   r['PESO PALET']=pesoTxt;
   var infoPM=parsearId(r['ID PALET']||'');
-  var pesoNum=parseFloat(peso.replace(',','.'))||0;
-  var pm;
-  if(pesoNum>0){
-    // Peso bruto válido → recalcular peso medio
-    pm=calcPesoMedio(peso,infoPM.piezas,infoPM.fmtD);
-    r['PESO MEDIO']=pm||'';
-  } else {
-    // Peso bruto 0 o vacío (p.ej. se borra un peso mal metido) → limpiar también
-    // el peso medio, para no dejar pegado el valor anterior (dato incoherente).
-    pm=null;
-    r['PESO MEDIO']='';
-  }
+  var pm=calcPesoMedio(peso,infoPM.piezas,infoPM.fmtD);
+  if(pm)r['PESO MEDIO']=pm;
   // Enviar a Sheets (update)
   var rEnvio=Object.assign({},r);
   rEnvio['_UPDATE']=true;
@@ -3472,38 +3038,17 @@ function guardarPesoInline(rowId,sesionId,rawIdx,inpId){
   if(srLocal)srLocal.datos=r;
   // Actualizar peso medio del palé en memoria para Plan de trabajo / selección
   try{
-    var pid=r['ID PALET']||'';
-    for(var pi=0;pi<pales.length;pi++){
-      if(matchPaleId(pid,pales[pi].id)){pales[pi].pesoMedio=pm||null;break;}
+    if(pm){
+      var pid=r['ID PALET']||'';
+      for(var pi=0;pi<pales.length;pi++){
+        if(matchPaleId(pid,pales[pi].id)){pales[pi].pesoMedio=pm;break;}
+      }
     }
   }catch(e){}
   // Feedback visual: marca verde en la casilla
   inp.style.borderColor='var(--green)';
   inp.style.background='rgba(45,130,45,0.08)';
-  // Ocultar el botón ✓ verde que está junto al input (es su nextElementSibling
-  // según la estructura HTML que pintamos). Así parece "ya guardado" sin
-  // tener que rerenderizar la lista entera.
-  try{
-    var btn = inp.nextElementSibling;
-    if(btn && btn.tagName==='BUTTON') btn.style.display='none';
-  }catch(_){}
-  // Actualizar data-orig al nuevo valor para que si el operario lo modifica
-  // de nuevo, el botón ✓ vuelva a aparecer (gracias al oninput existente).
-  try{ inp.setAttribute('data-orig', peso); }catch(_){}
-  // Reconfigurar el oninput para que compare con el nuevo valor guardado
-  try{
-    var btnIdAttr = (inp.nextElementSibling && inp.nextElementSibling.id) || '';
-    if(btnIdAttr){
-      inp.setAttribute('oninput',
-        'var b=document.getElementById(\''+btnIdAttr+'\');if(b)b.style.display=(parseFloat(this.value)===parseFloat(\''+peso+'\'))?\'none\':\'\''
-      );
-    }
-  }catch(_){}
   toast('✅ Peso guardado'+(pm?' · medio '+pm+' kg/pza':''));
-  // Importante: NO rerenderizamos la lista. Mantener el scroll lateral abierto
-  // permite al operario meter el peso del siguiente palé sin volver a deslizar.
-  // El peso medio actualizado en la columna principal se verá al volver a
-  // entrar a Registros o al pulsar Actualizar (🔄).
 }
 function toggleSalaVolteo(salaId){
   var div=document.getElementById(salaId);
@@ -3586,13 +3131,14 @@ function renderPlanMenu(){
   var salMaxD=salItems.length?Math.max.apply(null,salItems):0;
   var salCount=salItems.length;
 
-  // Otras salidas: tiernos (>=6d), superminis (>=12d) y bajo en sal (>=2d) en golpe/secadero
+  // Otras salidas: tiernos (>=6d), superminis (>=12d), bajo en sal (>=2d) y minis cabra a seleccionar
   var otrasTiernos=pales.filter(aptoOtraSalidaTierno);
   var otrasMinis=pales.filter(aptoOtraSalidaSupermini);
   var otrasBajoSal=pales.filter(aptoOtraSalidaBajoSal);
-  var otrasCount=otrasTiernos.length+otrasMinis.length+otrasBajoSal.length;
+  var otrasSelCabra=pales.filter(aptoSeleccionCabra);
+  var otrasCount=otrasTiernos.length+otrasMinis.length+otrasBajoSal.length+otrasSelCabra.length;
   var otrasMaxD=0;
-  otrasTiernos.concat(otrasMinis).concat(otrasBajoSal).forEach(function(p){var d=Math.max(0,diasDesde(p.fechaFab)-1);if(d>otrasMaxD)otrasMaxD=d;});
+  otrasTiernos.concat(otrasMinis).concat(otrasBajoSal).concat(otrasSelCabra).forEach(function(p){var d=Math.max(0,diasDesde(p.fechaFab)-1);if(d>otrasMaxD)otrasMaxD=d;});
 
   function btnPlanSel(ico,titulo,countHoy,accion){
     var hasPending=countHoy>0;
@@ -3622,6 +3168,7 @@ function renderPlanMenu(){
       +rightContent
       +'</button>';
   }
+
   document.getElementById('plan-menu-content').innerHTML=
     '<div style="padding:4px 0 8px;font-size:0.78rem;color:var(--text3);">Selecciona una acción</div>'
     +btnPlan('❄️','Salida Golpe de Frío',gfMaxD,gfCount,true,'golpe')
@@ -3692,18 +3239,21 @@ function abrirPlanAccion(accion){
     var tiernos=pales.filter(aptoOtraSalidaTierno);
     var minis=pales.filter(aptoOtraSalidaSupermini);
     var bajosal=pales.filter(aptoOtraSalidaBajoSal);
+    var selcabra=pales.filter(aptoSeleccionCabra);
     // Ordenar cada lista de más días (más urgente) a menos
     tiernos.sort(function(a,b){return diasDesde(b.fechaFab)-diasDesde(a.fechaFab);});
     minis.sort(function(a,b){return diasDesde(b.fechaFab)-diasDesde(a.fechaFab);});
     bajosal.sort(function(a,b){return diasDesde(b.fechaFab)-diasDesde(a.fechaFab);});
+    selcabra.sort(function(a,b){return diasDesde(b.fechaFab)-diasDesde(a.fechaFab);});
     var html='';
-    if(!tiernos.length&&!minis.length&&!bajosal.length){
-      html='<div class="nodata" style="padding:20px;text-align:center;">✅ Nada pendiente. Todos los tiernos, superminis y bajo en sal están dentro de plazo.</div>';
+    if(!tiernos.length&&!minis.length&&!bajosal.length&&!selcabra.length){
+      html='<div class="nodata" style="padding:20px;text-align:center;">✅ Nada pendiente. Todos los tiernos, superminis, bajo en sal y minis de cabra están dentro de plazo.</div>';
     } else {
       html+='<div style="font-size:0.78rem;color:var(--text3);padding:0 0 10px;">Quesos que ya deberían haber salido de los secaderos.</div>';
       html+=bloqueOtras('🧀 Bajo en sal (más de '+(CFG.bajoSalD-1)+' días)',bajosal,'#a14d00');
       html+=bloqueOtras('🧀 Tiernos (más de '+(CFG.tiernoD-1)+' días)',tiernos,'#8b1a1a');
       html+=bloqueOtras('🧀 Superminis (más de '+(CFG.superminiD-1)+' días)',minis,'#1a3a6a');
+      html+=bloqueSeleccionCabra(selcabra);
     }
     document.getElementById('plan-detalle-content').innerHTML=html;
     ir('s-plan-detalle');
@@ -4026,6 +3576,60 @@ function paleYaSalio(p){
   });
 }
 // TIERNO que lleva >= 6 días en golpe/secadero (debería haber salido ya)
+// ═══════ MINIS DE CABRA PARA SELECCIÓN ═══════
+// Cabra formato 1 KG. Aviso entre 12 y 20 días desde fabricación, SOLO mientras
+// está en uno de los tres secaderos, y SOLO si no se ha seleccionado HOY.
+// La marca de "seleccionado" se registra como un movimiento compartido (Sheets)
+// con SECCIÓN='SELECCIÓN', SIN cambiar la SALA DESTINO (el palé sigue en su secadero).
+var SEL_CABRA_DIAS_MIN = 12;
+var SEL_CABRA_DIAS_MAX = 20;
+function esMiniCabra(p){
+  return (p.tipo||'').toUpperCase()==='CABRA' && (p.formato||'').toUpperCase()==='1 KG';
+}
+function enSecadero(p){
+  var sala = getSalaActualPale(p.id) || p.sala || '';
+  return ['3.SECADERO 1','4.SECADERO 2','5.SECADERO 3'].indexOf(sala)>=0;
+}
+// Fecha (YYYY-MM-DD) de la última selección registrada para este palé, o '' si nunca.
+function ultimaSeleccionPale(paleId){
+  var regs=rawRows.filter(function(r){
+    return matchPaleId(r['ID PALET'],paleId) && (r['SECCIÓN']||r['SECCION'])==='SELECCIÓN';
+  });
+  if(!regs.length)return '';
+  regs.sort(function(a,b){var fa=parseFecha(a['FECHA']);var fb=parseFecha(b['FECHA']);return (fa||0)-(fb||0);});
+  var f=parseFecha(regs[regs.length-1]['FECHA']);
+  if(!f)return '';
+  return f.getFullYear()+'-'+String(f.getMonth()+1).padStart(2,'0')+'-'+String(f.getDate()).padStart(2,'0');
+}
+function seleccionadoHoy(paleId){
+  var hoy=new Date();
+  var hoyStr=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+  return ultimaSeleccionPale(paleId)===hoyStr;
+}
+// Registrar selección: movimiento compartido SIN mover el palé de sala.
+function marcarSeleccionado(paleId){
+  var p=pales.find(function(x){return matchPaleId(x.id,paleId);});
+  var salaActual=getSalaActualPale(paleId)||(p?p.sala:'')||'';
+  var info=parsearId(paleId);
+  var datos={
+    'ID PALET':paleId,'SECCIÓN':'SELECCIÓN','OPERARIO':CU.n,'FECHA':fechaHoraEspana(),
+    'LOTE QUESO':info.lote||paleId.substring(0,7),'TIPO DE QUESO':info.tipo,'VARIEDAD':info.variedad,
+    'FORMATO/PESO':info.fmt,'Nº DE PIEZAS':(p&&p.piezas)||info.piezas||'',
+    'SALA ORIGEN':salaActual,'SALA DESTINO':salaActual, // NO cambia de sala
+    'OBSERVACIONES':'Mini cabra revisado/seleccionado'
+  };
+  guardarRegistro(datos,'SELECCIÓN',paleId);
+  // Refrescar vistas
+  try{ renderPlanMenu(); }catch(e){}
+  try{ abrirPlanAccion('otras'); }catch(e){}
+}
+function aptoSeleccionCabra(p){
+  if(!esMiniCabra(p))return false;
+  if(!enSecadero(p))return false;
+  if(seleccionadoHoy(p.id))return false;     // ya revisado hoy → no molesta el resto del día
+  var d=diasDesde(p.fechaFab);
+  return d>=SEL_CABRA_DIAS_MIN && d<=SEL_CABRA_DIAS_MAX;
+}
 function aptoOtraSalidaTierno(p){
   if(!esTierno(p))return false;
   if(!enGolpeOSecadero(p))return false;
@@ -4071,6 +3675,48 @@ function bloqueOtras(titulo,lista,color){
       +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.4rem;color:'+color+';">'+dias+' d</div>'
       +'</div>'
       +'<span style="color:var(--text3);font-size:1.1rem;">›</span>'
+      +'</div>';
+  });
+  html+='</div>';
+  return html;
+}
+
+// Bloque de minis de cabra para selección (dentro de "Otras salidas").
+// Igual estilo que bloqueOtras pero con botón "Marcar como seleccionado".
+function bloqueSeleccionCabra(lista){
+  var color='#5a2d82';
+  var titulo='🐐 Minis de cabra para selección (12-20 días)';
+  if(!lista.length){
+    return '<div style="margin-bottom:14px;"><div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.95rem;color:'+color+';margin-bottom:6px;">'+titulo+'</div>'
+      +'<div style="font-size:0.8rem;color:var(--text3);padding:8px 0;">✅ Ninguno pendiente</div></div>';
+  }
+  var html='<div style="margin-bottom:16px;"><div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.95rem;color:'+color+';margin-bottom:4px;">'+titulo+' · '+lista.length+'</div>'
+    +'<div style="font-size:0.72rem;color:var(--text3);margin-bottom:8px;">Cliente que pide peso entre 930 g y 1 kg.</div>';
+  lista.forEach(function(p){
+    var dias=diasDesde(p.fechaFab);
+    var fechaTxt=p.fechaFab?p.fechaFab.substring(0,10).split('-').reverse().join('/'):'—';
+    var salaLbl=sl(getSalaActualPale(p.id)||p.sala);
+    var label=(p.tipo||'Cabra')+(p.variedad&&p.variedad!=='—'?' · '+p.variedad:'')+(p.formato?' · '+p.formato:'');
+    // ¿Ya fue seleccionado antes? Mostrar marca con la fecha de la última selección.
+    var ultSel=ultimaSeleccionPale(p.id);
+    var marcaSel='';
+    if(ultSel){
+      var selTxt=ultSel.split('-').reverse().join('/');
+      marcaSel='<div style="margin-top:6px;display:inline-block;background:var(--green-bg);border:1.5px solid var(--green);border-radius:8px;padding:3px 9px;font-size:0.74rem;color:var(--green);font-weight:700;">✓ Seleccionado el '+selTxt+'</div>';
+    }
+    html+='<div style="background:var(--bg2);border:2px solid '+color+'33;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);margin-bottom:8px;">'
+      +'<div style="display:flex;align-items:center;gap:12px;">'
+      +'<div style="flex:1;">'
+      +'<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.92rem;color:var(--text);">'+label+'</div>'
+      +'<div style="font-size:0.74rem;color:var(--text3);margin-top:2px;font-family:\'Inconsolata\',monospace;">'+p.id+'</div>'
+      +'<div style="font-size:0.72rem;color:var(--text3);margin-top:1px;">'+salaLbl+' · '+(p.piezas||0)+' pzas · fab. '+fechaTxt+'</div>'
+      +marcaSel
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0;">'
+      +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.4rem;color:'+color+';">'+dias+' d</div>'
+      +'</div>'
+      +'</div>'
+      +'<button onclick="marcarSeleccionado(\''+p.id.replace(/'/g,"\\'")+'\')" style="width:100%;margin-top:10px;padding:10px;background:#3a6b3a;color:#fff;border:none;border-radius:9px;font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.88rem;cursor:pointer;">✅ '+(ultSel?'Volver a marcar seleccionado hoy':'Marcar como seleccionado hoy')+'</button>'
       +'</div>';
   });
   html+='</div>';
@@ -4301,7 +3947,7 @@ var SALA_COLORS={
   '5.SECADERO 3':       '#8a4040',
   '6.CAMARA FRIO':      '#4a7585',
   '7.CAMARA MADURACION':'#c8983a',
-  '8.FABRICA VIEJA':   '#6a5a48',
+  '8.CAMARA FABRICA':   '#6a5a48',
   '9.VENTA':            '#5a7a3a'
 };
 function renderStock(){
@@ -4484,7 +4130,7 @@ function abrirHistorial(paleId){
   document.getElementById('traz-op-back').setAttribute('onclick',"ir('s-historial')");
   ir('s-historial');
 }
-function salaIcon(s){var m={'1.SALADERO':'🧂','2.GOLPE FRIO':'❄️','3.SECADERO 1':'🌡️','4.SECADERO 2':'🌡️','5.SECADERO 3':'🌡️','6.CAMARA FRIO':'🧊','7.CAMARA MADURACION':'🏺','8.FABRICA VIEJA':'🏭','9.VENTA':'🏷️'};return m[s]||'📦';}
+function salaIcon(s){var m={'1.SALADERO':'🧂','2.GOLPE FRIO':'❄️','3.SECADERO 1':'🌡️','4.SECADERO 2':'🌡️','5.SECADERO 3':'🌡️','6.CAMARA FRIO':'🧊','7.CAMARA MADURACION':'🏺','8.CAMARA FABRICA':'🏭','9.VENTA':'🏷️'};return m[s]||'📦';}
 
 // ═══════ CARGA DATOS ═══════
 function cargarDatos(forzar){
@@ -4503,8 +4149,6 @@ function cargarDatos(forzar){
   // Si los datos son recientes (< 5 min) y no se fuerza, no volver a descargar.
   if(!forzar&&ahora-cachedTime<300000&&rawRows.length>0){
     setSB('ok','✅ '+rawRows.length);
-    _syncInicialOK=true;   // caché reciente = datos fiables, no bloquear entrada
-    if(typeof _onSyncInicialListo==='function'){ try{_onSyncInicialListo();}catch(_){} }
     var st=document.getElementById('sync-time');
     if(st){var h2=Math.round((ahora-cachedTime)/60000);st.textContent='Actualizado hace '+h2+'m';}
     return;
@@ -4534,8 +4178,6 @@ function _fetchDatosBackground(){
       rawRows=json.data;procesarDatos(rawRows);
       setSB('ok','✅ '+rawRows.length);actualizarStats();
       _lastSync=Date.now();
-      _syncInicialOK=true;            // primera sync de la sesión completada
-      if(typeof _onSyncInicialListo==='function'){ try{_onSyncInicialListo();}catch(_){} }
       try{localStorage.setItem('tq_datos_cache',JSON.stringify(rawRows));localStorage.setItem('tq_datos_cache_time',_lastSync.toString());}catch(e){}
       var st=document.getElementById('sync-time');
       if(st){var h=new Date();st.textContent='Actualizado '+h.getHours().toString().padStart(2,'0')+':'+h.getMinutes().toString().padStart(2,'0');}
@@ -4581,8 +4223,6 @@ function cargarHistoricoCompleto(callbackFin){
       rawRows=json.data;procesarDatos(rawRows);actualizarStats();
       _historicoCompletoCargado=true;
       _lastSync=Date.now();
-      _syncInicialOK=true;            // el histórico completo también cuenta como sync inicial
-      if(typeof _onSyncInicialListo==='function'){ try{_onSyncInicialListo();}catch(_){} }
       // NO guardamos el histórico completo en la caché de 90 días, para no
       // ralentizar el arranque normal de la app. Solo vive en esta sesión.
       setSB('ok','✅ '+rawRows.length);
@@ -4671,12 +4311,12 @@ function procesarDatos(rows){
     if(fmtFromId){p.formato=fmtFromId;}else if(fmt&&fmt!=='—'){p.formato=fmt;}
     if(pz)p.piezas=pz;if(lq)p.lote=lq;
     if(sec==='1ª CAPA'||sec.replace(/[^A-Z0-9]/g,'').startsWith('1ACAPA')){
-      var pm=parseFloat((row['PESO MEDIO']||'').toString().replace(',','.'));
+      var pm=parseFloat(row['PESO MEDIO']||'');
       if(pm>0){
         p.pesoMedio=pm; // usar el valor guardado en Sheets si existe
       } else {
         // Calcular en tiempo real desde PESO PALET y Nº DE PIEZAS (columna virtual)
-        var pesoBrutoRow=(row['PESO PALET']||'').toString().replace(',','.');
+        var pesoBrutoRow=row['PESO PALET']||'';
         var pzRow=parseInt(row['Nº DE PIEZAS'])||pz;
         var infoRow=parsearId(pid);
         var pmCalc=calcPesoMedio(pesoBrutoRow,pzRow,infoRow.fmtD);
@@ -4808,29 +4448,12 @@ function diasCalendarioDesde(f){
   return Math.floor((hoyD-refD)/86400000);
 }
 function buscarPorDigitos(digitos){
-  // Busca palés cuyos primeros 12 dígitos (sin espacios) coincidan.
-  // Si el código recibido trae variedad (tras el *), también se filtra por
-  // ella, de modo que dos palés con los mismos 12 dígitos pero distinta
-  // variedad NO se confunden cuando se escanea el QR completo.
-  var sinLote=(digitos||'').toString().split('!')[0];           // quitar loteCorto
-  var d12=sinLote.split('*')[0].replace(/\s/g,'').substring(0,12);
+  // Busca palés cuyos primeros 12 dígitos (sin espacios) coincidan
+  var d12=digitos.replace(/\s/g,'').substring(0,12);
   if(d12.length<12)return [];
-  // Extraer variedad del código de entrada (si la tiene)
-  var varEntrada='';
-  if(sinLote.indexOf('*')>=0){
-    varEntrada=sinLote.substring(sinLote.indexOf('*')+1).trim().toUpperCase();
-  }
   return pales.filter(function(p){
     var base=p.id.split('*')[0].split('!')[0].replace(/\s/g,'');
-    if(base.substring(0,12)!==d12) return false;
-    // Si el código de entrada trae variedad, exigir que coincida
-    if(varEntrada){
-      var vp='';
-      var sinL=p.id.split('!')[0];
-      if(sinL.indexOf('*')>=0) vp=sinL.substring(sinL.indexOf('*')+1).trim().toUpperCase();
-      if(vp && vp!==varEntrada) return false;
-    }
-    return true;
+    return base.substring(0,12)===d12;
   });
 }
 function normPaleKey(id){
@@ -4911,35 +4534,19 @@ function normSala(s){
   if(s.includes('SECADERO 2'))return'4.SECADERO 2';
   if(s.includes('SECADERO 3'))return'5.SECADERO 3';
   if(s.includes('MADURACION')||s.includes('MADURACIÓN'))return'7.CAMARA MADURACION';
-  // Importante: comprobar FABRICA antes que CAMARA, por si llegara como "CAMARA FABRICA VIEJA".
-  if(s.includes('FABRICA')||s.includes('FÁBRICA'))return'8.FABRICA VIEJA';
   if(s.includes('CAMARA')||s.includes('CÁMARA')||s.includes('FRIO')||s.includes('FRÍO'))return'6.CAMARA FRIO';
   if(s.includes('VENTA'))return'9.VENTA';
+  if(s.includes('FABRICA')||s.includes('FÁBRICA'))return'8.CAMARA FABRICA';
   return s;
 }
 function parseFecha(f){
-  if(f===null||f===undefined||f==='')return null;
-  // Número serial de fecha de Google Sheets / Excel (p.ej. 46193.333). Aparece
-  // cuando Sheets reinterpreta la celda FECHA de texto a número (suele pasar al
-  // editar manualmente otra columna de esa fila). 25569 = días entre la época de
-  // Sheets (30/12/1899) y la época Unix (1/1/1970).
-  if(typeof f==='number' || (/^\d+(\.\d+)?$/.test(String(f).trim()) && parseFloat(f)>25569 && parseFloat(f)<60000)){
-    var serial=parseFloat(f);
-    var dS=new Date(Math.round((serial-25569)*86400*1000));
-    return isNaN(dS)?null:dS;
-  }
-  f=f.toString().trim();
-  // Formato DÍA/MES/AÑO con hora OPCIONAL. Cubre TODAS las variantes que conviven
-  // en la columna FECHA de la hoja, da igual el separador o si falta la hora:
-  //   "19/4/2026, 8:26:54"  "26/01/2026 7:59:00"  "20/06/2026 8:00:43"
-  //   "19/04/2026 08:26"    "20/06/2026"          "20/6/2026"
-  // Se capturan día, mes y año (obligatorios) y hora:minuto (opcionales).
-  var m=f.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[,\s]+(\d{1,2}):(\d{2}))?/);
-  if(m){
-    var hh=m[4]!==undefined?parseInt(m[4]):0;
-    var mm=m[5]!==undefined?parseInt(m[5]):0;
-    return new Date(parseInt(m[3]),parseInt(m[2])-1,parseInt(m[1]),hh,mm);
-  }
+  if(!f)return null;f=f.toString().trim();
+  // Formato AppSheet: "19/4/2026, 8:26:54" o "19/04/2026, 08:26:54"
+  var m=f.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})[,\s]+(\d{1,2}):(\d{2})/);
+  if(m)return new Date(parseInt(m[3]),parseInt(m[2])-1,parseInt(m[1]),parseInt(m[4]),parseInt(m[5]));
+  // Formato antiguo TraceQueso: "19/04/2026 08:26"
+  var m2=f.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+  if(m2)return new Date(m2[3],m2[2]-1,m2[1],m2[4],m2[5]);
   // Formato ISO: "2026-04-19T14:39:23.000Z" — convertir a hora local evitando desfase UTC
   var mISO=f.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
   if(mISO)return new Date(parseInt(mISO[1]),parseInt(mISO[2])-1,parseInt(mISO[3]),parseInt(mISO[4]),parseInt(mISO[5]),parseInt(mISO[6]));
@@ -4965,7 +4572,6 @@ function normSeccion(s){
 }
 var CAMPOS_POR_SECCION={
   '1ª CAPA':[
-    {k:'LOTE QUESO',l:'Lote queso',type:'text',soloCalidad:true},
     {k:'LOTE PRODUCTO',l:'Lote antifúngico',type:'text'},
     {k:'PESO PALET',l:'Peso palé (kg)',type:'number'},
     {k:'Nº PIEZAS NO APTAS',l:'Piezas no aptas',type:'number'},
@@ -4974,23 +4580,19 @@ var CAMPOS_POR_SECCION={
     {k:'OBSERVACIONES',l:'Observaciones',type:'textarea'},
   ],
   '2ª CAPA':[
-    {k:'LOTE QUESO',l:'Lote queso',type:'text',soloCalidad:true},
     {k:'LOTE PRODUCTO',l:'Lote antifúngico',type:'text'},
     {k:'OBSERVACIONES',l:'Observaciones',type:'textarea'},
   ],
   'VOLTEO':[
-    {k:'LOTE QUESO',l:'Lote queso',type:'text',soloCalidad:true},
     {k:'SALA DESTINO',l:'Sala volteo',type:'select-sala',soloCalidad:true},
     {k:'OBSERVACIONES',l:'Observaciones',type:'textarea'},
   ],
   'MOVIMIENTO':[
-    {k:'LOTE QUESO',l:'Lote queso',type:'text',soloCalidad:true},
     {k:'SALA ORIGEN',l:'Sala origen',type:'select-sala',soloCalidad:true},
     {k:'SALA DESTINO',l:'Sala destino',type:'select-sala',soloCalidad:true},
     {k:'OBSERVACIONES',l:'Observaciones',type:'textarea'},
   ],
   'PINTURA':[
-    {k:'LOTE QUESO',l:'Lote queso',type:'text',soloCalidad:true},
     {k:'ID PALET',l:'Lote palé (ID)',type:'text',soloCalidad:true},
     {k:'PRODUCTO',l:'Producto',type:'select-producto'},
     {k:'LOTE PRODUCTO',l:'Lote pintura',type:'text'},
@@ -5067,7 +4669,7 @@ function abrirRegFicha(rowId,sesionId,rawIdx,volverA){
   var destinoVolver=volverA||'s-regs';
   document.getElementById('reg-ficha-back').setAttribute('onclick',"ir('"+destinoVolver+"')");
   // Controlar botón Editar según rol y fecha
-  var esCalidad=esAdminOCalidad(CU);
+  var esCalidad=(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
   var fechaReg=parseFecha(r['FECHA']);
   var esHoy=fechaReg&&fechaReg.toLocaleDateString('es-ES')===new Date().toLocaleDateString('es-ES');
   var puedeEditar=esCalidad||(esHoy&&(r['OPERARIO']||'').toUpperCase()===CU.n);
@@ -5132,7 +4734,7 @@ function renderRegFicha(r,editMode){
     // Vista edición — campos según sección
     document.getElementById('reg-ficha-content').innerHTML='';
     var fhtml='<div style="font-size:0.78rem;color:var(--text3);margin-bottom:12px;padding:8px 12px;background:var(--gold-bg);border-radius:8px;border:1px solid rgba(200,120,10,0.2);">✏️ Modo edición — modifica los campos y pulsa Guardar</div>';
-    var esCalidad=esAdminOCalidad(CU);
+    var esCalidad=(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
     // Campos comunes (operario y fecha) solo para calidad
     var camposEditar=[];
     if(esCalidad){
@@ -5195,7 +4797,7 @@ function guardarEditReg(){
   if(!regFichaActual)return;
   var r=Object.assign({},regFichaActual.datos);
   var sec=normSeccion(r['SECCIÓN']||'');
-  var esCalidad=esAdminOCalidad(CU);
+  var esCalidad=(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
   var camposGuardar=[];
   if(esCalidad)camposGuardar=camposGuardar.concat(CAMPOS_COMUNES_CALIDAD);
   camposGuardar=camposGuardar.concat(CAMPOS_POR_SECCION[sec]||[{k:'OBSERVACIONES',l:'Observaciones',type:'textarea'}]);
@@ -5483,21 +5085,7 @@ function verHistorialPale(paleId){
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.95rem;color:var(--text2);">'+fStr+'</span>'
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;color:'+col+';">'+(SICON[sec]||'📝')+' '+sec+'</span>'
       +'</div>'
-      +'<div style="font-size:0.72rem;color:var(--text3);margin-top:3px;">'+(function(){
-        // Para MOVIMIENTO mostrar ORIGEN → DESTINO (movimiento sin origen es
-        // ambiguo: 'Golpe Frío' no dice si viene del saladero, del secadero,
-        // etc.). Para el resto de secciones mantenemos sólo el destino.
-        var op = r['OPERARIO']||'—';
-        if(sec==='MOVIMIENTO'){
-          var ori = r['SALA ORIGEN'] ? sl(r['SALA ORIGEN']) : '';
-          var dst = r['SALA DESTINO'] ? sl(r['SALA DESTINO']) : '';
-          if(ori && dst) return op+': '+ori+' → '+dst;
-          if(dst) return op+' → '+dst;
-          if(ori) return op+' (desde '+ori+')';
-          return op;
-        }
-        return op + (r['SALA DESTINO']?' → '+sl(r['SALA DESTINO']):'');
-      })()+'</div>'
+      +'<div style="font-size:0.72rem;color:var(--text3);margin-top:3px;">'+(r['OPERARIO']||'—')+(r['SALA DESTINO']?' → '+sl(r['SALA DESTINO']):'')+'</div>'
       +'</div>'
       +'<span style="font-size:1rem;color:var(--text3);">›</span>'
       +'</button>';
@@ -5565,7 +5153,7 @@ function verDetalleOp(paleId,idx){
 
   document.getElementById('traz-op-content').innerHTML=html;
   // Mostrar botón editar solo para CALIDAD/JOAQUIN — desde trazabilidad
-  var esAdmin=CU&&esAdminOCalidad(CU);
+  var esAdmin=CU&&(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
   document.getElementById('traz-op-edit-wrap').style.display=esAdmin?'':'none';
   // Buscar índice en rawRows por ID PALET + FECHA (más fiable que indexOf)
   var paleIdR=r['ID PALET']||'';
@@ -5589,25 +5177,11 @@ function onBuscarPaleInput(v){
 function buscarPale(id){
   var paleId=id.split('*')[0].trim();
   var info=parsearId(paleId);
-  // Base de 12 dígitos y variedad del palé buscado.
-  function _base12(x){ return (x||'').toString().split('*')[0].split('!')[0].replace(/\s/g,'').substring(0,12); }
-  function _variedad(x){ var sl=(x||'').toString().split('!')[0]; return sl.indexOf('*')>=0?sl.substring(sl.indexOf('*')+1).trim().toUpperCase():''; }
-  var bidBase=_base12(paleId);
-  var varBuscada=_variedad(id);   // si el QR trae variedad, la usamos para desambiguar
-  // Buscar en rawRows. ANTES se usaba startsWith de los 9 primeros dígitos,
-  // lo que mezclaba palés distintos que compartían ese prefijo
-  // (ej. 126251111133 y 126251111264 → ambos empiezan por 126251111).
-  // Ahora exigimos que coincidan los 12 dígitos completos, y la variedad
-  // si está disponible (dos palés con mismos 12 dígitos pero distinta
-  // variedad —aceite vs bajo en sal— no se mezclan).
+  // Buscar en rawRows
   var regs=rawRows.filter(function(r){
-    var ridFull=(r['ID PALET']||'').toString();
-    if(_base12(ridFull)!==bidBase) return false;
-    if(varBuscada){
-      var vr=_variedad(ridFull);
-      if(vr && vr!==varBuscada) return false;
-    }
-    return true;
+    var rid=(r['ID PALET']||'').toString().replace(/\s/g,'');
+    var bid=paleId.replace(/\s/g,'');
+    return rid===bid||rid.startsWith(bid.substring(0,9));
   });
   // Ordenar por fecha real de la operación (no por orden en Sheets)
   regs.sort(function(a,b){
@@ -5635,45 +5209,15 @@ function buscarPale(id){
     var col=SCOLOR[sec]||'#5a5a5a';
     var f=parseFecha(r['FECHA']);
     var fStr=f?f.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
-    // Calcular el texto de sala (origen→destino para MOVIMIENTO, →destino
-    // para el resto). En MOVIMIENTO la información de salas es clave para
-    // entender el flujo; en otras secciones el destino basta.
-    var salaInfo = (function(){
-      // 1ª CAPA y MOVIMIENTO sí muestran ORIGEN → DESTINO porque marcan
-      // un cambio real de sala: 1ª capa es la entrada al secadero (palé
-      // viene de golpe frío); movimiento es desplazamiento entre salas.
-      // Para volteo, 2ª capa, pintura y envasado el origen coincide con
-      // el destino, así que solo mostramos destino.
-      if(sec==='MOVIMIENTO' || sec==='1ª CAPA' || sec==='1A CAPA'){
-        var ori = r['SALA ORIGEN'] ? sl(r['SALA ORIGEN']) : '';
-        var dst = r['SALA DESTINO'] ? sl(r['SALA DESTINO']) : '';
-        if(ori && dst && ori!==dst) return ori+' → '+dst;
-        if(dst) return '→ '+dst;
-        if(ori) return ori+' →';
-        return '';
-      }
-      return r['SALA DESTINO'] ? '→ '+sl(r['SALA DESTINO']) : '';
-    })();
-    var opStr = r['OPERARIO']||'';
-    // Tarjeta en dos columnas:
-    //   IZQUIERDA  → barra de color + fecha (arriba) + operario (debajo)
-    //   DERECHA    → icono+SECCIÓN (arriba) + salas (debajo, alineadas a la derecha)
     html+='<div style="border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:6px;background:var(--bg2);">'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
-      // IZQUIERDA
-      +'<div style="display:flex;align-items:flex-start;gap:8px;flex:1;min-width:0;">'
-      +'<div style="width:6px;height:32px;background:'+col+';border-radius:3px;flex-shrink:0;margin-top:2px;"></div>'
-      +'<div style="display:flex;flex-direction:column;gap:2px;min-width:0;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+      +'<div style="width:6px;height:32px;background:'+col+';border-radius:3px;flex-shrink:0;"></div>'
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.92rem;color:var(--text2);">'+fStr+'</span>'
-      +(opStr?'<span style="font-size:0.7rem;color:var(--text3);">'+opStr+'</span>':'')
       +'</div>'
-      +'</div>'
-      // DERECHA
-      +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;text-align:right;">'
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.92rem;color:'+col+';">'+(SICON[sec]||'📝')+' '+sec+'</span>'
-      +(salaInfo?'<span style="font-size:0.7rem;color:var(--text3);">'+salaInfo+'</span>':'')
       +'</div>'
-      +'</div>'
+      +'<div style="font-size:0.7rem;color:var(--text3);margin-top:3px;padding-left:14px;">'+(r['OPERARIO']||'')+(r['SALA DESTINO']?' → '+sl(r['SALA DESTINO']):'')+'</div>'
       +'</div>';
   });
   el.innerHTML=html;
@@ -5833,40 +5377,17 @@ function mostrarHistorialPale(paleId){
     var col=SCOLOR[sec]||'#5a5a5a';
     var f=parseFecha(r['FECHA']);
     var fStr=f?f.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
-    // Layout 2 columnas dentro de la tarjeta del timeline:
-    //   IZQUIERDA  → fecha (arriba) + operario (debajo)
-    //   DERECHA    → icono+SECCIÓN (arriba) + salas (debajo)
-    // Misma lógica de origen→destino que en buscarPale.
-    var salaInfoH = (function(){
-      if(sec==='MOVIMIENTO' || sec==='1ª CAPA' || sec==='1A CAPA'){
-        var ori = r['SALA ORIGEN'] ? sl(r['SALA ORIGEN']) : '';
-        var dst = r['SALA DESTINO'] ? sl(r['SALA DESTINO']) : '';
-        if(ori && dst && ori!==dst) return ori+' → '+dst;
-        if(dst) return '→ '+dst;
-        if(ori) return ori+' →';
-        return '';
-      }
-      return r['SALA DESTINO'] ? '→ '+sl(r['SALA DESTINO']) : '';
-    })();
-    var opStrH = r['OPERARIO']||'';
     html+='<div style="display:flex;gap:10px;margin-bottom:8px;">'
       +'<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">'
       +'<div style="width:12px;height:12px;background:'+col+';border-radius:50%;margin-top:4px;"></div>'
       +(i<trazOpsActuales.length-1?'<div style="width:2px;flex:1;background:var(--border);margin-top:2px;"></div>':'')
       +'</div>'
       +'<button onclick="mostrarDetalleOp('+i+')" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:left;cursor:pointer;margin-bottom:0;">'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
-      // IZQUIERDA: fecha + operario
-      +'<div style="display:flex;flex-direction:column;gap:2px;min-width:0;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text2);">'+fStr+'</span>'
-      +(opStrH?'<span style="font-size:0.72rem;color:var(--text3);">'+opStrH+'</span>':'')
-      +'</div>'
-      // DERECHA: icono+SECCIÓN + sala
-      +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;text-align:right;">'
       +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:'+col+';">'+(SICON[sec]||'📝')+' '+sec+'</span>'
-      +(salaInfoH?'<span style="font-size:0.72rem;color:var(--text3);">'+salaInfoH+'</span>':'')
       +'</div>'
-      +'</div>'
+      +'<div style="font-size:0.72rem;color:var(--text3);margin-top:3px;">'+(r['OPERARIO']||'')+(r['SALA DESTINO']?' → '+sl(r['SALA DESTINO']):'')+'</div>'
       +'</button>'
       +'</div>';
   });
@@ -5924,7 +5445,7 @@ function mostrarDetalleOp(idx){
   });
   document.getElementById('traz-op-content').innerHTML=html;
   // Mostrar editar para CALIDAD/JOAQUIN, ocultar para el resto
-  var esAdmin=CU&&esAdminOCalidad(CU);
+  var esAdmin=CU&&(CU.rol==='ADMIN'||CU.rol==='CALIDAD');
   document.getElementById('traz-op-edit-wrap').style.display=esAdmin?'':'none';
   document.getElementById('traz-op-back').setAttribute('onclick',"ir('s-traz-historial')");
   // Guardar referencia para edición
@@ -6119,7 +5640,7 @@ function cerrarScanner(){
 // ═══════ PWA SERVICE WORKER ═══════
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('/tracequeso/sw.js')
+    navigator.serviceWorker.register('/tracequeso/sw.js?v=91')
       .then(function(reg){ console.log('SW registrado:', reg.scope); })
       .catch(function(err){ console.log('SW error:', err); });
   });
@@ -6132,80 +5653,44 @@ if('serviceWorker' in navigator){
 // Estado de sesión envasado
 var ENV = {
   maq: '',          // 'ELTON' | 'MECAPLASTIC'
-  provFondo: '',    // 'TOFILM' | 'ANDUFLEX'
-  loteFondo: {ELTON:{TOFILM:'',ANDUFLEX:''},MECAPLASTIC:{TOFILM:'',ANDUFLEX:''}},
+  provFondo: '',    // 'TOFIL' | 'ANDUFLEX'
+  loteFondo: {ELTON:{TOFIL:'',ANDUFLEX:''},MECAPLASTIC:{TOFIL:'',ANDUFLEX:''}},
   loteTapa:  {ELTON:'',MECAPLASTIC:''},
   porciona:  null,
   cunasTipo: '',
   etiqueta:  null,
   vacio:     null,
-  // Nuevos campos del parte de papel (fase B)
-  ctrlMat:   {ini:'', dur:'', fin:''}, // Control material envasado C/I por punto
-  caduc:     '',                        // Caducidad etiquetado C/I
-  // Distinción "cambio de lote" vs "cambio de bobina" (fase B2)
-  tipoCambioFondo: '',        // 'lote' | 'bobina'
-  midPaleFondo: null,          // true | false (solo si es 'bobina')
-  loteFondoAntMidPale: '',     // lote anterior si se hizo cambio bobina mid-palé
-  tipoCambioTapa: '',
-  midPaleTapa: null,
-  loteTapaAntMidPale: '',
   cnt:       0
 };
 
-function anchoTapa(fmt, porciona){
-  // Si se va a porcionar (cuñas), la tapa es siempre 330 mm
-  // (con opción adicional de TAPA DIA % en el desplegable para los pedidos de Día).
-  if(porciona===true) return '330';
-  if(fmt==='3 KG') return '240';
-  if(fmt==='2 KG') return '200';
+function anchoTapa(fmt){
+  if(fmt==='3 KG')return '245';
+  if(fmt==='2 KG')return '200';
   return '330';
 }
 function anchoFondo(maq){ return maq==='ELTON'?'365':'310'; }
 
 function initEnvasado(){
-  // Cargar el stock de material auxiliar para los desplegables de "Cambiar lote"
-  // (silencioso, fire-and-forget; si tarda, los selects mostrarán "Cargando…")
-  try{ if(typeof matCargado!=='undefined' && !matCargado && typeof cargarMaterialAuxiliar==='function') cargarMaterialAuxiliar(); }catch(_){}
-  try{ if(typeof clientesCargados!=='undefined' && !clientesCargados && typeof cargarClientes==='function') cargarClientes(); }catch(_){}
-  // Recuperar últimos lotes usados de bobina por máquina+proveedor desde el historial.
-  // IMPORTANTE: los nombres de columna deben coincidir con los que se guardan en
-  // guardarEnvasado() (MAQ.ENVASADO, PROVEEDOR BOBINA FONDO, REFERENCIA BOBINA FONDO/TAPA),
-  // y se ordena por fecha descendente para garantizar coger el más reciente aunque
-  // rawRows no venga ordenado. Esto se ejecuta SIEMPRE al abrir envasado (no solo la
-  // primera vez) para que el operario nunca tenga que volver a teclear un lote ya usado.
-  ['ELTON','MECAPLASTIC'].forEach(function(maq){
-    // --- Bobina FONDO: depende de máquina + proveedor (TOFILM / ANDUFLEX) ---
-    ['TOFILM','ANDUFLEX'].forEach(function(prov){
-      var regs=rawRows.filter(function(r){
-        return (r['SECCIÓN']||'').toString().toUpperCase()==='ENVASADO' &&
-               (r['MAQ.ENVASADO']||'').toString().toUpperCase()===maq &&
-               (r['PROVEEDOR BOBINA FONDO']||'').toString().toUpperCase()===prov &&
-               r['REFERENCIA BOBINA FONDO'];
-      });
-      if(regs.length){
-        regs.sort(function(a,b){
-          var fa=parseFecha(a['FECHA']); var fb=parseFecha(b['FECHA']);
-          if(!fa&&!fb)return 0; if(!fa)return 1; if(!fb)return -1;
-          return fb-fa; // más reciente primero
+  // Recuperar últimos lotes usados desde historial (rawRows)
+  if(!ENV.maq){
+    ['ELTON','MECAPLASTIC'].forEach(function(maq){
+      ['TOFIL','ANDUFLEX'].forEach(function(prov){
+        var regs=rawRows.filter(function(r){
+          return (r['SECCIÓN']||'').toUpperCase()==='ENVASADO' &&
+                 (r['MAQUINA']||'').toUpperCase()===maq &&
+                 (r['PROVEEDOR FONDO']||'').toUpperCase()===prov &&
+                 r['LOTE FONDO'];
         });
-        ENV.loteFondo[maq][prov]=String(regs[0]['REFERENCIA BOBINA FONDO']||'');
-      }
-    });
-    // --- Bobina TAPA: depende solo de la máquina ---
-    var regsT=rawRows.filter(function(r){
-      return (r['SECCIÓN']||'').toString().toUpperCase()==='ENVASADO' &&
-             (r['MAQ.ENVASADO']||'').toString().toUpperCase()===maq &&
-             r['REFERENCIA BOBINA TAPA'];
-    });
-    if(regsT.length){
-      regsT.sort(function(a,b){
-        var fa=parseFecha(a['FECHA']); var fb=parseFecha(b['FECHA']);
-        if(!fa&&!fb)return 0; if(!fa)return 1; if(!fb)return -1;
-        return fb-fa;
+        if(regs.length) ENV.loteFondo[maq][prov]=regs[regs.length-1]['LOTE FONDO']||'';
       });
-      ENV.loteTapa[maq]=String(regsT[0]['REFERENCIA BOBINA TAPA']||'');
-    }
-  });
+      var regsT=rawRows.filter(function(r){
+        return (r['SECCIÓN']||'').toUpperCase()==='ENVASADO' &&
+               (r['MAQUINA']||'').toUpperCase()===maq &&
+               r['LOTE TAPA'];
+      });
+      if(regsT.length) ENV.loteTapa[maq]=regsT[regsT.length-1]['LOTE TAPA']||'';
+    });
+  }
   document.getElementById('env-user-badge').textContent = CU?CU.n:'—';
   initEnvAux();
   // Ocultar todos los bloques
@@ -6235,16 +5720,15 @@ function selEnvMaq(maq, silent){
   // Actualizar lotes en display
   actualizarDisplayFondo();
   if(ENV.provFondo) selEnvProv(ENV.provFondo, true);
-  var lt=ENV.loteTapa[maq] || _buscarUltimoLoteTapa(maq);
-  if(lt) ENV.loteTapa[maq]=lt;
-  document.getElementById('env-tapa-lote-display').textContent=lt||'—';
+  var lt=ENV.loteTapa[maq]||'—';
+  document.getElementById('env-tapa-lote-display').textContent=lt;
   if(!silent) toast('Máquina '+maq+' seleccionada');
 }
 
 function selEnvProv(prov, silent){
   ENV.provFondo=prov;
-  ['TOFILM','ANDUFLEX'].forEach(function(p){
-    var btn=document.getElementById('env-prov-'+(p==='TOFILM'?'tofilm':'anduflex'));
+  ['TOFIL','ANDUFLEX'].forEach(function(p){
+    var btn=document.getElementById('env-prov-'+(p==='TOFIL'?'tofil':'anduflex'));
     if(btn){
       btn.style.background   = prov===p?'var(--blue)':'var(--bg3)';
       btn.style.borderColor  = prov===p?'var(--blue)':'var(--border)';
@@ -6255,293 +5739,64 @@ function selEnvProv(prov, silent){
   if(!silent) toast('Proveedor fondo: '+prov);
 }
 
-// Busca en rawRows (incluye los registros que se hicieron en esta sesión y aún
-// no están sincronizados con la hoja — guardarRegistro hace rawRows.push) el
-// último lote de bobina FONDO para (máquina, proveedor). Ordenado por FECHA desc.
-// Devuelve '' si no hay nada.
-function _buscarUltimoLoteFondo(maq, prov){
-  if(!maq || !prov) return '';
-  var regs=(rawRows||[]).filter(function(r){
-    return String(r['SECCIÓN']||'').toUpperCase()==='ENVASADO' &&
-           String(r['MAQ.ENVASADO']||'').toUpperCase()===String(maq).toUpperCase() &&
-           String(r['PROVEEDOR BOBINA FONDO']||'').toUpperCase()===String(prov).toUpperCase() &&
-           String(r['REFERENCIA BOBINA FONDO']||'').trim()!=='';
-  });
-  if(!regs.length) return '';
-  regs.sort(function(a,b){
-    var fa=parseFecha(a['FECHA']); var fb=parseFecha(b['FECHA']);
-    if(!fa&&!fb)return 0; if(!fa)return 1; if(!fb)return -1;
-    return fb-fa;
-  });
-  return String(regs[0]['REFERENCIA BOBINA FONDO']||'').trim();
-}
-
-// Lo mismo para TAPA (no depende del proveedor, solo de la máquina).
-function _buscarUltimoLoteTapa(maq){
-  if(!maq) return '';
-  var regs=(rawRows||[]).filter(function(r){
-    return String(r['SECCIÓN']||'').toUpperCase()==='ENVASADO' &&
-           String(r['MAQ.ENVASADO']||'').toUpperCase()===String(maq).toUpperCase() &&
-           String(r['REFERENCIA BOBINA TAPA']||'').trim()!=='';
-  });
-  if(!regs.length) return '';
-  regs.sort(function(a,b){
-    var fa=parseFecha(a['FECHA']); var fb=parseFecha(b['FECHA']);
-    if(!fa&&!fb)return 0; if(!fa)return 1; if(!fb)return -1;
-    return fb-fa;
-  });
-  return String(regs[0]['REFERENCIA BOBINA TAPA']||'').trim();
-}
-
 function actualizarDisplayFondo(){
   if(!ENV.maq||!ENV.provFondo){
     document.getElementById('env-fondo-lote-display').textContent='—';
     return;
   }
-  // Búsqueda LAZY: si el cache está vacío, miramos en rawRows ahora mismo.
-  // Esto resuelve el caso en el que initEnvasado() corrió antes de que se
-  // hubieran hecho los registros recientes (o antes de que llegara el sync).
-  var lote = ENV.loteFondo[ENV.maq][ENV.provFondo] || _buscarUltimoLoteFondo(ENV.maq, ENV.provFondo);
-  if(lote) ENV.loteFondo[ENV.maq][ENV.provFondo] = lote;
-  document.getElementById('env-fondo-lote-display').textContent = lote || '—';
-}
-
-// Devuelve el ARTÍCULO del fondo según la máquina (coincide con el nombre del stock real)
-function _articuloFondo(){ return ENV.maq==='ELTON' ? 'FONDO 365' : 'FONDO 310'; }
-// Devuelve la(s) ARTÍCULO(s) de tapa según formato. Si se porciona, añade TAPA DIA %
-// como opción extra (la tapa Día solo se ofrece para cuñas).
-function _articulosTapa(){
-  // Si se porciona el queso (cuñas), la tapa que se usa es TAPA 330 (envasado de cuñas)
-  // o, para los pedidos del supermercado Día, TAPA DIA %. Da igual el formato original
-  // del queso (3KG, 2KG, etc): en cuñas la tapa es siempre la 330 o la Día.
-  if(ENV.porciona===true) return ['TAPA 330','TAPA DIA %'];
-  var fmt=document.getElementById('env-formato')?document.getElementById('env-formato').value:'';
-  if(fmt==='3 KG') return ['TAPA 240'];
-  if(fmt==='2 KG') return ['TAPA 200'];
-  return ['TAPA 330'];
-}
-
-// Rellena el <select> de lote de fondo con los lotes disponibles en stock,
-// filtrados por máquina + proveedor + STOCK ACTUAL > 0. Si no hay stock cargado,
-// lo pide al backend. Incluye al final una opción "✏️ Escribir manualmente…"
-function poblarSelectLoteFondo(){
-  var sel=document.getElementById('env-fondo-nuevo-lote');
-  if(!sel) return;
-  function _render(){
-    var art=_articuloFondo();
-    var prov=(ENV.provFondo||'').toUpperCase();
-    var lotes=(matStockRemote||[]).filter(function(r){
-      return String(r['CATEGORIA']||'').toUpperCase()==='PLASTICO' &&
-             String(r['ARTICULO']||'').toUpperCase()===art &&
-             String(r['PROVEEDOR']||'').toUpperCase()===prov &&
-             (parseFloat(r['STOCK ACTUAL'])||0)>0;
-    });
-    var html='';
-    if(!lotes.length){
-      html='<option value="">⚠️ Sin lotes en stock de '+art+' / '+prov+'</option>';
-    } else {
-      html='<option value="">— Elige un lote del stock —</option>';
-      lotes.forEach(function(l){
-        var lote=String(l['LOTE']||'').trim();
-        var stk=parseFloat(l['STOCK ACTUAL'])||0;
-        var u=String(l['UNIDAD']||'ud').trim()||'ud';
-        html+='<option value="'+lote+'">'+lote+' — '+stk+' '+u+'</option>';
-      });
-    }
-    html+='<option value="__MANUAL__">✏️ Escribir manualmente…</option>';
-    sel.innerHTML=html;
-  }
-  if(typeof matCargado!=='undefined' && matCargado){ _render(); return; }
-  sel.innerHTML='<option value="">⏳ Cargando lotes del stock…</option>';
-  if(typeof cargarMaterialAuxiliar==='function') cargarMaterialAuxiliar(_render);
-  else _render();
-}
-function poblarSelectLoteTapa(){
-  var sel=document.getElementById('env-tapa-nuevo-lote');
-  if(!sel) return;
-  function _render(){
-    var arts=_articulosTapa();
-    var lotes=(matStockRemote||[]).filter(function(r){
-      return String(r['CATEGORIA']||'').toUpperCase()==='PLASTICO' &&
-             arts.indexOf(String(r['ARTICULO']||'').toUpperCase())>=0 &&
-             (parseFloat(r['STOCK ACTUAL'])||0)>0;
-    });
-    var html='';
-    if(!lotes.length){
-      html='<option value="">⚠️ Sin lotes en stock de '+arts.join(' / ')+'</option>';
-    } else {
-      html='<option value="">— Elige un lote del stock —</option>';
-      lotes.forEach(function(l){
-        var lote=String(l['LOTE']||'').trim();
-        var stk=parseFloat(l['STOCK ACTUAL'])||0;
-        var art=String(l['ARTICULO']||'').trim();
-        var u=String(l['UNIDAD']||'ud').trim()||'ud';
-        html+='<option value="'+lote+'">'+lote+' ('+art+') — '+stk+' '+u+'</option>';
-      });
-    }
-    html+='<option value="__MANUAL__">✏️ Escribir manualmente…</option>';
-    sel.innerHTML=html;
-  }
-  if(typeof matCargado!=='undefined' && matCargado){ _render(); return; }
-  sel.innerHTML='<option value="">⏳ Cargando lotes del stock…</option>';
-  if(typeof cargarMaterialAuxiliar==='function') cargarMaterialAuxiliar(_render);
-  else _render();
+  document.getElementById('env-fondo-lote-display').textContent=ENV.loteFondo[ENV.maq][ENV.provFondo]||'—';
 }
 
 function toggleEnvCambioFondo(){
   var w=document.getElementById('env-fondo-cambio-wrap');
   w.style.display=w.style.display==='none'?'':'none';
-  if(w.style.display!=='none'){
-    poblarSelectLoteFondo();
-    setTimeout(function(){document.getElementById('env-fondo-nuevo-lote').focus();},100);
-  }
+  if(w.style.display!=='none') setTimeout(function(){document.getElementById('env-fondo-nuevo-lote').focus();},100);
 }
-// ═══════════════════════════════════════════════════════════════
-// Fase B2: distinción entre CAMBIO DE LOTE (sin consumo) y CAMBIO DE BOBINA (consume stock)
-// ═══════════════════════════════════════════════════════════════
-function _marcarBtnPair(btnIdOn, btnIdOff, color){
-  // color = 'blue' | 'green' | 'red'
-  var b1=document.getElementById(btnIdOn), b2=document.getElementById(btnIdOff);
-  if(!b1||!b2) return;
-  var bg='var(--bg3)', bd='var(--border)', tx='var(--text2)';
-  if(color==='blue'){ b1.style.background='var(--blue-bg)'; b1.style.borderColor='var(--blue)'; b1.style.color='var(--blue)'; }
-  else if(color==='green'){ b1.style.background='var(--green-bg)'; b1.style.borderColor='var(--green)'; b1.style.color='var(--green)'; }
-  else if(color==='red'){ b1.style.background='var(--red-bg)'; b1.style.borderColor='var(--red)'; b1.style.color='var(--red)'; }
-  b2.style.background=bg; b2.style.borderColor=bd; b2.style.color=tx;
-}
-
-function selEnvFondoTipoCambio(tipo){
-  ENV.tipoCambioFondo = tipo;
-  if(tipo==='lote'){
-    _marcarBtnPair('env-fondo-tipo-lote','env-fondo-tipo-bobina','blue');
-    document.getElementById('env-fondo-mid-wrap').style.display='none';
-    ENV.midPaleFondo = null;
-  } else {
-    _marcarBtnPair('env-fondo-tipo-bobina','env-fondo-tipo-lote','red');
-    document.getElementById('env-fondo-mid-wrap').style.display='';
-  }
-}
-function selEnvFondoMid(val){
-  ENV.midPaleFondo = val;
-  if(val) _marcarBtnPair('env-fondo-mid-si','env-fondo-mid-no','green');
-  else    _marcarBtnPair('env-fondo-mid-no','env-fondo-mid-si','red');
-}
-function selEnvTapaTipoCambio(tipo){
-  ENV.tipoCambioTapa = tipo;
-  if(tipo==='lote'){
-    _marcarBtnPair('env-tapa-tipo-lote','env-tapa-tipo-bobina','blue');
-    document.getElementById('env-tapa-mid-wrap').style.display='none';
-    ENV.midPaleTapa = null;
-  } else {
-    _marcarBtnPair('env-tapa-tipo-bobina','env-tapa-tipo-lote','red');
-    document.getElementById('env-tapa-mid-wrap').style.display='';
-  }
-}
-function selEnvTapaMid(val){
-  ENV.midPaleTapa = val;
-  if(val) _marcarBtnPair('env-tapa-mid-si','env-tapa-mid-no','green');
-  else    _marcarBtnPair('env-tapa-mid-no','env-tapa-mid-si','red');
-}
-
 function confirmarCambioFondo(){
-  var sel=document.getElementById('env-fondo-nuevo-lote');
-  var nl=(sel.value||'').trim();
-  if(nl==='__MANUAL__'){
-    nl=(prompt('Introduce el nº de lote a mano (úsalo solo si falta en stock):')||'').trim().toUpperCase();
-  }
-  if(!nl){toast('Elige un lote del desplegable o escríbelo manualmente','err');return;}
+  var nl=document.getElementById('env-fondo-nuevo-lote').value.trim().toUpperCase();
+  if(!nl){toast('Introduce el nº de lote','err');return;}
   if(!ENV.maq||!ENV.provFondo){toast('Selecciona máquina y proveedor primero','err');return;}
-  // Validar que el operario haya elegido tipo de cambio
-  if(!ENV.tipoCambioFondo){toast('Indica si es cambio de LOTE o cambio de BOBINA','err');return;}
-  if(ENV.tipoCambioFondo==='bobina' && ENV.midPaleFondo===null){toast('Indica si es en mitad de un palé o no','err');return;}
-  var loteAnterior = ENV.loteFondo[ENV.maq][ENV.provFondo] || '';
-  // Si es cambio de bobina y mid-palé: guardamos el lote anterior para el palé actual
-  if(ENV.tipoCambioFondo==='bobina' && ENV.midPaleFondo===true && loteAnterior && loteAnterior!==nl){
-    ENV.loteFondoAntMidPale = loteAnterior;
-  }
   ENV.loteFondo[ENV.maq][ENV.provFondo]=nl;
   actualizarDisplayFondo();
-  sel.value='';
-  // Resetear botones de tipo y mid para la próxima vez
-  ['env-fondo-tipo-lote','env-fondo-tipo-bobina','env-fondo-mid-si','env-fondo-mid-no'].forEach(function(id){
-    var b=document.getElementById(id); if(b){ b.style.background='var(--bg3)'; b.style.borderColor='var(--border)'; b.style.color='var(--text2)'; }
-  });
-  document.getElementById('env-fondo-mid-wrap').style.display='none';
+  document.getElementById('env-fondo-nuevo-lote').value='';
   document.getElementById('env-fondo-cambio-wrap').style.display='none';
-  var tipo = ENV.tipoCambioFondo;
-  ENV.tipoCambioFondo=''; ENV.midPaleFondo=null;
-  if(tipo==='lote'){
-    // Cambio de LOTE: solo informativo, NO descuenta stock ni registra cambio
-    toast('🔄 Lote fondo cambiado a: '+nl+'  (sin descontar stock)','ok');
-  } else {
-    // Cambio de BOBINA: registra evento + descuenta del stock
-    fetch(API_URL,{method:'POST',body:JSON.stringify({
-      'ID':'ID-'+Date.now()+'-cbf',
-      'SECCIÓN':'ENVASADO','OPERARIO':CU.n,'FECHA':fechaHoraEspana(),
-      'MAQ.ENVASADO':ENV.maq,'PROVEEDOR BOBINA FONDO':ENV.provFondo,'REFERENCIA BOBINA FONDO':nl,
-      'TIPO REGISTRO':'CAMBIO BOBINA FONDO'
-    })}).catch(function(){});
-    matDescontarBobina('PLASTICO',_articuloFondo(),ENV.provFondo,nl,CU.n);
-    toast('📦 Cambio de bobina fondo: '+nl+'  (-1 del stock)','ok');
-  }
+  // Registrar cambio de bobina en Sheets (sin pasar por misRegs para no aparecer en registros del día)
+  fetch(API_URL,{method:'POST',body:JSON.stringify({
+    'ID':'ID-'+Date.now()+'-cbf',
+    'SECCIÓN':'ENVASADO','OPERARIO':CU.n,'FECHA':fechaHoraEspana(),
+    'MAQ.ENVASADO':ENV.maq,'PROVEEDOR BOBINA FONDO':ENV.provFondo,'REFERENCIA BOBINA FONDO':nl,
+    'TIPO REGISTRO':'CAMBIO BOBINA FONDO'
+  })}).catch(function(){});
+  // Descontar 1 bobina del stock de material auxiliar
+  var artFondo=ENV.maq==='ELTON'?'FONDO 365mm (ELTON)':'FONDO 310mm (MECAPLASTIC)';
+  matDescontarBobina('MATERIAL ENVASADO',artFondo,ENV.provFondo,nl,CU.n);
+  toast('✅ Lote fondo: '+nl);
 }
 
 function toggleEnvCambioTapa(){
   var w=document.getElementById('env-tapa-cambio-wrap');
   w.style.display=w.style.display==='none'?'':'none';
-  if(w.style.display!=='none'){
-    poblarSelectLoteTapa();
-    setTimeout(function(){document.getElementById('env-tapa-nuevo-lote').focus();},100);
-  }
+  if(w.style.display!=='none') setTimeout(function(){document.getElementById('env-tapa-nuevo-lote').focus();},100);
 }
 function confirmarCambioTapa(){
-  var sel=document.getElementById('env-tapa-nuevo-lote');
-  var nl=(sel.value||'').trim();
-  // Si el operario eligió un lote real, miramos también de qué ARTÍCULO es (para
-  // descontarlo bien del stock, especialmente importante con TAPA DIA %).
-  var artElegida='';
-  if(nl && nl!=='__MANUAL__'){
-    var opt=sel.options[sel.selectedIndex];
-    if(opt && opt.text){
-      var m=opt.text.match(/\(([^)]+)\)/);
-      if(m) artElegida=m[1].trim().toUpperCase();
-    }
-  }
-  if(nl==='__MANUAL__'){
-    nl=(prompt('Introduce el nº de lote a mano (úsalo solo si falta en stock):')||'').trim().toUpperCase();
-  }
-  if(!nl){toast('Elige un lote del desplegable o escríbelo manualmente','err');return;}
-  // Validar que el operario haya elegido tipo de cambio
-  if(!ENV.tipoCambioTapa){toast('Indica si es cambio de LOTE o cambio de BOBINA','err');return;}
-  if(ENV.tipoCambioTapa==='bobina' && ENV.midPaleTapa===null){toast('Indica si es en mitad de un palé o no','err');return;}
-  var loteAnteriorT = ENV.loteTapa[ENV.maq] || '';
-  if(ENV.tipoCambioTapa==='bobina' && ENV.midPaleTapa===true && loteAnteriorT && loteAnteriorT!==nl){
-    ENV.loteTapaAntMidPale = loteAnteriorT;
-  }
+  var nl=document.getElementById('env-tapa-nuevo-lote').value.trim().toUpperCase();
+  if(!nl){toast('Introduce el nº de lote','err');return;}
   ENV.loteTapa[ENV.maq]=nl;
   document.getElementById('env-tapa-lote-display').textContent=nl;
-  sel.value='';
-  ['env-tapa-tipo-lote','env-tapa-tipo-bobina','env-tapa-mid-si','env-tapa-mid-no'].forEach(function(id){
-    var b=document.getElementById(id); if(b){ b.style.background='var(--bg3)'; b.style.borderColor='var(--border)'; b.style.color='var(--text2)'; }
-  });
-  document.getElementById('env-tapa-mid-wrap').style.display='none';
+  document.getElementById('env-tapa-nuevo-lote').value='';
   document.getElementById('env-tapa-cambio-wrap').style.display='none';
-  var tipoT = ENV.tipoCambioTapa;
-  ENV.tipoCambioTapa=''; ENV.midPaleTapa=null;
-  if(tipoT==='lote'){
-    toast('🔄 Lote tapa cambiado a: '+nl+'  (sin descontar stock)','ok');
-  } else {
-    fetch(API_URL,{method:'POST',body:JSON.stringify({
-      'ID':'ID-'+Date.now()+'-cbt',
-      'SECCIÓN':'ENVASADO','OPERARIO':CU.n,'FECHA':fechaHoraEspana(),
-      'MAQ.ENVASADO':ENV.maq,'REFERENCIA BOBINA TAPA':nl,
-      'TIPO REGISTRO':'CAMBIO BOBINA TAPA'
-    })}).catch(function(){});
-    var artTapa = artElegida || _articulosTapa()[0];
-    var provTapa = (artTapa==='TAPA DIA %') ? '' : 'TOFILM';
-    matDescontarBobina('PLASTICO',artTapa,provTapa,nl,CU.n);
-    toast('📦 Cambio de bobina tapa: '+nl+'  (-1 del stock)','ok');
-  }
+  // Registrar cambio de bobina tapa en Sheets (sin pasar por misRegs)
+  fetch(API_URL,{method:'POST',body:JSON.stringify({
+    'ID':'ID-'+Date.now()+'-cbt',
+    'SECCIÓN':'ENVASADO','OPERARIO':CU.n,'FECHA':fechaHoraEspana(),
+    'MAQ.ENVASADO':ENV.maq,'REFERENCIA BOBINA TAPA':nl,
+    'TIPO REGISTRO':'CAMBIO BOBINA TAPA'
+  })}).catch(function(){});
+  // Descontar 1 bobina del stock de material auxiliar
+  var fmt=document.getElementById('env-formato')?document.getElementById('env-formato').value:'';
+  var artTapa=fmt==='3 KG'?'TAPA 245mm (3KG)':fmt==='2 KG'?'TAPA 200mm (2KG)':'TAPA 330mm (1KG/BARRA)';
+  matDescontarBobina('MATERIAL ENVASADO',artTapa,'',nl,CU.n);
+  toast('✅ Lote tapa: '+nl);
 }
 
 function toggleEnvManual(){
@@ -6591,15 +5846,17 @@ function onEnvTipoCambia(){
 
 function onEnvFormato(fmt){
   if(!fmt)return;
-  // El bloque TAPA todavía no se muestra: depende de si se porciona o no, y por eso
-  // ahora va DESPUÉS del bloque porcionado. selEnvPorciona() lo mostrará con el ancho
-  // correcto cuando el operario elija SI/NO.
+  var ancho=anchoTapa(fmt);
+  // Actualizar label tapa
+  document.getElementById('env-tapa-ancho-label').textContent=ancho;
+  // Actualizar lote tapa display
+  if(ENV.maq) document.getElementById('env-tapa-lote-display').textContent=ENV.loteTapa[ENV.maq]||'—';
+  // Mostrar bloques de material y porcionado
   var anchoFondoVal=ENV.maq?anchoFondo(ENV.maq):'—';
   document.getElementById('env-fondo-ancho-label').textContent=anchoFondoVal;
   document.getElementById('env-bloque-fondo').style.display='';
+  document.getElementById('env-bloque-tapa').style.display='';
   document.getElementById('env-bloque-porcionado').style.display='';
-  // Por si el operario vuelve atrás, ocultar el bloque tapa hasta nueva elección de porcionado
-  document.getElementById('env-bloque-tapa').style.display='none';
   document.getElementById('env-bloque-etiquetado').style.display='';
   cargarListaEtiquetas();
   onEnvTipoCambia();
@@ -6612,17 +5869,6 @@ function selEnvPorciona(val){
   si.style.background=val?'#3a6a2a':'var(--bg3)'; si.style.borderColor=val?'#3a6a2a':'var(--border)'; si.style.color=val?'#fff':'var(--text2)';
   no.style.background=!val?'#8b1a1a':'var(--bg3)'; no.style.borderColor=!val?'#8b1a1a':'var(--border)'; no.style.color=!val?'#fff':'var(--text2)';
   document.getElementById('env-cunas-wrap').style.display=val?'':'none';
-  // Ahora que sabemos si se porciona o no, mostramos el bloque "Material tapa"
-  // con el ancho correcto (porcionado → 330; sin porcionar → según formato).
-  var fmt=document.getElementById('env-formato')?document.getElementById('env-formato').value:'';
-  var ancho=anchoTapa(fmt, val);
-  document.getElementById('env-tapa-ancho-label').textContent=ancho;
-  if(ENV.maq){
-    var lt2=ENV.loteTapa[ENV.maq] || _buscarUltimoLoteTapa(ENV.maq);
-    if(lt2) ENV.loteTapa[ENV.maq]=lt2;
-    document.getElementById('env-tapa-lote-display').textContent=lt2||'—';
-  }
-  document.getElementById('env-bloque-tapa').style.display='';
   validarContraetiquetas();
 }
 
@@ -6682,109 +5928,7 @@ function validarContraetiquetas(){
   else{okDiv.style.display='none';errDiv.style.display='none';}
 }
 
-// Busca un item del stock auxiliar por artículo + lote (case insensitive,
-// trim). Devuelve {categoria, proveedor, unidad} o null si no se encuentra.
-function _buscarItemStockAux(articulo, lote){
-  if(!articulo || !lote) return null;
-  var artU = String(articulo).toUpperCase().trim();
-  var loteN = String(lote).trim();
-  var hit = (matStockRemote||[]).find(function(r){
-    return String(r['ARTICULO']||'').toUpperCase().trim() === artU &&
-           String(r['LOTE']||'').trim() === loteN;
-  });
-  if(!hit) return null;
-  return {
-    categoria: String(hit['CATEGORIA']||'').trim() || 'CONDIMENTOS',
-    proveedor: String(hit['PROVEEDOR']||'').trim(),
-    unidad:    String(hit['UNIDAD']||'').trim() || 'g'
-  };
-}
-
-// Recolecta los materiales auxiliares usados en este envasado y manda al backend
-// las SALIDAS correspondientes para que descuente el stock. Solo procesa
-// materiales con LOTE y CANTIDAD>0 (aceite y trufa).
-function _registrarSalidasEnvasado(idEnvasado, operario, fecha){
-  if(!idEnvasado) return;
-  var porciona = ENV.porciona === true;
-  var unidadesProducidas = porciona
-    ? (parseInt(document.getElementById('env-cunas-total').value)||0)
-    : (parseInt(document.getElementById('env-piezas').value)||0);
-  if(unidadesProducidas<=0) return;
-
-  // Materiales con cantidad por unidad declarada
-  var defs = [
-    { art:'ACEITE', loteId:'env-lote-aceite', cantId:'env-cant-aceite' },
-    { art:'TRUFA',  loteId:'env-lote-trufa',  cantId:'env-cant-trufa'  }
-  ];
-  var materiales = [];
-  defs.forEach(function(d){
-    var lote = (document.getElementById(d.loteId)||{}).value || '';
-    var cantPorUnidad = parseFloat((document.getElementById(d.cantId)||{}).value || '0');
-    if(!lote || lote==='__MANUAL__' || !cantPorUnidad || cantPorUnidad<=0) return;
-    var info = _buscarItemStockAux(d.art, lote);
-    var totalG = cantPorUnidad * unidadesProducidas; // gramos consumidos en total
-    materiales.push({
-      categoria: info ? info.categoria : 'CONDIMENTOS',
-      articulo:  d.art,
-      proveedor: info ? info.proveedor : '',
-      lote:      lote,
-      cantidad:  totalG,
-      unidad:    'g'
-    });
-  });
-
-  if(!materiales.length) return;
-  // Disparar al backend (fire-and-forget; si falla, no rompe el envasado)
-  try{
-    fetch(API_URL, { method:'POST', body: JSON.stringify({
-      '_SHEET':'SALIDAS_ENVASADO',
-      idEnvasado: idEnvasado,
-      operario: operario,
-      fecha: fecha,
-      materiales: materiales
-    })}).catch(function(){});
-  } catch(_){}
-}
-
 function guardarEnvasado(){
-  // Envolvemos TODO en try/catch para que, si hay una excepción de JavaScript
-  // (típicamente acceder a propiedad de undefined en ENV.loteFondo[maq], algún
-  // dataset corrupto, etc.) el operario lo VEA como toast en vez de quedarse
-  // pulsando un botón que no responde. Sin esto, los errores se tragan en
-  // silencio y el registro nunca llega a Sheets.
-  try {
-
-  // ─── VALIDACIÓN DE LOTES DE CONDIMENTOS ───
-  // Si el operario rellena CANTIDAD de aceite/trufa pero el LOTE seleccionado
-  // no existe en el stock (o está a 0), bloqueamos el guardado. Esto evita
-  // descuadres como los del 31/5/2026 (stock de aceite en negativo).
-  var _bloqueosAux = [
-    { art:'ACEITE', loteId:'env-lote-aceite', cantId:'env-cant-aceite' },
-    { art:'TRUFA',  loteId:'env-lote-trufa',  cantId:'env-cant-trufa'  }
-  ];
-  for(var _bi=0; _bi<_bloqueosAux.length; _bi++){
-    var _b=_bloqueosAux[_bi];
-    var _lote = (document.getElementById(_b.loteId)||{}).value || '';
-    var _cant = parseFloat((document.getElementById(_b.cantId)||{}).value || '0');
-    if(_cant>0 && !_lote){
-      toast('🚫 Falta lote de '+_b.art+'. Avisa a Calidad para dar de alta el albarán antes de envasar.', 'err');
-      try{ navigator.vibrate && navigator.vibrate([200,80,200]); }catch(_){}
-      return;
-    }
-    if(_lote){
-      var _enStock = (matStockRemote||[]).some(function(r){
-        return String(r['CATEGORIA']||'').toUpperCase()==='CONDIMENTOS' &&
-               String(r['ARTICULO']||'').toUpperCase()===_b.art &&
-               String(r['LOTE']||'').trim()===_lote &&
-               (parseFloat(r['STOCK ACTUAL'])||0)>0;
-      });
-      if(!_enStock){
-        toast('🚫 El lote '+_lote+' de '+_b.art+' no está en stock. Avisa a Calidad.', 'err');
-        try{ navigator.vibrate && navigator.vibrate([200,80,200]); }catch(_){}
-        return;
-      }
-    }
-  }
   var errEl=document.getElementById('env-err-guardar');errEl.style.display='none';
   // Scroll al error para que sea visible
   errEl.scrollIntoView&&setTimeout(function(){if(errEl.style.display!=='none')errEl.scrollIntoView({behavior:'smooth',block:'center'});},100);
@@ -6813,47 +5957,14 @@ function guardarEnvasado(){
     var fc={'1 KG':'1','2 KG':'2','3 KG':'3','BARRA':'4','SUPERMINIS':'5'};
     paleId=(lote||'000000')+'00'+(fc[fmt]||'0')+String(piezas).padStart(3,'0').slice(-3)+(variedad?'*'+variedad:'');
   }
-  // El envasado NO cambia la sala física del palé: sigue donde estaba (cámara frío,
-  // secadero, etc.). Para no romper la trazabilidad ponemos SALA ORIGEN y SALA DESTINO
-  // a la última sala conocida del palé. Si no hubiera registro previo (palé nuevo),
-  // se queda vacío — mejor vacío que la palabra "ENVASADO" (que NO es una sala válida
-  // de la lista: 1.SALADERO, 2.GOLPE FRIO, ..., 9.VENTA).
-  var salaActual = '';
-  try {
-    var idBusqueda = paleId;
-    if (paleId && paleId.indexOf('*') < 0 && variedad) {
-      idBusqueda = paleId + '*' + variedad.toUpperCase();
-    }
-    salaActual = getSalaActualPale(idBusqueda) || '';
-  } catch(_){}
   var datos={
     'ID PALET':paleId,'SECCIÓN':'ENVASADO','OPERARIO':CU.n,'FECHA':fechaHoraEspana(),
     'LOTE QUESO':lote,'TIPO DE QUESO':tipo,'VARIEDAD':variedad,'FORMATO/PESO':fmt,'Nº DE PIEZAS':piezas,
     'MAQ.ENVASADO':ENV.maq,
     'PROVEEDOR BOBINA FONDO':ENV.provFondo,
-    'REFERENCIA BOBINA FONDO':(function(){
-      var actual = (ENV.maq&&ENV.provFondo) ? (ENV.loteFondo[ENV.maq][ENV.provFondo]||'') : '';
-      if(ENV.loteFondoAntMidPale && ENV.loteFondoAntMidPale!==actual) return ENV.loteFondoAntMidPale+' / '+actual;
-      return actual;
-    })(),
-    'PROVEEDOR BOBINA TAPA': (function(){
-      // Leer proveedor del lote de tapa elegido en el stock, así si mañana la
-      // TAPA DIA % es de otro proveedor (o cambia algún día el de las normales),
-      // el registro queda con el proveedor REAL sin tener que tocar el código.
-      var loteTapa = ENV.maq ? (ENV.loteTapa[ENV.maq]||'') : '';
-      if (!loteTapa) return '';
-      var hit = (matStockRemote||[]).find(function(r){
-        return String(r['CATEGORIA']||'').toUpperCase()==='PLASTICO' &&
-               String(r['ARTICULO']||'').toUpperCase().indexOf('TAPA')===0 &&
-               String(r['LOTE']||'').trim()===loteTapa;
-      });
-      return hit ? String(hit['PROVEEDOR']||'').trim() : '';
-    })(),
-    'REFERENCIA BOBINA TAPA':(function(){
-      var actual = ENV.maq ? (ENV.loteTapa[ENV.maq]||'') : '';
-      if(ENV.loteTapaAntMidPale && ENV.loteTapaAntMidPale!==actual) return ENV.loteTapaAntMidPale+' / '+actual;
-      return actual;
-    })(),
+    'REFERENCIA BOBINA FONDO':ENV.maq&&ENV.provFondo?ENV.loteFondo[ENV.maq][ENV.provFondo]||'':'',
+    'PROVEEDOR BOBINA TAPA':'',
+    'REFERENCIA BOBINA TAPA':ENV.maq?ENV.loteTapa[ENV.maq]||'':'',
     '¿SE PORCIONA EL QUESO?':ENV.porciona===true?'SI':ENV.porciona===false?'NO':'',
     'CUÑAS POR QUESO':ENV.porciona?ENV.cunasTipo:'',
     'TOTAL UNIDADES (Cuñas)':ENV.porciona?document.getElementById('env-cunas-total').value:'',
@@ -6874,24 +5985,9 @@ function guardarEnvasado(){
     'CANTIDAD ACEITE (g)':document.getElementById('env-cant-aceite').value,
     'Nº PIEZAS NO APTAS':document.getElementById('env-no-aptas').value||'0',
     'OBSERVACIONES':document.getElementById('env-obs').value,
-    // Campos nuevos fase B
-    'LOTE ETIQUETAS':document.getElementById('env-lote-etiquetas')?document.getElementById('env-lote-etiquetas').value:'',
-    'CADUCIDAD ETIQUETADO':ENV.caduc||'',
-    'CONTROL MAT INICIO':ENV.ctrlMat.ini||'',
-    'CONTROL MAT DURANTE':ENV.ctrlMat.dur||'',
-    'CONTROL MAT FINAL':ENV.ctrlMat.fin||'',
-    'LOTE BOLSA FILM':document.getElementById('env-lote-bolsa')?document.getElementById('env-lote-bolsa').value:'',
-    'ACCIONES CORRECTORAS':document.getElementById('env-acciones-correctoras')?document.getElementById('env-acciones-correctoras').value:'',
-    'CURACION':esDO?(document.getElementById('env-curacion')?document.getElementById('env-curacion').value:''):'',
-    'CLIENTE':esDO?(document.getElementById('env-cliente')&&document.getElementById('env-cliente').value!=='__NUEVO__'?document.getElementById('env-cliente').value:''):'',
-    'SALA ORIGEN':salaActual,'SALA DESTINO':salaActual
+    'SALA ORIGEN':'ENVASADO','SALA DESTINO':'ENVASADO'
   };
   guardarRegistro(datos,'ENVASADO',paleId);
-  // Registrar SALIDAS de material auxiliar (aceite/trufa) → descuento de stock.
-  // Importante: la cantidad introducida (p.ej. 15 g) es POR UNIDAD; el consumo total
-  // se calcula multiplicando por las unidades (cuñas si porciona; piezas si no).
-  try { _registrarSalidasEnvasado(datos['ID'], datos['OPERARIO'], datos['FECHA']); }
-  catch(_) {}
   ENV.cnt++;document.getElementById('env-cnt').textContent=ENV.cnt;
   // Log visual
   var info=parsearId(paleId);
@@ -6900,19 +5996,6 @@ function guardarEnvasado(){
   logDiv.innerHTML='<div class="scan-item ok"><div><div class="scan-id">'+(info.tipo||tipo)+(variedad?' · '+variedad:'')+(fmt?' · '+fmt:'')+'</div><div style="font-size:0.7rem;color:var(--text3);font-family:monospace;">'+paleId+'</div></div><div class="scan-time">'+hora+'</div></div>'+logDiv.innerHTML;
   toast('✅ Registro envasado guardado');
   nuevoRegistroEnvasado();
-  } catch(_e){
-    // Mostrar al operario qué pasó. Sin esto, el botón "no hace nada" y todo
-    // el mundo se queda atascado sin saber por qué (como nos pasó hoy).
-    try{ console.error('guardarEnvasado falló:', _e); }catch(_){}
-    var msg = (_e && _e.message) ? _e.message : String(_e);
-    toast('🚫 Error al guardar: '+msg, 'err');
-    try{ navigator.vibrate && navigator.vibrate([200,80,200]); }catch(_){}
-    // Mostrar también en errEl para que sea muy visible
-    try{
-      var _ee = document.getElementById('env-err-guardar');
-      if(_ee){ _ee.textContent='🚫 Error al guardar: '+msg+' — manda captura a Joaquín.'; _ee.style.display=''; _ee.scrollIntoView({behavior:'smooth',block:'center'}); }
-    }catch(_){}
-  }
 }
 
 function nuevoRegistroEnvasado(){
@@ -6947,28 +6030,6 @@ function nuevoRegistroEnvasado(){
   document.getElementById('env-err-guardar').style.display='none';
   var blq=document.getElementById('env-bloque-pale');
   if(blq)blq.scrollIntoView({behavior:'smooth',block:'start'});
-  // Resetear campos nuevos fase B (los que no se mantienen entre palés)
-  ENV.ctrlMat={ini:'',dur:'',fin:''}; ENV.caduc='';
-  // El split de lote fondo/tapa solo aplica al palé en curso; al empezar
-  // uno nuevo, ya no hay "lote anterior mid-palé".
-  ENV.loteFondoAntMidPale=''; ENV.loteTapaAntMidPale='';
-  ['ini','dur','fin'].forEach(function(pt){
-    ['c','i'].forEach(function(v){
-      var b=document.getElementById('env-ctrlmat-'+pt+'-'+v);
-      if(b){ b.style.background='var(--bg3)'; b.style.borderColor='var(--border)'; b.style.color='var(--text2)'; }
-    });
-  });
-  ['c','i'].forEach(function(v){
-    var b=document.getElementById('env-caduc-'+v);
-    if(b){ b.style.background='var(--bg3)'; b.style.borderColor='var(--border)'; b.style.color='var(--text2)'; }
-  });
-  ['env-lote-etiquetas','env-lote-bolsa','env-acciones-correctoras','env-curacion','env-cliente'].forEach(function(id){
-    var el=document.getElementById(id); if(el) el.value='';
-  });
-  // Repoblar lotes con los últimos valores usados. Cantidades=true para
-  // mantener los valores que acaba de meter el operario (envasados
-  // consecutivos del mismo ingrediente no obligan a reintroducir cantidad).
-  try{ initEnvAux(true); }catch(_){}
 }
 
 function resetEnvasado(){ENV.cnt=0;nuevoRegistroEnvasado();}
@@ -7487,7 +6548,7 @@ function editarLoteCompleto(claveEnc){
     if(c){setCats[c]=true;if(!setArtsPorCat[c])setArtsPorCat[c]={};if(a)setArtsPorCat[c][a]=true;}
     if(p)setProvs[p]=true;
   });
-  ['AUXILIAR FABRICACION','CUAJO','FERMENTO','PLASTICO','CONDIMENTOS'].forEach(function(c){setCats[c]=true;});
+  ['AUXILIAR','FERMENTO','CUAJO','PLASTICO','CARTONAJE','ETIQUETAS','MATERIAL ENVASADO'].forEach(function(c){setCats[c]=true;});
   if(cur.categoria)setCats[cur.categoria]=true;
   if(cur.categoria && cur.articulo){if(!setArtsPorCat[cur.categoria])setArtsPorCat[cur.categoria]={};setArtsPorCat[cur.categoria][cur.articulo]=true;}
   if(cur.proveedor)setProvs[cur.proveedor]=true;
@@ -7498,7 +6559,7 @@ function editarLoteCompleto(claveEnc){
 
   var optsCat=cats.map(function(c){
     return '<option value="'+c.replace(/"/g,'&quot;')+'"'+(c===cur.categoria?' selected':'')+'>'+c+'</option>';
-  }).join('');
+  }).join('')+'<option value="__NEW__">➕ Nueva categoría…</option>';
 
   var artsCat=setArtsPorCat[cur.categoria]?Object.keys(setArtsPorCat[cur.categoria]).sort():[];
   var optsArt=artsCat.map(function(a){
@@ -7524,7 +6585,7 @@ function editarLoteCompleto(claveEnc){
           '<input class="finput" type="text" id="ed-prov" placeholder="Proveedor" value="'+cur.proveedor.replace(/"/g,'&quot;')+'" autocomplete="off" autocapitalize="characters" style="margin-top:6px;display:none;">'+
         '</div>'+
         '<div class="fg full"><div class="flabel">Lote *</div>'+
-          '<input class="finput" type="text" id="ed-lote" value="'+String(cur.lote||'').replace(/"/g,'&quot;')+'" autocomplete="off" autocapitalize="characters">'+
+          '<input class="finput" type="text" id="ed-lote" value="'+cur.lote.replace(/"/g,'&quot;')+'" autocomplete="off" autocapitalize="characters">'+
         '</div>'+
         '<div class="fg"><div class="flabel">Cantidad (stock) *</div>'+
           '<input class="finput" type="number" step="0.01" id="ed-cant" value="'+cur.cantidad+'" min="0" inputmode="decimal">'+
@@ -7562,8 +6623,18 @@ function editarLoteCompleto(claveEnc){
 function matEdOnCatChange(){
   var sel=document.getElementById('ed-cat');
   var val=sel.value;
-  // Categorías cerradas: ya no se permite crear al vuelo. La lista la
-  // define el código (AUXILIAR FABRICACION, CUAJO, FERMENTO, PLASTICO, CONDIMENTOS).
+  if(val==='__NEW__'){
+    var nueva=prompt('Nombre de la nueva categoría:');
+    if(nueva && nueva.trim()){
+      nueva=nueva.trim().toUpperCase();
+      var opt=document.createElement('option');
+      opt.value=nueva;opt.textContent=nueva;
+      sel.insertBefore(opt, sel.querySelector('option[value="__NEW__"]'));
+      sel.value=nueva;
+    } else {
+      sel.selectedIndex=0;
+    }
+  }
   // Actualizar artículos según categoría
   var cat=sel.value;
   var artSel=document.getElementById('ed-art');
@@ -7741,14 +6812,14 @@ function renderMatEntrada(){
     if(p)setProvs[p]=true;
   });
   // Añadir categorías fijas mínimas si no existen (por si Sheets está vacío)
-  ['AUXILIAR FABRICACION','CUAJO','FERMENTO','PLASTICO','CONDIMENTOS'].forEach(function(c){setCats[c]=true;});
+  ['AUXILIAR','FERMENTO','CUAJO','MATERIAL ENVASADO','CARTONAJE','ETIQUETAS'].forEach(function(c){setCats[c]=true;});
   var cats=Object.keys(setCats).sort();
   window.MAT_ARTS_POR_CAT=setArtsPorCat;
   window.MAT_PROVS=Object.keys(setProvs).sort();
 
   var optsCat='<option value="">— Selecciona —</option>'+
     cats.map(function(c){return '<option>'+c+'</option>';}).join('')+
-    '';
+    '<option value="__NEW__">➕ Nueva categoría…</option>';
 
   var html='<div style="padding:14px;">'+
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow);">'+
@@ -7811,7 +6882,19 @@ function renderMatEntrada(){
 function matOnCatChange(){
   var sel=document.getElementById('mat-ent-cat');
   var val=sel.value;
-  // Categorías cerradas: lista fija definida en el código.
+  if(val==='__NEW__'){
+    var nueva=prompt('Nombre de la nueva categoría:');
+    if(nueva && nueva.trim()){
+      nueva=nueva.trim().toUpperCase();
+      // Añadir la nueva opción y seleccionarla
+      var opt=document.createElement('option');
+      opt.value=nueva;opt.textContent=nueva;
+      sel.insertBefore(opt, sel.querySelector('option[value="__NEW__"]'));
+      sel.value=nueva;
+    } else {
+      sel.value='';
+    }
+  }
   matActualizarArticulos();
 }
 
@@ -7961,25 +7044,13 @@ function matDescontarBobina(categoria,articulo,proveedor,lote,operario){
     cantidad:1,motivo:'CAMBIO BOBINA ENVASADO'});
   matSetSalidas(salidas);
 
-  // Enviar a SALIDAS MATERIAL AUXILIAR (no a REGISTRO TOTAL que es para palés).
-  // Reusa el endpoint SALIDAS_ENVASADO del backend con motivo personalizado.
-  try{
-    fetch(API_URL, { method:'POST', body: JSON.stringify({
-      '_SHEET':'SALIDAS_ENVASADO',
-      idEnvasado: '',
-      operario: operario||CU.n,
-      fecha: fecha,
-      motivo: 'CAMBIO BOBINA ENVASADO',
-      materiales: [{
-        categoria: categoria,
-        articulo:  articulo,
-        proveedor: proveedor,
-        lote:      lote,
-        cantidad:  1,
-        unidad:    'unidades'
-      }]
-    })}).catch(function(){});
-  } catch(_){}
+  // Enviar a Sheets
+  guardarRegistro({
+    'SECCIÓN':'MATERIAL AUXILIAR','TIPO REGISTRO':'SALIDA',
+    'OPERARIO':operario||CU.n,'FECHA':fecha,
+    'CATEGORIA':categoria,'ARTICULO':articulo,'PROVEEDOR':proveedor,'LOTE':lote,
+    'CANTIDAD':1,'MOTIVO':'CAMBIO BOBINA ENVASADO'
+  },'MATERIAL AUXILIAR','SALIDA-'+lote);
 
   // Alerta si stock bajo mínimo
   var item=stock[idx];
@@ -7993,236 +7064,49 @@ function matDescontarBobina(categoria,articulo,proveedor,lote,operario){
 var ENV_AUX_IDS=['env-lote-manteca','env-lote-romero','env-lote-finas-hierbas',
   'env-lote-pimienta','env-lote-trufa','env-cant-trufa','env-lote-aceite','env-cant-aceite'];
 
-function initEnvAux(mantenerCantidades){
-  // El bloque AUX tiene los <select>/<input> SIEMPRE visibles, sin botón
-  // "Cambiar". El comportamiento de las CANTIDADES depende del contexto:
-  //   - mantenerCantidades=false (o sin parámetro): se entra por primera vez
-  //     al envasado, así que las cantidades arrancan en BLANCO. Si las
-  //     pre-rellenásemos con un valor histórico (ej. 120 g de trufa) y el
-  //     queso de ahora no llevase trufa, dispararía un falso positivo de
-  //     "falta lote" al guardar.
-  //   - mantenerCantidades=true: estamos entre dos palés consecutivos
-  //     (acabamos de pulsar "Nuevo palé · mantener sesión"). Mantenemos las
-  //     cantidades del palé que se acaba de guardar para que envasar 10
-  //     palés de aceite seguidos no obligue a reintroducir 120 g 10 veces.
-  //     Si el operario hace un palé SIN ingrediente, no escribe nada y los
-  //     siguientes también seguirán vacíos.
-  var camposLote={
+function initEnvAux(){
+  // Recuperar últimos valores desde rawRows
+  var campos={
     'env-lote-manteca':'LOTE MANTECA','env-lote-romero':'LOTE ROMERO',
     'env-lote-finas-hierbas':'LOTE FINAS HIERBAS','env-lote-pimienta':'LOTE PIMIENTA',
-    'env-lote-trufa':'LOTE TRUFA','env-lote-aceite':'LOTE ACEITE'
+    'env-lote-trufa':'LOTE TRUFA','env-cant-trufa':'CANTIDAD TRUFA',
+    'env-lote-aceite':'LOTE ACEITE','env-cant-aceite':'CANTIDAD ACEITE (g)'
   };
-  var camposCantidad={
-    'env-cant-trufa':'CANTIDAD TRUFA','env-cant-aceite':'CANTIDAD ACEITE (g)'
-  };
-
-  // Solo envasados reales, ordenados por FECHA descendente
-  var regsEnv=(rawRows||[]).filter(function(r){
-    return String(r['SECCIÓN']||'').toUpperCase()==='ENVASADO' &&
-           String(r['TIPO REGISTRO']||'')==='';
+  var regsEnv=rawRows.filter(function(r){
+    return (r['SECCIÓN']||'').toUpperCase()==='ENVASADO' &&
+           (r['TIPO REGISTRO']||'')==='';
   });
-  regsEnv.sort(function(a,b){
-    var fa=parseFecha(a['FECHA']); var fb=parseFecha(b['FECHA']);
-    if(!fa&&!fb)return 0; if(!fa)return 1; if(!fb)return -1;
-    return fb-fa;
-  });
-
-  // LOTES: el último valor visto, indep. del formato (la bobina/lote sigue
-  // siendo el mismo aunque cambies de tamaño de queso).
-  Object.keys(camposLote).forEach(function(id){
-    var col=camposLote[id];
+  Object.keys(campos).forEach(function(id){
+    var col=campos[id];
     var ultimo='';
-    for(var i=0;i<regsEnv.length;i++){
-      var v=regsEnv[i][col];
-      if(v!==undefined && v!==null && String(v).trim()!==''){ ultimo=String(v).trim(); break; }
+    for(var i=regsEnv.length-1;i>=0;i--){
+      if(regsEnv[i][col]){ultimo=regsEnv[i][col];break;}
     }
-    var sel=document.getElementById(id);
-    if(sel && sel.tagName==='SELECT') poblarSelectLoteAux(id, ultimo);
+    var disp=document.getElementById(id+'-display');
+    var inp=document.getElementById(id);
+    if(disp)disp.textContent=ultimo||'—';
+    if(inp){inp.value=ultimo||'';inp.style.display='none';}
   });
-
-  // CANTIDADES: si mantenerCantidades=true, NO tocamos los inputs (mantienen
-  // el valor del palé anterior). Si no, los dejamos en blanco para que el
-  // operario sólo escriba cuando vaya a usar realmente el ingrediente.
-  if(!mantenerCantidades){
-    Object.keys(camposCantidad).forEach(function(id){
-      var inp=document.getElementById(id);
-      if(inp) inp.value='';
-    });
-  }
 }
 
-// Rellena un <select> de lote auxiliar (aceite/trufa/manteca/...) con los lotes
-// del stock en categoría CONDIMENTOS. SIN opción manual: si no hay lote en
-// stock, el operario NO puede inventar uno — debe avisar a Calidad para que
-// dé de alta el albarán antes de envasar. Así no se descuadra el stock.
-function poblarSelectLoteAux(idCampo, loteActualSeleccionado){
-  var sel=document.getElementById(idCampo);
-  if(!sel || sel.tagName!=='SELECT') return;
-  var articulo=(sel.getAttribute('data-aux-articulo')||'').toUpperCase();
-  function _render(){
-    var lotes=(matStockRemote||[]).filter(function(r){
-      var cat=String(r['CATEGORIA']||'').toUpperCase();
-      var art=String(r['ARTICULO']||'').toUpperCase();
-      return cat==='CONDIMENTOS' && art===articulo &&
-             (parseFloat(r['STOCK ACTUAL'])||0)>0;
-    });
-    var html='';
-    if(!lotes.length){
-      html='<option value="">🚫 SIN STOCK de '+articulo+' — avisa a Calidad antes de envasar</option>';
-    } else {
-      html='<option value="">— Elige un lote del stock —</option>';
-      lotes.forEach(function(l){
-        var lote=String(l['LOTE']||'').trim();
-        var stk=parseFloat(l['STOCK ACTUAL'])||0;
-        var u=String(l['UNIDAD']||'').trim()||'ud';
-        html+='<option value="'+lote+'">'+lote+' — '+stk+' '+u+'</option>';
-      });
-    }
-    sel.innerHTML=html;
-    if(loteActualSeleccionado){
-      for(var i=0;i<sel.options.length;i++){
-        if(sel.options[i].value===loteActualSeleccionado){ sel.value=loteActualSeleccionado; break; }
-      }
-    }
-  }
-  if(typeof matCargado!=='undefined' && matCargado){ _render(); return; }
-  sel.innerHTML='<option value="">⏳ Cargando lotes del stock…</option>';
-  if(typeof cargarMaterialAuxiliar==='function') cargarMaterialAuxiliar(_render);
-  else _render();
+function toggleEnvAux(id){
+  var inp=document.getElementById(id);
+  if(!inp)return;
+  var visible=inp.style.display!=='none';
+  inp.style.display=visible?'none':'';
+  if(!visible)setTimeout(function(){inp.focus();inp.select();},100);
 }
 
-// toggleEnvAux y actualizarDisplayAux eliminadas: ahora los campos AUX
-// (lotes y cantidades de aceite/trufa/etc.) están siempre visibles y se
-// usan como inputs normales. No hay "cambio de lote" como evento — el
-// operario simplemente escribe/elige en el campo cuando hace falta.
-
-
+function actualizarDisplayAux(id){
+  var inp=document.getElementById(id);
+  var disp=document.getElementById(id+'-display');
+  if(inp&&disp&&inp.value)disp.textContent=inp.value;
+}
 
 
 // ═══════════════════════════════════════════════════════
 // MATERIAL AUXILIAR — leer 3 hojas de Sheets vía Apps Script
 // ═══════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════
-// Handlers de los nuevos campos del envasado (fase B)
-// ═══════════════════════════════════════════════════════════════
-// Control materiales envasado por punto (Inicio / Durante uso / Final).
-// punto = 'ini' | 'dur' | 'fin'  ;  valor = 'C' | 'I'
-function selEnvCtrlMat(punto, valor){
-  ENV.ctrlMat[punto] = valor;
-  var bC = document.getElementById('env-ctrlmat-'+punto+'-c');
-  var bI = document.getElementById('env-ctrlmat-'+punto+'-i');
-  if(valor==='C'){
-    bC.style.background='var(--green-bg)'; bC.style.borderColor='var(--green)'; bC.style.color='var(--green)';
-    bI.style.background='var(--bg3)';       bI.style.borderColor='var(--border)'; bI.style.color='var(--text2)';
-  } else {
-    bI.style.background='var(--red-bg)';   bI.style.borderColor='var(--red)';    bI.style.color='var(--red)';
-    bC.style.background='var(--bg3)';       bC.style.borderColor='var(--border)'; bC.style.color='var(--text2)';
-  }
-}
-
-// Caducidad en etiquetado C/I
-function selEnvCaduc(valor){
-  ENV.caduc = valor;
-  var bC = document.getElementById('env-caduc-c');
-  var bI = document.getElementById('env-caduc-i');
-  if(valor==='C'){
-    bC.style.background='var(--green-bg)'; bC.style.borderColor='var(--green)'; bC.style.color='var(--green)';
-    bI.style.background='var(--bg3)';       bI.style.borderColor='var(--border)'; bI.style.color='var(--text2)';
-  } else {
-    bI.style.background='var(--red-bg)';   bI.style.borderColor='var(--red)';    bI.style.color='var(--red)';
-    bC.style.background='var(--bg3)';       bC.style.borderColor='var(--border)'; bC.style.color='var(--text2)';
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CLIENTES de contraetiquetas — desplegable ABIERTO con opción "+ Nuevo"
-// ═══════════════════════════════════════════════════════════════
-var clientesRemote = [];
-var clientesCargados = false;
-
-function cargarClientes(callback){
-  fetch(API_URL+'?tipo=clientes', {method:'GET'})
-    .then(function(r){ return r.text(); })
-    .then(function(txt){
-      var clean = txt.trim();
-      if(clean.indexOf('tqCliCb(')===0) clean = clean.substring(8, clean.lastIndexOf(')'));
-      var json = JSON.parse(clean);
-      if(json.ok){
-        clientesRemote = (json.data && json.data.clientes) || [];
-        clientesCargados = true;
-        poblarSelectClientes();
-      }
-      if(callback) callback();
-    })
-    .catch(function(e){
-      console.error('cargarClientes:', e);
-      if(callback) callback();
-    });
-}
-
-function poblarSelectClientes(seleccionar){
-  var sel = document.getElementById('env-cliente');
-  if(!sel) return;
-  var html = '<option value="">— Selecciona cliente —</option>';
-  // Solo activos, ordenados alfabéticamente
-  var activos = clientesRemote.filter(function(c){
-    var a = String(c['ACTIVO']||'').toUpperCase();
-    return a === '' || a === 'SI' || a === 'SÍ' || a === 'TRUE' || a === '1';
-  });
-  activos.sort(function(a,b){ return String(a['NOMBRE']||'').localeCompare(String(b['NOMBRE']||'')); });
-  activos.forEach(function(c){
-    var n = String(c['NOMBRE']||'').trim();
-    if(n) html += '<option value="'+n+'">'+n+'</option>';
-  });
-  html += '<option value="__NUEVO__">➕ Nuevo cliente…</option>';
-  sel.innerHTML = html;
-  if(seleccionar) sel.value = seleccionar;
-}
-
-// Cuando se elige "+ Nuevo cliente…", pedimos el nombre y avisamos si existe uno parecido
-function onClienteChange(){
-  var sel = document.getElementById('env-cliente');
-  if(!sel || sel.value !== '__NUEVO__') return;
-  var nuevo = (prompt('Nombre del cliente nuevo (en mayúsculas):')||'').trim().toUpperCase();
-  if(!nuevo){ sel.value=''; return; }
-  // Comprobar si ya existe uno con nombre IDÉNTICO
-  var existeExacto = clientesRemote.some(function(c){
-    return String(c['NOMBRE']||'').trim().toUpperCase() === nuevo;
-  });
-  if(existeExacto){
-    toast('Ya existe un cliente con ese nombre. Se selecciona ese.', 'info');
-    poblarSelectClientes(nuevo);
-    return;
-  }
-  // Buscar parecidos (al menos 70% de coincidencia en una dirección)
-  var parecidos = clientesRemote.filter(function(c){
-    var n = String(c['NOMBRE']||'').trim().toUpperCase();
-    if(!n || n.length<3 || nuevo.length<3) return false;
-    return n.indexOf(nuevo.substring(0,3))===0 || nuevo.indexOf(n.substring(0,3))===0;
-  });
-  if(parecidos.length){
-    var lista = parecidos.map(function(c){return c['NOMBRE'];}).join(', ');
-    if(!confirm('⚠️ Hay clientes parecidos: '+lista+'\n\n¿Quieres CREAR uno nuevo igualmente como "'+nuevo+'"?')){
-      sel.value=''; return;
-    }
-  }
-  // Guardar el nuevo cliente en el backend
-  fetch(API_URL, { method:'POST', body: JSON.stringify({
-    '_SHEET':'CLIENTE_NUEVO',
-    nombre: nuevo,
-    operario: (CU && CU.n) || ''
-  })}).then(function(){
-    // Añadir localmente para no esperar a recargar
-    clientesRemote.push({NOMBRE: nuevo, ACTIVO: 'SI'});
-    poblarSelectClientes(nuevo);
-    toast('Cliente "'+nuevo+'" creado', 'ok');
-  }).catch(function(e){
-    console.error('Error creando cliente:', e);
-    toast('Error guardando cliente: '+e.message, 'err');
-    sel.value='';
-  });
-}
-
 var matStockRemote=[];
 var matEntradasRemote=[];
 var matSalidasRemote=[];
