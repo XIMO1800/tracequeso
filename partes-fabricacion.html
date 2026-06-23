@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.193</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.194</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2030,9 +2030,16 @@ function _capturarAuxFermCuajoEnParte(p){
   var receta = p.receta || (parteActual && parteActual.receta);
   if(!receta) return;
   var litros = parseFloat(p.litros) || 0;
+  // Override de dosis y selección de fermento del propio parte (lo que tocó el quesero)
+  var ovr = (p.dosis_override) ? p.dosis_override : ((parteActual && parteActual===p && parteActual.dosis_override) ? parteActual.dosis_override : {});
+  var fermSel = p.ferm_seleccionado || (parteActual && parteActual===p ? parteActual.ferm_seleccionado : null) || null;
   function lote(prod){ try{ return obtenerLoteActivo(prod) || {}; }catch(e){ return {}; } }
-  function dosisUtil(dosis_1000L){
-    var override = (p.dosis_override && parteActual && parteActual===p && parteActual.dosis_override) ? parteActual.dosis_override : null;
+  // Dosis utilizada: si hay override manual para ese producto, se respeta (incluido 0);
+  // si no, se calcula desde la dosis de receta.
+  function dosisUtil(dosis_1000L, nombre){
+    if(nombre && ovr && ovr.hasOwnProperty(nombre)){
+      return Math.round((litros * (parseFloat(ovr[nombre])||0) / 1000) * 10) / 10;
+    }
     var d = parseFloat(dosis_1000L) || 0;
     return Math.round((litros * d / 1000) * 10) / 10;
   }
@@ -2042,7 +2049,7 @@ function _capturarAuxFermCuajoEnParte(p){
     return {
       nombre:        a.nombre,
       dosis_ml_1000L: a.dosis_ml_1000L || 0,
-      consumo_total: dosisUtil(a.dosis_ml_1000L),
+      consumo_total: dosisUtil(a.dosis_ml_1000L, a.nombre),
       proveedor:     L.proveedor || '',
       lote:          L.lote || '',
       caducidad:     L.caducidad || '',
@@ -2056,11 +2063,34 @@ function _capturarAuxFermCuajoEnParte(p){
     doseTA[repTAcap.fGrande] = repTAcap.nG * repTAcap.tamG;
     if(repTAcap.fPeq) doseTA[repTAcap.fPeq] = repTAcap.nP * repTAcap.tamP;
   }
-  p.fermentos = (receta.fermentos||[]).map(function(f){
+  // Determinar cuál EXCLUYENTE (R-603/R-604/CC-08) se usó: selección manual → rotación del día → mayor dosis.
+  var _fermsRec = (receta.fermentos||[]);
+  var _nombreExclUsado = null;
+  (function(){
+    var excl = _fermsRec.filter(function(f){ return _esFermentoExcluyente(f.nombre); });
+    if(!excl.length) return;
+    function norm(x){ return String(x||'').toUpperCase().replace(/\s+/g,'').replace(/-/g,''); }
+    // 1) selección manual
+    if(fermSel){
+      var sN = norm(fermSel);
+      for(var i=0;i<excl.length;i++){ if(norm(excl[i].nombre)===sN){ _nombreExclUsado=excl[i].nombre; return; } }
+    }
+    // 2) rotación del día (R-603/R-604)
+    var toca = _quePareTocaHoy();
+    if(toca){
+      for(var j=0;j<excl.length;j++){ if(_codigoRotatorio(excl[j].nombre)===toca){ _nombreExclUsado=excl[j].nombre; return; } }
+    }
+    // 3) el de mayor dosis utilizada
+    var mejor=-1;
+    excl.forEach(function(f){ var c=dosisUtil(f.dosis_ml_1000L,f.nombre); if(c>mejor){ mejor=c; _nombreExclUsado=f.nombre; } });
+  })();
+  p.fermentos = [];
+  _fermsRec.forEach(function(f){
+    // De los excluyentes, guardar SOLO el usado; los complementarios (Flora, TA-054) siempre.
+    if(_esFermentoExcluyente(f.nombre) && _nombreExclUsado && f.nombre !== _nombreExclUsado) return;
     var L = lote(f.nombre);
-    // Si es sobre TA-054, el consumo lo fija el reparto de sobres (dosis reales echadas)
-    var consumo = doseTA.hasOwnProperty(f.nombre) ? doseTA[f.nombre] : dosisUtil(f.dosis_ml_1000L);
-    return {
+    var consumo = doseTA.hasOwnProperty(f.nombre) ? doseTA[f.nombre] : dosisUtil(f.dosis_ml_1000L, f.nombre);
+    p.fermentos.push({
       nombre:        f.nombre,
       dosis_ml_1000L: f.dosis_ml_1000L || 0,
       consumo_total: consumo,
@@ -2068,15 +2098,23 @@ function _capturarAuxFermCuajoEnParte(p){
       lote:          L.lote || '',
       caducidad:     L.caducidad || '',
       unidad:        L.unidad || ''
-    };
+    });
   });
+  // Red de seguridad: nunca dejar el parte sin fermentos
+  if(!p.fermentos.length && _fermsRec.length){
+    p.fermentos = _fermsRec.map(function(f){
+      var L = lote(f.nombre);
+      var consumo = doseTA.hasOwnProperty(f.nombre) ? doseTA[f.nombre] : dosisUtil(f.dosis_ml_1000L, f.nombre);
+      return { nombre:f.nombre, dosis_ml_1000L:f.dosis_ml_1000L||0, consumo_total:consumo, proveedor:L.proveedor||'', lote:L.lote||'', caducidad:L.caducidad||'', unidad:L.unidad||'' };
+    });
+  }
   // Cuajo (es uno solo)
   if(receta.cuajo && receta.cuajo.nombre){
     var Lc = lote(receta.cuajo.nombre);
     p.cuajo = {
       nombre:        receta.cuajo.nombre,
       dosis_ml_1000L: receta.cuajo.dosis_ml_1000L || 0,
-      consumo_total: dosisUtil(receta.cuajo.dosis_ml_1000L),
+      consumo_total: dosisUtil(receta.cuajo.dosis_ml_1000L, receta.cuajo.nombre),
       proveedor:     Lc.proveedor || '',
       lote:          Lc.lote || '',
       caducidad:     Lc.caducidad || '',
@@ -2941,6 +2979,26 @@ function calcularDosis(){
       else el.textContent=litros>0?String(total):'—';
     }
   });
+  // Garantía visual: de los excluyentes (R-603/R-604/CC-08), el NO seleccionado debe
+  // mostrar dosis utilizada 0 (aunque por timing el override no se hubiera aplicado aún).
+  (function(){
+    var ferms = (r.fermentos||[]).filter(function(f){ return _esFermentoExcluyente(f.nombre); });
+    if(ferms.length < 2) return;
+    function norm(x){ return String(x||'').toUpperCase().replace(/\s+/g,'').replace(/-/g,''); }
+    var sel = parteActual.ferm_seleccionado ? norm(parteActual.ferm_seleccionado) : null;
+    if(!sel){
+      var toca = _quePareTocaHoy();
+      if(toca){ var m = ferms.find(function(f){ return _codigoRotatorio(f.nombre)===toca; }); if(m) sel = norm(m.nombre); }
+    }
+    if(!sel) return; // sin seleccionado (p.ej. domingo): no forzar nada
+    ferms.forEach(function(f){
+      if(norm(f.nombre)===sel) return; // el usado se queda con su dosis
+      var key=f.nombre.replace(/[^a-zA-Z0-9]/g,'_');
+      var el=document.getElementById('dosis-'+key);
+      if(el && el.tagName==='INPUT' && document.activeElement!==el){ el.value='0'; }
+      parteActual.dosis_override[f.nombre]=0;
+    });
+  })();
   // Si el parte activo está bloqueado, reaplicar el bloqueo a los campos de dosis recién escritos
   try{
     var pact = PARTES.find(function(x){return x.id===CUBA_ACTIVA_ID;});
