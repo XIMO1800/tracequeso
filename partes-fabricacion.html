@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.194</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.195</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -6082,7 +6082,16 @@ function calcAgitTotal(){
     if (minutos < 0) minutos += 24*60;
     tot.value = minutos;
   }
-  propagarHora('agit-hf','mol-hi');
+  // La hora de INICIO del moldeo es la hora FIN de la agitación.
+  // Se rellena si el moldeo está vacío, o si por arrastre quedó con la hora de
+  // INICIO de agitación (valor heredado por error) — en ese caso se corrige.
+  var molHi = document.getElementById('mol-hi');
+  if (hf.value && molHi) {
+    if (!molHi.value || (hi.value && molHi.value === hi.value)) {
+      molHi.value = hf.value;
+      molHi.dispatchEvent(new Event('change', {bubbles:true}));
+    }
+  }
   if (CUBA_ACTIVA_ID && typeof autoGuardarParte === 'function') autoGuardarParte(CUBA_ACTIVA_ID);
 }
 
