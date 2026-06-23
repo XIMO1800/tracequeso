@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.195</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.197</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1546,95 +1546,43 @@ function actualizarCubaStickyBar(p){
   badge.style.display = 'block';
 }
 
-// Detecta hasta qué sección rellenó el quesero y abre+scrollea a la siguiente
+// Abre y lleva el scroll a la ÚLTIMA sección donde el quesero metió datos,
+// para que pueda seguir metiendo el siguiente dato sin buscar. Si no hay datos
+// en ninguna sección, se queda arriba (datos generales).
 function irASiguienteSeccion(p){
-  // SCROLL INTELIGENTE: va al primer campo OBLIGATORIO sin rellenar
-  // (ignora campos del laboratorio: litros vaca/cabra/oveja, fosfatasa)
-  // Lista de campos obligatorios en orden cronológico
   var panelEl = document.getElementById('panel-cuba-activa');
   if (!panelEl) return;
-
-  // Espera 100ms para que el DOM esté completamente listo
-  var camposOblig = [
-    // Datos generales (ya rellenos por p, no como campos a verificar visualmente,
-    // pero los chequeamos por si están vacíos)
-    {id:'np-tipo-sel',     sec:null, check:'select'},
-    {id:'np-var-sel',      sec:null, check:'select-opcional'}, // solo si hay variedades
-    {id:'np-litros',       sec:null, check:'numero-mayor-cero'},
-    {id:'np-operario-sel', sec:null, check:'no-vacio'},
-    {id:'np-ph',           sec:null, check:'no-vacio'},
-    {id:'np-temp',         sec:null, check:'no-vacio'},
-    // Pasteurización
-    {id:'past-valvula',    sec:'past', check:'no-vacio'},
-    {id:'past-temp',       sec:'past', check:'numero-mayor-cero'},
-    {id:'past-tiempo',     sec:'past', check:'numero-mayor-cero'},
-    // Leche en cuba
-    {id:'aux-ph',          sec:'aux',  check:'numero-mayor-cero'},
-    {id:'aux-temp',        sec:'aux',  check:'numero-mayor-cero'},
-    // Coagulación
-    {id:'coag-hadicion',   sec:'coag', check:'no-vacio'},
-    {id:'coag-ph',         sec:'coag', check:'numero-mayor-cero'},
-    {id:'coag-temp',       sec:'coag', check:'numero-mayor-cero'},
-    {id:'coag-hc',         sec:'coag', check:'no-vacio'},
-    // Desuerado - Recalentamiento
-    {id:'rec-hi',          sec:'des',  check:'no-vacio'},
-    {id:'rec-ti',          sec:'des',  check:'numero-mayor-cero'},
-    {id:'rec-hf',          sec:'des',  check:'no-vacio'},
-    {id:'rec-tf',          sec:'des',  check:'numero-mayor-cero'},
-    // Desuerado - Agitación
-    {id:'agit-hi',         sec:'des',  check:'no-vacio'},
-    {id:'agit-hf',         sec:'des',  check:'no-vacio'},
-    // Moldeo
-    {id:'mol-hi',          sec:'mol',  check:'no-vacio'},
-    {id:'mol-ph',          sec:'mol',  check:'numero-mayor-cero'},
-    {id:'mol-temp',        sec:'mol',  check:'numero-mayor-cero'},
-    {id:'mol-hf',          sec:'mol',  check:'no-vacio'}
-    // Desmoldeo / salmuera / piezas = operarios de tarde, no urgente
+  // Secciones en orden cronológico, con los campos "testigo" que indican que se tocó la sección.
+  var secciones = [
+    {sec:'past', campos:['past-valvula','past-temp','past-tiempo']},
+    {sec:'aux',  campos:['aux-hadicion','aux-ph','aux-temp']},
+    {sec:'ferm', campos:['ferm-hadicion','ferm-ph','ferm-temp']},
+    {sec:'coag', campos:['coag-hadicion','coag-ph','coag-temp','coag-hc','coag-total']},
+    {sec:'des',  campos:['rec-hi','rec-ti','rec-hf','rec-tf','rec-ph','rec-dornic','agit-hi','agit-hf','lavado-hi','lavado-hf']},
+    {sec:'mol',  campos:['mol-hi','mol-ph','mol-temp','mol-hf']},
+    {sec:'salm', campos:['salm-entrada','salm-salida']},
+    {sec:'pzas', campos:['pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante']}
   ];
-
-  // Función auxiliar: ¿está vacío el campo según su tipo?
-  function vacio(el, check){
-    if (!el) return false; // si el campo no existe, no lo cuento como vacío
-    var v = el.value;
-    if (check === 'numero-mayor-cero') return !(parseFloat(v) > 0);
-    if (check === 'select-opcional') {
-      // Solo cuenta como vacío si el select está habilitado y tiene opciones
-      if (el.disabled) return false;
-      if (el.options.length <= 1) return false; // solo el placeholder
-      return !v;
+  function tieneDatos(campos){
+    for (var i=0;i<campos.length;i++){
+      var el = panelEl.querySelector('#'+campos[i]);
+      if (el && el.value && String(el.value).trim() !== '') return true;
     }
-    return !v || v.trim() === '';
+    return false;
   }
-
-  // Buscar el primer campo obligatorio vacío
-  var primerVacio = null;
-  for (var i = 0; i < camposOblig.length; i++) {
-    var campo = camposOblig[i];
-    var el = panelEl.querySelector('#' + campo.id);
-    if (vacio(el, campo.check)) {
-      primerVacio = campo;
-      break;
-    }
+  // Buscar la ÚLTIMA sección (la más avanzada) que tenga algún dato
+  var ultimaConDatos = null;
+  for (var i=0;i<secciones.length;i++){
+    if (tieneDatos(secciones[i].campos)) ultimaConDatos = secciones[i];
   }
-
-  // Si todo está relleno, queda arriba (todo OK)
-  if (!primerVacio) {
+  // Si no hay nada en ninguna sección, quedarse arriba (datos generales)
+  if (!ultimaConDatos){
     try{ window.scrollTo(0,0); }catch(e){}
     return;
   }
-
-  // Si el primer campo vacío está en datos generales, queda arriba
-  if (!primerVacio.sec) {
-    try{ window.scrollTo(0,0); }catch(e){}
-    // Foco al campo concreto
-    var el = panelEl.querySelector('#' + primerVacio.id);
-    if (el && el.focus) try { el.focus({preventScroll:true}); } catch(e) {}
-    return;
-  }
-
-  // Si está en una sección, abrir la sección y scrollear a ella
-  var body = panelEl.querySelector('#body-' + primerVacio.sec);
-  var chev = panelEl.querySelector('#chev-' + primerVacio.sec);
+  // Abrir esa sección y llevar el scroll a su cabecera
+  var body = panelEl.querySelector('#body-' + ultimaConDatos.sec);
+  var chev = panelEl.querySelector('#chev-' + ultimaConDatos.sec);
   if (body && !body.classList.contains('open')) body.classList.add('open');
   if (chev && !chev.classList.contains('open')) chev.classList.add('open');
   var header = body ? body.previousElementSibling : null;
@@ -5750,29 +5698,37 @@ function cargarIngredientesParte(id, cb){
 // NO cierra sesión ni saca de la app (pensado para tablets ancladas en modo kiosko).
 // Pide confirmación porque se perderían cubas de hoy a medias sin sincronizar.
 function reiniciarDatosLocales(){
-  var msg = '¿Reiniciar y volver a cargar desde Google?\n\n'
-          + 'Se borrarán los partes guardados en esta tablet y se descargarán de nuevo los que haya en Google.\n\n'
-          + 'Si tienes una cuba de hoy a medias SIN guardar, se perderá. Asegúrate de haber guardado antes.';
+  var hoy = new Date().toISOString().slice(0,10);
+  // Partes de HOY sin cerrar = cubas a medias del quesero. NUNCA se borran al reiniciar.
+  var aMedias = PARTES.filter(function(p){
+    return p && !p.cerrado && (p.fecha===hoy || (p.fecha && String(p.fecha).indexOf(hoy)>=0));
+  });
+  var msg;
+  if(aMedias.length){
+    msg = 'Recargar los partes desde Google.\n\n'
+        + 'Tienes ' + aMedias.length + ' cuba(s) de HOY a medias sin cerrar: se CONSERVAN, no se pierden.\n\n'
+        + 'Solo se vuelven a descargar los partes ya cerrados/guardados. ¿Continuar?';
+  } else {
+    msg = '¿Recargar los partes desde Google?\n\n'
+        + 'No hay cubas de hoy a medias. Se descargarán de nuevo los partes que haya en Google.';
+  }
   if(!confirm(msg)) return;
   try{
-    // Vaciar partes y cola de pendientes en memoria
-    PARTES = [];
+    // Conservar SOLO las cubas de hoy a medias; el resto se recarga de Google
+    PARTES = aMedias.slice();
     if(typeof SYNC_PENDIENTE !== 'undefined') SYNC_PENDIENTE = [];
-    CUBA_ACTIVA_ID = null;
-    // Persistir el estado vacío (mantiene recetas/stock/lotes; solo limpia partes y pendientes)
+    // No tocar CUBA_ACTIVA_ID si la cuba activa sigue entre las conservadas
+    if(CUBA_ACTIVA_ID && !PARTES.some(function(p){return p.id===CUBA_ACTIVA_ID;})) CUBA_ACTIVA_ID = null;
     persistir();
   }catch(e){}
-  // Limpiar panel de cuba activa y pestañas
   try{
     var panel = document.getElementById('panel-cuba-activa');
-    if(panel) panel.innerHTML = '<div class="empty-state" style="padding:40px 20px"><div class="empty-state-icon">🔄</div><div class="empty-state-text">Recargando desde Google…</div></div>';
+    if(panel && !CUBA_ACTIVA_ID) panel.innerHTML = '<div class="empty-state" style="padding:40px 20px"><div class="empty-state-icon">🔄</div><div class="empty-state-text">Recargando desde Google…</div></div>';
   }catch(e){}
-  toast('🔄 Reiniciando y recargando desde Google…');
-  // Volver a bajar de Google (partes, recetas y stock) y repintar
+  toast('🔄 Recargando desde Google (cubas a medias conservadas)…');
   try{ if(typeof cargarPartesSheets==='function') cargarPartesSheets(); }catch(e){}
   try{ if(typeof cargarRecetasSheets==='function') cargarRecetasSheets(); }catch(e){}
   try{ if(typeof cargarStockMaterial==='function') cargarStockMaterial(); }catch(e){}
-  // Repintar tras un momento, dando tiempo a la descarga
   setTimeout(function(){
     try{ renderPartes(); }catch(e){}
     try{ renderPestanasCubas(); }catch(e){}
