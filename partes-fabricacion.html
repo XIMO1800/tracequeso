@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.206</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.207</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -891,12 +891,10 @@ input[type="email"] {
     <button id="btn-firmar-todos-quesero" class="btn-firmar-quesero" onclick="firmarTodosHoy('quesero')">✍️ Firmar todos (quesero)</button>
   </div>
 
-  <!-- Mantenimiento: refrescar/reiniciar datos locales (para cuando algo se queda desincronizado) -->
+  <!-- Mantenimiento: un único botón de seguridad, por si la pantalla se descuadra -->
   <div style="padding:0 12px 40px;border-top:1px dashed var(--border);margin-top:6px;padding-top:18px">
-    <div style="font-size:0.74rem;color:var(--text3);text-align:center;margin-bottom:8px">¿Ves partes que ya no deberían estar, o algo descuadrado? Reinicia y vuelve a cargar desde Google.</div>
-    <button onclick="reiniciarDatosLocales()" style="width:100%;padding:11px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg2);color:var(--text2);font-size:0.9rem;font-weight:600;cursor:pointer">🔄 Refrescar / Reiniciar datos</button>
-    <div style="font-size:0.72rem;color:var(--text3);text-align:center;margin:14px 0 8px">¿Quedan cubas «fantasma» del día que no están en Google y no quieres conservar? Borra TODAS las cubas a medias y deja la tablet igual que Google.</div>
-    <button onclick="limpiarTodoYRecargar()" style="width:100%;padding:11px;border:1.5px solid #b06a3a;border-radius:10px;background:#fff;color:#b06a3a;font-size:0.9rem;font-weight:700;cursor:pointer">🧹 Borrar cubas a medias y recargar todo</button>
+    <div style="font-size:0.74rem;color:var(--text3);text-align:center;margin-bottom:8px">¿Algo descuadrado o raro? Vuelve a cargar los datos desde Google (no se pierden las cubas a medias).</div>
+    <button onclick="reiniciarDatosLocales()" style="width:100%;padding:11px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg2);color:var(--text2);font-size:0.9rem;font-weight:600;cursor:pointer">🔄 Recargar datos desde Google</button>
   </div>
 
 </div>
@@ -1252,9 +1250,10 @@ input[type="email"] {
     <input type="hidden" id="filtro-fecha">
   </div>
   <!-- Botón discreto: alterna entre ver REVISADAS (oficial) y ORIGINALES (realidad).
-       Por defecto se ven las revisadas. Disimulado a la derecha, sin texto llamativo. -->
-  <div style="display:flex;justify-content:flex-end;margin:-6px 2px 8px">
-    <span id="hist-modo-toggle" onclick="toggleModoHistorial()" style="font-size:0.66rem;color:var(--text3);cursor:pointer;padding:3px 8px;border-radius:10px;user-select:none">·</span>
+       Es el logotipo del Hidalgo en pequeño; al pulsarlo se ven los originales. -->
+  <div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin:-2px 2px 8px">
+    <span id="hist-modo-label" style="font-size:0.62rem;color:var(--text3);user-select:none"></span>
+    <img id="hist-modo-logo" onclick="toggleModoHistorial()" style="height:22px;object-fit:contain;border-radius:3px;cursor:pointer;opacity:0.55" title="Ver originales / oficiales">
   </div>
   <div class="card" id="lista-partes"></div>
 </div>
@@ -3399,13 +3398,13 @@ function renderPartes(){
   // Ordenar ascendente por número de cuba (Cuba 1 arriba, Cuba N abajo)
   filtrados.sort(function(a,b){ return (parseInt(a.cuba)||0) - (parseInt(b.cuba)||0); });
   renderCarrusel();
-  // Indicador discreto del modo actual (sutil, a la derecha): · = oficial/revisadas, ·· = realidad/originales
+  // Indicador discreto del modo (logo del Hidalgo). Apagado/tenue = oficial; encendido = realidad/originales.
   try{
-    var tg = document.getElementById('hist-modo-toggle');
-    if(tg){
-      if(modo==='originales'){ tg.textContent = '◦ originales'; tg.style.color = 'var(--brand)'; }
-      else { tg.textContent = '·'; tg.style.color = 'var(--text3)'; }
-    }
+    var lg = document.getElementById('hist-modo-logo');
+    var lb = document.getElementById('hist-modo-label');
+    if(lg && !lg.src){ var im=document.querySelector('img[src^="data:image"]'); if(im) lg.src = im.src; }
+    if(modo==='originales'){ if(lg) lg.style.opacity='1'; if(lb) lb.textContent='originales (realidad)'; }
+    else { if(lg) lg.style.opacity='0.55'; if(lb) lb.textContent=''; }
   }catch(e){}
   var c=document.getElementById('lista-partes');
   if(!c)return;
