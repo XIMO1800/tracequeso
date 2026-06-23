@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.192</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.193</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1225,14 +1225,9 @@ input[type="email"] {
         <div class="sep-label">Caseínas (D.O.)</div>
         <div id="cas-rangos"></div>
         <button type="button" class="btn-add-aux-mini" style="margin:2px 0 10px" onclick="addCaseinaRango()">➕ Añadir rango de caseínas</button>
-        <div id="cas-resultado" style="display:none;background:#fff;border:1.5px solid var(--brand);border-radius:8px;padding:10px 14px;margin-bottom:14px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div style="font-size:1.3rem;font-weight:800;color:var(--brand)" id="cas-total">0</div>
-              <div style="font-size:0.7rem;color:var(--brand)">caseínas = suma de (última − primera + 1) de cada rango</div>
-            </div>
-            <div id="cas-aviso" style="font-size:0.78rem;font-weight:700;padding:5px 10px;border-radius:6px"></div>
-          </div>
+        <div id="cas-resultado" style="display:none;margin:2px 2px 12px">
+          <span id="cas-aviso" style="font-size:0.78rem;font-weight:700"></span>
+          <span id="cas-total" style="display:none"></span>
         </div>
       </div>
       <div class="form-row" style="margin-top:14px"><label class="form-label">Observaciones / Acciones correctoras</label><textarea id="np-obs" rows="3" placeholder="Anotar cualquier desviación..."></textarea></div>
@@ -3058,9 +3053,9 @@ function calcCaseinas(){
   if(resEl) resEl.style.display='block';
   var piezas=(parseInt(document.getElementById('pzas-3kg').value)||0)+(parseInt(document.getElementById('pzas-2kg').value)||0)+(parseInt(document.getElementById('pzas-1kg').value)||0)+(parseInt(document.getElementById('pzas-05kg').value)||0);
   var av=document.getElementById('cas-aviso');
-  if(!piezas){av.textContent='';return;}
-  if(total===piezas){av.textContent='✅ Cuadra con piezas';av.style.background='#fff';av.style.color='#8B2A2A';av.style.border='1.5px solid #8B2A2A';}
-  else{av.textContent='⚠ '+piezas+' pzas — diferencia: '+(total-piezas);av.style.background='var(--amberl)';av.style.color='var(--amber)';av.style.border='1.5px solid var(--amber)';}
+  if(!piezas){av.textContent=total+' caseínas';av.style.color='var(--text2)';return;}
+  if(total===piezas){av.innerHTML='✅ '+total+' caseínas · cuadra con piezas';av.style.color='#1e7a34';}
+  else{av.innerHTML='⚠ '+total+' caseínas · '+piezas+' piezas — diferencia: '+(total-piezas);av.style.color='var(--amber)';}
 }
 
 function iniciarCO2(){
