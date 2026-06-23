@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.198</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.199</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -900,9 +900,12 @@ input[type="email"] {
 </div>
 
 <div id="form-parte-template" style="display:none">
-  <div class="card">
-    <div class="card-header"><span class="card-title">📄 Datos generales</span></div>
-    <div class="card-body">
+  <div class="seccion">
+    <div class="seccion-header" onclick="toggleSec('general')">
+      <div class="seccion-header-left"><span class="seccion-icon">📄</span><div><div class="seccion-label">Datos generales</div><div class="seccion-sublabel">Tipo · Litros · pH · Tª</div></div></div>
+      <span class="seccion-chevron open" id="chev-general">▼</span>
+    </div>
+    <div class="seccion-body open" id="body-general">
       <!-- Fila 1: Fecha · Tipo · Variedad · Operario -->
       <div class="form-cols-4">
         <div class="form-row"><label class="form-label">Fecha</label><input type="date" id="np-fecha"></div>
@@ -1546,14 +1549,14 @@ function actualizarCubaStickyBar(p){
   badge.style.display = 'block';
 }
 
-// Abre y lleva el scroll a la ÚLTIMA sección donde el quesero metió datos,
-// para que pueda seguir metiendo el siguiente dato sin buscar. Si no hay datos
-// en ninguna sección, se queda arriba (datos generales).
+// Abre SOLO la última sección donde el quesero metió datos (cierra todas las demás,
+// incluida Datos generales) y la deja centrada en pantalla, para seguir sin hacer scroll.
 function irASiguienteSeccion(p){
   var panelEl = document.getElementById('panel-cuba-activa');
   if (!panelEl) return;
   // Secciones en orden cronológico, con los campos "testigo" que indican que se tocó la sección.
   var secciones = [
+    {sec:'general', campos:['np-litros','np-ph','np-temp','np-dornic','np-tanque']},
     {sec:'past', campos:['past-valvula','past-temp','past-tiempo']},
     {sec:'aux',  campos:['aux-hadicion','aux-ph','aux-temp']},
     {sec:'ferm', campos:['ferm-hadicion','ferm-ph','ferm-temp']},
@@ -1567,7 +1570,6 @@ function irASiguienteSeccion(p){
       if (!el) continue;
       var val = (el.value==null) ? '' : String(el.value).trim();
       if (val === '') continue;
-      // Un "0" (o 0,0) no cuenta como dato real: es el valor por defecto de muchos campos numéricos
       if (el.type === 'number'){
         if (parseFloat(val) !== 0) return true;
       } else {
@@ -1576,25 +1578,30 @@ function irASiguienteSeccion(p){
     }
     return false;
   }
-  // Buscar la ÚLTIMA sección (la más avanzada) que tenga algún dato
-  var ultimaConDatos = null;
+  // Buscar la ÚLTIMA sección (la más avanzada) que tenga algún dato.
+  var destino = null;
   for (var i=0;i<secciones.length;i++){
-    if (tieneDatos(secciones[i].campos)) ultimaConDatos = secciones[i];
+    if (tieneDatos(secciones[i].campos)) destino = secciones[i].sec;
   }
-  // Si no hay nada en ninguna sección, quedarse arriba (datos generales)
-  if (!ultimaConDatos){
-    try{ window.scrollTo(0,0); }catch(e){}
-    return;
-  }
-  // Abrir esa sección y llevar el scroll a su cabecera
-  var body = panelEl.querySelector('#body-' + ultimaConDatos.sec);
-  var chev = panelEl.querySelector('#chev-' + ultimaConDatos.sec);
-  if (body && !body.classList.contains('open')) body.classList.add('open');
-  if (chev && !chev.classList.contains('open')) chev.classList.add('open');
-  var header = body ? body.previousElementSibling : null;
-  if (header && header.scrollIntoView) {
-    header.scrollIntoView({behavior:'smooth', block:'start'});
-  }
+  // Si no hay nada en ninguna, abrir Datos generales (cuba recién empezada).
+  if (!destino) destino = 'general';
+  // 1) Cerrar TODAS las secciones (incluida general) y dejar abierta solo la destino.
+  secciones.forEach(function(s){
+    var body = panelEl.querySelector('#body-' + s.sec);
+    var chev = panelEl.querySelector('#chev-' + s.sec);
+    var abrir = (s.sec === destino);
+    if (body){ if (abrir) body.classList.add('open'); else body.classList.remove('open'); }
+    if (chev){ if (abrir) chev.classList.add('open'); else chev.classList.remove('open'); }
+  });
+  // 2) Centrar la sección abierta en la pantalla (tras un pequeño respiro para que el DOM aplique los cambios).
+  setTimeout(function(){
+    var body = panelEl.querySelector('#body-' + destino);
+    var header = body ? body.previousElementSibling : null;
+    var target = header || body;
+    if (target && target.scrollIntoView){
+      target.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  }, 80);
 }
 
 function cargarFormularioEnPanel(p){
