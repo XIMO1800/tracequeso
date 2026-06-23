@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.210</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.211</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1560,10 +1560,13 @@ function actualizarCubaStickyBar(p){
 function irASiguienteSeccion(p){
   var panelEl = document.getElementById('panel-cuba-activa');
   if (!panelEl) return;
-  // Secciones en orden cronológico, con los campos "testigo" que indican que se tocó la sección.
+  // Campos "testigo" que indican que el QUESERO tocó la sección. IMPORTANTE: se excluyen
+  // los campos que se autorrellenan solos (temperatura/tiempo de pasteurización vienen de la
+  // receta; dosis de auxiliares/fermentos se precargan). Solo cuentan los datos que teclea
+  // la persona, para no saltar a una sección que parece "rellena" pero no se ha tocado.
   var secciones = [
-    {sec:'general', campos:['np-litros','np-ph','np-temp','np-dornic','np-tanque']},
-    {sec:'past', campos:['past-valvula','past-temp','past-tiempo']},
+    {sec:'general', campos:['np-ph','np-temp','np-dornic']},
+    {sec:'past', campos:['past-valvula']},
     {sec:'aux',  campos:['aux-hadicion','aux-ph','aux-temp']},
     {sec:'ferm', campos:['ferm-hadicion','ferm-ph','ferm-temp']},
     {sec:'coag', campos:['coag-hadicion','coag-ph','coag-temp','coag-hc','coag-total']},
