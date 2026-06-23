@@ -190,9 +190,9 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   border-radius:6px 6px 0 0;
 }
 /* Las sub-cabeceras internas (.sep-label) toman el tono CREMA del editor:
-   fondo #f4ebd8, texto granate, altura fija — como "Recalentamiento", "Lavado", etc. */
+   fondo #F2EBDC, texto granate, altura fija — como "Recalentamiento", "Lavado", etc. */
 .tema-editor .sep-label{
-  background:#f4ebd8;
+  background:#F2EBDC;
   color:var(--brand);
   border-left:none;
   border-radius:6px;
@@ -247,7 +247,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .tema-editor #lavado-metodo{
   width:auto!important;
   max-width:170px;
-  background:#f4ebd8!important;
+  background:#F2EBDC!important;
   border:1px solid var(--border)!important;
   font-size:0.82rem!important;
   padding:4px 8px!important;
@@ -317,7 +317,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   justify-content:flex-start;
   gap:0;
   grid-template-columns:none!important;
-  background:#f4ebd8!important;
+  background:#F2EBDC!important;
   border:1px solid var(--border);
   border-radius:8px;
   padding:3px 12px!important;
@@ -405,7 +405,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 }
 .tema-editor #body-mol .pren-card-head,
 .tema-editor #body-salm .pren-card-head{
-  background:#f4ebd8!important;
+  background:#F2EBDC!important;
   border-bottom:1px solid var(--border);
   min-height:26px;
   margin:0 0 8px!important;
@@ -489,7 +489,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 }
 /* NIVEL 3 — Casillas de datos en BLANCO, igual en las tres vistas (parte, editor, historial):
      · Cabecera (Nivel 1): granate #8B2A2A + texto blanco
-     · Sub-cabecera (Nivel 2): crema #f4ebd8 + texto granate
+     · Sub-cabecera (Nivel 2): crema #F2EBDC + texto granate
      · Cuerpo de tarjeta y casillas: blanco #FFFFFF */
 .tema-editor .seccion-body,
 .tema-editor .card-body{
@@ -629,10 +629,10 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .papel-prod-cambiar{position:absolute;top:22px;left:0;right:0;display:block;font-size:0.68rem;color:var(--brand);font-weight:700;cursor:pointer;text-decoration:underline;text-align:center}
 .papel-prod-l2{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;align-items:end;font-size:0.78rem;border-top:1px dashed var(--border);padding-top:8px}
 /* "Otros auxiliares": misma fila que el cloruro (papel-prod-l6) + botón quitar */
-.otro-aux-card{position:relative}
+.otro-aux-card{position:relative;background:transparent!important;border:none!important;box-shadow:none!important;padding:6px 0 4px!important;margin-bottom:0!important}
 .otro-aux-card .quitar-btn{position:absolute;top:2px;right:4px;background:none;border:none;color:var(--text2);font-size:1.1rem;cursor:pointer;padding:2px 6px;z-index:2}
 .otro-aux-card .oaux-sel{height:34px;padding:0 6px;font-size:0.82rem;font-weight:600}
-.otro-aux-card .oaux-dosis,.otro-aux-card .oaux-obs{height:34px;font-size:0.82rem}
+.otro-aux-card .oaux-dosis{height:34px;font-size:0.82rem}
 .papel-prod-nombre{font-weight:700;font-size:0.95rem;color:var(--text);padding-bottom:6px}
 .papel-prod-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:0.04em;margin-bottom:3px;display:block}
 .papel-prod-dosis-base{font-size:0.95rem;font-weight:700;color:var(--text);padding:6px 0}
@@ -817,7 +817,7 @@ input[type="email"] {
 
 /* Tabla compacta de fermentos (en vez de fichas separadas) */
 .ferm-tabla{background:var(--card);border:1.5px solid var(--border);border-radius:8px;overflow:hidden}
-.ferm-tabla-cab{display:grid;grid-template-columns:1.3fr 0.8fr 0.9fr 1fr 1.1fr 0.9fr;gap:8px;padding:6px 10px;background:#f4ebd8;border-bottom:1.5px solid var(--border)}
+.ferm-tabla-cab{display:grid;grid-template-columns:1.3fr 0.8fr 0.9fr 1fr 1.1fr 0.9fr;gap:8px;padding:6px 10px;background:#F2EBDC;border-bottom:1.5px solid var(--border)}
 .ferm-tabla-cab span{font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#5b3a1f;line-height:1.1}
 .ferm-tabla-fila{display:grid;grid-template-columns:1.3fr 0.8fr 0.9fr 1fr 1.1fr 0.9fr;gap:8px;padding:6px 10px;border-bottom:1px dashed var(--border);align-items:center}
 .ferm-tabla-fila:last-child{border-bottom:none}
@@ -846,7 +846,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.185</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.188</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3055,7 +3055,7 @@ function calcCaseinas(){
   var piezas=(parseInt(document.getElementById('pzas-3kg').value)||0)+(parseInt(document.getElementById('pzas-2kg').value)||0)+(parseInt(document.getElementById('pzas-1kg').value)||0)+(parseInt(document.getElementById('pzas-05kg').value)||0);
   var av=document.getElementById('cas-aviso');
   if(!piezas){av.textContent='';return;}
-  if(total===piezas){av.textContent='✅ Cuadra con piezas';av.style.background='#f4ebd8';av.style.color='#8B2A2A';av.style.border='1.5px solid #8B2A2A';}
+  if(total===piezas){av.textContent='✅ Cuadra con piezas';av.style.background='#F2EBDC';av.style.color='#8B2A2A';av.style.border='1.5px solid #8B2A2A';}
   else{av.textContent='⚠ '+piezas+' pzas — diferencia: '+(total-piezas);av.style.background='var(--amberl)';av.style.color='var(--amber)';av.style.border='1.5px solid var(--amber)';}
 }
 
@@ -3795,7 +3795,7 @@ function renderEpForm(skipRecoger){
   // y el espacio sobrante para Tipo, Variedad y Operario.
   var gcCab='102px 1.3fr 1.25fr 80px 38px 1.15fr';
   h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-  h += '<div style="background:#f4ebd8;border-bottom:1px solid var(--border);color:var(--brand);font-size:0.72rem;font-weight:700;padding:4px 9px;min-height:26px;display:flex;align-items:center">Datos del parte</div>';
+  h += '<div style="background:#F2EBDC;border-bottom:1px solid var(--border);color:var(--brand);font-size:0.72rem;font-weight:700;padding:4px 9px;min-height:26px;display:flex;align-items:center">Datos del parte</div>';
   h += '<div style="background:var(--card);padding:7px 9px">';
   h += '<div style="display:grid;grid-template-columns:'+gcCab+';gap:6px;margin-bottom:3px">'
      + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Fecha</div>'
@@ -3836,7 +3836,7 @@ function renderEpForm(skipRecoger){
     // Caso normal: UN solo bloque, UNA línea con los 5 datos (Litros·pH·Tª·°D·Tanque)
     var gcLe='repeat(5,1fr)';
     h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-    h += '<div style="background:#f4ebd8;border-bottom:1px solid var(--border);color:var(--brand);font-size:0.72rem;font-weight:700;padding:4px 9px;min-height:26px;display:flex;align-items:center">Leche</div>';
+    h += '<div style="background:#F2EBDC;border-bottom:1px solid var(--border);color:var(--brand);font-size:0.72rem;font-weight:700;padding:4px 9px;min-height:26px;display:flex;align-items:center">Leche</div>';
     h += '<div style="background:var(--card);padding:7px 9px">';
     h += '<div style="display:grid;grid-template-columns:'+gcLe+';gap:6px;margin-bottom:3px">'
        + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Litros</div>'
@@ -3882,7 +3882,7 @@ function renderEpForm(skipRecoger){
   // Fila especial CO₂ (siempre visible). Lleva ✕ para que Calidad pueda quitarlo
   // si se metió por error (p.ej. botella agotada y no se llegó a aplicar).
   h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;min-height:26px;background:#f4ebd8;border-bottom:1px solid var(--border);padding:1px 9px">'
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;min-height:26px;background:#F2EBDC;border-bottom:1px solid var(--border);padding:1px 9px">'
      + '<div style="display:flex;align-items:center;gap:8px"><b style="font-size:0.72rem;color:var(--brand)">CO₂</b><span style="font-size:0.62rem;color:var(--text3)">Caudal fijo 100 L/h · Tiempo calculado</span></div>'
      + '<button onclick="_epQuitarCO2()" title="Quitar CO₂ (no se aplicó)" style="border:none;background:rgba(139,42,42,0.12);color:var(--brand);width:22px;height:22px;border-radius:50%;font-size:0.8rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button>'
      + '</div>';
@@ -3949,7 +3949,7 @@ function renderEpForm(skipRecoger){
   // (sin la columna de etiqueta de fila, que dejaba un hueco a la izquierda).
   var gcCuajo = '1.25fr 0.6fr 0.7fr 1fr 0.95fr 1fr';
   h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-  h += '<div style="background:#f4ebd8;border-bottom:1px solid var(--border);color:var(--brand);font-size:0.72rem;font-weight:700;padding:4px 9px;min-height:26px;display:flex;align-items:center">Cuajo</div>';
+  h += '<div style="background:#F2EBDC;border-bottom:1px solid var(--border);color:var(--brand);font-size:0.72rem;font-weight:700;padding:4px 9px;min-height:26px;display:flex;align-items:center">Cuajo</div>';
   h += '<div style="background:var(--card);padding:7px 9px">';
   var colsCuajo = ['Nombre','/1000L','Dosis util.','Proveedor','Lote','Caducidad'];
   h += '<div style="display:grid;grid-template-columns:'+gcCuajo+';gap:6px;margin-bottom:3px">';
@@ -3985,7 +3985,7 @@ function renderEpForm(skipRecoger){
   var _lavMet = p.desuerado.lavado_metodo||'';
   var gcLav='64px repeat(5,1fr)';
   h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-  h += '<div style="display:flex;align-items:center;gap:8px;min-height:26px;background:#f4ebd8;border-bottom:1px solid var(--border);padding:1px 9px">'
+  h += '<div style="display:flex;align-items:center;gap:8px;min-height:26px;background:#F2EBDC;border-bottom:1px solid var(--border);padding:1px 9px">'
      + '<b style="font-size:0.72rem;font-weight:700;color:var(--brand);white-space:nowrap">Lavado de cuajada</b>'
      + '<select id="ep-lav-metodo" style="padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-size:0.74rem;background:var(--card);text-align:center;max-width:150px">'
      + '<option value="">— Método —</option>'
@@ -4050,7 +4050,7 @@ function renderEpForm(skipRecoger){
       foOpts += '<option value="'+f+'"'+(f===pr.formato?' selected':'')+'>'+f+'</option>';
     });
     h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;min-height:26px;background:#f4ebd8;border-bottom:1px solid var(--border);padding:1px 9px"><b style="font-size:0.72rem;color:var(--brand)">Programa '+(i+1)+'</b><button onclick="_epDelConfirm(\'prensados\','+i+',\'Programa '+(i+1)+'\')" title="Eliminar este programa" style="border:none;background:rgba(139,42,42,0.12);color:var(--brand);width:22px;height:22px;border-radius:50%;font-size:0.8rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button></div>';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;min-height:26px;background:#F2EBDC;border-bottom:1px solid var(--border);padding:1px 9px"><b style="font-size:0.72rem;color:var(--brand)">Programa '+(i+1)+'</b><button onclick="_epDelConfirm(\'prensados\','+i+',\'Programa '+(i+1)+'\')" title="Eliminar este programa" style="border:none;background:rgba(139,42,42,0.12);color:var(--brand);width:22px;height:22px;border-radius:50%;font-size:0.8rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button></div>';
     h += '<div style="background:var(--card);padding:7px 9px">';
     var gc='64px repeat(5,1fr)';
     // Fila 1: Formato · Programa nº
@@ -4089,7 +4089,7 @@ function renderEpForm(skipRecoger){
     });
     h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
     // Cabecera OSCURA: "Desmoldeo N" + selector de FORMATO al lado + ✕
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:26px;background:#f4ebd8;border-bottom:1px solid var(--border);padding:1px 9px">'
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:26px;background:#F2EBDC;border-bottom:1px solid var(--border);padding:1px 9px">'
        + '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">'
        + '<b style="font-size:0.72rem;color:var(--brand);white-space:nowrap">Desmoldeo '+(i+1)+'</b>'
        + '<select id="ep-des-fmt-'+i+'" style="padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-size:0.74rem;background:var(--card);text-align:center;max-width:130px">'+foOpts+'</select>'
@@ -4135,7 +4135,7 @@ function renderEpForm(skipRecoger){
     });
     h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
     // Cabecera: "Salmuera N" + selector de FORMATO al lado + ✕ (igual que Desmoldeo)
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:26px;background:#f4ebd8;border-bottom:1px solid var(--border);padding:1px 9px">'
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:26px;background:#F2EBDC;border-bottom:1px solid var(--border);padding:1px 9px">'
        + '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">'
        + '<b style="font-size:0.72rem;color:var(--brand);white-space:nowrap">Salmuera '+(i+1)+'</b>'
        + '<select id="ep-sal-fmt-'+i+'" style="padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-size:0.74rem;background:var(--card);text-align:center;max-width:130px">'+foOpts+'</select>'
@@ -4168,7 +4168,7 @@ function renderEpForm(skipRecoger){
   // Un solo bloque con DOS líneas dentro (no dos bloques separados)
   var gcPz='64px repeat(5,1fr)';
   h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-  h += '<div style="background:#f4ebd8;border-bottom:1px solid var(--border);color:var(--brand);font-size:0.72rem;font-weight:700;padding:4px 9px;min-height:26px;display:flex;align-items:center">Piezas fabricadas</div>';
+  h += '<div style="background:#F2EBDC;border-bottom:1px solid var(--border);color:var(--brand);font-size:0.72rem;font-weight:700;padding:4px 9px;min-height:26px;display:flex;align-items:center">Piezas fabricadas</div>';
   h += '<div style="background:var(--card);padding:7px 9px">';
   // Línea 1: 3 KG · 2 KG · 1 KG · 1/2 KG
   h += '<div style="display:grid;grid-template-columns:'+gcPz+';gap:6px;margin-bottom:3px"><div></div>'
@@ -4208,7 +4208,7 @@ function renderEpForm(skipRecoger){
     }
   }
   h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;min-height:26px;background:#f4ebd8;border-bottom:1px solid var(--border);color:var(--brand);padding:1px 9px">'
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;min-height:26px;background:#F2EBDC;border-bottom:1px solid var(--border);color:var(--brand);padding:1px 9px">'
      + '<span style="font-size:0.72rem;font-weight:700">Caseínas (D.O.)</span>'
      + '<button onclick="_epAddCaseina()" style="border:none;background:#8B2A2A;color:#fff;padding:2px 10px;border-radius:11px;font-size:0.62rem;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0">+ Añadir rango</button>'
      + '</div>';
@@ -4274,7 +4274,7 @@ function _epSep(t, addLista, addEtiqueta){
   h += '<span>'+t+'</span>';
   if(addLista){
     var onclick = (addLista.indexOf('js:')===0) ? addLista.slice(3) : ('_epAdd(\''+addLista+'\')');
-    h += '<button class="ep-sep-add" onclick="'+onclick+'" title="Añadir '+(addEtiqueta||'')+'" style="border:none;background:#f4ebd8;color:#8B2A2A;padding:2px 10px;border-radius:11px;font-size:0.62rem;font-weight:800;cursor:pointer;white-space:nowrap;text-transform:none;letter-spacing:0;flex-shrink:0">+ Añadir '+(addEtiqueta||'')+'</button>';
+    h += '<button class="ep-sep-add" onclick="'+onclick+'" title="Añadir '+(addEtiqueta||'')+'" style="border:none;background:#F2EBDC;color:#8B2A2A;padding:2px 10px;border-radius:11px;font-size:0.62rem;font-weight:800;cursor:pointer;white-space:nowrap;text-transform:none;letter-spacing:0;flex-shrink:0">+ Añadir '+(addEtiqueta||'')+'</button>';
   }
   h += '</div>';
   return h;
@@ -4319,7 +4319,7 @@ function _epBloqueAlineado(tituloBloque, columnas, filas, nCols){
   var NCOLS = nCols || 5;
   var gridCols = '64px repeat('+NCOLS+',1fr)';
   var h = '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-  if(tituloBloque) h += '<div style="background:#f4ebd8;border-bottom:1px solid var(--border);color:var(--brand);font-size:0.72rem;font-weight:700;padding:4px 9px;min-height:26px;display:flex;align-items:center">'+tituloBloque+'</div>';
+  if(tituloBloque) h += '<div style="background:#F2EBDC;border-bottom:1px solid var(--border);color:var(--brand);font-size:0.72rem;font-weight:700;padding:4px 9px;min-height:26px;display:flex;align-items:center">'+tituloBloque+'</div>';
   h += '<div style="background:var(--card);padding:7px 9px">';
   // Cabecera de columnas (rellena hasta NCOLS con huecos), centrada
   h += '<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;margin-bottom:3px">';
@@ -4352,7 +4352,7 @@ function _epItemEditable(prefix, i, item){
   var gridCols = '1.25fr 0.6fr 0.7fr 1fr 0.95fr 1fr';
   // Tarjeta: cabecera de ELEMENTO (Nivel 2): fondo crema, texto granate + ✕ granate
   var h = '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;min-height:26px;background:#f4ebd8;border-bottom:1px solid var(--border);padding:1px 9px">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;min-height:26px;background:#F2EBDC;border-bottom:1px solid var(--border);padding:1px 9px">';
   h += '<b style="font-size:0.72rem;color:var(--brand);letter-spacing:0.02em">'+etiqueta+'</b>';
   h += '<button onclick="_epDelConfirm(\''+lista+'\','+i+',\''+etiqueta+'\')" title="Eliminar '+etiqueta+'" style="border:none;background:rgba(139,42,42,0.12);color:var(--brand);width:22px;height:22px;border-radius:50%;font-size:0.8rem;font-weight:700;cursor:pointer;line-height:1;flex-shrink:0">✕</button>';
   h += '</div>';
@@ -6065,11 +6065,11 @@ function anadirOtroAuxiliar(datos){
     +   '<div><span class="papel-prod-label">Auxiliar</span>'
     +     '<select class="oaux-sel papel-prod-dosis-input" onchange="_onOtroAuxSel(this)">'+opciones+'</select>'
     +     '<input type="hidden" class="oaux-nombre" value="'+(nombreActual||'')+'"></div>'
+    +   '<div><span class="papel-prod-label">Dosis /1000L</span><div class="papel-prod-dosis-base oaux-dosisbase">'+(datos.dosisbase||'—')+'</div></div>'
     +   '<div><span class="papel-prod-label">Dosis utilizada</span><input type="text" class="oaux-dosis papel-prod-dosis-input" placeholder="—" value="'+(datos.dosis||'')+'"></div>'
     +   '<div><span class="papel-prod-label">Proveedor</span><div class="papel-prod-meta oaux-prov">'+(datos.proveedor||'—')+'</div></div>'
     +   '<div><span class="papel-prod-label">Lote</span><div class="papel-prod-meta oaux-lote">'+(datos.lote||'—')+'</div></div>'
     +   '<div><span class="papel-prod-label">Caducidad</span><div class="papel-prod-meta oaux-cad">'+(datos.caducidad||'—')+'</div></div>'
-    +   '<div><span class="papel-prod-label">Observaciones</span><input type="text" class="oaux-obs papel-prod-dosis-input" placeholder="Opcional" value="'+(datos.obs||'')+'"></div>'
     + '</div>';
   cont.appendChild(div);
   // Enganchar listeners de autoguardado
@@ -6121,11 +6121,11 @@ function recogerOtrosAuxiliares(){
     if (!nom) return; // si no tiene nombre, ignorar
     out.push({
       nombre: nom,
+      dosisbase: txt(c.querySelector('.oaux-dosisbase')),
       lote: txt(c.querySelector('.oaux-lote')),
       caducidad: txt(c.querySelector('.oaux-cad')),
       proveedor: txt(c.querySelector('.oaux-prov')),
-      dosis: (c.querySelector('.oaux-dosis')||{}).value || '',
-      obs: (c.querySelector('.oaux-obs')||{}).value || ''
+      dosis: (c.querySelector('.oaux-dosis')||{}).value || ''
     });
   });
   return out;
