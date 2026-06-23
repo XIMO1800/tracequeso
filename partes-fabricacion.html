@@ -628,6 +628,11 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .papel-prod-l6 .papel-prod-meta{position:relative}
 .papel-prod-cambiar{position:absolute;top:22px;left:0;right:0;display:block;font-size:0.68rem;color:var(--brand);font-weight:700;cursor:pointer;text-decoration:underline;text-align:center}
 .papel-prod-l2{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;align-items:end;font-size:0.78rem;border-top:1px dashed var(--border);padding-top:8px}
+/* "Otros auxiliares": misma fila que el cloruro (papel-prod-l6) + botón quitar */
+.otro-aux-card{position:relative}
+.otro-aux-card .quitar-btn{position:absolute;top:2px;right:4px;background:none;border:none;color:var(--text2);font-size:1.1rem;cursor:pointer;padding:2px 6px;z-index:2}
+.otro-aux-card .oaux-sel{height:34px;padding:0 6px;font-size:0.82rem;font-weight:600}
+.otro-aux-card .oaux-dosis,.otro-aux-card .oaux-obs{height:34px;font-size:0.82rem}
 .papel-prod-nombre{font-weight:700;font-size:0.95rem;color:var(--text);padding-bottom:6px}
 .papel-prod-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:0.04em;margin-bottom:3px;display:block}
 .papel-prod-dosis-base{font-size:0.95rem;font-weight:700;color:var(--text);padding:6px 0}
@@ -841,7 +846,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.184</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.185</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1032,15 +1037,9 @@ input[type="email"] {
       <div id="aux-container"></div>
 
       <!-- Otros auxiliares opcionales (lisozima, sales antibutíricas, aceitunas...) -->
-      <div class="opt-aux-header" style="margin-top:14px">
-        <label class="opt-aux-label">
-          <input type="checkbox" id="otros-aux-on" onchange="toggleOtrosAux()">
-          <span class="opt-aux-title">➕ Otros auxiliares</span>
-        </label>
-      </div>
-      <div id="otros-aux-block" class="opt-aux-block" style="display:none">
+      <div id="otros-aux-block" class="opt-aux-block" style="margin-top:6px">
         <div id="otros-aux-container"></div>
-        <button type="button" class="btn-secundario" style="margin-top:8px" onclick="anadirOtroAuxiliar()">+ Añadir otro</button>
+        <button type="button" class="btn-secundario" style="margin-top:8px" onclick="anadirOtroAuxiliar()">➕ Añadir auxiliar</button>
       </div>
     </div>
   </div>
@@ -6049,31 +6048,29 @@ function anadirOtroAuxiliar(datos){
   if (!cont) return;
   var idx = cont.children.length;
   var div = document.createElement('div');
-  div.className = 'otro-aux-card';
+  div.className = 'otro-aux-card papel-prod papel-prod-1fila';
   div.dataset.idx = idx;
   // Opciones del desplegable: los auxiliares dados de alta en el stock (sin CO2)
   var listaAux = [];
   try{ listaAux = articulosDeCategoria('AUXILIAR FABRICACION') || []; }catch(e){}
   var nombreActual = datos.nombre || '';
   var enLista = nombreActual && listaAux.indexOf(nombreActual) >= 0;
-  var opciones = '<option value="">— Elegir auxiliar —</option>';
+  var opciones = '<option value="">— Elegir —</option>';
   listaAux.forEach(function(a){
     opciones += '<option value="'+a+'"'+((enLista && a===nombreActual)?' selected':'')+'>'+a+'</option>';
   });
   div.innerHTML = ''
     + '<button type="button" class="quitar-btn" onclick="quitarOtroAuxiliar(this)" title="Quitar">×</button>'
-    + '<div class="form-row"><label class="form-label">Auxiliar</label>'
-    +   '<select class="oaux-sel" onchange="_onOtroAuxSel(this)">'+opciones+'</select></div>'
-    + '<input type="hidden" class="oaux-nombre" value="'+(nombreActual||'')+'">'
-    + '<div class="form-cols">'
-    +   '<div class="form-row"><label class="form-label">Lote</label><input type="text" class="oaux-lote" value="'+(datos.lote||'')+'" readonly></div>'
-    +   '<div class="form-row"><label class="form-label">Caducidad</label><input type="text" class="oaux-cad" value="'+(datos.caducidad||'')+'" readonly></div>'
-    + '</div>'
-    + '<div class="form-cols">'
-    +   '<div class="form-row"><label class="form-label">Proveedor</label><input type="text" class="oaux-prov" value="'+(datos.proveedor||'')+'" readonly></div>'
-    +   '<div class="form-row"><label class="form-label">Dosis utilizada</label><input type="text" class="oaux-dosis" placeholder="ej: 500 ml" value="'+(datos.dosis||'')+'"></div>'
-    + '</div>'
-    + '<div class="form-row"><label class="form-label">Observaciones</label><input type="text" class="oaux-obs" placeholder="Opcional" value="'+(datos.obs||'')+'"></div>';
+    + '<div class="papel-prod-l6 oaux-l6">'
+    +   '<div><span class="papel-prod-label">Auxiliar</span>'
+    +     '<select class="oaux-sel papel-prod-dosis-input" onchange="_onOtroAuxSel(this)">'+opciones+'</select>'
+    +     '<input type="hidden" class="oaux-nombre" value="'+(nombreActual||'')+'"></div>'
+    +   '<div><span class="papel-prod-label">Dosis utilizada</span><input type="text" class="oaux-dosis papel-prod-dosis-input" placeholder="—" value="'+(datos.dosis||'')+'"></div>'
+    +   '<div><span class="papel-prod-label">Proveedor</span><div class="papel-prod-meta oaux-prov">'+(datos.proveedor||'—')+'</div></div>'
+    +   '<div><span class="papel-prod-label">Lote</span><div class="papel-prod-meta oaux-lote">'+(datos.lote||'—')+'</div></div>'
+    +   '<div><span class="papel-prod-label">Caducidad</span><div class="papel-prod-meta oaux-cad">'+(datos.caducidad||'—')+'</div></div>'
+    +   '<div><span class="papel-prod-label">Observaciones</span><input type="text" class="oaux-obs papel-prod-dosis-input" placeholder="Opcional" value="'+(datos.obs||'')+'"></div>'
+    + '</div>';
   cont.appendChild(div);
   // Enganchar listeners de autoguardado
   div.querySelectorAll('input,select').forEach(function(inp){
@@ -6089,21 +6086,21 @@ function _onOtroAuxSel(sel){
   var card = sel.closest('.otro-aux-card');
   if(!card) return;
   var inpNom = card.querySelector('.oaux-nombre');
-  var inpLote = card.querySelector('.oaux-lote');
-  var inpCad = card.querySelector('.oaux-cad');
-  var inpProv = card.querySelector('.oaux-prov');
+  var elLote = card.querySelector('.oaux-lote');
+  var elCad = card.querySelector('.oaux-cad');
+  var elProv = card.querySelector('.oaux-prov');
   var nombre = sel.value || '';
   if(inpNom) inpNom.value = nombre;
   var lote = null;
   if(nombre){ try{ lote = obtenerLoteActivo(nombre); }catch(e){} }
   if(lote){
-    if(inpLote) inpLote.value = lote.lote || '';
-    if(inpCad)  inpCad.value  = lote.caducidad ? formatearFecha(lote.caducidad) : '';
-    if(inpProv) inpProv.value = lote.proveedor || '';
+    if(elLote) elLote.textContent = lote.lote || '—';
+    if(elCad)  elCad.textContent  = lote.caducidad ? formatearFecha(lote.caducidad) : '—';
+    if(elProv) elProv.textContent = lote.proveedor || '—';
   } else {
-    if(inpLote) inpLote.value = '';
-    if(inpCad)  inpCad.value  = '';
-    if(inpProv) inpProv.value = '';
+    if(elLote) elLote.textContent = '—';
+    if(elCad)  elCad.textContent  = '—';
+    if(elProv) elProv.textContent = '—';
   }
   if(CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
 }
@@ -6118,14 +6115,15 @@ function quitarOtroAuxiliar(btn){
 function recogerOtrosAuxiliares(){
   var cards = document.querySelectorAll('#otros-aux-container .otro-aux-card');
   var out = [];
+  function txt(el){ var v = el ? (el.textContent||'').trim() : ''; return (v==='—') ? '' : v; }
   cards.forEach(function(c){
     var nom = (c.querySelector('.oaux-nombre')||{}).value || '';
     if (!nom) return; // si no tiene nombre, ignorar
     out.push({
       nombre: nom,
-      lote: (c.querySelector('.oaux-lote')||{}).value || '',
-      caducidad: (c.querySelector('.oaux-cad')||{}).value || '',
-      proveedor: (c.querySelector('.oaux-prov')||{}).value || '',
+      lote: txt(c.querySelector('.oaux-lote')),
+      caducidad: txt(c.querySelector('.oaux-cad')),
+      proveedor: txt(c.querySelector('.oaux-prov')),
       dosis: (c.querySelector('.oaux-dosis')||{}).value || '',
       obs: (c.querySelector('.oaux-obs')||{}).value || ''
     });
@@ -6140,11 +6138,6 @@ function restaurarOtrosAuxiliares(arr){
   cont.innerHTML = '';
   if (!arr || !arr.length) return;
   arr.forEach(function(d){ anadirOtroAuxiliar(d); });
-  // Activar el check si hay datos
-  var chk = document.getElementById('otros-aux-on');
-  var bloque = document.getElementById('otros-aux-block');
-  if (chk) chk.checked = true;
-  if (bloque) bloque.style.display = '';
 }
 
 
