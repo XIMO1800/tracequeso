@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.197</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.198</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1559,14 +1559,20 @@ function irASiguienteSeccion(p){
     {sec:'ferm', campos:['ferm-hadicion','ferm-ph','ferm-temp']},
     {sec:'coag', campos:['coag-hadicion','coag-ph','coag-temp','coag-hc','coag-total']},
     {sec:'des',  campos:['rec-hi','rec-ti','rec-hf','rec-tf','rec-ph','rec-dornic','agit-hi','agit-hf','lavado-hi','lavado-hf']},
-    {sec:'mol',  campos:['mol-hi','mol-ph','mol-temp','mol-hf']},
-    {sec:'salm', campos:['salm-entrada','salm-salida']},
-    {sec:'pzas', campos:['pzas-3kg','pzas-2kg','pzas-1kg','pzas-05kg','pzas-barra','pzas-gigante']}
+    {sec:'mol',  campos:['mol-hi','mol-ph','mol-temp','mol-hf']}
   ];
   function tieneDatos(campos){
     for (var i=0;i<campos.length;i++){
       var el = panelEl.querySelector('#'+campos[i]);
-      if (el && el.value && String(el.value).trim() !== '') return true;
+      if (!el) continue;
+      var val = (el.value==null) ? '' : String(el.value).trim();
+      if (val === '') continue;
+      // Un "0" (o 0,0) no cuenta como dato real: es el valor por defecto de muchos campos numéricos
+      if (el.type === 'number'){
+        if (parseFloat(val) !== 0) return true;
+      } else {
+        return true;
+      }
     }
     return false;
   }
