@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.211</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.212</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3824,6 +3824,14 @@ function editarParteCompleto(id, soloLectura){
     h += '<button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>';
     if(esCalidadOAdmin()) h += '<button class="btn btn-primary" onclick="editarParteCompleto(\''+p.id+'\')">✏️ Editar parte</button>';
     h += '</div>';
+    // Reactivar: si el parte está CERRADO y es de HOY, cualquier rol puede devolverlo a la
+    // pestaña Hoy para seguir rellenándolo (p.ej. si se cerró por error). Solo del día de hoy.
+    var _hoyISO_v = new Date().toISOString().slice(0,10);
+    var _esHoy_v = p.fecha===_hoyISO_v || (p.fecha && String(p.fecha).indexOf(_hoyISO_v)>=0);
+    var _esRev_v = (p.version==='revisado' || String(p.id||'').indexOf('PR-')===0);
+    if(p.cerrado && _esHoy_v && !_esRev_v){
+      h += '<button class="btn" style="width:100%;margin-top:8px;background:#fff;border:1.5px solid var(--brand);color:var(--brand);font-weight:700" onclick="reactivarParteHoy(\''+p.id+'\')">↩️ Reactivar parte (volver a Hoy)</button>';
+    }
   } else {
     h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">';
     h += '<button class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>';
@@ -4973,6 +4981,26 @@ function eliminarVistoBueno(id){
 }
 
 // ELIMINAR EL PARTE ENTERO (borra de verdad). Si es una revisión, reactiva el original.
+function reactivarParteHoy(id){
+  var p = PARTES.find(function(x){return x.id===id;});
+  if(!p){ toast('No se encuentra el parte','warn'); return; }
+  // Seguridad: solo partes de HOY y que no sean una versión revisada.
+  var hoyISO = new Date().toISOString().slice(0,10);
+  var esHoy = p.fecha===hoyISO || (p.fecha && String(p.fecha).indexOf(hoyISO)>=0);
+  var esRev = (p.version==='revisado' || String(p.id||'').indexOf('PR-')===0);
+  if(!esHoy || esRev){ toast('Solo se pueden reactivar partes cerrados de HOY','warn'); return; }
+  if(!confirm('¿Reactivar este parte y devolverlo a la pestaña HOY?\n\nVolverá a aparecer como cuba en proceso para que puedas seguir rellenando los datos que falten.')) return;
+  p.cerrado = false;
+  persistir();
+  try{ enviarParteSheets(p); }catch(e){}   // que en Google también conste como abierto
+  cerrarModal();
+  CUBA_ACTIVA_ID = id;
+  try{ switchTab('hoy'); }catch(e){}
+  try{ renderPestanasCubas(); }catch(e){}
+  try{ cargarFormularioEnPanel(p); }catch(e){}
+  toast('↩️ Parte reactivado · vuelve a estar en Hoy');
+}
+
 function eliminarParteEntero(id){
   eliminarParte(id);
 }
