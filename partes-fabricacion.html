@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.209</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.210</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3387,11 +3387,18 @@ function renderPartes(){
       if(oid) _revPorOriginal[String(oid).trim()] = p;
     }
   });
+  var _hoyISO = new Date().toISOString().slice(0,10);
+  function _esDeHoy(p){ return p && (p.fecha===_hoyISO || (p.fecha && String(p.fecha).indexOf(_hoyISO)>=0)); }
   var filtrados=PARTES.filter(function(p){
     if(fecha&&p.fecha!==fecha)return false;
     if(modo==='originales'){
-      // Realidad: solo ORIGINALES (lo que pasó en la cuba). Nunca los revisados.
-      return p.version!=='revisado';
+      // Realidad: solo ORIGINALES (nunca los revisados).
+      if(p.version==='revisado') return false;
+      // El historial muestra lo TERMINADO/PASADO: partes cerrados (de cualquier día),
+      // o partes de DÍAS ANTERIORES aunque no estén cerrados (para poder cerrarlos/consultarlos).
+      // Las cubas de HOY sin cerrar NO van al historial: viven en la pestaña HOY.
+      if(_esDeHoy(p) && !p.cerrado) return false;
+      return true;
     } else {
       // Oficial: SOLO las revisadas. Si un día no tiene revisada, no se muestra nada
       // (queda en blanco hasta que Calidad lo revise).
