@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.199</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.200</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -5713,13 +5713,29 @@ function cargarIngredientesParte(id, cb){
 function reiniciarDatosLocales(){
   var hoy = new Date().toISOString().slice(0,10);
   // Partes de HOY sin cerrar = cubas a medias del quesero. NUNCA se borran al reiniciar.
-  var aMedias = PARTES.filter(function(p){
+  var aMediasTodas = PARTES.filter(function(p){
     return p && !p.cerrado && (p.fecha===hoy || (p.fecha && String(p.fecha).indexOf(hoy)>=0));
   });
+  // Deduplicar por número de cuba: si hay varias con el mismo nº (duplicados fantasma),
+  // se queda con la que tenga MÁS datos rellenos. Así el reinicio limpia el desorden.
+  function _cuantosDatos(p){
+    var n=0;
+    try{ n = JSON.stringify(p||{}).replace(/"(id|fecha|cuba|cerrado|operario)":/g,'').length; }catch(e){ n=0; }
+    return n;
+  }
+  var porCuba = {};
+  aMediasTodas.forEach(function(p){
+    var k = String(p.cuba||'?');
+    if(!porCuba[k] || _cuantosDatos(p) > _cuantosDatos(porCuba[k])) porCuba[k] = p;
+  });
+  var aMedias = Object.keys(porCuba).map(function(k){ return porCuba[k]; });
+  aMedias.sort(function(a,b){ return (parseInt(a.cuba)||0)-(parseInt(b.cuba)||0); });
+  var nDuplicados = aMediasTodas.length - aMedias.length;
   var msg;
   if(aMedias.length){
     msg = 'Recargar los partes desde Google.\n\n'
         + 'Tienes ' + aMedias.length + ' cuba(s) de HOY a medias sin cerrar: se CONSERVAN, no se pierden.\n\n'
+        + (nDuplicados>0 ? ('Se han detectado ' + nDuplicados + ' cuba(s) DUPLICADAS que se eliminarán (se queda la más completa).\n\n') : '')
         + 'Solo se vuelven a descargar los partes ya cerrados/guardados. ¿Continuar?';
   } else {
     msg = '¿Recargar los partes desde Google?\n\n'
@@ -5759,27 +5775,23 @@ function cargarPartesSheets(fecha){
       // la "mesa de trabajo" de hoy al recargar desde Sheets tras cambiar de usuario.
       var estadoLocal = {};
       PARTES.forEach(function(p){ if(p && p.id) estadoLocal[p.id] = { cerrado: !!p.cerrado }; });
-      var idsSheets=d.data.map(function(p){return p['ID'];});
-      PARTES=PARTES.filter(function(p){return idsSheets.indexOf(p.id)<0;});
+      function _nid(x){ return String(x==null?'':x).trim(); }
+      var idsSheets={};
+      d.data.forEach(function(p){ idsSheets[_nid(p['ID'])] = true; });
+      // Quitar de PARTES los que también vienen de Sheets (se reemplazan por la versión de Sheets)
+      PARTES=PARTES.filter(function(p){return !idsSheets[_nid(p.id)];});
       var deSheets=d.data.map(function(p){
         var fechaP = p['FECHA'] || '';
         var esDeHoy = String(fechaP).slice(0,10) === hoyISO;
         var prev = estadoLocal[p['ID']];
-        // Estado "cerrado": para días anteriores siempre cerrado; para HOY, se respeta
-        // el estado local previo si lo había (abierto sigue abierto). Si no había estado
-        // local (entró nuevo en esta tablet), un parte de hoy se considera ABIERTO para
-        // que vuelva a aparecer en las pestañas y se pueda seguir trabajando.
         var cerradoCalc = esDeHoy ? (prev ? prev.cerrado : false) : true;
-        // Si el parte trae el JSON completo, lo usamos tal cual (fidelidad total)
         if(p['JSON']){
           try{
             var full=JSON.parse(p['JSON']);
             if(full && typeof full==='object'){
               full.id = full.id || p['ID'];
-              full.fecha = p['FECHA'] || full.fecha; // fecha normalizada de la hoja
+              full.fecha = p['FECHA'] || full.fecha;
               if(esDeHoy){
-                // Para hoy: si el JSON ya guardó el estado cerrado, se respeta;
-                // si no, el estado local previo; si tampoco, abierto.
                 if(full.hasOwnProperty('cerrado')) { /* respetar el del JSON */ }
                 else if(prev) full.cerrado = prev.cerrado;
                 else full.cerrado = false;
@@ -5790,10 +5802,21 @@ function cargarPartesSheets(fecha){
             }
           }catch(e){}
         }
-        // Partes antiguos sin JSON: reconstrucción básica desde columnas
         return {id:p['ID'],fecha:p['FECHA'],cuba:p['CUBA'],tipo:p['TIPO DE QUESO'],variedad:p['VARIEDAD'],litros:p['LITROS'],operario:p['OPERARIO'],piezas:{'3kg':p['PZAS 3KG']||0,'2kg':p['PZAS 2KG']||0,'1kg':p['PZAS 1KG']||0,'05kg':p['PZAS 05KGS']||0,'barra':p['PZAS BARRA']||0,'gigante':p['PZAS GIGANTE']||0},observaciones:p['OBSERVACIONES']||'',cerrado:cerradoCalc};
       });
-      PARTES=deSheets.concat(PARTES);persistir();renderPartes();
+      PARTES=deSheets.concat(PARTES);
+      // Red de seguridad final: eliminar cualquier parte duplicado por id (se queda el primero).
+      (function(){
+        var vistos={}, limpio=[];
+        PARTES.forEach(function(p){
+          var k=_nid(p && p.id);
+          if(!k){ limpio.push(p); return; }
+          if(vistos[k]) return;
+          vistos[k]=true; limpio.push(p);
+        });
+        PARTES=limpio;
+      })();
+      persistir();renderPartes();
       try{ renderPestanasCubas(); }catch(e){}
     }
   }).catch(function(){});
