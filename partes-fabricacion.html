@@ -633,11 +633,11 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .otro-aux-card .quitar-btn{position:absolute;top:3px;right:6px;background:none;border:none;color:var(--text2);font-size:1.2rem;cursor:pointer;padding:0 6px;z-index:3;line-height:1.2}
 .otro-aux-card .oaux-sel{height:34px;padding:0 6px;font-size:0.82rem;font-weight:600}
 .otro-aux-card .oaux-dosis{height:34px;font-size:0.82rem}
-/* Check de activar/desactivar DENTRO de la tarjeta, esquina superior derecha */
-.card-check-corner{position:absolute;top:6px;right:10px;display:flex;align-items:center;gap:5px;z-index:3;cursor:pointer}
-.card-check-corner input[type="checkbox"]{width:17px;height:17px;accent-color:var(--brand);cursor:pointer;margin:0}
-.card-check-corner .card-check-title{font-size:0.7rem;font-weight:800;color:var(--brand);letter-spacing:0.03em}
-.co2-card-check{position:relative}
+/* Check pequeño y discreto, FUERA del recuadro (CO₂, cloruro, auxiliares) — misma estética */
+.aux-check-mini{display:flex;align-items:center;gap:6px;cursor:pointer;margin:0 0 4px 2px;user-select:none}
+.aux-check-mini input[type="checkbox"]{width:15px;height:15px;accent-color:var(--brand);cursor:pointer;margin:0;flex-shrink:0}
+.aux-check-mini .aux-check-txt{font-size:0.72rem;font-weight:800;color:var(--brand);letter-spacing:0.02em;text-transform:uppercase}
+.aux-check-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 4px 2px}
 .papel-prod-nombre{font-weight:700;font-size:0.95rem;color:var(--text);padding-bottom:6px}
 .papel-prod-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:0.04em;margin-bottom:3px;display:block}
 .papel-prod-dosis-base{font-size:0.95rem;font-weight:700;color:var(--text);padding:6px 0}
@@ -786,7 +786,7 @@ input[type="email"] {
 
 
 /* Tarjeta CO₂ compacta */
-.co2-card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:22px 12px 10px;margin-bottom:10px}
+.co2-card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px 16px;margin-bottom:10px}
 /* Filas "Adición" (hora/pH/Tª) compactas e iguales entre sí.
    Incluye el input[type=time], que el navegador renderiza más alto. */
 .adicion-compact .form-row input{padding:4px 9px;font-size:0.9rem;line-height:1.2;height:auto}
@@ -849,7 +849,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.189</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.190</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1002,13 +1002,13 @@ input[type="email"] {
           <input type="number" id="aux-temp" step="0.1" inputmode="decimal">
         </div>
       </div>
-      <!-- CO2 con check on/off (marcado por defecto), dentro de la tarjeta -->
+      <!-- CO2 con check on/off (marcado por defecto), FUERA de la tarjeta -->
+      <label class="aux-check-mini">
+        <input type="checkbox" id="co2-aplicado" checked onchange="toggleCO2Aplicado()">
+        <span class="aux-check-txt" id="co2-title">CO₂</span>
+      </label>
       <div id="co2-block" class="opt-aux-block">
-        <div class="co2-card co2-card-check">
-          <label class="card-check-corner">
-            <input type="checkbox" id="co2-aplicado" checked onchange="toggleCO2Aplicado()">
-            <span class="card-check-title" id="co2-title">CO₂</span>
-          </label>
+        <div class="co2-card">
           <div class="form-cols-5 co2-line5">
             <div class="form-row">
               <label class="form-label">Tiempo (seg)</label>
