@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.207</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.208</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1242,18 +1242,18 @@ input[type="email"] {
 
 <!-- ════════════════════ HISTORIAL ════════════════════ -->
 <div id="screen-historial" class="screen">
-  <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin:8px 0">Filtrar por fecha</div>
+  <!-- Logo del Hidalgo a la izquierda de "Filtrar por fecha": al pulsarlo alterna
+       entre ver las REVISADAS (oficial) y los ORIGINALES (realidad). -->
+  <div style="display:flex;align-items:center;gap:8px;margin:8px 0">
+    <img id="hist-modo-logo" onclick="toggleModoHistorial()" style="height:24px;object-fit:contain;border-radius:3px;cursor:pointer" title="Ver originales / oficiales">
+    <span style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3)">Filtrar por fecha</span>
+    <span id="hist-modo-label" style="font-size:0.62rem;color:var(--brand);font-weight:700;user-select:none"></span>
+  </div>
   <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
     <button onclick="cambiarDiaFiltro(-1)" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:1rem;cursor:pointer;flex-shrink:0">‹</button>
     <div id="filtro-fecha-display" style="flex:1;text-align:center;font-weight:700;font-size:0.95rem;background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:9px"></div>
     <button onclick="cambiarDiaFiltro(1)" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:1rem;cursor:pointer;flex-shrink:0">›</button>
     <input type="hidden" id="filtro-fecha">
-  </div>
-  <!-- Botón discreto: alterna entre ver REVISADAS (oficial) y ORIGINALES (realidad).
-       Es el logotipo del Hidalgo en pequeño; al pulsarlo se ven los originales. -->
-  <div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin:-2px 2px 8px">
-    <span id="hist-modo-label" style="font-size:0.62rem;color:var(--text3);user-select:none"></span>
-    <img id="hist-modo-logo" onclick="toggleModoHistorial()" style="height:22px;object-fit:contain;border-radius:3px;cursor:pointer;opacity:0.55" title="Ver originales / oficiales">
   </div>
   <div class="card" id="lista-partes"></div>
 </div>
@@ -3398,13 +3398,12 @@ function renderPartes(){
   // Ordenar ascendente por número de cuba (Cuba 1 arriba, Cuba N abajo)
   filtrados.sort(function(a,b){ return (parseInt(a.cuba)||0) - (parseInt(b.cuba)||0); });
   renderCarrusel();
-  // Indicador discreto del modo (logo del Hidalgo). Apagado/tenue = oficial; encendido = realidad/originales.
+  // Logo del Hidalgo (siempre visible normal). Etiqueta al lado solo cuando se ven los originales.
   try{
     var lg = document.getElementById('hist-modo-logo');
     var lb = document.getElementById('hist-modo-label');
     if(lg && !lg.src){ var im=document.querySelector('img[src^="data:image"]'); if(im) lg.src = im.src; }
-    if(modo==='originales'){ if(lg) lg.style.opacity='1'; if(lb) lb.textContent='originales (realidad)'; }
-    else { if(lg) lg.style.opacity='0.55'; if(lb) lb.textContent=''; }
+    if(lb) lb.textContent = (modo==='originales') ? '· originales (realidad)' : '';
   }catch(e){}
   var c=document.getElementById('lista-partes');
   if(!c)return;
