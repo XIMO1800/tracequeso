@@ -628,11 +628,16 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .papel-prod-l6 .papel-prod-meta{position:relative}
 .papel-prod-cambiar{position:absolute;top:22px;left:0;right:0;display:block;font-size:0.68rem;color:var(--brand);font-weight:700;cursor:pointer;text-decoration:underline;text-align:center}
 .papel-prod-l2{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;align-items:end;font-size:0.78rem;border-top:1px dashed var(--border);padding-top:8px}
-/* "Otros auxiliares": misma fila que el cloruro (papel-prod-l6) + botón quitar */
-.otro-aux-card{position:relative;background:transparent!important;border:none!important;box-shadow:none!important;padding:6px 0 4px!important;margin-bottom:0!important}
-.otro-aux-card .quitar-btn{position:absolute;top:2px;right:4px;background:none;border:none;color:var(--text2);font-size:1.1rem;cursor:pointer;padding:2px 6px;z-index:2}
+/* "Otros auxiliares": misma TARJETA que el cloruro + check/quitar dentro arriba-derecha */
+.otro-aux-card{position:relative;padding:20px 12px 8px!important}
+.otro-aux-card .quitar-btn{position:absolute;top:3px;right:6px;background:none;border:none;color:var(--text2);font-size:1.2rem;cursor:pointer;padding:0 6px;z-index:3;line-height:1.2}
 .otro-aux-card .oaux-sel{height:34px;padding:0 6px;font-size:0.82rem;font-weight:600}
 .otro-aux-card .oaux-dosis{height:34px;font-size:0.82rem}
+/* Check de activar/desactivar DENTRO de la tarjeta, esquina superior derecha */
+.card-check-corner{position:absolute;top:6px;right:10px;display:flex;align-items:center;gap:5px;z-index:3;cursor:pointer}
+.card-check-corner input[type="checkbox"]{width:17px;height:17px;accent-color:var(--brand);cursor:pointer;margin:0}
+.card-check-corner .card-check-title{font-size:0.7rem;font-weight:800;color:var(--brand);letter-spacing:0.03em}
+.co2-card-check{position:relative}
 .papel-prod-nombre{font-weight:700;font-size:0.95rem;color:var(--text);padding-bottom:6px}
 .papel-prod-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:0.04em;margin-bottom:3px;display:block}
 .papel-prod-dosis-base{font-size:0.95rem;font-weight:700;color:var(--text);padding:6px 0}
@@ -740,8 +745,6 @@ input[type="email"] {
 .opt-aux-block.cerrado { display: none !important; }
 
 /* Tarjeta de un "otro auxiliar" (manual) */
-.otro-aux-card { background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; position: relative; }
-.otro-aux-card .quitar-btn { position: absolute; top: 6px; right: 8px; background: none; border: none; color: var(--text2); font-size: 1.1rem; cursor: pointer; padding: 4px 8px; }
 .otro-aux-card .quitar-btn:hover { color: var(--brand); }
 
 
@@ -783,7 +786,7 @@ input[type="email"] {
 
 
 /* Tarjeta CO₂ compacta */
-.co2-card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px 16px;margin-bottom:10px}
+.co2-card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:22px 12px 10px;margin-bottom:10px}
 /* Filas "Adición" (hora/pH/Tª) compactas e iguales entre sí.
    Incluye el input[type=time], que el navegador renderiza más alto. */
 .adicion-compact .form-row input{padding:4px 9px;font-size:0.9rem;line-height:1.2;height:auto}
@@ -846,7 +849,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.188</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.189</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -999,15 +1002,13 @@ input[type="email"] {
           <input type="number" id="aux-temp" step="0.1" inputmode="decimal">
         </div>
       </div>
-      <!-- CO2 con check on/off (marcado por defecto) -->
-      <div class="opt-aux-header">
-        <label class="opt-aux-label">
-          <input type="checkbox" id="co2-aplicado" checked onchange="toggleCO2Aplicado()">
-          <span class="opt-aux-title" id="co2-title">CO₂</span>
-        </label>
-      </div>
+      <!-- CO2 con check on/off (marcado por defecto), dentro de la tarjeta -->
       <div id="co2-block" class="opt-aux-block">
-        <div class="co2-card">
+        <div class="co2-card co2-card-check">
+          <label class="card-check-corner">
+            <input type="checkbox" id="co2-aplicado" checked onchange="toggleCO2Aplicado()">
+            <span class="card-check-title" id="co2-title">CO₂</span>
+          </label>
           <div class="form-cols-5 co2-line5">
             <div class="form-row">
               <label class="form-label">Tiempo (seg)</label>
@@ -6062,7 +6063,7 @@ function anadirOtroAuxiliar(datos){
   div.innerHTML = ''
     + '<button type="button" class="quitar-btn" onclick="quitarOtroAuxiliar(this)" title="Quitar">×</button>'
     + '<div class="papel-prod-l6 oaux-l6">'
-    +   '<div><span class="papel-prod-label">Auxiliar</span>'
+    +   '<div><span class="papel-prod-label">Nombre</span>'
     +     '<select class="oaux-sel papel-prod-dosis-input" onchange="_onOtroAuxSel(this)">'+opciones+'</select>'
     +     '<input type="hidden" class="oaux-nombre" value="'+(nombreActual||'')+'"></div>'
     +   '<div><span class="papel-prod-label">Dosis /1000L</span><div class="papel-prod-dosis-base oaux-dosisbase">'+(datos.dosisbase||'—')+'</div></div>'
