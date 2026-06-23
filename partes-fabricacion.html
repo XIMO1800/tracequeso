@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.204</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.206</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1250,6 +1250,11 @@ input[type="email"] {
     <div id="filtro-fecha-display" style="flex:1;text-align:center;font-weight:700;font-size:0.95rem;background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:9px"></div>
     <button onclick="cambiarDiaFiltro(1)" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:1rem;cursor:pointer;flex-shrink:0">›</button>
     <input type="hidden" id="filtro-fecha">
+  </div>
+  <!-- Botón discreto: alterna entre ver REVISADAS (oficial) y ORIGINALES (realidad).
+       Por defecto se ven las revisadas. Disimulado a la derecha, sin texto llamativo. -->
+  <div style="display:flex;justify-content:flex-end;margin:-6px 2px 8px">
+    <span id="hist-modo-toggle" onclick="toggleModoHistorial()" style="font-size:0.66rem;color:var(--text3);cursor:pointer;padding:3px 8px;border-radius:10px;user-select:none">·</span>
   </div>
   <div class="card" id="lista-partes"></div>
 </div>
@@ -3355,29 +3360,62 @@ function cambiarDiaFiltro(delta){
 
 var _filtroFecha=new Date().toISOString().slice(0,10);
 
+// Alterna el historial entre ver las REVISADAS (oficial, por defecto) y los
+// ORIGINALES (realidad). Igual para todos los roles. El botón es discreto a propósito.
+function toggleModoHistorial(){
+  window._modoHistorial = (window._modoHistorial === 'originales') ? 'revisadas' : 'originales';
+  try{ renderPartes(); }catch(e){}
+  try{
+    if(window._modoHistorial === 'originales') toast('Mostrando ORIGINALES (realidad de la cuba)');
+    else toast('Mostrando revisadas (versión oficial)');
+  }catch(e){}
+}
+
 function renderPartes(){
   var fecha=_filtroFecha||document.getElementById('filtro-fecha').value||'';
-  var esCal = esCalidadOAdmin();
+  // Modo de vista del historial (igual para TODOS los roles):
+  //  'revisadas' (por defecto) → versión oficial/auditoría. Si un día no tiene revisada, sale en blanco.
+  //  'originales' → la realidad (lo que cerró el quesero), al pulsar el botón discreto.
+  var modo = (window._modoHistorial === 'originales') ? 'originales' : 'revisadas';
+  // Índice: para cada id de original, ¿existe su versión revisada en los datos?
+  var _revPorOriginal = {};   // id_original -> objeto revisado
+  PARTES.forEach(function(p){
+    if(p && p.version==='revisado'){
+      var oid = p.original_id || p.id_original || p.idOriginal || '';
+      if(oid) _revPorOriginal[String(oid).trim()] = p;
+    }
+  });
   var filtrados=PARTES.filter(function(p){
     if(fecha&&p.fecha!==fecha)return false;
-    if(esCal){
-      // Calidad: ve los REVISADOS, y los originales que AÚN NO tienen revisión.
-      // Oculta los originales que ya han sido revisados (de esos ve la versión revisada).
-      if(p.version==='revisado') return true;
-      if(p.tiene_revision) return false;
-      return true;
+    if(modo==='originales'){
+      // Realidad: solo ORIGINALES (lo que pasó en la cuba). Nunca los revisados.
+      return p.version!=='revisado';
     } else {
-      // Resto: solo ORIGINALES, nunca los revisados.
-      if(p.version==='revisado') return false;
-      return true;
+      // Oficial: SOLO las revisadas. Si un día no tiene revisada, no se muestra nada
+      // (queda en blanco hasta que Calidad lo revise).
+      return p.version==='revisado';
     }
   });
   // Ordenar ascendente por número de cuba (Cuba 1 arriba, Cuba N abajo)
   filtrados.sort(function(a,b){ return (parseInt(a.cuba)||0) - (parseInt(b.cuba)||0); });
   renderCarrusel();
+  // Indicador discreto del modo actual (sutil, a la derecha): · = oficial/revisadas, ·· = realidad/originales
+  try{
+    var tg = document.getElementById('hist-modo-toggle');
+    if(tg){
+      if(modo==='originales'){ tg.textContent = '◦ originales'; tg.style.color = 'var(--brand)'; }
+      else { tg.textContent = '·'; tg.style.color = 'var(--text3)'; }
+    }
+  }catch(e){}
   var c=document.getElementById('lista-partes');
   if(!c)return;
-  if(filtrados.length===0){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No hay partes para esta fecha</div></div>';return;}
+  if(filtrados.length===0){
+    var msgVacio = (modo==='revisadas')
+      ? 'Sin revisar todavía para esta fecha.<br><span style="font-size:0.8rem;color:var(--text3)">Calidad aún no ha revisado este día.</span>'
+      : 'No hay partes para esta fecha';
+    c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">'+msgVacio+'</div></div>';
+    return;
+  }
   var h='';
   filtrados.forEach(function(p){
     var totalPzas=0;if(p.piezas)Object.keys(p.piezas).forEach(function(k){totalPzas+=(p.piezas[k]||0);});
