@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.200</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.202</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -895,6 +895,8 @@ input[type="email"] {
   <div style="padding:0 12px 40px;border-top:1px dashed var(--border);margin-top:6px;padding-top:18px">
     <div style="font-size:0.74rem;color:var(--text3);text-align:center;margin-bottom:8px">¿Ves partes que ya no deberían estar, o algo descuadrado? Reinicia y vuelve a cargar desde Google.</div>
     <button onclick="reiniciarDatosLocales()" style="width:100%;padding:11px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg2);color:var(--text2);font-size:0.9rem;font-weight:600;cursor:pointer">🔄 Refrescar / Reiniciar datos</button>
+    <div style="font-size:0.72rem;color:var(--text3);text-align:center;margin:14px 0 8px">¿Quedan cubas «fantasma» del día que no están en Google y no quieres conservar? Borra TODAS las cubas a medias y deja la tablet igual que Google.</div>
+    <button onclick="limpiarTodoYRecargar()" style="width:100%;padding:11px;border:1.5px solid #b06a3a;border-radius:10px;background:#fff;color:#b06a3a;font-size:0.9rem;font-weight:700;cursor:pointer">🧹 Borrar cubas a medias y recargar todo</button>
   </div>
 
 </div>
@@ -5766,6 +5768,41 @@ function reiniciarDatosLocales(){
   }, 1500);
 }
 
+function limpiarTodoYRecargar(){
+  var hoy = new Date().toISOString().slice(0,10);
+  var aMedias = PARTES.filter(function(p){
+    return p && !p.cerrado && (p.fecha===hoy || (p.fecha && String(p.fecha).indexOf(hoy)>=0));
+  });
+  var msg = '⚠️ LIMPIEZA TOTAL\n\n'
+          + 'Se BORRARÁN de la tablet TODAS las cubas de hoy a medias sin cerrar'
+          + (aMedias.length ? (' (' + aMedias.length + ' cuba/s)') : '')
+          + ' y se descargará de nuevo TODO desde Google.\n\n'
+          + 'La tablet quedará EXACTAMENTE igual que Google. Úsalo solo si quedan cubas «fantasma» que no quieres conservar.\n\n'
+          + '¿Seguro que quieres continuar?';
+  if(!confirm(msg)) return;
+  try{
+    PARTES = [];                 // borrar TODO lo local (incluidas las cubas a medias)
+    if(typeof SYNC_PENDIENTE !== 'undefined') SYNC_PENDIENTE = [];
+    CUBA_ACTIVA_ID = null;
+    var _b=document.getElementById("hdr-cuba-badge"); if(_b) _b.style.display="none";
+    persistir();
+  }catch(e){}
+  try{
+    var panel = document.getElementById('panel-cuba-activa');
+    if(panel) panel.innerHTML = '<div class="empty-state" style="padding:40px 20px"><div class="empty-state-icon">🧹</div><div class="empty-state-text">Limpiando y recargando desde Google…</div></div>';
+  }catch(e){}
+  toast('🧹 Limpiando y recargando todo desde Google…');
+  try{ if(typeof cargarPartesSheets==='function') cargarPartesSheets(); }catch(e){}
+  try{ if(typeof cargarRecetasSheets==='function') cargarRecetasSheets(); }catch(e){}
+  try{ if(typeof cargarStockMaterial==='function') cargarStockMaterial(); }catch(e){}
+  setTimeout(function(){
+    try{ renderPartes(); }catch(e){}
+    try{ renderPestanasCubas(); }catch(e){}
+    try{ switchTab('hoy'); }catch(e){}
+    toast('✓ Tablet igualada con Google');
+  }, 1500);
+}
+
 function cargarPartesSheets(fecha){
   var hoy=fecha||new Date().toISOString().slice(0,10);
   fetch(API_URL+'?tipo=partes&fecha='+hoy).then(function(r){return r.json();}).then(function(d){
@@ -5784,18 +5821,22 @@ function cargarPartesSheets(fecha){
         var fechaP = p['FECHA'] || '';
         var esDeHoy = String(fechaP).slice(0,10) === hoyISO;
         var prev = estadoLocal[p['ID']];
-        var cerradoCalc = esDeHoy ? (prev ? prev.cerrado : false) : true;
+        // Un parte que viene de Google se considera CERRADO por defecto (si está en la hoja,
+        // es que se guardó). Solo se mantiene "abierto" (cuba a medias) si su JSON lo dice
+        // explícitamente con cerrado:false. Así, tras una limpieza, no reaparecen cubas
+        // fantasma marcadas como abiertas solo por ser de la fecha de hoy.
+        var cerradoCalc = true;
         if(p['JSON']){
           try{
             var full=JSON.parse(p['JSON']);
             if(full && typeof full==='object'){
               full.id = full.id || p['ID'];
               full.fecha = p['FECHA'] || full.fecha;
-              if(esDeHoy){
-                if(full.hasOwnProperty('cerrado')) { /* respetar el del JSON */ }
-                else if(prev) full.cerrado = prev.cerrado;
-                else full.cerrado = false;
+              if(esDeHoy && full.hasOwnProperty('cerrado')){
+                // respetar tal cual lo que guardó el parte (abierto o cerrado)
+                full.cerrado = !!full.cerrado;
               } else {
+                // día anterior, o JSON sin estado → cerrado
                 full.cerrado = true;
               }
               return full;
