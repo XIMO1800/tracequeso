@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.202</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.204</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1842,6 +1842,31 @@ function installAutoSave(parteId){
   }
 }
 
+// ── Guardado en la nube de cubas A MEDIAS (copia de seguridad) ──
+// Manda el parte a Google con debounce (máximo uno cada pocos segundos) para no
+// saturar. El Apps Script hace upsert por ID, así que reenviar el mismo parte
+// nunca duplica: siempre cae en la misma fila. Si algo falla en la tablet, como
+// mucho se pierden los últimos minutos. El parte va con su estado real (cerrado
+// o a medias) para poder reconstruirlo igual en cualquier equipo.
+var _nubeTimer = null;
+var _nubePendiente = null;
+function guardarEnNubeConDebounce(parteId){
+  _nubePendiente = parteId;
+  if(_nubeTimer) return;            // ya hay un envío programado: se agrupa
+  _nubeTimer = setTimeout(function(){
+    _nubeTimer = null;
+    var id = _nubePendiente; _nubePendiente = null;
+    _enviarParteAMediasSheets(id);
+  }, 4000);                          // como mucho un envío cada 4 s
+}
+function _enviarParteAMediasSheets(parteId){
+  try{
+    var p = PARTES.find(function(x){return x.id===parteId;});
+    if(!p) return;
+    if(typeof enviarParteSheets === 'function') enviarParteSheets(p);
+  }catch(e){}
+}
+
 function autoGuardarParte(parteId){
   // No persistir mientras se carga el formulario (evita pisar datos con vacíos)
   if (window._cargandoForm) return;
@@ -1906,6 +1931,9 @@ function autoGuardarParte(parteId){
   p.dosis_override = Object.assign({}, parteActual.dosis_override||{});
   p.ferm_seleccionado = parteActual.ferm_seleccionado||null;
   persistir();
+  // Copia de seguridad en Google (con debounce): si la cuba está a medias, queda
+  // respaldada en la nube para no perderla ante un cierre/pifia de la tablet.
+  try{ guardarEnNubeConDebounce(parteId); }catch(e){}
   // Refrescar las pestañas (cambia el nombre si cambió tipo/variedad)
   renderPestanasCubas();
 }
@@ -5821,10 +5849,7 @@ function cargarPartesSheets(fecha){
         var fechaP = p['FECHA'] || '';
         var esDeHoy = String(fechaP).slice(0,10) === hoyISO;
         var prev = estadoLocal[p['ID']];
-        // Un parte que viene de Google se considera CERRADO por defecto (si está en la hoja,
-        // es que se guardó). Solo se mantiene "abierto" (cuba a medias) si su JSON lo dice
-        // explícitamente con cerrado:false. Así, tras una limpieza, no reaparecen cubas
-        // fantasma marcadas como abiertas solo por ser de la fecha de hoy.
+        // Estado por defecto: cerrado (si está en Google sin más, va al historial).
         var cerradoCalc = true;
         if(p['JSON']){
           try{
@@ -5832,11 +5857,11 @@ function cargarPartesSheets(fecha){
             if(full && typeof full==='object'){
               full.id = full.id || p['ID'];
               full.fecha = p['FECHA'] || full.fecha;
+              // Respetar el estado real guardado: una cuba a medias (cerrado:false) de HOY
+              // debe poder recuperarse como cuba abierta; las de días anteriores, cerradas.
               if(esDeHoy && full.hasOwnProperty('cerrado')){
-                // respetar tal cual lo que guardó el parte (abierto o cerrado)
                 full.cerrado = !!full.cerrado;
               } else {
-                // día anterior, o JSON sin estado → cerrado
                 full.cerrado = true;
               }
               return full;
@@ -5990,6 +6015,19 @@ function init(){
     try{ cargarStockMaterial(); }catch(e){}
     try{ sincronizarPendientes(); }catch(e){}
   }, 1000);
+
+  // 6. Copia de seguridad periódica: cada 2,5 min, si hay una cuba abierta a medias,
+  // se respalda en Google. Como el guardado es upsert por ID, no duplica.
+  try{
+    if(window._nubePeriodico) clearInterval(window._nubePeriodico);
+    window._nubePeriodico = setInterval(function(){
+      try{
+        if(!CUBA_ACTIVA_ID) return;
+        var p = PARTES.find(function(x){return x.id===CUBA_ACTIVA_ID;});
+        if(p && !p.cerrado && typeof enviarParteSheets === 'function') enviarParteSheets(p);
+      }catch(e){}
+    }, 150000); // 2,5 minutos
+  }catch(e){}
 }
 
 
