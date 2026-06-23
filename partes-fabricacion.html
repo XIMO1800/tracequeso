@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.208</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.209</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1937,7 +1937,10 @@ function autoGuardarParte(parteId){
   persistir();
   // Copia de seguridad en Google (con debounce): si la cuba está a medias, queda
   // respaldada en la nube para no perderla ante un cierre/pifia de la tablet.
-  try{ guardarEnNubeConDebounce(parteId); }catch(e){}
+  // (DESACTIVADO) El guardado automático en la nube pisaba versiones buenas con
+  // versiones incompletas. Ahora el parte solo se envía a Google al CERRARLO,
+  // que es cuando los datos están completos. El autoguardado sigue siendo LOCAL.
+  // try{ guardarEnNubeConDebounce(parteId); }catch(e){}
   // Refrescar las pestañas (cambia el nombre si cambió tipo/variedad)
   renderPestanasCubas();
 }
@@ -6052,18 +6055,9 @@ function init(){
     try{ sincronizarPendientes(); }catch(e){}
   }, 1000);
 
-  // 6. Copia de seguridad periódica: cada 2,5 min, si hay una cuba abierta a medias,
-  // se respalda en Google. Como el guardado es upsert por ID, no duplica.
-  try{
-    if(window._nubePeriodico) clearInterval(window._nubePeriodico);
-    window._nubePeriodico = setInterval(function(){
-      try{
-        if(!CUBA_ACTIVA_ID) return;
-        var p = PARTES.find(function(x){return x.id===CUBA_ACTIVA_ID;});
-        if(p && !p.cerrado && typeof enviarParteSheets === 'function') enviarParteSheets(p);
-      }catch(e){}
-    }, 150000); // 2,5 minutos
-  }catch(e){}
+  // 6. (DESACTIVADO) La copia de seguridad periódica en la nube pisaba versiones
+  // buenas con incompletas. El parte se envía a Google solo al CERRARLO.
+  try{ if(window._nubePeriodico) clearInterval(window._nubePeriodico); }catch(e){}
 }
 
 
