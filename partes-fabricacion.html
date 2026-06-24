@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.215</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.216</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2042,11 +2042,13 @@ function _capturarAuxFermCuajoEnParte(p){
   // Dosis utilizada: si hay override manual para ese producto, se respeta (incluido 0);
   // si no, se calcula desde la dosis de receta.
   function dosisUtil(dosis_1000L, nombre){
+    // La dosis utilizada se redondea SIEMPRE al alza, al múltiplo de 5 más cercano por arriba
+    // (p.ej. 9500 L × 15/1000 = 142,5 → 145). Aplica a fermentos, auxiliares y cuajo.
     if(nombre && ovr && ovr.hasOwnProperty(nombre)){
-      return Math.round((litros * (parseFloat(ovr[nombre])||0) / 1000) * 10) / 10;
+      return _redondeaAlza5(litros * (parseFloat(ovr[nombre])||0) / 1000);
     }
     var d = parseFloat(dosis_1000L) || 0;
-    return Math.round((litros * d / 1000) * 10) / 10;
+    return _redondeaAlza5(litros * d / 1000);
   }
   // Auxiliares
   p.auxiliares = (receta.auxiliares||[]).map(function(a){
@@ -2711,7 +2713,7 @@ function _calcReparteTA054(receta, litros){
   var tamG = _sobreFermento(fGrande.nombre).tam;            // 50
   var tamP = fPeq ? _sobreFermento(fPeq.nombre).tam : 0;    // 25 (o 0 si no hay)
   var dosisObjetivo = parseFloat(fGrande.dosis_ml_1000L) || 0; // 20 dosis/1000L
-  var objetivo = Math.round((litros * dosisObjetivo / 1000) * 10) / 10; // ej. 170
+  var objetivo = _redondeaAlza5(litros * dosisObjetivo / 1000); // redondeo al alza de 5 (ej. 170)
   // Llenar con grandes primero (sin pasarse), luego decidir el pequeño por cercanía
   var nG = Math.floor(objetivo / tamG);
   var resto = objetivo - nG * tamG; // lo que falta tras los grandes
