@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.226</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.227</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3175,7 +3175,7 @@ function abrirSelectorLote(producto){
         +  '<div class="opt-row-lote">'+s.lote+marca+'</div>'
         +  '<div class="opt-row-meta">Cad: '+(s.caducidad?formatearFecha(s.caducidad):'—')+(s.proveedor?' · '+s.proveedor:'')+'</div>'
         +'</div>'
-        +'<div class="opt-row-stock">'+s.cantidad+' '+(s.unidad||'')+'</div>'
+        +'<div class="opt-row-stock">'+(s.stockActual!=null?s.stockActual:(s.cantidad!=null?s.cantidad:0))+' '+(s.unidad||'')+'</div>'
         +'</div>';
     });
   }
@@ -3193,7 +3193,7 @@ function seleccionarLote(producto,idx){
     lote:s.lote,
     caducidad:s.caducidad,
     proveedor:s.proveedor,
-    cantidad:s.cantidad,
+    cantidad:(s.stockActual!=null?s.stockActual:s.cantidad),
     unidad:s.unidad
   };
   parteActual.lotes_seleccionados[producto]=s.lote;
