@@ -852,15 +852,15 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.221</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.222</div>
   </div>
 </div>
 <div class="nav-tabs">
   <div class="nav-tab active" data-tab="hoy" onclick="switchTab('hoy')">📝 HOY</div>
   <div class="nav-tab" data-tab="historial" onclick="switchTab('historial')">📚 HISTORIAL</div>
   <div class="nav-tab" data-tab="recetas" onclick="switchTab('recetas')">📖 RECETAS</div>
-  <div class="nav-tab" data-tab="lotes" onclick="switchTab('lotes')">🏷️ LOTES</div>
-  <div class="nav-tab" data-tab="stock" onclick="switchTab('stock')">📦 STOCK</div>
+  <div class="nav-tab" data-tab="lotes" onclick="switchTab('lotes')">📦 STOCK</div>
+  <div class="nav-tab" data-tab="stock" onclick="switchTab('stock')">🏷️ LOTES</div>
 </div>
 
 <div id="screen-hoy" class="screen">
@@ -1265,12 +1265,12 @@ input[type="email"] {
 </div>
 
 <div id="screen-lotes" class="screen">
-  <div class="warn-banner">🏷️ Lotes activos por producto. Solo lectura — Calidad mantiene los datos desde TraceQueso.</div>
+  <div class="warn-banner">📦 Stock de fermentos, cuajos y auxiliares. Solo los lotes que tienes disponibles. Solo lectura — Calidad gestiona las entradas desde TraceQueso.</div>
   <div class="card" id="lista-lotes"></div>
 </div>
 
 <div id="screen-stock" class="screen">
-  <div class="warn-banner">📦 Stock de fermentos, cuajos y auxiliares. Solo lectura — Calidad gestiona las entradas desde TraceQueso.</div>
+  <div class="warn-banner">🏷️ Lote activo de cada producto (🟢 el que se usará en el parte). Solo lectura — Calidad mantiene los datos desde TraceQueso.</div>
   <div class="card" id="lista-stock"></div>
 </div>
 
@@ -5425,55 +5425,48 @@ function renderStock(){
   var c=document.getElementById('lista-stock');
   if(!c) return;
   var stockTodo = (STOCK_REMOTO && STOCK_REMOTO.stock) ? STOCK_REMOTO.stock.map(normRowStock) : [];
-  // Filtrar solo categorías de fabricación (no plástico, cartonaje, etiquetas, etc.)
+  // Esta pestaña es LOTES: muestra SOLO el lote activo de cada artículo (el más antiguo
+  // vigente por caducidad = el que la app pondrá en el parte). Es el "papelito" del lote
+  // en uso, para verificar contra la bolsa física.
   var CATS_FABRI = ['FERMENTO','AUXILIAR FABRICACION','CUAJO'];
   var stock = stockTodo.filter(function(r){
-    return CATS_FABRI.indexOf((r.categoria||'').toUpperCase()) >= 0;
+    return r.stockActual > 0 && CATS_FABRI.indexOf((r.categoria||'').toUpperCase()) >= 0;
   });
   if(!stock.length){
-    c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">Sin stock de fabricación</div><div style="margin-top:6px;font-size:0.78rem;color:var(--text3)">Calidad debe registrar fermentos, cuajos y auxiliares desde TraceQueso</div></div>';
+    c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏷️</div><div class="empty-state-text">Sin lotes activos de fabricación</div><div style="margin-top:6px;font-size:0.78rem;color:var(--text3)">Calidad debe registrar fermentos, cuajos y auxiliares desde TraceQueso</div></div>';
     return;
   }
-  // Agrupar por categoría
-  var porCat = {};
+  // Agrupar por artículo y quedarnos con el lote activo (más antiguo por caducidad)
+  var porArt = {};
   stock.forEach(function(r){
-    var c = r.categoria || 'OTROS';
-    if(!porCat[c]) porCat[c] = [];
-    porCat[c].push(r);
+    var k = (r.categoria||'?').toUpperCase()+'|'+(r.articulo||'?');
+    if(!porArt[k]) porArt[k] = { categoria:r.categoria, articulo:r.articulo, lotes:[] };
+    porArt[k].lotes.push(r);
   });
   var html='';
-  Object.keys(porCat).sort().forEach(function(cat){
-    var items = porCat[cat];
-    // Agrupar por artículo dentro de cada categoría
-    var porArt = {};
-    items.forEach(function(r){
-      var k = r.articulo || '?';
-      if(!porArt[k]) porArt[k] = { articulo:r.articulo, lotes:[], total:0, unidad:'' };
-      porArt[k].lotes.push(r);
-      porArt[k].total += r.stockActual;
-      if(!porArt[k].unidad && r.unidad) porArt[k].unidad = r.unidad;
+  Object.keys(porArt).sort().forEach(function(k){
+    var a = porArt[k];
+    // El lote activo = el más antiguo por caducidad (mismo criterio FIFO que usa el parte)
+    a.lotes.sort(function(x,y){
+      if(!x.caducidad) return 1;
+      if(!y.caducidad) return -1;
+      return x.caducidad.localeCompare(y.caducidad);
     });
-    var icono = iconoCategoria(cat);
-    html += '<div style="margin-bottom:18px">';
-    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 4px"><span style="font-size:1.3rem">'+icono+'</span><b style="font-size:0.95rem">'+cat+'</b><span style="font-size:0.72rem;color:var(--text3)">· '+Object.keys(porArt).length+' artículo'+(Object.keys(porArt).length!==1?'s':'')+'</span></div>';
-    Object.keys(porArt).sort().forEach(function(art){
-      var a = porArt[art];
-      var color = a.total<=0 ? 'crit' : (a.total<5 ? 'low' : 'ok');
-      html += '<div class="lote-row">';
-      html += '<div class="lote-row-top"><div class="lote-row-producto">'+a.articulo+'</div><div class="lote-row-lote">'+a.total+(a.unidad?' '+a.unidad:'')+'</div></div>';
-      html += '<div class="lote-row-meta">'+a.lotes.length+' lote'+(a.lotes.length!==1?'s':'')+'</div>';
-      html += '<div style="margin-top:6px">';
-      a.lotes.forEach(function(l){
-        var agotado = l.stockActual <= 0;
-        html += '<div style="font-size:0.74rem;padding:5px 8px;margin:2px 0;color:var(--text2);border-radius:6px;background:var(--bg2);'+(agotado?'opacity:0.55;':'')+'">';
-        html += '<span style="font-family:Courier New,monospace;font-weight:700;color:var(--text)">'+l.lote+'</span>';
-        if(l.proveedor) html += ' · '+l.proveedor;
-        html += ' · <b>'+l.stockActual+' '+(l.unidad||'')+'</b>';
-        if(l.caducidad) html += ' · cad '+l.caducidad;
-        html += '</div>';
-      });
-      html += '</div></div>';
-    });
+    var l = a.lotes[0];
+    var icono = iconoCategoria(a.categoria);
+    var nOtros = a.lotes.length - 1;
+    html += '<div style="margin-bottom:12px;padding:10px;background:var(--bg2);border-radius:10px;border:1px solid var(--border)">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:1.1rem">'+icono+'</span><b>'+a.articulo+'</b><span style="font-size:0.7rem;color:var(--text3)">·'+a.categoria+'</span></div>';
+    html += '<div style="font-size:0.82rem;padding:7px 9px;color:var(--text2);border-radius:6px;background:var(--bg);border-left:3px solid var(--accent)">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+    html += '<span><span style="font-family:Courier New,monospace;font-weight:700;color:var(--text)">'+l.lote+'</span>'+(l.proveedor?' · '+l.proveedor:'')+'</span>';
+    html += '<b>'+l.stockActual+' '+(l.unidad||'')+'</b>';
+    html += '</div>';
+    html += '<div style="margin-top:3px;font-size:0.7rem;color:var(--text3)">'+(l.caducidad?'Cad: '+l.caducidad+' · ':'')+'<b style="color:var(--accent)">🟢 USAR PRIMERO</b></div>';
+    html += '</div>';
+    if(nOtros > 0){
+      html += '<div style="margin-top:5px;font-size:0.68rem;color:var(--text3);text-align:right">+ '+nOtros+' lote'+(nOtros!==1?'s':'')+' más en stock</div>';
+    }
     html += '</div>';
   });
   c.innerHTML = html;
