@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.213</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.215</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1460,10 +1460,19 @@ var CUBA_ACTIVA_ID = null; // ID de la cuba que está visible en el panel
 
 function renderPestanasCubas(){
   var hoy = new Date().toISOString().slice(0,10);
-  // Cubas de hoy QUE NO ESTÁN CERRADAS
+  // Cubas de hoy QUE NO ESTÁN CERRADAS, más las reactivadas de días anteriores (que mantienen
+  // su fecha original pero se traen a HOY para terminarlas — solo Calidad/Admin las trae).
   var cubasHoy = PARTES.filter(function(p){
-    return (p.fecha===hoy || (p.fecha&&p.fecha.toString().indexOf(hoy)>=0)) && !p.cerrado;
+    if(p.cerrado) return false;
+    var esHoy = (p.fecha===hoy || (p.fecha&&p.fecha.toString().indexOf(hoy)>=0));
+    return esHoy || p.reactivadoEnHoy===true;
   });
+  // Si la cuba activa ya no está entre las cubas de hoy sin cerrar (cambió el día, se cerró
+  // o se reactivó otra), limpiar la referencia y el badge para no arrastrar una cuba vieja.
+  if(CUBA_ACTIVA_ID && !cubasHoy.some(function(p){return p.id===CUBA_ACTIVA_ID;})){
+    CUBA_ACTIVA_ID = null;
+    var _bdg = document.getElementById('hdr-cuba-badge'); if(_bdg) _bdg.style.display='none';
+  }
   // Ordenar por nº de cuba ascendente (1, 2, 3...) — la más nueva a la derecha
   cubasHoy.sort(function(a,b){ return (parseInt(a.cuba)||0) - (parseInt(b.cuba)||0); });
   var wrap = document.getElementById('cubas-pestanas-wrap');
@@ -1958,6 +1967,7 @@ function _cerrarParteActivoConfirmar(id){
   var avisoStock = _avisoStockInsuficiente(p);
   if(avisoStock && !confirm(avisoStock)) return;
   p.cerrado = true;
+  if(p.reactivadoEnHoy) delete p.reactivadoEnHoy; // vuelve al historial en su fecha original
   persistir();
   enviarParteSheets(p);
   CUBA_ACTIVA_ID = null; var _b=document.getElementById("hdr-cuba-badge"); if(_b) _b.style.display="none";
@@ -3391,6 +3401,9 @@ function renderPartes(){
     if(modo==='originales'){
       // Realidad: solo ORIGINALES (nunca los revisados).
       if(p.version==='revisado') return false;
+      // Un parte reactivado a HOY (de un día anterior, traído para terminarlo) no se muestra
+      // en el historial mientras está en proceso; reaparecerá al cerrarlo.
+      if(p.reactivadoEnHoy===true && !p.cerrado) return false;
       // El historial muestra lo TERMINADO/PASADO: partes cerrados (de cualquier día),
       // o partes de DÍAS ANTERIORES aunque no estén cerrados (para poder cerrarlos/consultarlos).
       // Las cubas de HOY sin cerrar NO van al historial: viven en la pestaña HOY.
@@ -3818,13 +3831,17 @@ function editarParteCompleto(id, soloLectura){
     h += '<button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>';
     if(esCalidadOAdmin()) h += '<button class="btn btn-primary" onclick="editarParteCompleto(\''+p.id+'\')">✏️ Editar parte</button>';
     h += '</div>';
-    // Reactivar: si el parte está CERRADO y es de HOY, cualquier rol puede devolverlo a la
-    // pestaña Hoy para seguir rellenándolo (p.ej. si se cerró por error). Solo del día de hoy.
+    // Reactivar: devolver el parte a la pestaña HOY para seguir rellenándolo con cálculos vivos.
+    //  · Partes de HOY: cualquier rol (p.ej. si se cerró por error).
+    //  · Partes de DÍAS ANTERIORES (sin terminar): SOLO Calidad/Joaquín-Admin.
+    // En ambos casos, nunca sobre una versión revisada.
     var _hoyISO_v = new Date().toISOString().slice(0,10);
     var _esHoy_v = p.fecha===_hoyISO_v || (p.fecha && String(p.fecha).indexOf(_hoyISO_v)>=0);
     var _esRev_v = (p.version==='revisado' || String(p.id||'').indexOf('PR-')===0);
-    if(p.cerrado && _esHoy_v && !_esRev_v){
-      h += '<button class="btn" style="width:100%;margin-top:8px;background:#fff;border:1.5px solid var(--brand);color:var(--brand);font-weight:700" onclick="reactivarParteHoy(\''+p.id+'\')">↩️ Reactivar parte (volver a Hoy)</button>';
+    var _puedeReactivar = !_esRev_v && (_esHoy_v || esCalidadOAdmin());
+    if(_puedeReactivar){
+      var _txtBtn = _esHoy_v ? '↩️ Reactivar parte (volver a Hoy)' : '↩️ Reactivar parte de '+(p.fecha||'')+' (volver a Hoy)';
+      h += '<button class="btn" style="width:100%;margin-top:8px;background:#fff;border:1.5px solid var(--brand);color:var(--brand);font-weight:700" onclick="reactivarParteHoy(\''+p.id+'\')">'+_txtBtn+'</button>';
     }
   } else {
     h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">';
@@ -4978,13 +4995,21 @@ function eliminarVistoBueno(id){
 function reactivarParteHoy(id){
   var p = PARTES.find(function(x){return x.id===id;});
   if(!p){ toast('No se encuentra el parte','warn'); return; }
-  // Seguridad: solo partes de HOY y que no sean una versión revisada.
   var hoyISO = new Date().toISOString().slice(0,10);
   var esHoy = p.fecha===hoyISO || (p.fecha && String(p.fecha).indexOf(hoyISO)>=0);
   var esRev = (p.version==='revisado' || String(p.id||'').indexOf('PR-')===0);
-  if(!esHoy || esRev){ toast('Solo se pueden reactivar partes cerrados de HOY','warn'); return; }
-  if(!confirm('¿Reactivar este parte y devolverlo a la pestaña HOY?\n\nVolverá a aparecer como cuba en proceso para que puedas seguir rellenando los datos que falten.')) return;
+  // Nunca sobre una versión revisada.
+  if(esRev){ toast('No se puede reactivar una versión revisada','warn'); return; }
+  // Partes de DÍAS ANTERIORES: solo Calidad/Joaquín-Admin.
+  if(!esHoy && !esCalidadOAdmin()){ toast('Solo Calidad puede reactivar partes de días anteriores','warn'); return; }
+  var msg = esHoy
+    ? '¿Reactivar este parte y devolverlo a la pestaña HOY?\n\nVolverá a aparecer como cuba en proceso para que puedas seguir rellenando los datos que falten.'
+    : '¿Reactivar este parte del '+(p.fecha||'')+' y traerlo a HOY para terminarlo?\n\nMantendrá su fecha original ('+(p.fecha||'')+'). Al cerrarlo volverá al historial en su fecha. Los cálculos y descuentos de stock se aplicarán como en una cuba normal.';
+  if(!confirm(msg)) return;
   p.cerrado = false;
+  // Si es de un día anterior, marcarlo para que aparezca en las pestañas de HOY sin cambiar
+  // su fecha real. La marca se retira al cerrar el parte (volverParteAHistorial / cierre).
+  if(!esHoy){ p.reactivadoEnHoy = true; }
   persistir();
   try{ enviarParteSheets(p); }catch(e){}   // que en Google también conste como abierto
   cerrarModal();
@@ -6090,6 +6115,24 @@ function init(){
   // 6. (DESACTIVADO) La copia de seguridad periódica en la nube pisaba versiones
   // buenas con incompletas. El parte se envía a Google solo al CERRARLO.
   try{ if(window._nubePeriodico) clearInterval(window._nubePeriodico); }catch(e){}
+
+  // 7. Al volver la app a primer plano (encender la tablet, volver desde otra app),
+  // recalcular las pestañas de HOY: si ha cambiado el día, las cubas de ayer sin cerrar
+  // ya no deben verse en HOY (quedan en el historial). Evita arrastrar pestañas viejas.
+  try{
+    document.addEventListener('visibilitychange', function(){
+      if(document.visibilityState === 'visible'){
+        try{ renderPestanasCubas(); }catch(e){}
+        // Si estamos en HOY y la cuba activa ya no existe, refrescar el panel a vacío.
+        var tabHoy = document.querySelector('.nav-tab[data-tab="hoy"]');
+        var esHoy = tabHoy && tabHoy.classList.contains('active');
+        if(esHoy && !CUBA_ACTIVA_ID){
+          var panel = document.getElementById('panel-cuba-activa');
+          if(panel) panel.innerHTML = '<div class="empty-state" style="padding:40px 20px"><div class="empty-state-icon">🥛</div><div class="empty-state-text">No hay cubas abiertas hoy.<br>Pulsa <b>+ Nueva cuba</b> para empezar.</div></div>';
+        }
+      }
+    });
+  }catch(e){}
 }
 
 
