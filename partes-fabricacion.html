@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.216</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.217</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1975,6 +1975,13 @@ function _cerrarParteActivoConfirmar(id){
   if(panel) panel.innerHTML = '<div class="empty-state" style="padding:40px 20px"><div class="empty-state-icon">✓</div><div class="empty-state-text">Parte cerrado y enviado al historial</div></div>';
   renderPestanasCubas();
   toast('✓ Parte cerrado');
+  // Refrescar stock y lotes: al cerrar, Google ya ha descontado los consumos de este parte.
+  // Recargamos SOLO stock/recetas (NO las cubas), tras un margen para que el guardado llegue.
+  // Así las pestañas Stock y Lotes muestran las cantidades nuevas sin pulsar "Recargar".
+  setTimeout(function(){
+    try{ if(typeof cargarStockMaterial==='function') cargarStockMaterial(); }catch(e){}
+    try{ if(typeof cargarRecetasSheets==='function') cargarRecetasSheets(); }catch(e){}
+  }, 2500);
 }
 
 // Convierte el consumo (g/ml, porque la dosis es por 1000 L) a la unidad del
