@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.219</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.221</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1216,6 +1216,12 @@ input[type="email"] {
         <div class="form-row"><label class="form-label">1/2 KG</label><input type="number" id="pzas-05kg" inputmode="numeric"></div>
         <div class="form-row"><label class="form-label">Barra</label><input type="number" id="pzas-barra" inputmode="numeric"></div>
         <div class="form-row"><label class="form-label">Gigante</label><input type="number" id="pzas-gigante" inputmode="numeric"></div>
+      </div>
+      <!-- Piezas BAJO EN SAL: campos independientes (NO es 'de las cuales'). El quesero
+           mete por separado las piezas normales y las bajas en sal de cada formato.
+           Se abren automáticamente según los saladeros bajo en sal. -->
+      <div id="pzas-bajosal-wrap" style="display:none">
+        <div id="pzas-bajosal-cont"></div>
       </div>
       <!-- Caseínas: solo visible para D.O. PAST. y D.O. CRUDA -->
       <div id="bloque-caseinas" style="display:none">
@@ -1793,6 +1799,8 @@ function rellenarCampos(p){
     v('pzas-1kg', p.piezas['1kg']); v('pzas-05kg', p.piezas['05kg']);
     v('pzas-barra', p.piezas['barra']); v('pzas-gigante', p.piezas['gigante']);
   }
+  // Piezas bajo en sal: pintar los huecos según los saladeros bajo en sal y rellenar valores
+  try{ renderPiezasBajoSal(p.piezas_bajosal || {}); }catch(e){}
   // Caseínas
   // Caseínas: reconstruir los rangos (soporta formato antiguo de un solo rango)
   if(p.caseinas && p.caseinas.rangos && p.caseinas.rangos.length){
@@ -1927,6 +1935,7 @@ function autoGuardarParte(parteId){
   p.desmoldeos = (typeof recogerDesmoldeos === 'function') ? recogerDesmoldeos() : [];
   p.salmueras = (typeof recogerSalmueras === 'function') ? recogerSalmueras() : [];
   p.piezas = {'3kg':gi('pzas-3kg'),'2kg':gi('pzas-2kg'),'1kg':gi('pzas-1kg'),'05kg':gi('pzas-05kg'),'barra':gi('pzas-barra'),'gigante':gi('pzas-gigante')};
+  p.piezas_bajosal = (typeof recogerPiezasBajoSal === 'function') ? recogerPiezasBajoSal() : {};
   p.caseinas = (function(){
     var rangos = CAS_RANGOS.filter(function(r){ return _casTotalRango(r)>0; }).map(function(r){ return {serie:(r.serie||'').toUpperCase(), primera:parseInt(r.primera)||0, ultima:parseInt(r.ultima)||0, total:_casTotalRango(r)}; });
     var total = rangos.reduce(function(s,r){ return s+r.total; }, 0);
@@ -3646,12 +3655,19 @@ function _verParteRender(id){
   // Piezas fabricadas
   if(p.piezas){
     var pi='';
+    var _bs = p.piezas_bajosal || {};
     if(p.piezas['3kg'])  pi += fila('3 KG',   p.piezas['3kg']+' pzas');
+    if(_bs['3kg'])       pi += fila('3 KG bajo en sal',   _bs['3kg']+' pzas');
     if(p.piezas['2kg'])  pi += fila('2 KG',   p.piezas['2kg']+' pzas');
+    if(_bs['2kg'])       pi += fila('2 KG bajo en sal',   _bs['2kg']+' pzas');
     if(p.piezas['1kg'])  pi += fila('1 KG',   p.piezas['1kg']+' pzas');
+    if(_bs['1kg'])       pi += fila('1 KG bajo en sal',   _bs['1kg']+' pzas');
     if(p.piezas['05kg']) pi += fila('1/2 KG', p.piezas['05kg']+' pzas');
+    if(_bs['05kg'])      pi += fila('1/2 KG bajo en sal', _bs['05kg']+' pzas');
     if(p.piezas['barra'])pi += fila('Barra',  p.piezas['barra']+' pzas');
+    if(_bs['barra'])     pi += fila('Barra bajo en sal',  _bs['barra']+' pzas');
     if(p.piezas['gigante'])pi += fila('Gigante', p.piezas['gigante']+' pzas');
+    if(_bs['gigante'])     pi += fila('Gigante bajo en sal', _bs['gigante']+' pzas');
     // Caseínas: mostrar siempre que haya rangos con datos (no depender del campo total,
     // que en guardados antiguos pudo quedar en 0).
     var _casR = (p.caseinas && p.caseinas.rangos && p.caseinas.rangos.length)
@@ -6714,6 +6730,69 @@ function renderSalmueras(lista){
   if (!lista || !lista.length) { anadirSalmuera(); return; }
   lista.forEach(function(s){ anadirSalmuera(s); });
 }
+
+// ── PIEZAS BAJO EN SAL ──────────────────────────────────────────────
+// Mapa formato (texto del desplegable) → clave de piezas.
+var _FMT2KEY = {'3 KG':'3kg','2 KG':'2kg','1 KG':'1kg','1/2 KG':'05kg','BARRA':'barra','GIGANTE':'gigante'};
+var _KEY2LBL = {'3kg':'3 KG','2kg':'2 KG','1kg':'1 KG','05kg':'1/2 KG','barra':'Barra','gigante':'Gigante'};
+
+// Devuelve las CLAVES de formato que tienen algún saladero "bajo en sal"
+// entre las salmueras actualmente en pantalla (en orden de formato fijo).
+function _formatosBajoSalActivos(){
+  var claves = {};
+  var cards = document.querySelectorAll('#salmueras-container .pren-card');
+  cards.forEach(function(c){
+    var fmt = (c.querySelector('.salm-formato')||{}).value || '';
+    var fp = _parseFormatoSal(fmt);
+    if (fp.bajosal && _FMT2KEY[fp.base]) claves[_FMT2KEY[fp.base]] = true;
+  });
+  // Devolver en el orden fijo de formatos
+  return ['3kg','2kg','1kg','05kg','barra','gigante'].filter(function(k){ return claves[k]; });
+}
+
+// Pinta los campos de "piezas bajo en sal" según los saladeros bajo en sal.
+// Conserva los valores ya tecleados. Si no hay ninguno, oculta el bloque.
+function renderPiezasBajoSal(valores){
+  var wrap = document.getElementById('pzas-bajosal-wrap');
+  var cont = document.getElementById('pzas-bajosal-cont');
+  if (!wrap || !cont) return;
+  // Recoger lo que ya hubiera tecleado (para no perderlo al repintar)
+  var prev = {};
+  cont.querySelectorAll('input[data-bskey]').forEach(function(inp){ prev[inp.dataset.bskey] = inp.value; });
+  if (valores) Object.keys(valores).forEach(function(k){ if(valores[k]!==undefined && valores[k]!==null) prev[k]=valores[k]; });
+
+  var claves = _formatosBajoSalActivos();
+  if (!claves.length) { wrap.style.display = 'none'; cont.innerHTML = ''; return; }
+  wrap.style.display = '';
+  var h = '';
+  for (var i = 0; i < claves.length; i += 3) {
+    h += '<div class="form-cols-3">';
+    claves.slice(i, i+3).forEach(function(k){
+      var val = (prev[k]!==undefined && prev[k]!==null) ? prev[k] : '';
+      h += '<div class="form-row"><label class="form-label">'+_KEY2LBL[k]+' bajo en sal</label>'
+         + '<input type="number" inputmode="numeric" data-bskey="'+k+'" id="pzas-bs-'+k+'" value="'+val+'"></div>';
+    });
+    h += '</div>';
+  }
+  cont.innerHTML = h;
+  // Autoguardado al teclear
+  cont.querySelectorAll('input[data-bskey]').forEach(function(inp){
+    inp.addEventListener('change', function(){ if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID); });
+  });
+}
+
+// Recoge las piezas bajo en sal tecleadas → objeto {clave: numero}
+function recogerPiezasBajoSal(){
+  var out = {};
+  var cont = document.getElementById('pzas-bajosal-cont');
+  if (!cont) return out;
+  cont.querySelectorAll('input[data-bskey]').forEach(function(inp){
+    var n = parseInt(inp.value)||0;
+    if (n) out[inp.dataset.bskey] = n;
+  });
+  return out;
+}
+
 function anadirSalmuera(datos){
   if (!SALMUERA_CONFIG) cargarSalmueraConfig();
   datos = datos || {};
@@ -6760,6 +6839,7 @@ function anadirSalmuera(datos){
     if (selFmt.value && inpHi.value) {
       inpHf.value = calcHoraFinSalmuera(selFmt.value, inpHi.value);
     }
+    try{ renderPiezasBajoSal(); }catch(e){}  // abrir/cerrar huecos de piezas bajo en sal
     if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
   }
   selFmt.addEventListener('change', recalcHorasSalm);
@@ -6772,6 +6852,7 @@ function anadirSalmuera(datos){
 function quitarSalmuera(btn){
   var card = btn.closest('.pren-card');
   if (card) card.remove();
+  try{ renderPiezasBajoSal(); }catch(e){}  // recalcular huecos de piezas bajo en sal
   if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
 }
 function recogerSalmueras(){
