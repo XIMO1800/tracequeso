@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.224</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.225</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3881,6 +3881,30 @@ function editarParteCompleto(id, soloLectura){
   if(!p.tanque_cabra)  p.tanque_cabra  = '';
   if(!p.tanque_oveja)  p.tanque_oveja  = '';
 
+  // ORIGINAL INMUTABLE: si vamos a EDITAR (no solo lectura) un original CERRADO,
+  // trabajamos sobre una COPIA en memoria, no sobre el objeto del array. Así, aunque
+  // el editor vuelque los datos del DOM, el original de PARTES nunca se altera. Al
+  // guardar, guardarParteEditado detectará que es original cerrado y creará/actualizará
+  // la copia REVISADA con estos cambios. Si ya existe una revisada, editamos esa copia.
+  var _esRevP = (p.version==='revisado' || String(p.id||'').indexOf('PR-')===0);
+  if(!soloLectura && !_esRevP && p.cerrado===true){
+    var _revExist = PARTES.find(function(x){
+      return (x.version==='revisado' || String(x.id||'').indexOf('PR-')===0) &&
+             (x.original_id===p.id || x.id_original===p.id);
+    });
+    // Si ya hay revisada, editamos una copia de la revisada; si no, copia del original.
+    p = JSON.parse(JSON.stringify(_revExist || p));
+    if(_revExist){
+      // Mantener identidad de revisada existente
+      p.id = _revExist.id; p.version='revisado'; p.original_id = _revExist.original_id || _revExist.id_original;
+    } else {
+      // Copia de trabajo del original: al guardar se convertirá en PR- (no la marcamos aún
+      // para que guardarParteEditado la trate como "original cerrado" y genere la revisada).
+      // Conservamos el id del original en la copia para que guardarParteEditado lo localice.
+      p.id = (window._parteEditando && false) ? p.id : p.id; // id del original (sin cambios)
+    }
+  }
+
   window._parteEditando = p;
   window._epSoloLectura = !!soloLectura;
   _EP_CAS_RANGOS = []; // forzar recarga de rangos desde este parte al pintar
@@ -4974,12 +4998,17 @@ function onEpTipoChange(){
 }
 
 function guardarParteEditado(id){
-  var idx = PARTES.findIndex(function(x){return x.id===id;});
-  if(idx<0){ toast('Parte no encontrado','err'); return; }
-
-  // Recoger todo del DOM al estado
+  // Fuente de verdad: el objeto que se ha estado editando (puede ser copia de trabajo).
   _epRecogerEnEstado();
   var p = window._parteEditando;
+  if(!p){ toast('Parte no encontrado','err'); return; }
+  // Localizar el ORIGINAL en PARTES: si la copia de trabajo conserva el id del original,
+  // es ese; si es una revisada, su original es original_id; si no, el propio id.
+  var _esRevAhora = (p.version==='revisado' || String(p.id||'').indexOf('PR-')===0);
+  var origLookupId = _esRevAhora ? (p.original_id || p.id_original || id) : (id || p.id);
+  var idx = PARTES.findIndex(function(x){return x.id===origLookupId;});
+  if(idx<0) idx = PARTES.findIndex(function(x){return x.id===id;});
+  if(idx<0){ toast('Parte no encontrado','err'); return; }
 
   // AVISO (no bloqueante) de datos incompletos: a diferencia de la firma, aquí se permite
   // guardar a medias, pero se informa a Calidad de lo que falta para que decida.
@@ -4992,11 +5021,90 @@ function guardarParteEditado(id){
     }
   }catch(e){}
 
+  // ── ORIGINAL INMUTABLE vs REVISADA ──────────────────────────────────────
+  // Regla: un ORIGINAL CERRADO no se modifica nunca. Si Calidad lo edita desde el
+  // historial, los cambios se vuelcan en su copia REVISADA (PR-), creándola si no
+  // existe, y el original queda congelado tal como lo cerró el quesero.
+  // Casos en que se edita el propio objeto (como antes):
+  //   · Ya es una revisada (PR- / version 'revisado') → se actualiza ella misma.
+  //   · El parte NO está cerrado (reactivado o de HOY) → sigue siendo original y se
+  //     machaca sobre sí mismo (camino "reactivar": meter datos sin que cuente como revisión).
+  var _esRevision = (p.version==='revisado' || String(p.id||'').indexOf('PR-')===0);
+  var _esOriginalCerrado = !_esRevision && (p.cerrado === true);
+
+  if(_esOriginalCerrado){
+    // Buscar si ya existe una revisada de este original
+    var origId = p.id;
+    var revIdx = PARTES.findIndex(function(x){
+      return (x.version==='revisado' || String(x.id||'').indexOf('PR-')===0) &&
+             (x.original_id===origId || x.id_original===origId);
+    });
+    // Construir la revisada a partir de lo editado (p), pero con identidad de revisada
+    var rev = JSON.parse(JSON.stringify(p));
+    rev.version = 'revisado';
+    rev.original_id = origId;
+    rev.id = (revIdx>=0) ? PARTES[revIdx].id : ('PR-' + Date.now());
+    // Conservar la firma/marca de revisión previa si la había
+    if(revIdx>=0){
+      rev.firma_calidad         = PARTES[revIdx].firma_calidad || rev.firma_calidad;
+      rev.revisado_calidad      = PARTES[revIdx].revisado_calidad || rev.revisado_calidad;
+      rev.revisado_calidad_por  = PARTES[revIdx].revisado_calidad_por || rev.revisado_calidad_por;
+      rev.revisado_calidad_ts   = PARTES[revIdx].revisado_calidad_ts || rev.revisado_calidad_ts;
+    }
+    rev.modificado_por   = (typeof CU!=='undefined' && CU && CU.n) ? CU.n : (window._operarioActual||'Calidad');
+    rev.fecha_modificado = new Date().toISOString();
+    // Recuperar el ORIGINAL intacto desde PARTES (no el objeto editado en memoria)
+    // y marcarlo como que ya tiene revisión, SIN tocar sus datos.
+    var origGuardado = PARTES[idx];
+    // Restaurar en el original cualquier dato que la edición hubiera podido tocar en memoria:
+    // como _parteEditando apuntaba al MISMO objeto que PARTES[idx], los cambios del DOM ya
+    // están en él. Para garantizar inmutabilidad, recargamos el original desde su copia previa
+    // si la tenemos; si no, al menos marcamos la relación y reenviamos el original tal cual.
+    var orig = PARTES[idx];
+    orig.tiene_revision = true;
+    orig.version = orig.version || 'original';
+
+    if(revIdx>=0) PARTES[revIdx] = rev; else PARTES.push(rev);
+    persistir();
+
+    var btnR = document.getElementById('btn-ep-guardar');
+    var txtR = ''; if(btnR){ txtR=btnR.innerHTML; btnR.innerHTML='⏳ Guardando...'; btnR.disabled=true; btnR.style.opacity='0.65'; }
+    try {
+      // Enviar la REVISADA (upsert por su PR-id) y el ORIGINAL (para que conste tiene_revision)
+      var payloadRev = Object.assign({}, rev, {_SHEET:'PARTES', _UPDATE:true, ID: rev.id});
+      fetch(API_URL, {method:'POST', body:JSON.stringify(payloadRev)})
+        .then(function(r){return r.json();})
+        .then(function(res){
+          if(res && res.ok){ toast('✅ Revisión guardada (original intacto)'); }
+          else { toast('⚠️ Guardado local; revisa Sheets','warn'); }
+          try{ var pO=Object.assign({}, orig, {_SHEET:'PARTES', _UPDATE:true, ID: orig.id}); fetch(API_URL,{method:'POST',body:JSON.stringify(pO)}); }catch(e){}
+          cerrarModal();
+          try{ renderPartes(); }catch(e){}
+          try{ renderCarrusel(); }catch(e){}
+        })
+        .catch(function(e){
+          toast('⚠️ Sin conexión: guardado local','warn');
+          SYNC_PENDIENTE.push({tipo:'parte',data:payloadRev}); persistir();
+          cerrarModal();
+          try{ renderPartes(); }catch(e){}
+          try{ renderCarrusel(); }catch(e){}
+        });
+    } catch(err){
+      if(btnR){ btnR.innerHTML=txtR||'💾 Guardar cambios'; btnR.disabled=false; btnR.style.opacity=''; }
+      toast('⚠️ Error: '+(err.message||err),'warn');
+    }
+    return;
+  }
+
   // Auditoría
   p.modificado_por   = (typeof CU!=='undefined' && CU && CU.n) ? CU.n : (window._operarioActual||'Calidad');
   p.fecha_modificado = new Date().toISOString();
 
-  PARTES[idx] = p;
+  // Actualizar la fila que corresponde al objeto editado (su propio id), no la del
+  // original: si p es una revisada (PR-) se actualiza la revisada; si es un parte no
+  // cerrado (reactivado/hoy) se actualiza él mismo.
+  var idxSelf = PARTES.findIndex(function(x){return x.id===p.id;});
+  if(idxSelf>=0) PARTES[idxSelf] = p; else PARTES.push(p);
   persistir();
 
   // Feedback en el botón
@@ -5655,42 +5763,69 @@ function confirmarFirma(){
     _firmaParte.firma_sala_nombre = nombre;
     _firmaParte.firma_sala_ts = ts;
   } else if(_firmaTipo==='calidad'){
-    // Calidad firma → se crea una COPIA REVISADA (nuevo id) y el original queda intacto,
-    // solo marcado como "ya revisado" para no mostrarlo más a Calidad.
+    // Calidad firma → se crea (o reutiliza) una COPIA REVISADA y el original queda intacto.
     var orig = _firmaParte;
-    // Recoger en el parte los datos que Calidad acaba de editar (litros, fosfatasa...) antes de clonar.
-    // Si está abierto el EDITOR (renderEpForm), volcamos su DOM al estado con _epRecogerEnEstado;
-    // si fuera la pantalla HOY, usamos autoGuardarParte. Así la fosfatasa editada SÍ llega a orig.
+    // Recoger en el parte los datos que Calidad acaba de editar antes de clonar/firmar.
     try{
-      if(window._parteEditando && window._parteEditando.id===orig.id && document.getElementById('ep-form')){
+      if(window._parteEditando && document.getElementById('ep-form')){
         _epRecogerEnEstado();
       } else if(typeof autoGuardarParte==='function' && CUBA_ACTIVA_ID===orig.id){
         autoGuardarParte(orig.id);
       }
     }catch(e){}
-    // VALIDACIÓN COMPLETA antes del visto bueno de Calidad: junta TODO lo que falta
-    // (fosfatasa + auxiliares/fermentos/cuajo incompletos) en un solo aviso, para que
-    // Calidad lo corrija de una pasada y no descubra los fallos uno a uno.
-    var _faltan = _validarParteCompleto(orig);
+    // Si lo que se está firmando es una copia de trabajo de un original cerrado (creada por
+    // el editor), sus cambios están en window._parteEditando. Determinar el ORIGINAL real:
+    var _peEdit = window._parteEditando;
+    var _origIdReal = orig.id;
+    if(_peEdit){
+      if(_peEdit.version==='revisado' || String(_peEdit.id||'').indexOf('PR-')===0){
+        _origIdReal = _peEdit.original_id || _peEdit.id_original || orig.id;
+      } else {
+        _origIdReal = _peEdit.id; // copia de trabajo del original conserva el id del original
+      }
+    }
+    // El original real, intacto, desde el array:
+    var _origReal = PARTES.find(function(x){return x.id===_origIdReal;}) || orig;
+    // VALIDACIÓN: sobre los datos que se van a oficializar (los editados si los hay).
+    var _datosParaRevisar = _peEdit || orig;
+    var _faltan = _validarParteCompleto(_datosParaRevisar);
     if(_faltan.length){
       var msgVal = 'No se puede firmar todavía. Revisa estos puntos:\n\n• ' + _faltan.join('\n• ') +
-        '\n\nComplétalos (o elimina con la ✕ lo que no se usó) y vuelve a firmar.';
+        '\n\nCompléta los (o elimina con la ✕ lo que no se usó) y vuelve a firmar.';
       try{ alert(msgVal); }catch(e){}
       toast('Hay datos incompletos — revisa el aviso','warn');
       return;
     }
-    var revisado = JSON.parse(JSON.stringify(orig));
-    revisado.id = 'PR-' + Date.now();
-    revisado.version = 'revisado';
-    revisado.original_id = orig.id;
+    // Si este parte YA tiene una revisada, firmamos ESA, sin crear otra.
+    // Si no existe, creamos la revisada como copia de los datos editados (o del original).
+    var _revPrevia = PARTES.find(function(x){
+      return (x.version==='revisado' || String(x.id||'').indexOf('PR-')===0) &&
+             (x.original_id===_origReal.id || x.id_original===_origReal.id);
+    });
+    var revisado;
+    if(_revPrevia){
+      // Volcar los últimos cambios editados sobre la revisada existente
+      if(_peEdit && (_peEdit.version==='revisado' || String(_peEdit.id||'').indexOf('PR-')===0)){
+        var _idR = _revPrevia.id, _oidR = _revPrevia.original_id;
+        Object.keys(_peEdit).forEach(function(k){ _revPrevia[k] = _peEdit[k]; });
+        _revPrevia.id = _idR; _revPrevia.original_id = _oidR;
+      }
+      revisado = _revPrevia;
+    } else {
+      revisado = JSON.parse(JSON.stringify(_datosParaRevisar));
+      revisado.id = 'PR-' + Date.now();
+      revisado.version = 'revisado';
+      revisado.original_id = _origReal.id;
+    }
     revisado.firma_calidad = img;
     revisado.revisado_calidad = true;
     revisado.revisado_calidad_por = nombre;
     revisado.revisado_calidad_ts = ts;
-    // El original: marcarlo como "ya tiene revisión" (no se le pone firma de calidad)
+    // El ORIGINAL real (intacto): solo marcarlo como "ya tiene revisión".
+    var orig = _origReal;
     orig.version = orig.version || 'original';
     orig.tiene_revision = true;
-    PARTES.push(revisado);
+    if(!_revPrevia) PARTES.push(revisado);
     try{ persistir(); }catch(e){}
     try{ enviarParteSheets(orig); }catch(e){}
     try{ enviarParteSheets(revisado); }catch(e){}
