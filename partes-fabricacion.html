@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.217</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.218</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2152,9 +2152,11 @@ function eliminarCubaActiva(id){
     return;
   }
   if(!confirm('¿Eliminar esta cuba? Se perderán todos los datos.')) return;
-  // Borrar también en Google Sheets por si este parte ya se había sincronizado
+  // Borrar también en Google Sheets por si este parte ya se había sincronizado.
+  // devolverStock:true por defecto (si fuera una cuba a medias sin cerrar, no tiene
+  // salidas registradas, así que la devolución no afecta a nada).
   try{
-    var payload = {_SHEET:'PARTES', _DELETE:true, ID:id, id:id};
+    var payload = {_SHEET:'PARTES', _DELETE:true, ID:id, id:id, devolverStock:true};
     fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){
       SYNC_PENDIENTE.push({tipo:'parte',data:payload}); persistir();
     });
@@ -5020,7 +5022,7 @@ function reactivarParteHoy(id){
   // su fecha real. La marca se retira al cerrar el parte (volverParteAHistorial / cierre).
   if(!esHoy){ p.reactivadoEnHoy = true; }
   persistir();
-  try{ enviarParteSheets(p); }catch(e){}   // que en Google también conste como abierto
+  try{ enviarReactivacionSheets(p); }catch(e){}   // reabre en Google y DEVUELVE el stock consumido
   cerrarModal();
   CUBA_ACTIVA_ID = id;
   try{ switchTab('hoy'); }catch(e){}
@@ -5043,9 +5045,17 @@ function eliminarParte(id){
     ? '¿Eliminar el VISTO BUENO de Calidad de este parte?\n\nSe borrará esta versión revisada y el parte original volverá a aparecer como pendiente de revisar. Se borrará también de Google Sheets.'
     : '¿Eliminar este parte? Se borrará también de Google Sheets.';
   if(!confirm(msg))return;
+  // ¿Devolver al stock lo que consumió este parte? Solo tiene sentido preguntarlo en
+  // partes reales (no en revisiones, que no descuentan stock). SÍ = rutina normal (el
+  // parte se anula, hay que devolver fermentos/auxiliares/cuajo). NO = limpiar partes de
+  // PRUEBA antiguos cuyo consumo ya no cuadra con el stock real dado de alta después.
+  var devolverStock = true;
+  if(!esRevision){
+    devolverStock = confirm('¿Devolver al stock las cantidades que consumió este parte?\n\nAceptar (SÍ): se suman de vuelta los fermentos, auxiliares y cuajo a su lote (lo normal al anular un parte real).\n\nCancelar (NO): se borra el parte SIN tocar el stock (útil para limpiar partes de prueba antiguos).');
+  }
   // Borrar en Google Sheets (por ID). El Apps Script tiene la rama _DELETE en gestionarPartes.
   try{
-    var payload = {_SHEET:'PARTES', _DELETE:true, ID:id, id:id};
+    var payload = {_SHEET:'PARTES', _DELETE:true, ID:id, id:id, devolverStock:devolverStock};
     fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){
       SYNC_PENDIENTE.push({tipo:'parte',data:payload}); persistir();
     });
@@ -5818,6 +5828,15 @@ function enviarParteSheets(parte){
   // Siempre como upsert: el Apps Script busca por ID y actualiza si existe,
   // o inserta si es nuevo. Así cerrar/firmar/revisar el MISMO parte no duplica filas.
   var payload=Object.assign({},parte,{_SHEET:'PARTES', _UPDATE:true, ID: parte.id});
+  fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){SYNC_PENDIENTE.push({tipo:'parte',data:payload});persistir();});
+}
+
+// Reactivar (resucitar) un parte: sale del historial y vuelve a "en proceso".
+// Manda _REACTIVAR:true para que el backend DEVUELVA al stock lo que consumió este
+// parte (retira sus salidas) y reabra la fila. Cuando se cierre de nuevo, se volverá
+// a descontar con los datos que tenga en ese momento.
+function enviarReactivacionSheets(parte){
+  var payload=Object.assign({},parte,{_SHEET:'PARTES', _UPDATE:true, _REACTIVAR:true, ID: parte.id});
   fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){SYNC_PENDIENTE.push({tipo:'parte',data:payload});persistir();});
 }
 
