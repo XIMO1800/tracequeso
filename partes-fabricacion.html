@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.225</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.226</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3441,10 +3441,16 @@ function renderPartes(){
   //  'revisadas' (por defecto) → versión oficial/auditoría. Si un día no tiene revisada, sale en blanco.
   //  'originales' → la realidad (lo que cerró el quesero), al pulsar el botón discreto.
   var modo = (window._modoHistorial === 'originales') ? 'originales' : 'revisadas';
-  // Índice: para cada id de original, ¿existe su versión revisada en los datos?
-  var _revPorOriginal = {};   // id_original -> objeto revisado
+  // Una revisada solo cuenta como OFICIAL en la app cuando está FIRMADA por Calidad
+  // (revisado_calidad===true). Mientras solo está guardada (editada pero sin firmar),
+  // existe por dentro/en Sheets, pero NO se muestra como revisada en la aplicación.
+  function _esRevisadaOficial(p){
+    return p && p.version==='revisado' && p.revisado_calidad===true;
+  }
+  // Índice: para cada id de original, ¿existe su versión revisada FIRMADA?
+  var _revPorOriginal = {};   // id_original -> objeto revisado firmado
   PARTES.forEach(function(p){
-    if(p && p.version==='revisado'){
+    if(_esRevisadaOficial(p)){
       var oid = p.original_id || p.id_original || p.idOriginal || '';
       if(oid) _revPorOriginal[String(oid).trim()] = p;
     }
@@ -3465,9 +3471,9 @@ function renderPartes(){
       if(_esDeHoy(p) && !p.cerrado) return false;
       return true;
     } else {
-      // Oficial: SOLO las revisadas. Si un día no tiene revisada, no se muestra nada
-      // (queda en blanco hasta que Calidad lo revise).
-      return p.version==='revisado';
+      // Oficial: SOLO las revisadas FIRMADAS. Si un día no tiene revisada firmada, no se
+      // muestra nada (queda en blanco hasta que Calidad firme el visto bueno).
+      return _esRevisadaOficial(p);
     }
   });
   // Ordenar ascendente por número de cuba (Cuba 1 arriba, Cuba N abajo)
@@ -3492,7 +3498,7 @@ function renderPartes(){
   var h='';
   filtrados.forEach(function(p){
     var totalPzas=0;if(p.piezas)Object.keys(p.piezas).forEach(function(k){totalPzas+=(p.piezas[k]||0);});
-    var badgeRev = (p.version==='revisado') ? '<span style="background:var(--greenl);color:var(--green);border:1px solid var(--green2);border-radius:10px;padding:1px 7px;font-size:0.62rem;font-weight:700;margin-left:6px">✓ CALIDAD</span>' : '';
+    var badgeRev = _esRevisadaOficial(p) ? '<span style="background:var(--greenl);color:var(--green);border:1px solid var(--green2);border-radius:10px;padding:1px 7px;font-size:0.62rem;font-weight:700;margin-left:6px">✓ CALIDAD</span>' : '';
     h+='<div class="parte-item" onclick="verParteHist(\''+p.id+'\')"><div class="parte-item-top"><div class="parte-item-tipo">'+p.tipo+(p.variedad?' · '+p.variedad:'')+badgeRev+'</div><div class="parte-item-badge">Cuba '+p.cuba+'</div></div><div class="parte-item-meta">'+formatearFecha(p.fecha)+' · '+p.litros+'L · '+totalPzas+' pzas · '+(p.operario||'—')+'</div></div>';
   });
   c.innerHTML=h;
@@ -5050,6 +5056,13 @@ function guardarParteEditado(id){
       rev.revisado_calidad      = PARTES[revIdx].revisado_calidad || rev.revisado_calidad;
       rev.revisado_calidad_por  = PARTES[revIdx].revisado_calidad_por || rev.revisado_calidad_por;
       rev.revisado_calidad_ts   = PARTES[revIdx].revisado_calidad_ts || rev.revisado_calidad_ts;
+    } else {
+      // Revisada NUEVA por edición: existe (en memoria/Sheets) pero NO es oficial hasta
+      // que Calidad firme. Sin firma, no se marca como revisada en la aplicación.
+      rev.revisado_calidad = false;
+      rev.firma_calidad = '';
+      rev.revisado_calidad_por = '';
+      rev.revisado_calidad_ts = '';
     }
     rev.modificado_por   = (typeof CU!=='undefined' && CU && CU.n) ? CU.n : (window._operarioActual||'Calidad');
     rev.fecha_modificado = new Date().toISOString();
