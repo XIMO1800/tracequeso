@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.223</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.224</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3186,6 +3186,9 @@ function seleccionarLote(producto,idx){
   var lotes=obtenerLotesDelProducto(producto);
   if(!lotes[idx]) return;
   var s=lotes[idx];
+  // ¿Cuál era el lote activo ANTES del cambio? (el que tocaba por FIFO: el primero de la lista)
+  var loteAnterior = (lotes[0] && lotes[0].lote) ? lotes[0].lote : '';
+  var esCambioReal = loteAnterior && s.lote && (String(s.lote).trim() !== String(loteAnterior).trim());
   LOTES_ACTIVOS[producto]={
     lote:s.lote,
     caducidad:s.caducidad,
@@ -3198,6 +3201,38 @@ function seleccionarLote(producto,idx){
   if(parteActual.receta){var rid=parteActual.receta.id;document.getElementById('np-tipo').value=rid;onTipoChange();}
   iniciarCO2();
   toast('✅ Lote '+s.lote+' seleccionado');
+  // Si ha cambiado a un lote distinto del que el sistema daba por activo, avisar a Calidad
+  // por correo (mismo patrón que TraceQueso). Calidad reajustará el stock del lote agotado.
+  if(esCambioReal){ try{ avisarCambioLoteCalidad(producto, loteAnterior, s.lote); }catch(e){} }
+}
+
+// Envía a Calidad un aviso por correo de cambio de lote (vía Apps Script).
+function avisarCambioLoteCalidad(producto, loteAnterior, loteNuevo){
+  var cat = '';
+  try{
+    var info = (typeof obtenerLoteActivo==='function') ? null : null;
+    // Buscar la categoría del producto en el stock remoto
+    if(STOCK_REMOTO && STOCK_REMOTO.stock){
+      var nombreUp = String(producto).trim().toUpperCase();
+      var fila = STOCK_REMOTO.stock.map(normRowStock).find(function(r){
+        return String(r.articulo||'').trim().toUpperCase() === nombreUp;
+      });
+      if(fila) cat = fila.categoria || '';
+    }
+  }catch(e){}
+  var payload = {
+    _SHEET: 'AVISO_CAMBIO_LOTE',
+    producto: producto,
+    categoria: cat,
+    lote_anterior: loteAnterior,
+    lote_nuevo: loteNuevo,
+    operario: (parteActual && parteActual.operario) ? parteActual.operario : (document.getElementById('np-operario') ? document.getElementById('np-operario').value : ''),
+    cuba: (document.getElementById('np-cuba') ? document.getElementById('np-cuba').value : ''),
+    fecha: (document.getElementById('np-fecha') ? document.getElementById('np-fecha').value : '')
+  };
+  fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){
+    SYNC_PENDIENTE.push({tipo:'aviso',data:payload}); persistir();
+  });
 }
 
 // ═══════════════════════════════════════════════
