@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.218</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.219</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3790,6 +3790,21 @@ function _tanqueDefault(tipo){
 
 function _formatosQueso(){ return ['3 KG','2 KG','1 KG','1/2 KG','BARRA','GIGANTE']; }
 
+// Lista de formatos para el desplegable de SALMUERA, incluyendo la variante
+// "X bajo en sal" justo después de cada formato que tenga horas de bajo en sal
+// configuradas (>0). Así el menú no se llena de opciones que no se usan.
+function _formatosSalmuera(){
+  if (typeof cargarSalmueraConfig === 'function' && !SALMUERA_CONFIG) cargarSalmueraConfig();
+  var cfg = (typeof SALMUERA_CONFIG !== 'undefined' && SALMUERA_CONFIG) ? SALMUERA_CONFIG : {};
+  var out = [];
+  _formatosQueso().forEach(function(f){
+    out.push(f);
+    var c = cfg[f];
+    if (c && (parseFloat(c.horas_bajosal)||0) > 0) out.push(f + ' bajo en sal');
+  });
+  return out;
+}
+
 function editarParteCompleto(id, soloLectura){
   var p = PARTES.find(function(x){return x.id===id;});
   if(!p){ toast('Parte no encontrado','err'); return; }
@@ -4257,7 +4272,9 @@ function renderEpForm(skipRecoger){
   }
   p.salmueras.forEach(function(s, i){
     var foOpts = '<option value="">— Formato —</option>';
-    _formatosQueso().forEach(function(f){
+    var _fmtsSal = _formatosSalmuera();
+    if (s.formato && _fmtsSal.indexOf(s.formato) < 0) _fmtsSal = _fmtsSal.concat([s.formato]);
+    _fmtsSal.forEach(function(f){
       foOpts += '<option value="'+f+'"'+(f===s.formato?' selected':'')+'>'+f+'</option>';
     });
     h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
@@ -6711,7 +6728,10 @@ function anadirSalmuera(datos){
   if (!datos.hf && datos.formato && datos.hi) {
     datos.hf = calcHoraFinSalmuera(datos.formato, datos.hi);
   }
-  var formatos = ['3 KG','2 KG','1 KG','1/2 KG','BARRA','GIGANTE'];
+  var formatos = _formatosSalmuera();
+  // Por si el parte guardó un formato bajo en sal cuyo horas_bajosal luego se puso a 0
+  // (no estaría en la lista): lo añadimos para no perder la selección.
+  if (datos.formato && formatos.indexOf(datos.formato) < 0) formatos = formatos.concat([datos.formato]);
   var optFmt = '<option value="">— Formato —</option>' + formatos.map(function(f){
     return '<option value="'+f+'"'+(datos.formato===f?' selected':'')+'>'+f+'</option>';
   }).join('');
@@ -6830,14 +6850,25 @@ function recalcSalmueraDesdeDesmoldeo(){
 }
 
 // Calcular hora fin según formato y hora inicio
+// Dado un valor de formato del desplegable (p.ej. "3 KG" o "3 KG bajo en sal"),
+// devuelve {base:'3 KG', bajosal:true/false}. Permite que cada saladero sea
+// normal o bajo en sal de forma independiente (lo marca el propio formato).
+function _parseFormatoSal(fmt){
+  var s = String(fmt||'').trim();
+  var bajo = / bajo en sal$/i.test(s);
+  var base = bajo ? s.replace(/ bajo en sal$/i,'').trim() : s;
+  return {base: base, bajosal: bajo};
+}
+
 function calcHoraFinSalmuera(formato, horaIni){
   if (!SALMUERA_CONFIG) cargarSalmueraConfig();
-  var cfg = SALMUERA_CONFIG[formato];
+  // El formato puede venir como "3 KG bajo en sal": separamos base y marca.
+  var fp = _parseFormatoSal(formato);
+  var cfg = SALMUERA_CONFIG[fp.base];
   if (!cfg || !horaIni) return '';
-  // Detectar si es bajo en sal por el tipo de queso activo
-  var tipo = (document.getElementById('np-tipo-sel')||{}).value || '';
-  var esBajoSal = tipo.toUpperCase().indexOf('BAJO') >= 0 || tipo.toUpperCase().indexOf('SAL') >= 0;
-  var horas = esBajoSal && cfg.horas_bajosal > 0 ? cfg.horas_bajosal : cfg.horas_normal;
+  // Bajo en sal lo decide el FORMATO de este saladero (no el tipo de queso),
+  // para que distintos saladeros puedan ser normales o bajos en sal a la vez.
+  var horas = fp.bajosal && cfg.horas_bajosal > 0 ? cfg.horas_bajosal : cfg.horas_normal;
   if (!horas) return '';
   var partes = horaIni.split(':').map(Number);
   var minutos = partes[0]*60 + partes[1] + Math.round(horas*60);
