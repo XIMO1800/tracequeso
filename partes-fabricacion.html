@@ -852,15 +852,15 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.222</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.223</div>
   </div>
 </div>
 <div class="nav-tabs">
   <div class="nav-tab active" data-tab="hoy" onclick="switchTab('hoy')">📝 HOY</div>
   <div class="nav-tab" data-tab="historial" onclick="switchTab('historial')">📚 HISTORIAL</div>
   <div class="nav-tab" data-tab="recetas" onclick="switchTab('recetas')">📖 RECETAS</div>
-  <div class="nav-tab" data-tab="lotes" onclick="switchTab('lotes')">📦 STOCK</div>
   <div class="nav-tab" data-tab="stock" onclick="switchTab('stock')">🏷️ LOTES</div>
+  <div class="nav-tab" data-tab="lotes" onclick="switchTab('lotes')">📦 STOCK</div>
 </div>
 
 <div id="screen-hoy" class="screen">
@@ -3395,7 +3395,7 @@ function toggleModoHistorial(){
   window._modoHistorial = (window._modoHistorial === 'originales') ? 'revisadas' : 'originales';
   try{ renderPartes(); }catch(e){}
   try{
-    if(window._modoHistorial === 'originales') toast('Mostrando ORIGINALES (realidad de la cuba)');
+    if(window._modoHistorial === 'originales') toast('Mostrando ORIGINALES');
     else toast('Mostrando revisadas (versión oficial)');
   }catch(e){}
 }
@@ -3443,7 +3443,7 @@ function renderPartes(){
     var lg = document.getElementById('hist-modo-logo');
     var lb = document.getElementById('hist-modo-label');
     if(lg && !lg.src){ var im=document.querySelector('img[src^="data:image"]'); if(im) lg.src = im.src; }
-    if(lb) lb.textContent = (modo==='originales') ? '· originales (realidad)' : '';
+    if(lb) lb.textContent = (modo==='originales') ? '· originales' : '';
   }catch(e){}
   var c=document.getElementById('lista-partes');
   if(!c)return;
@@ -5410,7 +5410,7 @@ function renderLotes(){
       html += '<b>'+l.stockActual+' '+(l.unidad||'')+'</b>';
       html += '</div>';
       if(l.caducidad || marca){
-        html += '<div style="margin-top:3px;font-size:0.7rem;color:var(--text3)">'+(l.caducidad?'Cad: '+l.caducidad:'')+(marca?' · <b style="color:var(--accent)">'+marca+'</b>':'')+'</div>';
+        html += '<div style="margin-top:3px;font-size:0.7rem;color:var(--text3)">'+(l.caducidad?'Cad: '+_fechaEsp(l.caducidad):'')+(marca?' · <b style="color:var(--accent)">'+marca+'</b>':'')+'</div>';
       }
       html += '</div>';
     });
@@ -5462,7 +5462,7 @@ function renderStock(){
     html += '<span><span style="font-family:Courier New,monospace;font-weight:700;color:var(--text)">'+l.lote+'</span>'+(l.proveedor?' · '+l.proveedor:'')+'</span>';
     html += '<b>'+l.stockActual+' '+(l.unidad||'')+'</b>';
     html += '</div>';
-    html += '<div style="margin-top:3px;font-size:0.7rem;color:var(--text3)">'+(l.caducidad?'Cad: '+l.caducidad+' · ':'')+'<b style="color:var(--accent)">🟢 USAR PRIMERO</b></div>';
+    html += '<div style="margin-top:3px;font-size:0.7rem;color:var(--text3)">'+(l.caducidad?'Cad: '+_fechaEsp(l.caducidad)+' · ':'')+'<b style="color:var(--accent)">🟢 USAR PRIMERO</b></div>';
     html += '</div>';
     if(nOtros > 0){
       html += '<div style="margin-top:5px;font-size:0.68rem;color:var(--text3);text-align:right">+ '+nOtros+' lote'+(nOtros!==1?'s':'')+' más en stock</div>';
