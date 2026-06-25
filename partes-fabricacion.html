@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.229</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.230</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2731,21 +2731,28 @@ function _calcReparteTA054(receta, litros){
   var tamG = _sobreFermento(fGrande.nombre).tam;            // 50
   var tamP = fPeq ? _sobreFermento(fPeq.nombre).tam : 0;    // 25 (o 0 si no hay)
   var dosisObjetivo = parseFloat(fGrande.dosis_ml_1000L) || 0; // 20 dosis/1000L
-  var objetivo = _redondeaAlza5(litros * dosisObjetivo / 1000); // redondeo al alza de 5 (ej. 170)
-  // Llenar con grandes primero (sin pasarse), luego decidir el pequeño por cercanía
-  var nG = Math.floor(objetivo / tamG);
-  var resto = objetivo - nG * tamG; // lo que falta tras los grandes
-  var nP = 0;
-  if(fPeq && tamP > 0){
-    // ¿El resto está más cerca de un sobre pequeño (tamP) o de 0?
-    nP = (resto >= tamP/2) ? 1 : 0;
-    // Si el resto supera un sobre pequeño (caso raro con tamG/tamP=2), añadimos grande
-    if(resto >= tamP){ // resto entre 25 y 50 → más cerca de 25 que de 0, 1 pequeño basta
-      nP = 1;
-    }
+  // Dosis necesarias exactas según litros (ej. 9500 L → 190)
+  var necesarias = litros * dosisObjetivo / 1000;
+  // ── REGLA DE JORGE (verificada con partes reales, 8/8) ──
+  // General: redondear las dosis necesarias al múltiplo del sobre pequeño (25) MÁS CERCANO.
+  //   160→150, 170→175, 190→200, 140→150...
+  // Excepción minis: entre 5500 y 5800 L (cubas de minis) SIEMPRE 125 dosis.
+  var escalon = (fPeq && tamP > 0) ? tamP : tamG;
+  var objetivo;
+  if(escalon > 0 && litros >= 5500 && litros <= 5800){
+    objetivo = 125; // minis: valor fijo confirmado por Jorge
   } else {
-    // Sin sobre pequeño: redondear los grandes al más cercano
-    if(resto >= tamG/2) nG += 1;
+    objetivo = Math.round(necesarias / escalon) * escalon;
+  }
+  // Repartir ese objetivo en el MÍNIMO de sobres: los grandes (50) primero,
+  // y un pequeño (25) solo si queda un resto de 25.
+  var nG, nP = 0;
+  if(fPeq && tamP > 0){
+    nG = Math.floor(objetivo / tamG);
+    var resto = objetivo - nG * tamG;   // será 0 o 25
+    nP = (resto > 0) ? Math.ceil(resto / tamP) : 0;
+  } else {
+    nG = Math.round(objetivo / tamG);
   }
   var totalReal = nG * tamG + nP * tamP;
   return {
@@ -2950,6 +2957,20 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.230) ──
+  // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
+  // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
+  if(parteActual.receta){
+    var _litrosPrev = (typeof parteActual._litros_calc === 'number') ? parteActual._litros_calc : null;
+    if(_litrosPrev !== null && _litrosPrev !== litros){
+      (parteActual.receta.fermentos||[]).forEach(function(f){
+        if(_sobreFermento(f.nombre) && parteActual.dosis_override){
+          delete parteActual.dosis_override[f.nombre];
+        }
+      });
+    }
+    parteActual._litros_calc = litros;
+  }
   parteActual.litros=litros;
   if(!parteActual.receta)return;
   var r=parteActual.receta;
@@ -5859,7 +5880,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.229)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.230)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -5893,7 +5914,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.229)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.230)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
