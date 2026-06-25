@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.230</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.232</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -900,7 +900,7 @@ input[type="email"] {
       <span class="seccion-chevron open" id="chev-general">▼</span>
     </div>
     <div class="seccion-body open" id="body-general">
-      <!-- Fila 1: Fecha · Tipo · Variedad · Operario -->
+      <!-- Fila 1: Fecha · Tipo · Variedad · Cuba (física, desplegable 1/2/3) -->
       <div class="form-cols-4">
         <div class="form-row"><label class="form-label">Fecha</label><input type="date" id="np-fecha"></div>
         <div class="form-row">
@@ -911,18 +911,23 @@ input[type="email"] {
           <label class="form-label">Variedad</label>
           <select id="np-var-sel" onchange="onVarSelChange()" disabled><option value="">—</option></select>
         </div>
+        <div class="form-row">
+          <label class="form-label">Cuba</label>
+          <select id="np-cuba-fisica" onchange="onCubaChange()"><option value="">—</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+        </div>
         <!-- El operario/quesero es quien entró con su PIN; no se pide aquí. La autoría queda en las firmas. -->
         <input type="hidden" id="np-operario-sel">
         <input type="hidden" id="np-operario">
       </div>
       <input type="hidden" id="np-tipo">
-      <input type="hidden" id="np-cuba">
-      <!-- Fila 1: Litros · pH · Tª · °D (todo lo principal de un vistazo) -->
+      <!-- Aviso de capacidad de cuba (se rellena al elegir cuba o cambiar litros) -->
+      <div id="np-cuba-aviso" style="display:none;margin:4px 0 0;padding:6px 10px;border-radius:6px;font-size:0.76rem;font-weight:600"></div>
+      <!-- Fila 1: Litros · pH · °D · Tª (orden igual que el parte de papel) -->
       <div class="form-cols-4">
-        <div class="form-row"><label class="form-label">Litros totales</label><input type="number" id="np-litros" inputmode="numeric" oninput="calcularDosis();calcCO2();calcPasteurizacion()"></div>
+        <div class="form-row"><label class="form-label">Litros totales</label><input type="number" id="np-litros" inputmode="numeric" oninput="calcularDosis();calcCO2();calcPasteurizacion();comprobarCapacidadCuba()"></div>
         <div class="form-row"><label class="form-label">pH entrada</label><input type="number" id="np-ph" step="0.01" inputmode="decimal"></div>
-        <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">°D leche</label><input type="number" id="np-dornic" step="0.1" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" inputmode="decimal"></div>
       </div>
       <!-- Fila 2: Distribución por tanques (4 columnas, en línea con los 4 datos de arriba) -->
       <div style="font-size:0.7rem;color:var(--text3);margin:8px 0 4px"><b>Distribución por tanques</b> — Para queso puro usa "Tanque procedencia". Para MEZCLA, rellena litros y tanque por tipo.</div>
@@ -961,7 +966,7 @@ input[type="email"] {
           <input type="number" id="past-temp" step="0.1" inputmode="decimal" oninput="marcarTocado('past-temp')">
         </div>
         <div class="form-row">
-          <label class="form-label">Tiempo pasterización</label>
+          <label class="form-label">Tiempo pasteurización (min)</label>
           <input type="number" id="past-tiempo" inputmode="decimal" oninput="marcarTocado('past-tiempo')">
         </div>
         <div class="form-row">
@@ -1643,8 +1648,9 @@ function cargarFormularioEnPanel(p){
 function rellenarCampos(p){
   function v(id, val){var el=document.getElementById(id); if(el && val!==undefined && val!==null) el.value=val;}
   v('np-fecha', p.fecha);
-  v('np-cuba', p.cuba);
+  v('np-cuba-fisica', p.cuba_fisica || '');
   v('np-litros', p.litros);
+  setTimeout(function(){ try{ comprobarCapacidadCuba(); }catch(e){} }, 50);
   // Operario: poblar select con el valor del parte o el actual
   poblarSelectOperario(p.operario || OPERARIO_ACTUAL);
   v('np-operario', p.operario || OPERARIO_ACTUAL);
@@ -1911,7 +1917,9 @@ function autoGuardarParte(parteId){
   p.operario = (opEl && opEl.value) ? opEl.value : (g('np-operario') || OPERARIO_ACTUAL);
   if(p.operario) OPERARIO_ACTUAL = p.operario;
   guardarOperarios();
-  p.cuba = g('np-cuba');
+  // p.cuba = orden cronológico (lo asigna nuevaCuba, no se toca aquí).
+  // El desplegable de Datos Generales guarda la CUBA FÍSICA en p.cuba_fisica.
+  p.cuba_fisica = g('np-cuba-fisica');
   p.aux_meta = {hadicion:g('aux-hadicion'), ph:g('aux-ph'), temp:g('aux-temp')};
   p.ferm_meta = {hadicion:g('ferm-hadicion'), ph:g('ferm-ph'), temp:g('ferm-temp')};
   p.coag = {hadicion:g('coag-hadicion'), hc:g('coag-hc'), ph:g('coag-ph'), temp:g('coag-temp'), total:g('coag-total')};
@@ -2217,7 +2225,7 @@ function esCalidadOAdmin(){
 // Cuando el parte queda bloqueado, estos se ponen en solo lectura para los operarios de sala.
 // NO se incluyen: mol-hf (hora fin moldeo), prensado, desmoldeo, salmuera, piezas → esos los rellena la sala.
 var CAMPOS_QUESERO = ['np-tipo-sel','np-var-sel','np-lote','np-litros','np-lvaca','np-lcabra','np-loveja',
-  'np-tanque','np-cuba','np-ph','np-temp','np-dornic','np-operario',
+  'np-tanque','np-cuba-fisica','np-ph','np-temp','np-dornic','np-operario',
   'past-valvula','past-fosfatasa','past-temp','past-tiempo','past-cruda',
   'aux-hadicion','aux-ph','aux-temp','co2-aplicado','co2-caudal','co2-tiempo',
   'ferm-hadicion','ferm-ph','ferm-temp',
@@ -2414,14 +2422,20 @@ function calcPasteurizacion(){
   var tempEl = document.getElementById('past-temp');
   var crudaEl = document.getElementById('past-cruda');
   if(!tiempoEl) return;
-  // Tiempo = (litros / 15000) * 60 minutos
-  // Recalcular si: hay litros, Y (tiempo está vacío O es 0 O fue autocalculado antes)
+  // Tiempo = (litros / 15000) * 60 MINUTOS (el pasteurizador hace 15.000 L/hora)
+  // Recalcular si: hay litros, Y el tiempo no ha sido tocado a mano por el usuario,
+  // Y (está vacío/0 O fue autocalculado O los litros han cambiado desde el último cálculo).
   var valActual = parseFloat(tiempoEl.value) || 0;
-  if(litros > 0 && (valActual === 0 || tiempoEl.dataset.auto === '1')){
+  var litrosPrev = (tiempoEl.dataset.litrosCalc !== undefined) ? parseFloat(tiempoEl.dataset.litrosCalc) : NaN;
+  var litrosCambiaron = !isNaN(litrosPrev) && litrosPrev !== litros;
+  var tocadoMano = (tiempoEl.dataset.tocado === '1');
+  if(litros > 0 && !tocadoMano && (valActual === 0 || tiempoEl.dataset.auto === '1' || litrosCambiaron)){
     var min = (litros / 15000) * 60;
     tiempoEl.value = min.toFixed(1);
     tiempoEl.dataset.auto = '1';
   }
+  // Recordar con qué litros se calculó, para detectar cambios la próxima vez
+  if(litros > 0) tiempoEl.dataset.litrosCalc = String(litros);
   // Detectar si es CRUDA en tipo o variedad
   var tipo = document.getElementById('np-tipo-sel') ? document.getElementById('np-tipo-sel').value : '';
   var variedad = document.getElementById('np-var-sel') ? document.getElementById('np-var-sel').value : '';
@@ -2440,6 +2454,49 @@ function calcPasteurizacion(){
 function marcarTocado(elId){
   var el = document.getElementById(elId);
   if(el){ el.dataset.tocado = '1'; el.dataset.auto = '0'; }
+}
+
+// ── Capacidad de las cubas físicas (litros) ──
+// Cada cuba tiene un máximo normal (sin aviso), una zona de advertencia (amarillo)
+// y un tope rojo (avisa fuerte, pero NO bloquea: siempre deja guardar).
+var CUBAS_CAPACIDAD = {
+  '1': { normal: 6500, rojo: 7000 },   // Cuba 1 (pequeña): ≤6500 ok · 6500-7000 amarillo · >7000 rojo
+  '2': { normal: 9500, rojo: 10200 },  // Cuba 2 (grande):  ≤9500 ok · 9500-10200 amarillo · >10200 rojo
+  '3': { normal: 8500, rojo: 9300 }    // Cuba 3 (mediana): ≤8500 ok · 8500-9300 amarillo · >9300 rojo
+};
+
+// Comprueba litros vs capacidad de la cuba elegida y muestra el aviso de color.
+function comprobarCapacidadCuba(){
+  var avisoEl = document.getElementById('np-cuba-aviso');
+  if(!avisoEl) return;
+  var cubaEl = document.getElementById('np-cuba-fisica');
+  var cuba = cubaEl ? cubaEl.value : '';
+  var litros = parseFloat(document.getElementById('np-litros') ? document.getElementById('np-litros').value : '') || 0;
+  var cap = CUBAS_CAPACIDAD[cuba];
+  if(!cap || litros <= 0 || litros <= cap.normal){
+    avisoEl.style.display = 'none';
+    avisoEl.textContent = '';
+    return;
+  }
+  avisoEl.style.display = 'block';
+  if(litros <= cap.rojo){
+    // Zona amarilla: advertencia
+    avisoEl.style.background = '#fff3cd';
+    avisoEl.style.color = '#7a5c00';
+    avisoEl.style.border = '1px solid #ffe08a';
+    avisoEl.textContent = '⚠️ Cuba '+cuba+': '+litros+' L está por encima de lo habitual ('+cap.normal+' L). Revisa que sea correcto.';
+  } else {
+    // Zona roja: aviso fuerte (pero no bloquea)
+    avisoEl.style.background = '#f8d7da';
+    avisoEl.style.color = '#a71d2a';
+    avisoEl.style.border = '1px solid #f1a7ae';
+    avisoEl.textContent = '⛔ Cuba '+cuba+': '+litros+' L supera la capacidad de esta cuba (máx ~'+cap.rojo+' L). ¿Seguro que es la cuba correcta?';
+  }
+}
+
+// Al elegir cuba en el desplegable
+function onCubaChange(){
+  try{ comprobarCapacidadCuba(); }catch(e){}
 }
 
 function anadirVariedad(){
@@ -2957,7 +3014,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.230) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.232) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -3250,7 +3307,7 @@ function avisarCambioLoteCalidad(producto, loteAnterior, loteNuevo){
     lote_anterior: loteAnterior,
     lote_nuevo: loteNuevo,
     operario: (parteActual && parteActual.operario) ? parteActual.operario : (document.getElementById('np-operario') ? document.getElementById('np-operario').value : ''),
-    cuba: (document.getElementById('np-cuba') ? document.getElementById('np-cuba').value : ''),
+    cuba: (document.getElementById('np-cuba-fisica') ? document.getElementById('np-cuba-fisica').value : ''),
     fecha: (document.getElementById('np-fecha') ? document.getElementById('np-fecha').value : '')
   };
   fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){
@@ -3268,7 +3325,7 @@ function guardarParte(){
   if(!litros||litros<=0){toast('⚠ Introduce los litros totales');return;}
   var r=parteActual.receta;
   var parte={
-    id:'P-'+Date.now(),fecha:document.getElementById('np-fecha').value,cuba:document.getElementById('np-cuba').value,
+    id:'P-'+Date.now(),fecha:document.getElementById('np-fecha').value,cuba:(parteActual.cuba||''),cuba_fisica:(document.getElementById('np-cuba-fisica')?document.getElementById('np-cuba-fisica').value:''),
     tipo:r.tipo,variedad:r.variedad,receta_id:r.id,litros:litros,
     lvaca:parseFloat(document.getElementById('np-lvaca').value)||0,
     lcabra:parseFloat(document.getElementById('np-lcabra').value)||0,
@@ -4055,7 +4112,7 @@ function renderEpForm(skipRecoger){
      + '<div><select id="ep-tipo" style="'+_epStyle()+';text-align:center" onchange="onEpTipoChange()">'+tipoOpts+'</select></div>'
      + '<div><select id="ep-variedad" style="'+_epStyle()+';text-align:center"></select></div>'
      + '<div>'+_epInpC('ep-lote-queso', p.lote_queso||'')+'</div>'
-     + '<div>'+_epInpC('ep-cuba', p.cuba)+'</div>'
+     + '<div><select id="ep-cuba-fisica" style="'+_epStyle()+';text-align:center"><option value="">—</option><option value="1"'+(String(p.cuba_fisica)==='1'?' selected':'')+'>1</option><option value="2"'+(String(p.cuba_fisica)==='2'?' selected':'')+'>2</option><option value="3"'+(String(p.cuba_fisica)==='3'?' selected':'')+'>3</option></select></div>'
      + '<div>'+_epInpC('ep-operario', p.operario)+'</div></div>';
   h += '</div></div>';
 
@@ -4106,7 +4163,7 @@ function renderEpForm(skipRecoger){
   var _condPast = (!p.pasteurizacion.cruda&&p.pasteurizacion.temp)?' selected':'';
   var _fosfActual = p.pasteurizacion.fosfatasa; if(_fosfActual===true) _fosfActual='P'; else if(_fosfActual===false) _fosfActual='';
   h += _epBloqueAlineado('Pasteurización',
-    ['Válvula C/I','Condiciones','Fosfatasa','Tª (°C)','Tiempo (s)'],
+    ['Válvula C/I','Condiciones','Fosfatasa','Tª (°C)','Tiempo (min)'],
     [
       {titulo:'', valores:[
         _epInpC('ep-past-valv', p.pasteurizacion.valvula||''),
@@ -4837,7 +4894,7 @@ function _epRecogerEnEstado(){
   // Cabecera
   if(v('ep-tipo')!==undefined)     p.tipo = v('ep-tipo');
   if(v('ep-variedad')!==undefined) p.variedad = v('ep-variedad');
-  if(v('ep-cuba')!==undefined)     p.cuba = v('ep-cuba');
+  if(v('ep-cuba-fisica')!==undefined) p.cuba_fisica = v('ep-cuba-fisica');
   if(v('ep-operario')!==undefined) p.operario = v('ep-operario');
   if(v('ep-fecha')!==undefined)    p.fecha = v('ep-fecha');
   if(v('ep-lote-queso')!==undefined) p.lote_queso = v('ep-lote-queso');
@@ -5880,7 +5937,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.230)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.232)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -5914,7 +5971,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.230)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.232)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
@@ -6250,7 +6307,7 @@ function cargarPartesSheets(fecha){
             }
           }catch(e){}
         }
-        return {id:p['ID'],fecha:p['FECHA'],cuba:p['CUBA'],tipo:p['TIPO DE QUESO'],variedad:p['VARIEDAD'],litros:p['LITROS'],operario:p['OPERARIO'],piezas:{'3kg':p['PZAS 3KG']||0,'2kg':p['PZAS 2KG']||0,'1kg':p['PZAS 1KG']||0,'05kg':p['PZAS 05KGS']||0,'barra':p['PZAS BARRA']||0,'gigante':p['PZAS GIGANTE']||0},observaciones:p['OBSERVACIONES']||'',cerrado:cerradoCalc};
+        return {id:p['ID'],fecha:p['FECHA'],cuba:p['CUBA'],cuba_fisica:p['CUBA FISICA']||p['CUBA_FISICA']||'',tipo:p['TIPO DE QUESO'],variedad:p['VARIEDAD'],litros:p['LITROS'],operario:p['OPERARIO'],piezas:{'3kg':p['PZAS 3KG']||0,'2kg':p['PZAS 2KG']||0,'1kg':p['PZAS 1KG']||0,'05kg':p['PZAS 05KGS']||0,'barra':p['PZAS BARRA']||0,'gigante':p['PZAS GIGANTE']||0},observaciones:p['OBSERVACIONES']||'',cerrado:cerradoCalc};
       });
       PARTES=deSheets.concat(PARTES);
       // Red de seguridad final: eliminar cualquier parte duplicado por id (se queda el primero).
