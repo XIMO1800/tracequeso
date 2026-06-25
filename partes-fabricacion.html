@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.227</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.228</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2987,7 +2987,8 @@ function calcularDosis(){
         return;
       }
       var val = nombresTA[p.nombre];
-      if(el.tagName==='INPUT') el.value = litros>0 ? String(val) : '';
+      // No reescribir el campo si lo estás editando (tablet: el foco se pierde y machaca lo escrito)
+      if(el.tagName==='INPUT'){ if(document.activeElement!==el) el.value = litros>0 ? String(val) : ''; }
       else el.textContent = litros>0 ? String(val) : '—';
       return;
     }
@@ -3000,7 +3001,8 @@ function calcularDosis(){
       else el.textContent = String(ov);
     } else {
       var total=_redondeaAlza5(litros*p.dosis_ml_1000L/1000);
-      if(el.tagName==='INPUT') el.value=litros>0?String(total):'';
+      // No reescribir el campo si lo estás editando (mismo motivo)
+      if(el.tagName==='INPUT'){ if(document.activeElement!==el) el.value=litros>0?String(total):''; }
       else el.textContent=litros>0?String(total):'—';
     }
   });

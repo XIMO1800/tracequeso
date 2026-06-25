@@ -1,14 +1,19 @@
-// Service Worker para TraceQueso
-// Versión: v174 - cambiar este número en cada nueva versión del HTML
-const CACHE = 'tracequeso-v174';
-const ASSETS = ['/tracequeso/', '/tracequeso/index.html'];
+// Service Worker para Partes de Fabricación
+// Versión: 2.6.228 - cambiar este número en cada nueva versión del HTML
+const CACHE_VERSION = 'partes-v2-6-228';
+const CACHE_FILES = [
+  'partes-fabricacion.html',
+  'partes-manifest.json',
+  'icon192.png',
+  'icon512.png'
+];
 
 // INSTALACIÓN: cachear archivos esenciales
-self.addEventListener('install', function(e) {
-  e.waitUntil(
-    caches.open(CACHE).then(function(cache) {
-      return cache.addAll(ASSETS).catch(function(){});
-    }).then(function() {
+self.addEventListener('install', function(event){
+  event.waitUntil(
+    caches.open(CACHE_VERSION).then(function(cache){
+      return cache.addAll(CACHE_FILES).catch(function(){});
+    }).then(function(){
       // Activar nueva versión inmediatamente sin esperar
       return self.skipWaiting();
     })
@@ -16,46 +21,47 @@ self.addEventListener('install', function(e) {
 });
 
 // ACTIVACIÓN: borrar cachés viejos
-self.addEventListener('activate', function(e) {
-  e.waitUntil(
-    caches.keys().then(function(keys) {
+self.addEventListener('activate', function(event){
+  event.waitUntil(
+    caches.keys().then(function(keys){
       return Promise.all(
-        keys.filter(function(k){ return k !== CACHE; })
+        keys.filter(function(k){ return k !== CACHE_VERSION; })
             .map(function(k){ return caches.delete(k); })
       );
-    }).then(function() {
+    }).then(function(){
       return self.clients.claim();
     })
   );
 });
 
-// FETCH: network-first para el HTML (siempre lo más reciente)
-// cache-first para el resto
-self.addEventListener('fetch', function(e) {
-  var url = e.request.url;
+// FETCH: estrategia network-first para el HTML (siempre lo más reciente)
+// y cache-first para todo lo demás
+self.addEventListener('fetch', function(event){
+  var req = event.request;
+  var url = req.url;
 
-  // Para el HTML siempre intentar red primero
-  if (url.indexOf('/tracequeso/index.html') >= 0 || url.endsWith('/tracequeso/') || url.endsWith('/tracequeso')) {
-    e.respondWith(
-      fetch(e.request).then(function(resp) {
+  // Para el HTML siempre intentar red primero (así la versión nueva llega)
+  if(url.indexOf('partes-fabricacion.html') >= 0 || url.endsWith('/')){
+    event.respondWith(
+      fetch(req).then(function(resp){
         // Guardar copia en caché para uso offline
         var copy = resp.clone();
-        caches.open(CACHE).then(function(cache) {
-          cache.put(e.request, copy).catch(function(){});
+        caches.open(CACHE_VERSION).then(function(cache){
+          cache.put(req, copy).catch(function(){});
         });
         return resp;
-      }).catch(function() {
-        // Sin red, servir del caché
-        return caches.match(e.request);
+      }).catch(function(){
+        // Si no hay red, servir del caché
+        return caches.match(req);
       })
     );
     return;
   }
 
-  // Para el resto, cache-first
-  e.respondWith(
-    caches.match(e.request).then(function(r) {
-      return r || fetch(e.request);
+  // Para el resto (no debería haber mucho), cache-first
+  event.respondWith(
+    caches.match(req).then(function(resp){
+      return resp || fetch(req);
     })
   );
 });
