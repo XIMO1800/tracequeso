@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.228</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.229</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -5857,6 +5857,23 @@ function confirmarFirma(){
     _firmaParte.firma_quesero_nombre = nombre;
     _firmaParte.firma_quesero_ts = ts;
   }
+  // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
+  // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.229)
+  try{
+    var _pe = window._parteEditando;
+    if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
+      if(_firmaTipo==='sala'){
+        _pe.firma_sala = _firmaParte.firma_sala;
+        _pe.firma_sala_nombre = _firmaParte.firma_sala_nombre;
+        _pe.firma_sala_ts = _firmaParte.firma_sala_ts;
+      } else {
+        _pe.firma_quesero = _firmaParte.firma_quesero;
+        _pe.firma_quesero_nombre = _firmaParte.firma_quesero_nombre;
+        _pe.firma_quesero_ts = _firmaParte.firma_quesero_ts;
+      }
+    }
+  }catch(e){}
   try{ persistir(); }catch(e){}
   try{ enviarParteSheets(_firmaParte); }catch(e){}
   var ov = document.getElementById('firma-overlay');
@@ -5875,6 +5892,15 @@ function confirmarFirma(){
   try{ actualizarBotonesFirmarTodos(); }catch(e){}
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
+  // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.229)
+  try{
+    var _pe2 = window._parteEditando;
+    if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
+       document.getElementById('ep-form') && typeof renderEpForm==='function'){
+      renderEpForm();
+    }
+  }catch(e){}
 }
 
 // Botones independientes: cada uno firma SU parte sin cerrarlo.
