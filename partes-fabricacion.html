@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.243</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.244</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1650,7 +1650,7 @@ function rellenarCampos(p){
   v('np-fecha', p.fecha);
   v('np-cuba-fisica', p.cuba_fisica || '');
   v('np-litros', p.litros);
-  setTimeout(function(){ try{ comprobarCapacidadCuba(); }catch(e){} try{ _activarAvisosPh(); }catch(e){} }, 50);
+  setTimeout(function(){ try{ comprobarCapacidadCuba(); }catch(e){} try{ _activarAvisosPh(); }catch(e){} try{ _activarHorasTexto(); }catch(e){} }, 50);
   // Operario: poblar select con el valor del parte o el actual
   poblarSelectOperario(p.operario || OPERARIO_ACTUAL);
   v('np-operario', p.operario || OPERARIO_ACTUAL);
@@ -2534,6 +2534,42 @@ function comprobarPh(inputId){
   avisoEl.style.display='none';
 }
 // Engancha el aviso de pH a todos los campos de pH del parte
+// ── Aviso de temperatura fuera de rango (no bloquea, solo avisa) ──
+// Genérico de fabricación: rojo si negativa o imposible (>90, o 3 cifras enteras);
+// amarillo si >45 (raro en fabricación). El pasteurizador (past-temp) se excluye del tope 45.
+function comprobarTemp(inputId){
+  var el = document.getElementById(inputId);
+  if(!el) return;
+  var avisoId = inputId + '-aviso-temp';
+  var avisoEl = document.getElementById(avisoId);
+  if(!avisoEl){
+    avisoEl = document.createElement('div');
+    avisoEl.id = avisoId;
+    avisoEl.style.cssText = 'display:none;margin-top:4px;padding:5px 8px;border-radius:6px;font-size:0.72rem;font-weight:600;line-height:1.3';
+    if(el.parentNode) el.parentNode.appendChild(avisoEl);
+  }
+  var raw = String(el.value).trim().replace(',','.');
+  if(raw === ''){ avisoEl.style.display='none'; return; }
+  var v = parseFloat(raw);
+  if(isNaN(v)){ avisoEl.style.display='none'; return; }
+  var esPast = (inputId === 'past-temp');
+  // Rojo: imposible (negativa, o >90 que ya es disparate, o se metió un pH tipo 6,5 donde va Tª no aplica)
+  if(v < 0 || v > 90){
+    avisoEl.style.display='block';
+    avisoEl.style.background='#f8d7da'; avisoEl.style.color='#a71d2a'; avisoEl.style.border='1px solid #f1a7ae';
+    avisoEl.textContent='⛔ Temperatura '+el.value+'° imposible. Revisa el dato.';
+    return;
+  }
+  // Amarillo: en fabricación, por encima de 45 es raro (el pasteurizador se salta este tope)
+  if(!esPast && v > 45){
+    avisoEl.style.display='block';
+    avisoEl.style.background='#fff3cd'; avisoEl.style.color='#7a5c00'; avisoEl.style.border='1px solid #ffe08a';
+    avisoEl.textContent='⚠️ Temperatura '+el.value+'° alta para fabricación. ¿Seguro?';
+    return;
+  }
+  avisoEl.style.display='none';
+}
+
 function _activarAvisosPh(){
   ['np-ph','aux-ph','ferm-ph','coag-ph','rec-ph','mol-ph'].forEach(function(id){
     var el = document.getElementById(id);
@@ -2542,6 +2578,53 @@ function _activarAvisosPh(){
       el.addEventListener('blur', function(){ comprobarPh(id); });
       el._phWatched = true;
     }
+  });
+  // Avisos de temperatura (fabricación + pasteurizador)
+  ['np-temp','aux-temp','ferm-temp','coag-temp','rec-ti','rec-tf','mol-temp','lavado-temp','past-temp'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el && !el._tempWatched){
+      el.addEventListener('input', function(){ comprobarTemp(id); });
+      el.addEventListener('blur', function(){ comprobarTemp(id); });
+      el._tempWatched = true;
+    }
+  });
+}
+
+// Convierte los campos de hora (type=time) en campos de texto donde se teclea HH:MM
+// con teclado numérico y los dos puntos automáticos. Evita el selector de reloj de Android.
+function _activarHorasTexto(){
+  var campos = document.querySelectorAll('input[type="time"]');
+  campos.forEach(function(el){
+    if(el._horaTexto) return;
+    // pasar el valor actual (HH:MM) y cambiar el tipo
+    var val = el.value || '';
+    el.type = 'text';
+    el.setAttribute('inputmode','numeric');
+    el.setAttribute('placeholder','--:--');
+    el.setAttribute('maxlength','5');
+    if(val) el.value = val;
+    // al escribir: dejar solo dígitos y meter los ':' tras 2 dígitos
+    el.addEventListener('input', function(){
+      var d = el.value.replace(/[^0-9]/g,'').slice(0,4);
+      if(d.length >= 3) el.value = d.slice(0,2)+':'+d.slice(2);
+      else el.value = d;
+    });
+    // al salir: validar que sea una hora real; si no, marcar en rojo suave
+    el.addEventListener('blur', function(){
+      var v = el.value.trim();
+      if(v===''){ el.style.borderColor=''; return; }
+      var m = v.match(/^(\d{1,2}):(\d{2})$/);
+      if(m && parseInt(m[1],10)<24 && parseInt(m[2],10)<60){
+        // normalizar a HH:MM con cero delante
+        el.value = ('0'+m[1]).slice(-2)+':'+m[2];
+        el.style.borderColor='';
+        // disparar los recálculos que dependían del campo (total coagulación, etc.)
+        el.dispatchEvent(new Event('change'));
+      } else {
+        el.style.borderColor='#e07a7a';
+      }
+    });
+    el._horaTexto = true;
   });
 }
 
@@ -3060,7 +3143,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.243) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.244) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -6220,7 +6303,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.243)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.244)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6254,7 +6337,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.243)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.244)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
@@ -7413,6 +7496,7 @@ function anadirSalmuera(datos){
     if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
   });
   inpHf.addEventListener('input', function(){ if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID); });
+  try{ _activarHorasTexto(); }catch(e){}
 }
 function quitarSalmuera(btn){
   var card = btn.closest('.pren-card');
@@ -7615,6 +7699,7 @@ function anadirDesmoldeo(datos){
   var dHf = div.querySelector('.des-hf');
   if (dHi) dHi.addEventListener('change', function(){ try{ recalcSalmueraDesdeDesmoldeo(); }catch(e){} });
   if (dHf) dHf.addEventListener('change', function(){ try{ recalcSalmueraDesdeDesmoldeo(); }catch(e){} });
+  try{ _activarHorasTexto(); }catch(e){}
 }
 function quitarDesmoldeo(btn){
   var card = btn.closest('.pren-card');
