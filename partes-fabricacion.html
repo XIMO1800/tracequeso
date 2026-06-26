@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.248</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.249</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2031,6 +2031,9 @@ function _cerrarParteActivoConfirmar(id){
   if(!p) return;
   // Antes de cerrar, capturar los auxiliares/fermentos/cuajo aplicados con sus lotes reales
   _capturarAuxFermCuajoEnParte(p);
+  // Volcar lo que hay ahora mismo en pantalla (piezas, prensados, etc.) al objeto parte
+  try{ autoGuardarParte(id); }catch(e){}
+  p = PARTES.find(function(x){return x.id===id;}) || p;
   // Descartar prensados vacíos (un "+ Añadir" por error no debe dejar filas en blanco)
   limpiarPrensadosVacios(p);
   // Aviso si algún ingrediente deja el stock en negativo (no bloquea, solo avisa)
@@ -3292,7 +3295,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.248) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.249) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -6452,7 +6455,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.248)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.249)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6486,7 +6489,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.248)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.249)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
