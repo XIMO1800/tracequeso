@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.247</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.248</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2732,16 +2732,20 @@ function _activarHorasTexto(){
     el.setAttribute('placeholder','--:--');
     el.setAttribute('maxlength','5');
     if(val) el.value = val;
-    // al escribir: dejar solo dígitos y meter los ':' tras 2 dígitos
+    // al escribir: dejar solo dígitos. Los 2 últimos son minutos, lo de delante la hora.
     el.addEventListener('input', function(){
       var d = el.value.replace(/[^0-9]/g,'').slice(0,4);
-      if(d.length >= 3) el.value = d.slice(0,2)+':'+d.slice(2);
-      else el.value = d;
+      if(d.length <= 2){ el.value = d; }
+      else { el.value = d.slice(0, d.length-2)+':'+d.slice(d.length-2); }
     });
     // al salir: validar que sea una hora real; si no, marcar en rojo suave
     el.addEventListener('blur', function(){
       var v = el.value.trim();
       if(v===''){ el.style.borderColor=''; return; }
+      // quitar todo lo que no sea dígito y recomponer (por si quedó algo raro)
+      var d = v.replace(/[^0-9]/g,'');
+      if(d.length>=3){ v = d.slice(0,d.length-2)+':'+d.slice(d.length-2); }
+      else if(d.length>0){ v = d; }
       var m = v.match(/^(\d{1,2}):(\d{2})$/);
       if(m && parseInt(m[1],10)<24 && parseInt(m[2],10)<60){
         // normalizar a HH:MM con cero delante
@@ -2751,8 +2755,23 @@ function _activarHorasTexto(){
         el.dispatchEvent(new Event('change'));
         try{ comprobarOrdenHoras(el.id); }catch(e){}
       } else {
+        // hora imposible: marcar en rojo y avisar
         el.style.borderColor='#e07a7a';
+        var avId = el.id+'-aviso-hora';
+        var avEl = document.getElementById(avId);
+        if(!avEl){
+          avEl = document.createElement('div');
+          avEl.id = avId;
+          avEl.style.cssText = 'margin-top:4px;padding:5px 8px;border-radius:6px;font-size:0.72rem;font-weight:600;background:#f8d7da;color:#a71d2a;border:1px solid #f1a7ae';
+          if(el.parentNode) el.parentNode.appendChild(avEl);
+        }
+        avEl.style.display='block';
+        avEl.textContent='⛔ Hora no válida. Formato HH:MM (ej. 5:36).';
+        return;
       }
+      // si era válida, ocultar el aviso de hora si existía
+      var avOk = document.getElementById(el.id+'-aviso-hora');
+      if(avOk) avOk.style.display='none';
     });
     el._horaTexto = true;
   });
@@ -3273,7 +3292,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.247) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.248) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -6433,7 +6452,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.247)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.248)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6467,7 +6486,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.247)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.248)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
