@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.244</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.247</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1972,6 +1972,59 @@ function cerrarParteActivo(id){
   _cerrarParteActivoConfirmar(id);
 }
 
+// Comprueba que los formatos cuadren entre las 4 fases: prensado, desmoldeo, salado, piezas.
+// Devuelve un texto de aviso (para confirm) si hay descuadre, o '' si todo cuadra.
+function _avisoCoherenciaFormatos(p){
+  // Mapa de formato (texto) → clave común. Cubre las dos nomenclaturas del sistema.
+  var norm = function(f){
+    if(!f) return '';
+    var s = String(f).toUpperCase().replace(/\s+/g,'').replace('KG','').replace('/','');
+    var m = {'3':'3kg','2':'2kg','1':'1kg','12':'05kg','05':'05kg','BARRA':'barra','GIGANTE':'gigante'};
+    return m[s] || String(f).toLowerCase().replace(/\s+/g,'').replace('kg','');
+  };
+  var etiqueta = {'3kg':'3 kg','2kg':'2 kg','1kg':'1 kg','05kg':'1/2 kg','barra':'Barra','gigante':'Gigante'};
+
+  // Recoger formatos presentes en cada fase
+  var fases = {
+    'Prensado': {},
+    'Desmoldeo': {},
+    'Salado': {},
+    'Piezas': {}
+  };
+  (p.prensados||[]).forEach(function(x){ var k=norm(x.formato); if(k) fases['Prensado'][k]=true; });
+  (p.desmoldeos||[]).forEach(function(x){ var k=norm(x.formato); if(k) fases['Desmoldeo'][k]=true; });
+  (p.salmueras||[]).forEach(function(x){ var k=norm(x.formato); if(k) fases['Salado'][k]=true; });
+  if(p.piezas){
+    ['3kg','2kg','1kg','05kg','barra','gigante'].forEach(function(k){
+      var v = parseFloat(p.piezas[k]);
+      if(!isNaN(v) && v>0) fases['Piezas'][k]=true;
+    });
+  }
+
+  // Conjunto de todos los formatos que aparecen en alguna fase
+  var todos = {};
+  Object.keys(fases).forEach(function(fase){
+    Object.keys(fases[fase]).forEach(function(k){ todos[k]=true; });
+  });
+  var formatos = Object.keys(todos);
+  if(formatos.length===0) return ''; // nada que comprobar
+
+  // Para cada formato, ver en qué fases falta
+  var problemas = [];
+  formatos.forEach(function(k){
+    var faltaEn = [];
+    Object.keys(fases).forEach(function(fase){
+      if(!fases[fase][k]) faltaEn.push(fase);
+    });
+    if(faltaEn.length>0){
+      problemas.push('• '+(etiqueta[k]||k)+': falta en '+faltaEn.join(', '));
+    }
+  });
+
+  if(problemas.length===0) return '';
+  return '⚠️ Revisa los formatos antes de cerrar:\n\n'+problemas.join('\n')+'\n\nLos formatos deberían estar en las 4 fases (prensado, desmoldeo, salado y piezas).\n\n¿Cerrar igualmente?';
+}
+
 function _cerrarParteActivoConfirmar(id){
   if(!confirm('¿Cerrar este parte? Pasará al historial.')) return;
   var p = PARTES.find(function(x){return x.id===id;});
@@ -1983,6 +2036,9 @@ function _cerrarParteActivoConfirmar(id){
   // Aviso si algún ingrediente deja el stock en negativo (no bloquea, solo avisa)
   var avisoStock = _avisoStockInsuficiente(p);
   if(avisoStock && !confirm(avisoStock)) return;
+  // Aviso de coherencia de formatos entre prensado/desmoldeo/salado/piezas (no bloquea)
+  var avisoFmt = _avisoCoherenciaFormatos(p);
+  if(avisoFmt && !confirm(avisoFmt)) return;
   p.cerrado = true;
   if(p.reactivadoEnHoy) delete p.reactivadoEnHoy; // vuelve al historial en su fecha original
   persistir();
@@ -2570,6 +2626,79 @@ function comprobarTemp(inputId){
   avisoEl.style.display='none';
 }
 
+// ── Comprobación del orden cronológico de las horas del proceso ──
+// El proceso avanza siempre: cloruro → fermento → cuajo → corte → recal ini → recal fin → moldeo ini → moldeo fin.
+// Cada hora debe ser >= a la anterior con dato. Si no, aviso rojo. Además, cloruro→fermento muy largo = aviso amarillo.
+var _SECUENCIA_HORAS = [
+  {id:'aux-hadicion', nombre:'Cloruro'},
+  {id:'ferm-hadicion', nombre:'Fermento'},
+  {id:'coag-hadicion', nombre:'Cuajo'},
+  {id:'coag-hc', nombre:'Corte'},
+  {id:'rec-hi', nombre:'Recal. inicio'},
+  {id:'rec-hf', nombre:'Recal. fin'},
+  {id:'mol-hi', nombre:'Moldeo inicio'},
+  {id:'mol-hf', nombre:'Moldeo fin'}
+];
+function _minDeCampo(id){
+  var el = document.getElementById(id);
+  if(!el) return null;
+  var v = String(el.value).trim();
+  var m = v.match(/^(\d{1,2}):(\d{2})$/);
+  if(!m) return null;
+  return parseInt(m[1],10)*60 + parseInt(m[2],10);
+}
+function comprobarOrdenHoras(inputId){
+  var idx = _SECUENCIA_HORAS.findIndex(function(s){return s.id===inputId;});
+  if(idx<0) return;
+  var el = document.getElementById(inputId);
+  if(!el) return;
+  var avisoId = inputId + '-aviso-orden';
+  var avisoEl = document.getElementById(avisoId);
+  if(!avisoEl){
+    avisoEl = document.createElement('div');
+    avisoEl.id = avisoId;
+    avisoEl.style.cssText = 'display:none;margin-top:4px;padding:5px 8px;border-radius:6px;font-size:0.72rem;font-weight:600;line-height:1.3';
+    if(el.parentNode) el.parentNode.appendChild(avisoEl);
+  }
+  var min = _minDeCampo(inputId);
+  if(min==null){ avisoEl.style.display='none'; return; }
+  // Buscar el paso anterior CON dato
+  var prev = null;
+  for(var i=idx-1; i>=0; i--){
+    var mp = _minDeCampo(_SECUENCIA_HORAS[i].id);
+    if(mp!=null){ prev = {min:mp, nombre:_SECUENCIA_HORAS[i].nombre}; break; }
+  }
+  // Buscar el paso siguiente CON dato (para avisar también si este queda después del siguiente)
+  var next = null;
+  for(var j=idx+1; j<_SECUENCIA_HORAS.length; j++){
+    var mn = _minDeCampo(_SECUENCIA_HORAS[j].id);
+    if(mn!=null){ next = {min:mn, nombre:_SECUENCIA_HORAS[j].nombre}; break; }
+  }
+  // Rojo: este es anterior al paso previo
+  if(prev && min < prev.min){
+    avisoEl.style.display='block';
+    avisoEl.style.background='#f8d7da'; avisoEl.style.color='#a71d2a'; avisoEl.style.border='1px solid #f1a7ae';
+    avisoEl.textContent='⛔ Esta hora es anterior a '+prev.nombre+'. Revisa: el proceso va hacia adelante.';
+    return;
+  }
+  // Rojo: este es posterior al paso siguiente
+  if(next && min > next.min){
+    avisoEl.style.display='block';
+    avisoEl.style.background='#f8d7da'; avisoEl.style.color='#a71d2a'; avisoEl.style.border='1px solid #f1a7ae';
+    avisoEl.textContent='⛔ Esta hora es posterior a '+next.nombre+'. Revisa el orden.';
+    return;
+  }
+  // Amarillo: cloruro → fermento demasiado largo (más de 90 min)
+  if(inputId==='ferm-hadicion' && prev && prev.nombre==='Cloruro' && (min-prev.min) > 90){
+    var difH = Math.floor((min-prev.min)/60), difM = (min-prev.min)%60;
+    avisoEl.style.display='block';
+    avisoEl.style.background='#fff3cd'; avisoEl.style.color='#7a5c00'; avisoEl.style.border='1px solid #ffe08a';
+    avisoEl.textContent='⚠️ Han pasado '+(difH?difH+'h ':'')+difM+'m entre cloruro y fermento. ¿Seguro?';
+    return;
+  }
+  avisoEl.style.display='none';
+}
+
 function _activarAvisosPh(){
   ['np-ph','aux-ph','ferm-ph','coag-ph','rec-ph','mol-ph'].forEach(function(id){
     var el = document.getElementById(id);
@@ -2620,6 +2749,7 @@ function _activarHorasTexto(){
         el.style.borderColor='';
         // disparar los recálculos que dependían del campo (total coagulación, etc.)
         el.dispatchEvent(new Event('change'));
+        try{ comprobarOrdenHoras(el.id); }catch(e){}
       } else {
         el.style.borderColor='#e07a7a';
       }
@@ -3143,7 +3273,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.244) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.247) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -6303,7 +6433,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.244)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.247)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6337,7 +6467,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.244)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.247)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
@@ -7231,6 +7361,57 @@ function onFormatoPrensadoChange(sel){
     card.querySelector('.pren-rampa').value = '';
     card.querySelector('.pren-mant').value = '';
   }
+  // Propagar formatos del prensado a desmoldeo y salado (crea las filas que falten)
+  try{ propagarFormatosPrensado(); }catch(e){}
+}
+
+// Devuelve la lista de formatos (texto) presentes ahora mismo en el prensado
+function _formatosPrensadoActuales(){
+  var fmts = [];
+  document.querySelectorAll('#prensados-container .pren-formato').forEach(function(sel){
+    if(sel.value && fmts.indexOf(sel.value)===-1) fmts.push(sel.value);
+  });
+  return fmts;
+}
+// Formatos presentes en un contenedor de fases (desmoldeo/salmuera), por su selector
+function _formatosEnContenedor(contId, selClass){
+  var fmts = [];
+  document.querySelectorAll('#'+contId+' .'+selClass).forEach(function(sel){
+    if(sel.value && fmts.indexOf(sel.value)===-1) fmts.push(sel.value);
+  });
+  return fmts;
+}
+// Propaga: para cada formato del prensado, si NO existe fila en desmoldeo/salado, la crea vacía.
+// Nunca borra nada (eso lo gestiona el quitar prensado, con confirmación).
+function propagarFormatosPrensado(){
+  var fmts = _formatosPrensadoActuales();
+  if(!fmts.length) return;
+  // Desmoldeo
+  var fmtDes = _formatosEnContenedor('desmoldeos-container','des-formato');
+  fmts.forEach(function(f){
+    if(fmtDes.indexOf(f)===-1){
+      // ¿hay una fila de desmoldeo vacía sin formato? úsala; si no, crea una nueva
+      var vacia = null;
+      document.querySelectorAll('#desmoldeos-container .des-formato').forEach(function(sel){
+        if(!sel.value && !vacia) vacia = sel;
+      });
+      if(vacia){ vacia.value = f; vacia.dispatchEvent(new Event('change')); }
+      else if(typeof anadirDesmoldeo==='function'){ anadirDesmoldeo({formato:f}); }
+    }
+  });
+  // Salado
+  var fmtSal = _formatosEnContenedor('salmueras-container','salm-formato');
+  fmts.forEach(function(f){
+    if(fmtSal.indexOf(f)===-1){
+      var vacia = null;
+      document.querySelectorAll('#salmueras-container .salm-formato').forEach(function(sel){
+        if(!sel.value && !vacia) vacia = sel;
+      });
+      if(vacia){ vacia.value = f; vacia.dispatchEvent(new Event('change')); }
+      else if(typeof anadirSalmuera==='function'){ anadirSalmuera({formato:f}); }
+    }
+  });
+  if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
 }
 
 function onProgramaPrensadoChange(sel){
@@ -7251,9 +7432,54 @@ function quitarPrensado(btn){
   var card = btn.closest('.pren-card');
   if (!card) return;
   var titulo = (card.querySelector('.pren-card-titulo')||{}).textContent || 'este programa';
+  // Formato de la tarjeta que se va a quitar
+  var fmtSel = card.querySelector('.pren-formato');
+  var fmt = fmtSel ? fmtSel.value : '';
   if(!confirm('¿Eliminar solo "'+titulo+'"?\n\nSe borra únicamente esta tarjeta de prensado. El resto del parte no se toca.')) return;
   card.remove();
   _renumerarPrensados();
+  // Propagación suave: si ese formato ya no queda en ningún prensado, ofrecer quitarlo
+  // también de desmoldeo y salado (solo si están vacíos se quitan directos; si tienen datos, preguntar)
+  if(fmt){
+    var sigueEnPrensado = _formatosPrensadoActuales().indexOf(fmt) !== -1;
+    if(!sigueEnPrensado){
+      try{ _quitarFormatoDeFasesSiProcede(fmt); }catch(e){}
+    }
+  }
+  if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
+}
+
+// Quita un formato de desmoldeo y salado. Si la fila tiene datos, pregunta antes.
+function _quitarFormatoDeFasesSiProcede(fmt){
+  // ¿alguna fila de ese formato tiene datos metidos?
+  var conDatos = false;
+  document.querySelectorAll('#desmoldeos-container .pren-card').forEach(function(c){
+    var sel = c.querySelector('.des-formato');
+    if(sel && sel.value===fmt){
+      var inputs = c.querySelectorAll('input');
+      inputs.forEach(function(i){ if(String(i.value).trim()!=='') conDatos = true; });
+    }
+  });
+  document.querySelectorAll('#salmueras-container .pren-card, #salmueras-container .salm-row, #salmueras-container > div').forEach(function(c){
+    var sel = c.querySelector('.salm-formato');
+    if(sel && sel.value===fmt){
+      var inputs = c.querySelectorAll('input');
+      inputs.forEach(function(i){ if(String(i.value).trim()!=='') conDatos = true; });
+    }
+  });
+  if(conDatos){
+    if(!confirm('Has quitado el formato "'+fmt+'" del prensado, pero en el desmoldeo o el salado ya tenías datos de "'+fmt+'".\n\n¿Quitar también esas filas de desmoldeo y salado?')) return;
+  }
+  // Quitar filas de ese formato en desmoldeo
+  document.querySelectorAll('#desmoldeos-container .pren-card').forEach(function(c){
+    var sel = c.querySelector('.des-formato');
+    if(sel && sel.value===fmt) c.remove();
+  });
+  // Quitar filas de ese formato en salado
+  document.querySelectorAll('#salmueras-container > div').forEach(function(c){
+    var sel = c.querySelector('.salm-formato');
+    if(sel && sel.value===fmt) c.remove();
+  });
   if (CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
 }
 
