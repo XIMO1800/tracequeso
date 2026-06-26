@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.238</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.239</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3060,7 +3060,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.238) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.239) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -4059,7 +4059,11 @@ function _svgGraficaEvolucion(p){
   for(var g=0; g<=4; g++){
     var yy=mt+g/4*alto;
     s+='<line x1="'+ml+'" y1="'+yy+'" x2="'+(W-mr)+'" y2="'+yy+'" stroke="#f0ece4" stroke-width="1"/>';
-    s+='<text x="'+(ml-8)+'" y="'+(yy+3)+'" text-anchor="end" font-size="10" fill="#7B3FA0">'+(phMax-g/4*(phMax-phMin)).toFixed(1)+'</text>';
+    // pH: solo extremos (arriba 7,2 y abajo 4,0); los del medio distorsionan
+    if(g===0 || g===4){
+      s+='<text x="'+(ml-8)+'" y="'+(yy+3)+'" text-anchor="end" font-size="10" fill="#7B3FA0">'+(phMax-g/4*(phMax-phMin)).toFixed(1)+'</text>';
+    }
+    // °C: se mantienen todas las referencias de temperatura
     s+='<text x="'+(W-mr+8)+'" y="'+(yy+3)+'" text-anchor="start" font-size="10" fill="#c0392b">'+Math.round(tpMax-g/4*(tpMax-tpMin))+'</text>';
   }
   s+='<text x="'+ml+'" y="'+(mt-14)+'" text-anchor="middle" font-size="11" fill="#7B3FA0" font-weight="700">pH</text>';
@@ -4085,13 +4089,13 @@ function _svgGraficaEvolucion(p){
     s+='<line x1="'+xx+'" y1="'+mt+'" x2="'+xx+'" y2="'+(mt+alto)+'" stroke="#e8e4d8" stroke-width="1" stroke-dasharray="3 3"/>';
     var yNombre = mt+alto+18 + niveles[i]*22; // nivel 0,1,2 → escalonado
     s+='<text x="'+xx+'" y="'+yNombre+'" text-anchor="middle" font-size="10" fill="#5a4d3f" font-weight="700">'+h.nombre+'</text>';
-    s+='<text x="'+xx+'" y="'+(yNombre+11)+'" text-anchor="middle" font-size="8.5" fill="#999">'+h.hora+'</text>';
-    // duración respecto al anterior, alternando dos alturas para no solapar
+    s+='<text x="'+xx+'" y="'+(yNombre+11)+'" text-anchor="middle" font-size="8.5" fill="#5a7a8f" font-weight="600">'+h.hora+'</text>';
+    // duración respecto al anterior, alternando dos alturas para no solapar (en granate = tiempos relevantes)
     if(i>0){
       var mPrev=_horaAMin(HITOS[i-1].hora);
       var xMid=(x(mPrev)+xx)/2;
       var yDur = (i%2===0) ? (mt+alto+92) : (mt+alto+104);
-      s+='<text x="'+xMid+'" y="'+yDur+'" text-anchor="middle" font-size="9" fill="#b0a89a" font-weight="600">'+_fmtDur(m-mPrev)+'</text>';
+      s+='<text x="'+xMid+'" y="'+yDur+'" text-anchor="middle" font-size="9.5" fill="#8B2A2A" font-weight="700">'+_fmtDur(m-mPrev)+'</text>';
     }
   });
   // Curvas
@@ -4139,10 +4143,11 @@ function _svgGraficaEvolucion(p){
 
   return '<div id="ep-graf-box" style="background:#fff;border:1px solid #e3ddd2;border-radius:10px;padding:14px">'
     + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
-    + '<div style="display:flex;gap:16px;font-size:0.78rem">'
+    + '<div style="display:flex;gap:16px;font-size:0.78rem;flex-wrap:wrap">'
     + '<span style="color:#c0392b;font-weight:700">— Temperatura (°C)</span>'
     + '<span style="color:#7B3FA0;font-weight:700">— pH</span>'
-    + '<span style="color:#b0a89a">tiempo entre fases</span></div>'
+    + '<span style="color:#5a7a8f;font-weight:700">horas</span>'
+    + '<span style="color:#8B2A2A;font-weight:700">tiempos</span></div>'
     + '<button type="button" onclick="pantallaCompletaGrafica()" style="background:#6b5d4f;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap">⛶ Pantalla completa</button>'
     + '</div>'
     + svg + cards
@@ -4163,6 +4168,10 @@ function pantallaCompletaGrafica(){
   box.style.background = '#fff';
   box.style.overflow = 'auto';
   box.style.padding = '24px';
+  box.style.touchAction = 'pinch-zoom'; // permite ampliar con dos dedos en la tablet
+  // El SVG admite zoom táctil
+  var svgEl = box.querySelector('svg');
+  if(svgEl){ svgEl.style.touchAction = 'pinch-zoom'; }
   if(box.requestFullscreen) box.requestFullscreen();
   else if(box.webkitRequestFullscreen) box.webkitRequestFullscreen();
 }
@@ -6179,7 +6188,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.238)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.239)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6213,7 +6222,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.238)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.239)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
