@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.242</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.243</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3060,7 +3060,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.242) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.243) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -4090,22 +4090,26 @@ function _svgGraficaEvolucion(p){
     var yNombre = mt+alto+18 + niveles[i]*22; // nivel 0,1,2 → escalonado
     s+='<text x="'+xx+'" y="'+yNombre+'" text-anchor="middle" font-size="10.5" font-family="Arial,Helvetica,sans-serif" fill="#5a4d3f" font-weight="700">'+h.nombre+'</text>';
     s+='<text x="'+xx+'" y="'+(yNombre+11)+'" text-anchor="middle" font-size="9" font-family="Arial,Helvetica,sans-serif" fill="#1a3a5c" font-weight="700">'+h.hora+'</text>';
-    // duración respecto al anterior: corchete SIEMPRE a la misma altura (línea continua),
-    // y solo el número alterna arriba/abajo para no solaparse
+    // número del tiempo: alterna encima/debajo de la línea continua (la línea se dibuja aparte, abajo)
     if(i>0){
       var mPrev=_horaAMin(HITOS[i-1].hora);
       var xPrev=x(mPrev);
       var xMid=(xPrev+xx)/2;
-      var yLinea = mt+alto+96; // altura fija del corchete (una sola línea)
-      // corchete del tramo (de hito a hito)
-      s+='<line x1="'+(xPrev+3)+'" y1="'+yLinea+'" x2="'+(xx-3)+'" y2="'+yLinea+'" stroke="#c9a0a0" stroke-width="1"/>';
-      s+='<line x1="'+(xPrev+3)+'" y1="'+(yLinea-3)+'" x2="'+(xPrev+3)+'" y2="'+(yLinea+3)+'" stroke="#c9a0a0" stroke-width="1"/>';
-      s+='<line x1="'+(xx-3)+'" y1="'+(yLinea-3)+'" x2="'+(xx-3)+'" y2="'+(yLinea+3)+'" stroke="#c9a0a0" stroke-width="1"/>';
-      // número del tiempo: alterna encima/debajo de la línea
+      var yLinea = mt+alto+96;
       var yTexto = (i%2===0) ? (yLinea-5) : (yLinea+11);
       s+='<text x="'+xMid+'" y="'+yTexto+'" text-anchor="middle" font-size="9.5" font-family="Arial,Helvetica,sans-serif" fill="#8B2A2A" font-weight="700">'+_fmtDur(m-mPrev)+'</text>';
     }
   });
+  // Línea continua de duraciones (de lado a lado) con una marca transversal en cada hito
+  (function(){
+    var yLinea = mt+alto+96;
+    var xs = HITOS.map(function(h){ return x(_horaAMin(h.hora)); });
+    var x0 = Math.min.apply(null,xs), x1 = Math.max.apply(null,xs);
+    s+='<line x1="'+x0+'" y1="'+yLinea+'" x2="'+x1+'" y2="'+yLinea+'" stroke="#c9a0a0" stroke-width="1"/>';
+    xs.forEach(function(xx){
+      s+='<line x1="'+xx+'" y1="'+(yLinea-4)+'" x2="'+xx+'" y2="'+(yLinea+4)+'" stroke="#c9a0a0" stroke-width="1"/>';
+    });
+  })();
   // Curvas
   var pT=HITOS.filter(function(h){return h.temp!=null;});
   if(pT.length) s+='<path d="'+pT.map(function(h,i){return (i?'L':'M')+x(_horaAMin(h.hora))+' '+yTp(h.temp);}).join(' ')+'" fill="none" stroke="#c0392b" stroke-width="2.5"/>';
@@ -6216,7 +6220,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.242)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.243)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6250,7 +6254,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.242)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.243)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
