@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.237</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.238</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3060,7 +3060,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.237) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.238) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -4005,7 +4005,7 @@ function _numOr(v){ var n=parseFloat(String(v).replace(',','.')); return isNaN(n
 function _fmtDur(min){
   if(min==null) return '';
   if(min<0) min+=1440; // cruza medianoche
-  if(min<60) return min+' min';
+  if(min<60) return min+'m';
   var h=Math.floor(min/60), m=min%60;
   return h+'h'+(m?(' '+m+'m'):'');
 }
@@ -4018,7 +4018,7 @@ function _hitosDeParte(p){
   if(!_horaAMin(horaEntrada)){
     var candidatas = [aux.hadicion, ferm.hadicion, coag.hadicion].map(_horaAMin).filter(function(x){return x!=null;});
     if(candidatas.length){
-      var minE = Math.min.apply(null,candidatas) - 5; // 5 min antes del primer evento
+      var minE = Math.min.apply(null,candidatas) - 15; // 15 min antes del primer evento (separa el arranque)
       if(minE<0) minE=0;
       horaEntrada = Math.floor(minE/60)+':'+('0'+(minE%60)).slice(-2);
     }
@@ -4086,11 +4086,12 @@ function _svgGraficaEvolucion(p){
     var yNombre = mt+alto+18 + niveles[i]*22; // nivel 0,1,2 → escalonado
     s+='<text x="'+xx+'" y="'+yNombre+'" text-anchor="middle" font-size="10" fill="#5a4d3f" font-weight="700">'+h.nombre+'</text>';
     s+='<text x="'+xx+'" y="'+(yNombre+11)+'" text-anchor="middle" font-size="8.5" fill="#999">'+h.hora+'</text>';
-    // duración respecto al anterior (debajo de todo, centrada)
+    // duración respecto al anterior, alternando dos alturas para no solapar
     if(i>0){
       var mPrev=_horaAMin(HITOS[i-1].hora);
       var xMid=(x(mPrev)+xx)/2;
-      s+='<text x="'+xMid+'" y="'+(mt+alto+90)+'" text-anchor="middle" font-size="9" fill="#b0a89a" font-weight="600">'+_fmtDur(m-mPrev)+'</text>';
+      var yDur = (i%2===0) ? (mt+alto+92) : (mt+alto+104);
+      s+='<text x="'+xMid+'" y="'+yDur+'" text-anchor="middle" font-size="9" fill="#b0a89a" font-weight="600">'+_fmtDur(m-mPrev)+'</text>';
     }
   });
   // Curvas
@@ -4122,19 +4123,17 @@ function _svgGraficaEvolucion(p){
     return mb-ma;
   }
   var claves=[
-    {lbl:'Fermento → cuajo', val:dur('Fermento','Cuajo'), sub:'pre-cuajado'},
-    {lbl:'Cuajado', val:dur('Cuajo','Corte'), sub:'adición → corte'},
-    {lbl:'Recalentamiento', val:dur('Recal. ini','Recal. fin'), sub:'ini → fin'},
-    {lbl:'Fermento → moldeo', val:dur('Fermento','Moldeo ini'), sub:'acidificación'},
-    {lbl:'Fermento → desmoldeo', val:dur('Fermento','Desmoldeo'), sub:'proceso total'}
+    {lbl:'Fermento → cuajo', val:dur('Fermento','Cuajo')},
+    {lbl:'Fermento → moldeo', val:dur('Fermento','Moldeo ini')},
+    {lbl:'Moldeo → desmoldeo', val:dur('Moldeo ini','Desmoldeo')},
+    {lbl:'Fermento → desmoldeo', val:dur('Fermento','Desmoldeo')}
   ];
   var cards = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">';
   claves.forEach(function(c){
     if(c.val==null) return;
-    cards += '<div style="background:#f4ebd8;border-radius:8px;padding:8px 12px;min-width:110px">'
+    cards += '<div style="background:#f4ebd8;border-radius:8px;padding:8px 12px;min-width:96px">'
       +'<div style="font-size:0.62rem;color:#6b5d4f;text-transform:uppercase;font-weight:700">'+c.lbl+'</div>'
-      +'<div style="font-size:1.05rem;color:var(--rojo,#8B2A2A);font-weight:800;margin-top:2px">'+_fmtDur(c.val)+'</div>'
-      +'<div style="font-size:0.6rem;color:#9a8d7d">'+c.sub+'</div></div>';
+      +'<div style="font-size:1.1rem;color:var(--rojo,#8B2A2A);font-weight:800;margin-top:3px">'+_fmtDur(c.val)+'</div></div>';
   });
   cards += '</div>';
 
@@ -6180,7 +6179,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.237)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.238)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6214,7 +6213,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.237)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.238)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
