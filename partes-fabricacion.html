@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.235</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.236</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1650,7 +1650,7 @@ function rellenarCampos(p){
   v('np-fecha', p.fecha);
   v('np-cuba-fisica', p.cuba_fisica || '');
   v('np-litros', p.litros);
-  setTimeout(function(){ try{ comprobarCapacidadCuba(); }catch(e){} }, 50);
+  setTimeout(function(){ try{ comprobarCapacidadCuba(); }catch(e){} try{ _activarAvisosPh(); }catch(e){} }, 50);
   // Operario: poblar select con el valor del parte o el actual
   poblarSelectOperario(p.operario || OPERARIO_ACTUAL);
   v('np-operario', p.operario || OPERARIO_ACTUAL);
@@ -2499,6 +2499,52 @@ function onCubaChange(){
   try{ comprobarCapacidadCuba(); }catch(e){}
 }
 
+// ── Aviso de pH fuera de rango (no bloquea, solo avisa) ──
+// Amarillo: fuera de 4,8–7,0 pero es un pH plausible. Rojo: imposible (p.ej. 678 por olvidar la coma).
+function comprobarPh(inputId){
+  var el = document.getElementById(inputId);
+  if(!el) return;
+  var avisoId = inputId + '-aviso-ph';
+  var avisoEl = document.getElementById(avisoId);
+  // crear el aviso si no existe, justo debajo del campo
+  if(!avisoEl){
+    avisoEl = document.createElement('div');
+    avisoEl.id = avisoId;
+    avisoEl.style.cssText = 'display:none;margin-top:4px;padding:5px 8px;border-radius:6px;font-size:0.72rem;font-weight:600;line-height:1.3';
+    if(el.parentNode) el.parentNode.appendChild(avisoEl);
+  }
+  var raw = String(el.value).trim().replace(',','.');
+  if(raw === ''){ avisoEl.style.display='none'; return; }
+  var v = parseFloat(raw);
+  if(isNaN(v)){ avisoEl.style.display='none'; return; }
+  // Rojo: imposible como pH (lo típico: 678 por comerse la coma, o valores > 14 / < 2)
+  if(v > 14 || v < 2){
+    avisoEl.style.display='block';
+    avisoEl.style.background='#f8d7da'; avisoEl.style.color='#a71d2a'; avisoEl.style.border='1px solid #f1a7ae';
+    avisoEl.textContent='⛔ pH '+el.value+' imposible. ¿Falta la coma? (ej. 6,78 en vez de 678)';
+    return;
+  }
+  // Amarillo: fuera del rango habitual de fabricación 4,8–7,0
+  if(v < 4.8 || v > 7.0){
+    avisoEl.style.display='block';
+    avisoEl.style.background='#fff3cd'; avisoEl.style.color='#7a5c00'; avisoEl.style.border='1px solid #ffe08a';
+    avisoEl.textContent='⚠️ pH '+el.value+' fuera de lo habitual (4,8–7,0). Revisa que sea correcto.';
+    return;
+  }
+  avisoEl.style.display='none';
+}
+// Engancha el aviso de pH a todos los campos de pH del parte
+function _activarAvisosPh(){
+  ['np-ph','aux-ph','ferm-ph','coag-ph','rec-ph','mol-ph'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el && !el._phWatched){
+      el.addEventListener('input', function(){ comprobarPh(id); });
+      el.addEventListener('blur', function(){ comprobarPh(id); });
+      el._phWatched = true;
+    }
+  });
+}
+
 function anadirVariedad(){
   var t = document.getElementById('np-tipo-sel').value;
   if(!t){ toast('⚠ Selecciona primero el Tipo'); return; }
@@ -3014,7 +3060,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.235) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.236) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -4013,10 +4059,10 @@ function _svgGraficaEvolucion(p){
   for(var g=0; g<=4; g++){
     var yy=mt+g/4*alto;
     s+='<line x1="'+ml+'" y1="'+yy+'" x2="'+(W-mr)+'" y2="'+yy+'" stroke="#f0ece4" stroke-width="1"/>';
-    s+='<text x="'+(ml-8)+'" y="'+(yy+3)+'" text-anchor="end" font-size="10" fill="#2563a8">'+(phMax-g/4*(phMax-phMin)).toFixed(1)+'</text>';
+    s+='<text x="'+(ml-8)+'" y="'+(yy+3)+'" text-anchor="end" font-size="10" fill="#7B3FA0">'+(phMax-g/4*(phMax-phMin)).toFixed(1)+'</text>';
     s+='<text x="'+(W-mr+8)+'" y="'+(yy+3)+'" text-anchor="start" font-size="10" fill="#c0392b">'+Math.round(tpMax-g/4*(tpMax-tpMin))+'</text>';
   }
-  s+='<text x="'+ml+'" y="'+(mt-14)+'" text-anchor="middle" font-size="11" fill="#2563a8" font-weight="700">pH</text>';
+  s+='<text x="'+ml+'" y="'+(mt-14)+'" text-anchor="middle" font-size="11" fill="#7B3FA0" font-weight="700">pH</text>';
   s+='<text x="'+(W-mr)+'" y="'+(mt-14)+'" text-anchor="middle" font-size="11" fill="#c0392b" font-weight="700">°C</text>';
   // Líneas de hito + nombre (alternando altura para que no se pisen) + hora + duración
   HITOS.forEach(function(h,i){
@@ -4037,7 +4083,7 @@ function _svgGraficaEvolucion(p){
   var pT=HITOS.filter(function(h){return h.temp!=null;});
   if(pT.length) s+='<path d="'+pT.map(function(h,i){return (i?'L':'M')+x(_horaAMin(h.hora))+' '+yTp(h.temp);}).join(' ')+'" fill="none" stroke="#c0392b" stroke-width="2.5"/>';
   var pP=HITOS.filter(function(h){return h.ph!=null;});
-  if(pP.length) s+='<path d="'+pP.map(function(h,i){return (i?'L':'M')+x(_horaAMin(h.hora))+' '+yPh(h.ph);}).join(' ')+'" fill="none" stroke="#2563a8" stroke-width="2.5"/>';
+  if(pP.length) s+='<path d="'+pP.map(function(h,i){return (i?'L':'M')+x(_horaAMin(h.hora))+' '+yPh(h.ph);}).join(' ')+'" fill="none" stroke="#7B3FA0" stroke-width="2.5"/>';
   // Puntos + valores: temperatura SIEMPRE encima (con fondo), pH SIEMPRE debajo (con fondo)
   HITOS.forEach(function(h){
     var xx=x(_horaAMin(h.hora));
@@ -4047,9 +4093,9 @@ function _svgGraficaEvolucion(p){
       s+='<text x="'+xx+'" y="'+yt+'" text-anchor="middle" font-size="10.5" fill="#c0392b" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+h.temp+'°</text>';
     }
     if(h.ph!=null){
-      s+='<circle cx="'+xx+'" cy="'+yPh(h.ph)+'" r="3.5" fill="#2563a8"/>';
+      s+='<circle cx="'+xx+'" cy="'+yPh(h.ph)+'" r="3.5" fill="#7B3FA0"/>';
       var yp=yPh(h.ph)+18;
-      s+='<text x="'+xx+'" y="'+yp+'" text-anchor="middle" font-size="10.5" fill="#2563a8" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+h.ph+'</text>';
+      s+='<text x="'+xx+'" y="'+yp+'" text-anchor="middle" font-size="10.5" fill="#7B3FA0" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+h.ph+'</text>';
     }
   });
   var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block">'+s+'</svg>';
@@ -4081,7 +4127,7 @@ function _svgGraficaEvolucion(p){
   return '<div style="background:#fff;border:1px solid #e3ddd2;border-radius:10px;padding:14px">'
     + '<div style="display:flex;gap:16px;margin-bottom:8px;font-size:0.78rem">'
     + '<span style="color:#c0392b;font-weight:700">— Temperatura (°C)</span>'
-    + '<span style="color:#2563a8;font-weight:700">— pH</span>'
+    + '<span style="color:#7B3FA0;font-weight:700">— pH</span>'
     + '<span style="color:#b0a89a">tiempo entre fases</span></div>'
     + svg + cards
     + '<div style="font-size:0.68rem;color:#9a8d7d;margin-top:8px">Se genera con los datos de este parte.</div></div>';
@@ -6099,7 +6145,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.235)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.236)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6133,7 +6179,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.235)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.236)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
