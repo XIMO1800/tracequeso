@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.233</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.234</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3014,7 +3014,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.233) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.234) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -3942,6 +3942,150 @@ function _formatosSalmuera(){
   return out;
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// GRÁFICA DE EVOLUCIÓN DE LA CUBA (se genera al vuelo desde los datos del parte)
+// pH y temperatura a lo largo del proceso, con hitos y tiempos. No se guarda:
+// se redibuja cada vez desde el parte. Uso interno (análisis del original).
+// ══════════════════════════════════════════════════════════════════════
+function _horaAMin(h){
+  if(!h && h!==0) return null;
+  var p = String(h).split(':');
+  if(p.length<2) return null;
+  var hh=parseInt(p[0],10), mm=parseInt(p[1],10);
+  if(isNaN(hh)||isNaN(mm)) return null;
+  return hh*60+mm;
+}
+function _numOr(v){ var n=parseFloat(String(v).replace(',','.')); return isNaN(n)?null:n; }
+function _fmtDur(min){
+  if(min==null) return '';
+  if(min<0) min+=1440; // cruza medianoche
+  if(min<60) return min+' min';
+  var h=Math.floor(min/60), m=min%60;
+  return h+'h'+(m?(' '+m+'m'):'');
+}
+
+// Construye la lista de hitos {nombre,hora,ph,temp} desde un parte
+function _hitosDeParte(p){
+  var aux = p.aux_meta||{}, ferm = p.ferm_meta||{}, coag = p.coag||{}, des = p.desuerado||{}, mol = p.moldeo||{};
+  var hitos = [
+    {nombre:'Entrada',    hora:(p.co2&&p.co2.hadicion)||'', ph:_numOr(p.ph), temp:_numOr(p.temp)},
+    {nombre:'Cloruro',    hora:aux.hadicion||'',  ph:_numOr(aux.ph),  temp:_numOr(aux.temp)},
+    {nombre:'Fermento',   hora:ferm.hadicion||'', ph:_numOr(ferm.ph), temp:_numOr(ferm.temp)},
+    {nombre:'Cuajo',      hora:coag.hadicion||'', ph:_numOr(coag.ph), temp:_numOr(coag.temp)},
+    {nombre:'Corte',      hora:coag.hc||'',       ph:null,            temp:null},
+    {nombre:'Recal. ini', hora:des.rec_hi||'',    ph:_numOr(des.rec_ph), temp:_numOr(des.rec_ti)},
+    {nombre:'Recal. fin', hora:des.rec_hf||'',    ph:null,            temp:_numOr(des.rec_tf)},
+    {nombre:'Moldeo ini', hora:mol.hi||'',        ph:_numOr(mol.ph),  temp:_numOr(mol.temp)},
+    {nombre:'Moldeo fin', hora:mol.hf||'',        ph:null,            temp:null}
+  ];
+  // Desmoldeo: tomar el primero que haya
+  if(p.desmoldeos && p.desmoldeos.length){
+    var d = p.desmoldeos[0];
+    hitos.push({nombre:'Desmoldeo', hora:d.hi||d.hf||'', ph:_numOr(d.ph), temp:_numOr(d.temp)});
+  }
+  // Quedarnos solo con hitos que tienen hora válida
+  return hitos.filter(function(h){ return _horaAMin(h.hora)!=null; });
+}
+
+function _svgGraficaEvolucion(p){
+  var HITOS = _hitosDeParte(p);
+  if(HITOS.length < 2){
+    return '<div style="padding:16px;text-align:center;color:var(--text3);font-size:0.85rem">Aún no hay suficientes datos con hora para dibujar la evolución. Rellena las horas de las fases (cloruro, fermento, cuajo, recalentamiento, moldeo…).</div>';
+  }
+  var W=940, H=480, ml=46, mr=46, mt=30, mb=92;
+  var ancho=W-ml-mr, alto=H-mt-mb;
+  var tiempos=HITOS.map(function(h){return _horaAMin(h.hora);});
+  var tMin=Math.min.apply(null,tiempos), tMax=Math.max.apply(null,tiempos);
+  if(tMax<=tMin) tMax=tMin+1;
+  var phMin=4, phMax=7.2, tpMin=0, tpMax=40;
+  function x(m){ return ml+(m-tMin)/(tMax-tMin)*ancho; }
+  function yPh(v){ return mt+(phMax-v)/(phMax-phMin)*alto; }
+  function yTp(v){ return mt+(tpMax-v)/(tpMax-tpMin)*alto; }
+  var s='';
+  for(var g=0; g<=4; g++){
+    var yy=mt+g/4*alto;
+    s+='<line x1="'+ml+'" y1="'+yy+'" x2="'+(W-mr)+'" y2="'+yy+'" stroke="#f0ece4" stroke-width="1"/>';
+    s+='<text x="'+(ml-8)+'" y="'+(yy+3)+'" text-anchor="end" font-size="10" fill="#2563a8">'+(phMax-g/4*(phMax-phMin)).toFixed(1)+'</text>';
+    s+='<text x="'+(W-mr+8)+'" y="'+(yy+3)+'" text-anchor="start" font-size="10" fill="#c0392b">'+Math.round(tpMax-g/4*(tpMax-tpMin))+'</text>';
+  }
+  s+='<text x="'+ml+'" y="'+(mt-10)+'" text-anchor="middle" font-size="10" fill="#2563a8" font-weight="700">pH</text>';
+  s+='<text x="'+(W-mr)+'" y="'+(mt-10)+'" text-anchor="middle" font-size="10" fill="#c0392b" font-weight="700">°C</text>';
+  HITOS.forEach(function(h,i){
+    var m=_horaAMin(h.hora); var xx=x(m);
+    s+='<line x1="'+xx+'" y1="'+mt+'" x2="'+xx+'" y2="'+(mt+alto)+'" stroke="#e0dccf" stroke-width="1" stroke-dasharray="3 3"/>';
+    s+='<text x="'+xx+'" y="'+(mt+alto+16)+'" text-anchor="end" font-size="9" fill="#6b5d4f" font-weight="600" transform="rotate(-38 '+xx+' '+(mt+alto+16)+')">'+h.nombre+'</text>';
+    s+='<text x="'+xx+'" y="'+(mt+alto+12)+'" text-anchor="middle" font-size="8" fill="#999">'+h.hora+'</text>';
+    if(i>0){
+      var mPrev=_horaAMin(HITOS[i-1].hora);
+      var xMid=(x(mPrev)+xx)/2;
+      s+='<text x="'+xMid+'" y="'+(mt+alto+30)+'" text-anchor="middle" font-size="8.5" fill="#b0a89a" font-weight="600">('+_fmtDur(m-mPrev)+')</text>';
+    }
+  });
+  var pT=HITOS.filter(function(h){return h.temp!=null;});
+  if(pT.length) s+='<path d="'+pT.map(function(h,i){return (i?'L':'M')+x(_horaAMin(h.hora))+' '+yTp(h.temp);}).join(' ')+'" fill="none" stroke="#c0392b" stroke-width="2.5"/>';
+  var pP=HITOS.filter(function(h){return h.ph!=null;});
+  if(pP.length) s+='<path d="'+pP.map(function(h,i){return (i?'L':'M')+x(_horaAMin(h.hora))+' '+yPh(h.ph);}).join(' ')+'" fill="none" stroke="#2563a8" stroke-width="2.5"/>';
+  HITOS.forEach(function(h){
+    var xx=x(_horaAMin(h.hora));
+    if(h.temp!=null){
+      s+='<circle cx="'+xx+'" cy="'+yTp(h.temp)+'" r="3.5" fill="#c0392b"/>';
+      s+='<text x="'+xx+'" y="'+(yTp(h.temp)-7)+'" text-anchor="middle" font-size="9.5" fill="#c0392b" font-weight="700">'+h.temp+'°</text>';
+    }
+    if(h.ph!=null){
+      s+='<circle cx="'+xx+'" cy="'+yPh(h.ph)+'" r="3.5" fill="#2563a8"/>';
+      s+='<text x="'+xx+'" y="'+(yPh(h.ph)+14)+'" text-anchor="middle" font-size="9.5" fill="#2563a8" font-weight="700">'+h.ph+'</text>';
+    }
+  });
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block">'+s+'</svg>';
+
+  // Tiempos clave
+  function dur(n1,n2){
+    var a=HITOS.find(function(h){return h.nombre===n1;}), b=HITOS.find(function(h){return h.nombre===n2;});
+    if(!a||!b) return null;
+    var ma=_horaAMin(a.hora), mb=_horaAMin(b.hora);
+    if(ma==null||mb==null) return null;
+    return mb-ma;
+  }
+  var claves=[
+    {lbl:'Fermento → cuajo', val:dur('Fermento','Cuajo'), sub:'pre-cuajado'},
+    {lbl:'Cuajado', val:dur('Cuajo','Corte'), sub:'adición → corte'},
+    {lbl:'Recalentamiento', val:dur('Recal. ini','Recal. fin'), sub:'ini → fin'},
+    {lbl:'Fermento → moldeo', val:dur('Fermento','Moldeo ini'), sub:'acidificación'},
+    {lbl:'Fermento → desmoldeo', val:dur('Fermento','Desmoldeo'), sub:'proceso total'}
+  ];
+  var cards = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">';
+  claves.forEach(function(c){
+    if(c.val==null) return;
+    cards += '<div style="background:#f4ebd8;border-radius:8px;padding:8px 12px;min-width:110px">'
+      +'<div style="font-size:0.62rem;color:#6b5d4f;text-transform:uppercase;font-weight:700">'+c.lbl+'</div>'
+      +'<div style="font-size:1.05rem;color:var(--rojo,#8B2A2A);font-weight:800;margin-top:2px">'+_fmtDur(c.val)+'</div>'
+      +'<div style="font-size:0.6rem;color:#9a8d7d">'+c.sub+'</div></div>';
+  });
+  cards += '</div>';
+
+  return '<div style="background:#fff;border:1px solid #e3ddd2;border-radius:10px;padding:14px">'
+    + '<div style="display:flex;gap:16px;margin-bottom:8px;font-size:0.78rem">'
+    + '<span style="color:#c0392b;font-weight:700">— Temperatura (°C)</span>'
+    + '<span style="color:#2563a8;font-weight:700">— pH</span>'
+    + '<span style="color:#b0a89a">··· tiempo entre fases</span></div>'
+    + svg + cards
+    + '<div style="font-size:0.68rem;color:#9a8d7d;margin-top:8px">Gira la tablet en horizontal para verlo mejor. Se genera con los datos de este parte.</div></div>';
+}
+
+function toggleGraficaEvolucion(id){
+  var cont = document.getElementById('ep-grafica-evolucion');
+  if(!cont) return;
+  if(cont.style.display==='none' || !cont.style.display){
+    var p = (window._parteEditando && window._parteEditando.id===id) ? window._parteEditando
+            : PARTES.find(function(x){return x.id===id;});
+    if(!p){ cont.innerHTML='<div style="padding:12px;color:var(--text3)">No se encontró el parte.</div>'; }
+    else { cont.innerHTML = _svgGraficaEvolucion(p); }
+    cont.style.display='block';
+  } else {
+    cont.style.display='none';
+  }
+}
+
 function editarParteCompleto(id, soloLectura){
   var p = PARTES.find(function(x){return x.id===id;});
   if(!p){ toast('Parte no encontrado','err'); return; }
@@ -4003,6 +4147,9 @@ function editarParteCompleto(id, soloLectura){
 
   var h = '<div class="modal-title">'+(soloLectura?'👁️ Ver parte · Cuba ':'✏️ Editar parte · Cuba ')+p.cuba+' <button class="modal-close" onclick="cerrarModal()">×</button></div>';
   h += '<div style="font-size:0.75rem;color:var(--text3);margin-bottom:10px">'+formatearFecha(p.fecha)+' · '+(p.operario||'—')+' · ID: '+p.id+'</div>';
+  // Botón para ver la gráfica de evolución de la cuba (se genera al vuelo desde los datos del parte)
+  h += '<div style="margin-bottom:12px"><button type="button" onclick="toggleGraficaEvolucion(\''+p.id+'\')" style="background:var(--rojo,#8B2A2A);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:0.85rem;font-weight:700;cursor:pointer">📈 Ver evolución de la cuba</button></div>';
+  h += '<div id="ep-grafica-evolucion" style="display:none;margin-bottom:14px"></div>';
   if(soloLectura){
     h += '<div style="background:#eef4ff;border-left:4px solid #5b8def;padding:8px 10px;border-radius:6px;font-size:0.78rem;color:#234;margin-bottom:14px">👁️ Vista de solo lectura. Para modificar un parte, el departamento de Calidad debe abrirlo desde su acceso.</div>';
   } else {
@@ -5937,7 +6084,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.233)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.234)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -5971,7 +6118,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.233)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.234)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
