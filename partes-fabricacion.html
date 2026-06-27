@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.250</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.251</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3295,7 +3295,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.250) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.251) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -3421,10 +3421,17 @@ function calcCoagTotal(){
   var hc=document.getElementById('coag-hc').value;
   var display=document.getElementById('coag-total-display');
   var hidden=document.getElementById('coag-total');
-  if(!ha||!hc){display.textContent='—';hidden.value='';return;}
-  var pA=ha.split(':'),pC=hc.split(':');
-  var minA=parseInt(pA[0])*60+parseInt(pA[1]);
-  var minC=parseInt(pC[0])*60+parseInt(pC[1]);
+  // Solo calcular cuando AMBAS horas están completas y son válidas (HH:MM).
+  // Con los campos de texto, oninput salta en cada tecla; sin esta guarda se
+  // calculaba con valores a medio escribir (p.ej. "06:4") y salían totales absurdos.
+  var rA=/^(\d{1,2}):(\d{2})$/.exec(ha||'');
+  var rC=/^(\d{1,2}):(\d{2})$/.exec(hc||'');
+  if(!rA||!rC){ display.textContent='—'; hidden.value=''; return; }
+  var hA=parseInt(rA[1],10), mAh=parseInt(rA[2],10);
+  var hC=parseInt(rC[1],10), mCh=parseInt(rC[2],10);
+  if(hA>23||mAh>59||hC>23||mCh>59){ display.textContent='—'; hidden.value=''; return; }
+  var minA=hA*60+mAh;
+  var minC=hC*60+mCh;
   var diff=minC-minA;
   if(diff<0)diff+=1440;
   display.textContent=diff+' min';
@@ -6476,7 +6483,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.250)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.251)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6510,7 +6517,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.250)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.251)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
@@ -7133,10 +7140,10 @@ function calcAgitTotal(){
   var hf = document.getElementById('agit-hf');
   var tot = document.getElementById('agit-total');
   if (!hi || !hf || !tot) return;
-  if (hi.value && hf.value) {
-    var ini = hi.value.split(':').map(Number);
-    var fin = hf.value.split(':').map(Number);
-    var minutos = (fin[0]*60+fin[1]) - (ini[0]*60+ini[1]);
+  var rI=/^(\d{1,2}):(\d{2})$/.exec(hi.value||'');
+  var rF=/^(\d{1,2}):(\d{2})$/.exec(hf.value||'');
+  if (rI && rF) {
+    var minutos = (parseInt(rF[1],10)*60+parseInt(rF[2],10)) - (parseInt(rI[1],10)*60+parseInt(rI[2],10));
     if (minutos < 0) minutos += 24*60;
     tot.value = minutos;
   }
