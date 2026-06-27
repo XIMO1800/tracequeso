@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.251</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.252</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -996,7 +996,7 @@ input[type="email"] {
       <div class="grid-alineado adicion-compact">
         <div class="form-row">
           <label class="form-label">Hora</label>
-          <input type="time" id="aux-hadicion">
+          <input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="aux-hadicion" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)">
         </div>
         <div class="form-row">
           <label class="form-label">pH</label>
@@ -1060,7 +1060,7 @@ input[type="email"] {
       <div class="ferm-adicion-row adicion-compact grid-alineado">
         <div class="form-row">
           <label class="form-label">Hora</label>
-          <input type="time" id="ferm-hadicion">
+          <input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="ferm-hadicion" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)">
         </div>
         <div class="form-row">
           <label class="form-label">pH</label>
@@ -1093,13 +1093,13 @@ input[type="email"] {
           </div>
           <div class="coag-fila">
             <div class="coag-rowlbl">Adición</div>
-            <div><input type="time" id="coag-hadicion" oninput="calcCoagTotal()"></div>
+            <div><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="coag-hadicion" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this);calcCoagTotal()"></div>
             <div><input type="number" id="coag-ph" step="0.01" inputmode="decimal"></div>
             <div><input type="number" id="coag-temp" inputmode="decimal"></div>
           </div>
           <div class="coag-fila">
             <div class="coag-rowlbl">Corte</div>
-            <div><input type="time" id="coag-hc" oninput="calcCoagTotal()"></div>
+            <div><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="coag-hc" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this);calcCoagTotal()"></div>
             <div></div>
             <div></div>
           </div>
@@ -1126,11 +1126,11 @@ input[type="email"] {
       <div class="sep-label">Recalentamiento</div>
       <!-- Fila inicio (4 col) + Fila fin (2 col debajo, alineadas) -->
       <div class="grid-alineado">
-        <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="rec-hi"></div>
+        <div class="form-row"><label class="form-label">Hora inicio</label><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="rec-hi" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)"></div>
         <div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" id="rec-ti" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">pH suero</label><input type="number" id="rec-ph" step="0.01" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">°D suero</label><input type="number" id="rec-dornic" step="0.1" inputmode="decimal"></div>
-        <div class="form-row" style="grid-column:1"><label class="form-label">Hora fin</label><input type="time" id="rec-hf" onchange="propagarHora('rec-hf','agit-hi')"></div>
+        <div class="form-row" style="grid-column:1"><label class="form-label">Hora fin</label><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="rec-hf" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this);propagarHora('rec-hf','agit-hi')"></div>
         <div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" id="rec-tf" inputmode="decimal"></div>
       </div>
       <!-- Lavado cuajada (entre recalentamiento y agitación) -->
@@ -1146,16 +1146,16 @@ input[type="email"] {
       </label>
       <div id="lavado-block" class="opt-aux-block cerrado">
         <div class="grid-alineado">
-          <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="lavado-hi"></div>
-          <div class="form-row" id="lavado-hf-row"><label class="form-label">Hora fin</label><input type="time" id="lavado-hf"></div>
+          <div class="form-row"><label class="form-label">Hora inicio</label><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="lavado-hi" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)"></div>
+          <div class="form-row" id="lavado-hf-row"><label class="form-label">Hora fin</label><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="lavado-hf" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)"></div>
           <div class="form-row" id="lavado-temp-row"><label class="form-label">Tª agua (°C)</label><input type="number" id="lavado-temp" inputmode="decimal" step="0.1"></div>
           <div class="form-row" id="lavado-cantidad-row" style="display:none"><label class="form-label">Cantidad (L)</label><input type="number" id="lavado-cantidad" inputmode="numeric" placeholder="750"></div>
         </div>
       </div>
       <div class="sep-label">Agitación</div>
       <div class="grid-alineado">
-        <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="agit-hi"></div>
-        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="agit-hf" onchange="calcAgitTotal()"></div>
+        <div class="form-row"><label class="form-label">Hora inicio</label><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="agit-hi" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)"></div>
+        <div class="form-row"><label class="form-label">Hora fin</label><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="agit-hf" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this);calcAgitTotal()"></div>
         <div class="form-row"><label class="form-label">Total (min)</label><input type="number" id="agit-total" inputmode="numeric" readonly style="background:var(--bg2);color:var(--text2)"></div>
       </div>
     </div>
@@ -1170,10 +1170,10 @@ input[type="email"] {
       <div class="sep-label">Moldeo</div>
       <!-- Hora ini · pH · Tª · Hora fin (4 de 5 cols, 1 hueco a la derecha) -->
       <div class="grid-alineado">
-        <div class="form-row"><label class="form-label">Hora inicio</label><input type="time" id="mol-hi"></div>
+        <div class="form-row"><label class="form-label">Hora inicio</label><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="mol-hi" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)"></div>
         <div class="form-row"><label class="form-label">pH moldeo</label><input type="number" id="mol-ph" step="0.01" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="mol-temp" inputmode="decimal"></div>
-        <div class="form-row"><label class="form-label">Hora fin</label><input type="time" id="mol-hf"></div>
+        <div class="form-row"><label class="form-label">Hora fin</label><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="mol-hf" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)"></div>
       </div>
       <div class="sep-label" style="display:flex;justify-content:space-between;align-items:center">
         <span>Prensado</span>
@@ -2722,6 +2722,51 @@ function _activarAvisosPh(){
   });
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// FORMATEO DE HORA AL TECLEAR (robusto, pegado a cada campo con oninput/onblur)
+// fmtHoraInput: mientras escribes, mete los dos puntos automáticos. Los 2 últimos
+//   dígitos son los minutos, lo de delante la hora: "0630"→"06:30", "536"→"5:36".
+// fmtHoraBlur: al salir del campo, normaliza a HH:MM y valida; si la hora es
+//   imposible, marca en rojo y avisa. Dispara los recálculos (change) y el
+//   chequeo de orden cronológico.
+// Esto sustituye a la conversión JS de _activarHorasTexto, que en algunas tablets
+// no llegaba a enganchar el evento input. Aquí va pegado al HTML de cada campo.
+// ───────────────────────────────────────────────────────────────────────────
+function fmtHoraInput(el){
+  if(!el) return;
+  var d = String(el.value||'').replace(/[^0-9]/g,'').slice(0,4);
+  if(d.length <= 2){ el.value = d; }
+  else { el.value = d.slice(0, d.length-2)+':'+d.slice(d.length-2); }
+}
+function fmtHoraBlur(el){
+  if(!el) return;
+  var v = String(el.value||'').trim();
+  if(v===''){ el.style.borderColor=''; var a0=document.getElementById(el.id+'-aviso-hora'); if(a0)a0.style.display='none'; return; }
+  var d = v.replace(/[^0-9]/g,'');
+  if(d.length>=3){ v = d.slice(0,d.length-2)+':'+d.slice(d.length-2); }
+  else if(d.length>0){ v = d; }
+  var m = v.match(/^(\d{1,2}):(\d{2})$/);
+  if(m && parseInt(m[1],10)<24 && parseInt(m[2],10)<60){
+    el.value = ('0'+m[1]).slice(-2)+':'+m[2];
+    el.style.borderColor='';
+    var avOk = document.getElementById(el.id+'-aviso-hora');
+    if(avOk) avOk.style.display='none';
+    el.dispatchEvent(new Event('change'));
+    try{ comprobarOrdenHoras(el.id); }catch(e){}
+  } else {
+    el.style.borderColor='#e07a7a';
+    var avId = el.id+'-aviso-hora';
+    var avEl = document.getElementById(avId);
+    if(!avEl && el.id){
+      avEl = document.createElement('div');
+      avEl.id = avId;
+      avEl.style.cssText = 'margin-top:4px;padding:5px 8px;border-radius:6px;font-size:0.72rem;font-weight:600;background:#f8d7da;color:#a71d2a;border:1px solid #f1a7ae';
+      if(el.parentNode) el.parentNode.appendChild(avEl);
+    }
+    if(avEl){ avEl.style.display='block'; avEl.textContent='⛔ Hora no válida. Formato HH:MM (ej. 5:36).'; }
+  }
+}
+
 // Convierte los campos de hora (type=time) en campos de texto donde se teclea HH:MM
 // con teclado numérico y los dos puntos automáticos. Evita el selector de reloj de Android.
 function _activarHorasTexto(){
@@ -3295,7 +3340,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.251) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.252) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -6483,7 +6528,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.251)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.252)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6517,7 +6562,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.251)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.252)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
@@ -7748,8 +7793,8 @@ function anadirSalmuera(datos){
     + '</div>'
     + '<div class="io-rejilla">'
     +   '<div class="io-fila io-cabecera"><div class="io-rowlbl"></div><div class="io-collbl">Hora</div><div></div><div></div><div></div><div></div></div>'
-    +   '<div class="io-fila"><div class="io-rowlbl">Entrada</div><div><input type="time" class="salm-hi" value="'+(datos.hi||'')+'"></div><div></div><div></div><div></div><div></div></div>'
-    +   '<div class="io-fila"><div class="io-rowlbl">Salida</div><div><input type="time" class="salm-hf" value="'+(datos.hf||'')+'"></div><div></div><div></div><div></div><div></div></div>'
+    +   '<div class="io-fila"><div class="io-rowlbl">Entrada</div><div><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" class="salm-hi" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)" value="'+(datos.hi||'')+'"></div><div></div><div></div><div></div><div></div></div>'
+    +   '<div class="io-fila"><div class="io-rowlbl">Salida</div><div><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" class="salm-hf" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)" value="'+(datos.hf||'')+'"></div><div></div><div></div><div></div><div></div></div>'
     + '</div>';
   cont.appendChild(div);
   // Al cambiar formato → recalcular hora fin
@@ -7956,11 +8001,11 @@ function anadirDesmoldeo(datos){
     + '<div class="io-rejilla" style="margin-top:4px">'
     +   '<div class="io-fila io-cabecera"><div class="io-rowlbl"></div><div class="io-collbl">Hora</div><div class="io-collbl">pH</div><div class="io-collbl">Tª (°C)</div><div></div><div></div></div>'
     +   '<div class="io-fila"><div class="io-rowlbl">Inicio</div>'
-    +     '<div><input type="time" class="des-hi" value="'+(datos.hi||'')+'"></div>'
+    +     '<div><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" class="des-hi" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)" value="'+(datos.hi||'')+'"></div>'
     +     '<div><input type="number" step="0.01" class="des-ph" value="'+(datos.ph||'')+'"></div>'
     +     '<div><input type="number" class="des-temp-i" value="'+(datos.temp_i||'')+'"></div><div></div><div></div></div>'
     +   '<div class="io-fila"><div class="io-rowlbl">Fin</div>'
-    +     '<div><input type="time" class="des-hf" value="'+(datos.hf||'')+'"></div>'
+    +     '<div><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" class="des-hf" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)" value="'+(datos.hf||'')+'"></div>'
     +     '<div><input type="number" step="0.01" class="des-ph-f" value="'+(datos.ph_f||'')+'"></div>'
     +     '<div><input type="number" class="des-temp-f" value="'+(datos.temp_f||'')+'"></div><div></div><div></div></div>'
     + '</div>';
