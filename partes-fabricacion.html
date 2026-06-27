@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.249</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.250</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3295,7 +3295,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.249) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.250) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -4272,6 +4272,11 @@ function _hitosDeParte(p){
   if(p.desmoldeos && p.desmoldeos.length){
     var d = p.desmoldeos[0];
     hitos.push({nombre:'Desmoldeo', hora:d.hi||d.hf||'', ph:_numOr(d.ph), temp:_numOr(d.temp)});
+    // Fin del desmoldeo: solo tiene hora (no hay pH ni Tª al final), así la curva no llega
+    // hasta aquí pero sí aparece el tramo de duración del desmoldeo en la línea de tiempos.
+    if(d.hf && d.hi && d.hf!==d.hi){
+      hitos.push({nombre:'Desmoldeo fin', hora:d.hf, ph:null, temp:null});
+    }
   }
   return hitos.filter(function(h){ return _horaAMin(h.hora)!=null; });
 }
@@ -4397,13 +4402,29 @@ function _svgGraficaEvolucion(p){
       + '<div style="font-size:0.82rem;color:#4a4036;font-family:Arial,Helvetica,sans-serif;line-height:1.4;white-space:pre-wrap">'+obsTxt.replace(/</g,'&lt;')+'</div></div>';
   }
 
+  // Texto identificativo de la cuba para la cabecera (nº cuba + tipo + variedad)
+  var _idCuba = '';
+  (function(){
+    var partes = [];
+    if(p.cuba) partes.push('Cuba '+p.cuba);
+    if(p.cuba_fisica) partes.push('(física '+p.cuba_fisica+')');
+    var tv = [];
+    if(p.tipo) tv.push(p.tipo);
+    if(p.variedad) tv.push(p.variedad);
+    var s1 = partes.join(' ');
+    var s2 = tv.join(' · ');
+    _idCuba = [s1, s2].filter(Boolean).join('  ·  ');
+  })();
+
   return '<div id="ep-graf-box" style="background:#fff;border:1px solid #e3ddd2;border-radius:10px;padding:14px">'
     + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
-    + '<div style="display:flex;gap:16px;font-size:0.78rem;flex-wrap:wrap">'
+    + '<div style="display:flex;gap:16px;font-size:0.78rem;flex-wrap:wrap;align-items:center">'
     + '<span style="color:#c0392b;font-weight:700">— Temperatura (°C)</span>'
     + '<span style="color:#7B3FA0;font-weight:700">— pH</span>'
     + '<span style="color:#1a3a5c;font-weight:700">horas</span>'
-    + '<span style="color:#8B2A2A;font-weight:700">tiempos</span></div>'
+    + '<span style="color:#8B2A2A;font-weight:700">tiempos</span>'
+    + (_idCuba ? '<span style="color:#5a4d3f;font-weight:800;border-left:2px solid #e3ddd2;padding-left:14px">'+_idCuba+'</span>' : '')
+    + '</div>'
     + '<button type="button" onclick="pantallaCompletaGrafica()" style="background:#6b5d4f;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap">⛶ Pantalla completa</button>'
     + '</div>'
     + '<div id="ep-graf-svgwrap" style="overflow:auto">' + svg + '</div>'
@@ -6455,7 +6476,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.249)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.250)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6489,7 +6510,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.249)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.250)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
