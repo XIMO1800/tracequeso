@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.258</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.259</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3380,7 +3380,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.258) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.259) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -4494,18 +4494,28 @@ function _svgGraficaEvolucion(p){
       + '<div style="font-size:0.82rem;color:#4a4036;font-family:Arial,Helvetica,sans-serif;line-height:1.4;white-space:pre-wrap">'+obsTxt.replace(/</g,'&lt;')+'</div></div>';
   }
 
-  // Texto identificativo de la cuba para la cabecera (nº cuba + tipo + variedad)
+  // Texto identificativo de la cuba para la cabecera.
+  // Formato: "<Ordinal cronológico> cuba · <Tipo · Variedad> · Cuba <física>"
+  //   - Ordinal = orden de colada del día (p.cuba): 1→Primera, 2→Segunda, ...
+  //   - Cuba <física> = la cuba real de la nave (p.cuba_fisica)
+  // Ej.: "Primera cuba · D.O. PAST. · Cuba 1"
   var _idCuba = '';
   (function(){
-    var partes = [];
-    if(p.cuba) partes.push('Cuba '+p.cuba);
-    if(p.cuba_fisica) partes.push('(física '+p.cuba_fisica+')');
+    function _ordinalCuba(n){
+      var x = parseInt(n,10);
+      var ord = {1:'Primera',2:'Segunda',3:'Tercera',4:'Cuarta',5:'Quinta',
+                 6:'Sexta',7:'Séptima',8:'Octava',9:'Novena',10:'Décima'};
+      if(ord[x]) return ord[x]+' cuba';
+      return 'Cuba '+(n||'');   // por si hay más de 10, no dejar hueco
+    }
+    var bloques = [];
+    if(p.cuba) bloques.push(_ordinalCuba(p.cuba));   // orden cronológico
     var tv = [];
     if(p.tipo) tv.push(p.tipo);
     if(p.variedad) tv.push(p.variedad);
-    var s1 = partes.join(' ');
-    var s2 = tv.join(' · ');
-    _idCuba = [s1, s2].filter(Boolean).join('  ·  ');
+    if(tv.length) bloques.push(tv.join(' · '));      // tipo · variedad
+    if(p.cuba_fisica) bloques.push('Cuba '+p.cuba_fisica);  // cuba física
+    _idCuba = bloques.join('  ·  ');
   })();
 
   return '<div id="ep-graf-box" style="background:#fff;border:1px solid #e3ddd2;border-radius:10px;padding:14px">'
@@ -6584,7 +6594,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.258)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.259)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6618,7 +6628,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.258)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.259)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
