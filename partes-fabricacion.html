@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.252</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.253</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -925,7 +925,7 @@ input[type="email"] {
       <!-- Fila 1: Litros · pH · °D · Tª (orden igual que el parte de papel) -->
       <div class="form-cols-4">
         <div class="form-row"><label class="form-label">Litros totales</label><input type="number" id="np-litros" inputmode="numeric" oninput="calcularDosis();calcCO2();calcPasteurizacion();comprobarCapacidadCuba()"></div>
-        <div class="form-row"><label class="form-label">pH entrada</label><input type="number" id="np-ph" step="0.01" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">pH entrada</label><input type="text" id="np-ph" step="0.01" inputmode="numeric" maxlength="4" oninput="fmtPhInput(this)"></div>
         <div class="form-row"><label class="form-label">°D leche</label><input type="number" id="np-dornic" step="0.1" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">Tª entrada (°C)</label><input type="number" id="np-temp" inputmode="decimal"></div>
       </div>
@@ -1000,7 +1000,7 @@ input[type="email"] {
         </div>
         <div class="form-row">
           <label class="form-label">pH</label>
-          <input type="number" id="aux-ph" step="0.01" inputmode="decimal" oninput="calcCO2()">
+          <input type="text" id="aux-ph" step="0.01" inputmode="numeric" maxlength="4" oninput="fmtPhInput(this);calcCO2()">
         </div>
         <div class="form-row">
           <label class="form-label">Tª (°C)</label>
@@ -1064,7 +1064,7 @@ input[type="email"] {
         </div>
         <div class="form-row">
           <label class="form-label">pH</label>
-          <input type="number" id="ferm-ph" step="0.01" inputmode="decimal">
+          <input type="text" id="ferm-ph" step="0.01" inputmode="numeric" maxlength="4" oninput="fmtPhInput(this)">
         </div>
         <div class="form-row">
           <label class="form-label">Tª (°C)</label>
@@ -1094,7 +1094,7 @@ input[type="email"] {
           <div class="coag-fila">
             <div class="coag-rowlbl">Adición</div>
             <div><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="coag-hadicion" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this);calcCoagTotal()"></div>
-            <div><input type="number" id="coag-ph" step="0.01" inputmode="decimal"></div>
+            <div><input type="text" id="coag-ph" step="0.01" inputmode="numeric" maxlength="4" oninput="fmtPhInput(this)"></div>
             <div><input type="number" id="coag-temp" inputmode="decimal"></div>
           </div>
           <div class="coag-fila">
@@ -1128,7 +1128,7 @@ input[type="email"] {
       <div class="grid-alineado">
         <div class="form-row"><label class="form-label">Hora inicio</label><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="rec-hi" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)"></div>
         <div class="form-row"><label class="form-label">Tª inicial (°C)</label><input type="number" id="rec-ti" inputmode="decimal"></div>
-        <div class="form-row"><label class="form-label">pH suero</label><input type="number" id="rec-ph" step="0.01" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">pH suero</label><input type="text" id="rec-ph" step="0.01" inputmode="numeric" maxlength="4" oninput="fmtPhInput(this)"></div>
         <div class="form-row"><label class="form-label">°D suero</label><input type="number" id="rec-dornic" step="0.1" inputmode="decimal"></div>
         <div class="form-row" style="grid-column:1"><label class="form-label">Hora fin</label><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="rec-hf" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this);propagarHora('rec-hf','agit-hi')"></div>
         <div class="form-row"><label class="form-label">Tª final (°C)</label><input type="number" id="rec-tf" inputmode="decimal"></div>
@@ -1171,7 +1171,7 @@ input[type="email"] {
       <!-- Hora ini · pH · Tª · Hora fin (4 de 5 cols, 1 hueco a la derecha) -->
       <div class="grid-alineado">
         <div class="form-row"><label class="form-label">Hora inicio</label><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="mol-hi" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)"></div>
-        <div class="form-row"><label class="form-label">pH moldeo</label><input type="number" id="mol-ph" step="0.01" inputmode="decimal"></div>
+        <div class="form-row"><label class="form-label">pH moldeo</label><input type="text" id="mol-ph" step="0.01" inputmode="numeric" maxlength="4" oninput="fmtPhInput(this)"></div>
         <div class="form-row"><label class="form-label">Tª (°C)</label><input type="number" id="mol-temp" inputmode="decimal"></div>
         <div class="form-row"><label class="form-label">Hora fin</label><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" id="mol-hf" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)"></div>
       </div>
@@ -1900,7 +1900,7 @@ function autoGuardarParte(parteId){
   if (CUBA_ACTIVA_ID && CUBA_ACTIVA_ID !== parteId) return;
   var varDOM = document.getElementById('np-var-sel') ? document.getElementById('np-var-sel').value : '(no existe)';
   function g(id){var el=document.getElementById(id); return el?el.value:'';}
-  function gn(id){return parseFloat(g(id))||0;}
+  function gn(id){return parseFloat(String(g(id)).replace(',','.'))||0;}
   function gi(id){return parseInt(g(id))||0;}
 
   p.tipo = document.getElementById('np-tipo-sel') ? document.getElementById('np-tipo-sel').value : p.tipo;
@@ -2723,6 +2723,19 @@ function _activarAvisosPh(){
 }
 
 // ───────────────────────────────────────────────────────────────────────────
+// FORMATEO DE pH AL TECLEAR (coma automática: 1 dígito entero + 2 decimales)
+// El pH del queso siempre es de la forma X,XX (un dígito, coma, dos decimales).
+// Tecleando 3 dígitos seguidos se coloca la coma sola: "625"→"6,25", "660"→"6,60".
+// Con 2 dígitos: "66"→"6,6". Así no se puede teclear "625" como número absurdo
+// y se va más rápido. Mismo espíritu que el formateo de horas.
+function fmtPhInput(el){
+  if(!el) return;
+  var d = String(el.value||'').replace(/[^0-9]/g,'').slice(0,3);
+  if(d.length <= 1){ el.value = d; }
+  else { el.value = d.slice(0,1)+','+d.slice(1); }
+}
+
+// ───────────────────────────────────────────────────────────────────────────
 // FORMATEO DE HORA AL TECLEAR (robusto, pegado a cada campo con oninput/onblur)
 // fmtHoraInput: mientras escribes, mete los dos puntos automáticos. Los 2 últimos
 //   dígitos son los minutos, lo de delante la hora: "0630"→"06:30", "536"→"5:36".
@@ -3340,7 +3353,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.252) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.253) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -6528,7 +6541,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.252)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.253)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6562,7 +6575,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.252)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.253)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
@@ -8002,7 +8015,7 @@ function anadirDesmoldeo(datos){
     +   '<div class="io-fila io-cabecera"><div class="io-rowlbl"></div><div class="io-collbl">Hora</div><div class="io-collbl">pH</div><div class="io-collbl">Tª (°C)</div><div></div><div></div></div>'
     +   '<div class="io-fila"><div class="io-rowlbl">Inicio</div>'
     +     '<div><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" class="des-hi" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)" value="'+(datos.hi||'')+'"></div>'
-    +     '<div><input type="number" step="0.01" class="des-ph" value="'+(datos.ph||'')+'"></div>'
+    +     '<div><input type="text" inputmode="numeric" maxlength="4" step="0.01" class="des-ph" oninput="fmtPhInput(this)" value="'+(datos.ph||'')+'"></div>'
     +     '<div><input type="number" class="des-temp-i" value="'+(datos.temp_i||'')+'"></div><div></div><div></div></div>'
     +   '<div class="io-fila"><div class="io-rowlbl">Fin</div>'
     +     '<div><input type="text" inputmode="numeric" maxlength="5" placeholder="--:--" class="des-hf" oninput="fmtHoraInput(this)" onblur="fmtHoraBlur(this)" value="'+(datos.hf||'')+'"></div>'
