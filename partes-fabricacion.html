@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.254</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.255</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3366,7 +3366,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.254) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.255) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -6570,7 +6570,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.254)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.255)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6604,7 +6604,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.254)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.255)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
@@ -6929,6 +6929,12 @@ function cargarPartesSheets(fecha){
             if(full && typeof full==='object'){
               full.id = full.id || p['ID'];
               full.fecha = p['FECHA'] || full.fecha;
+              // CUBA (número de colada) y CUBA FISICA mandan desde la columna, igual que
+              // la fecha: así se pueden corregir a mano en Sheets sin que el JSON los pise.
+              // Solo si la columna trae valor (si está vacía, se respeta lo del JSON).
+              if(p['CUBA']!==undefined && p['CUBA']!==null && String(p['CUBA']).trim()!=='') full.cuba = p['CUBA'];
+              var _cf = (p['CUBA FISICA']!==undefined ? p['CUBA FISICA'] : p['CUBA_FISICA']);
+              if(_cf!==undefined && _cf!==null && String(_cf).trim()!=='') full.cuba_fisica = _cf;
               // Respetar el estado real guardado: una cuba a medias (cerrado:false) de HOY
               // debe poder recuperarse como cuba abierta; las de días anteriores, cerradas.
               if(esDeHoy && full.hasOwnProperty('cerrado')){
