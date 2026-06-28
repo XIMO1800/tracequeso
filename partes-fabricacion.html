@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.253</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.254</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2280,6 +2280,19 @@ function esCalidadOAdmin(){
   return _rolContiene(ROL_ACTUAL,'CALIDAD') || _rolContiene(ROL_ACTUAL,'ADMIN');
 }
 
+// ¿El usuario actual es ADMIN (Joaquín)? Distinto de Calidad.
+// Solo el Admin puede editar el ORIGINAL de un parte cerrado de días anteriores
+// (corregir errores reales). Calidad, aunque también tenga permisos amplios,
+// SIEMPRE edita sobre la REVISADA, nunca sobre el original (integridad de auditoría).
+function esAdminPuro(){
+  return _rolContiene(ROL_ACTUAL,'ADMIN');
+}
+
+// ¿Es Calidad pero NO Admin? (Calidad "pura"). Esta gente edita siempre la revisada.
+function esCalidadSinAdmin(){
+  return _rolContiene(ROL_ACTUAL,'CALIDAD') && !_rolContiene(ROL_ACTUAL,'ADMIN');
+}
+
 // IDs de los campos que pertenecen a las fases del QUESERO (cabecera → inicio de moldeo).
 // Cuando el parte queda bloqueado, estos se ponen en solo lectura para los operarios de sala.
 // NO se incluyen: mol-hf (hora fin moldeo), prensado, desmoldeo, salmuera, piezas → esos los rellena la sala.
@@ -3353,7 +3366,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.253) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.254) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -5720,7 +5733,21 @@ function guardarParteEditado(id){
   //   · El parte NO está cerrado (reactivado o de HOY) → sigue siendo original y se
   //     machaca sobre sí mismo (camino "reactivar": meter datos sin que cuente como revisión).
   var _esRevision = (p.version==='revisado' || String(p.id||'').indexOf('PR-')===0);
-  var _esOriginalCerrado = !_esRevision && (p.cerrado === true);
+  // Un original cerrado se vuelca a una REVISADA (PR-)... EXCEPTO si quien edita es
+  // ADMIN (Joaquín): en ese caso se corrige el ORIGINAL directamente, porque es un
+  // error real del registro, no una revisión de auditoría. Calidad SIEMPRE va a revisada.
+  // Si es Admin, marcamos p._editarOriginalAdmin para los avisos y para el envío a Sheets.
+  var _adminEditaOriginal = !_esRevision && (p.cerrado === true) && esAdminPuro() && !esCalidadSinAdmin();
+  var _esOriginalCerrado = !_esRevision && (p.cerrado === true) && !_adminEditaOriginal;
+
+  if(_adminEditaOriginal){
+    // Segundo aviso de confirmación al guardar sobre el original (acción sensible).
+    if(!confirm('⚠️ Vas a guardar los cambios sobre el ORIGINAL del parte ('+(p.fecha||'')+').\n\nEsto modifica el registro original, NO crea una revisión de Calidad.\n\n¿Confirmas que es una corrección real del parte?')){
+      return;
+    }
+    // Se deja seguir el flujo normal de guardado (machaca el propio objeto original),
+    // igual que un parte de hoy / reactivado: NO se crea PR-.
+  }
 
   if(_esOriginalCerrado){
     // Buscar si ya existe una revisada de este original
@@ -5888,7 +5915,9 @@ function reactivarParteHoy(id){
   if(!esHoy && !esCalidadOAdmin()){ toast('Solo Calidad puede reactivar partes de días anteriores','warn'); return; }
   var msg = esHoy
     ? '¿Reactivar este parte y devolverlo a la pestaña HOY?\n\nVolverá a aparecer como cuba en proceso para que puedas seguir rellenando los datos que falten.'
-    : '¿Reactivar este parte del '+(p.fecha||'')+' y traerlo a HOY para terminarlo?\n\nMantendrá su fecha original ('+(p.fecha||'')+'). Al cerrarlo volverá al historial en su fecha. Los cálculos y descuentos de stock se aplicarán como en una cuba normal.';
+    : (esAdminPuro()
+        ? '⚠️ ADMIN: vas a reactivar el parte ORIGINAL del '+(p.fecha||'')+' para CORREGIRLO.\n\nLos cambios se guardarán sobre el ORIGINAL (no como revisión de Calidad). Mantendrá su fecha. Úsalo solo para corregir errores reales del registro.\n\n¿Continuar?'
+        : '¿Reactivar este parte del '+(p.fecha||'')+' y traerlo a HOY para terminarlo?\n\nMantendrá su fecha original ('+(p.fecha||'')+'). Al cerrarlo volverá al historial en su fecha. Los cálculos y descuentos de stock se aplicarán como en una cuba normal.');
   if(!confirm(msg)) return;
   p.cerrado = false;
   // Si es de un día anterior, marcarlo para que aparezca en las pestañas de HOY sin cambiar
@@ -6541,7 +6570,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.253)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.254)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6575,7 +6604,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.253)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.254)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
