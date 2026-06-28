@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.256</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.258</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3380,7 +3380,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.256) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.258) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -3478,8 +3478,8 @@ function calcularDosis(){
 }
 
 function calcCO2(){
-  var litros  = parseFloat(document.getElementById('np-litros').value) || 0;
-  var phLeche = parseFloat(document.getElementById('aux-ph') ? document.getElementById('aux-ph').value : '') || 0;
+  var litros  = parseFloat(String(document.getElementById('np-litros').value||'').replace(',','.')) || 0;
+  var phLeche = parseFloat(String(document.getElementById('aux-ph') ? document.getElementById('aux-ph').value : '').replace(',','.')) || 0;
   var phObj   = 6.48;
   var el      = document.getElementById('co2-tiempo');
   var detEl   = document.getElementById('co2-formula-detalle');
@@ -4822,7 +4822,7 @@ function renderEpForm(skipRecoger){
      + '</div>';
   h += '<div style="background:var(--card);padding:7px 9px">';
   // Anchos a medida: Tiempo y Caudal estrechos; Proveedor y Lote anchos (el lote de CO₂ es largo)
-  var gcco2='70px 72px 1fr 1.5fr 92px';
+  var gcco2='66px 66px 1fr 1.25fr 110px';
   h += '<div style="display:grid;grid-template-columns:'+gcco2+';gap:6px;margin-bottom:3px">'
      + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Tiempo (s)</div>'
      + '<div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center">Caudal</div>'
@@ -6584,7 +6584,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.256)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.258)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6618,7 +6618,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.256)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.258)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
