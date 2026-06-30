@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.259</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.260</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3380,7 +3380,7 @@ function onDosisOverride(input){
 
 function calcularDosis(){
   var litros=parseFloat(document.getElementById('np-litros').value)||0;
-  // ── Recalcular sobres TA al cambiar los litros (v2.6.259) ──
+  // ── Recalcular sobres TA al cambiar los litros (v2.6.260) ──
   // Si los litros han cambiado respecto a la última vez, los sobres TA vuelven a la
   // propuesta automática aunque se hubieran tocado a mano (litros nuevos = cuentas nuevas).
   if(parteActual.receta){
@@ -5194,7 +5194,12 @@ function _epLbl(t){ return '<label style="font-size:0.7rem;color:var(--text3);fo
 function _epInp(id, val, tipo, ph){
   tipo = tipo || 'text';
   var v = (val===undefined||val===null) ? '' : String(val).replace(/"/g,'&quot;');
-  return '<input type="'+tipo+'" id="'+id+'" value="'+v+'" placeholder="'+(ph||'')+'" style="'+_epStyle()+'">';
+  // Los campos "number" en español llevan coma decimal (6,61 · 31,5). type="number"
+  // del navegador NO acepta coma y deja el campo vacío al cargar. Por eso los pintamos
+  // como type="text" con teclado numérico; la coma se respeta y los cálculos ya la convierten.
+  var _t = (tipo==='number') ? 'text' : tipo;
+  var _im = (tipo==='number') ? ' inputmode="decimal"' : '';
+  return '<input type="'+_t+'"'+_im+' id="'+id+'" value="'+v+'" placeholder="'+(ph||'')+'" style="'+_epStyle()+'">';
 }
 function _epInpC(id, val, tipo, ph){
   // Input centrado para los bloques alineados.
@@ -5202,6 +5207,9 @@ function _epInpC(id, val, tipo, ph){
   tipo = tipo || 'text';
   var v = (val===undefined||val===null) ? '' : String(val).replace(/"/g,'&quot;');
   var cls = (tipo==='time' || tipo==='date') ? ' class="ep-dt"' : '';
+  // "number" → texto con teclado decimal, para que la coma (6,61) no vacíe el campo.
+  var _t = (tipo==='number') ? 'text' : tipo;
+  var _im = (tipo==='number') ? ' inputmode="decimal"' : '';
   var extra;
   if(tipo==='time' || tipo==='date'){
     // padding lateral mínimo: el valor (incluido el año de 4 cifras) debe caber entero
@@ -5209,7 +5217,7 @@ function _epInpC(id, val, tipo, ph){
   } else {
     extra = ';text-align:center;text-align-last:center;padding-left:4px;padding-right:4px';
   }
-  return '<input type="'+tipo+'"'+cls+' id="'+id+'" value="'+v+'" placeholder="'+(ph||'')+'" style="'+_epStyle()+extra+'">';
+  return '<input type="'+_t+'"'+_im+cls+' id="'+id+'" value="'+v+'" placeholder="'+(ph||'')+'" style="'+_epStyle()+extra+'">';
 }
 function _epSel(id, opts, onchange){
   return '<select id="'+id+'" style="'+_epStyle()+'"'+(onchange?' onchange="'+onchange+'"':'')+'>'+opts+'</select>';
@@ -5256,8 +5264,11 @@ function _epInpMini(id, val, tipo){
   var v = (val===undefined||val===null) ? '' : String(val).replace(/"/g,'&quot;');
   var ancho = (tipo==='time') ? '74px' : '58px';
   var cls = (tipo==='time' || tipo==='date') ? ' class="ep-dt"' : '';
+  // "number" → texto con teclado decimal (coma respetada).
+  var _t = (tipo==='number') ? 'text' : tipo;
+  var _im = (tipo==='number') ? ' inputmode="decimal"' : '';
   var extra = ';text-align:center;text-align-last:center;-webkit-text-align-last:center';
-  return '<input type="'+tipo+'"'+cls+' id="'+id+'" value="'+v+'" style="width:'+ancho+';padding:3px 4px;border:1px solid var(--border);border-radius:5px;font-size:0.78rem;background:var(--card)'+extra+'">';
+  return '<input type="'+_t+'"'+_im+cls+' id="'+id+'" value="'+v+'" style="width:'+ancho+';padding:3px 4px;border:1px solid var(--border);border-radius:5px;font-size:0.78rem;background:var(--card)'+extra+'">';
 }
 function _epBloqueAlineado(tituloBloque, columnas, filas, nCols){
   // Rejilla FIJA de columnas de datos (5 por defecto; el Cuajo usa 6 para meter dosis/1000L).
@@ -5528,7 +5539,7 @@ function _epRecogerEnEstado(){
   var epForm = document.getElementById('ep-form');
   if(!epForm || !epForm.children.length) return;
   function v(id){ var el=document.getElementById(id); return el?el.value:undefined; }
-  function n(id){ var x=parseFloat(v(id)); return isNaN(x)?undefined:x; }
+  function n(id){ var x=parseFloat(String(v(id)).replace(',','.')); return isNaN(x)?undefined:x; }
   function i(id){ var x=parseInt(v(id)); return isNaN(x)?undefined:x; }
   function c(id){ var el=document.getElementById(id); return el?el.checked:undefined; }
 
@@ -6594,7 +6605,7 @@ function confirmarFirma(){
   }
   // Si hay un editor de parte abierto sobre ESTE mismo parte, la firma debe ir también
   // a la copia de edición (window._parteEditando). Si no, al "Guardar cambios" del editor
-  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.259)
+  // se vuelca esa copia (sin firma) sobre el parte y la firma se pierde. (Fix v2.6.260)
   try{
     var _pe = window._parteEditando;
     if(_pe && !window._epSoloLectura && _firmaParte && _pe.id === _firmaParte.id && _firmaTipo !== 'calidad'){
@@ -6628,7 +6639,7 @@ function confirmarFirma(){
   // Si estamos en el detalle, repintarlo para mostrar la firma recién hecha
   if(_firmaTipo==='calidad' && typeof _verParteRender==='function'){ try{ _verParteRender(doneId); }catch(e){} }
   // Si hay un editor abierto sobre este parte, repintar el formulario para que la firma
-  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.259)
+  // recién hecha aparezca al instante (lee de window._parteEditando, ya actualizado). (Fix v2.6.260)
   try{
     var _pe2 = window._parteEditando;
     if(_pe2 && !window._epSoloLectura && _firmaTipo !== 'calidad' && _pe2.id === doneId &&
