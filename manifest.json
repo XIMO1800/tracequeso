@@ -4,7 +4,7 @@
   "description": "Trazabilidad de quesos Lácteos Cuquerella",
   "start_url": "/tracequeso/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#f5f0ea",
   "theme_color": "#6a1010",
   "icons": [
