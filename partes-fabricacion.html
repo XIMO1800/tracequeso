@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.264</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.265</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1989,6 +1989,33 @@ function autoGuardarParte(parteId){
 
 function cerrarParteActivo(id){
   _cerrarParteActivoConfirmar(id);
+}
+
+// Devuelve el/los formato(s) de un parte para mostrarlos en la tarjeta del historial.
+// Se leen de PRENSADO, DESMOLDEO y SALMUERA (que siempre llevan formato), NO de las
+// piezas (que a veces van vacías pendientes de Calidad, o agrupadas en la 1ª cuba).
+// Normalmente hay un solo formato; si hubiera varios, se muestran separados por "+".
+function _formatosDeParte(p){
+  if(!p) return '';
+  var norm = function(f){
+    if(!f) return '';
+    var s = String(f).toUpperCase().replace(/\s+/g,'').replace('KG','').replace('/','');
+    var m = {'3':'3kg','2':'2kg','1':'1kg','12':'05kg','05':'05kg','BARRA':'barra','GIGANTE':'gigante'};
+    return m[s] || String(f).toLowerCase().replace(/\s+/g,'').replace('kg','');
+  };
+  var etiqueta = {'3kg':'3 kg','2kg':'2 kg','1kg':'1 kg','05kg':'1/2 kg','barra':'Barra','gigante':'Gigante'};
+  var orden = ['3kg','2kg','1kg','05kg','barra','gigante'];
+  var vistos = {};
+  (p.prensados||[]).forEach(function(x){ var k=norm(x.formato); if(k) vistos[k]=true; });
+  (p.desmoldeos||[]).forEach(function(x){ var k=norm(x.formato); if(k) vistos[k]=true; });
+  (p.salmueras||[]).forEach(function(x){ var k=norm(x.formato); if(k) vistos[k]=true; });
+  var claves = Object.keys(vistos);
+  if(!claves.length) return '';
+  claves.sort(function(a,b){
+    var ia=orden.indexOf(a); var ib=orden.indexOf(b);
+    return (ia<0?99:ia)-(ib<0?99:ib);
+  });
+  return claves.map(function(k){ return etiqueta[k] || k; }).join(' + ');
 }
 
 // Comprueba que los formatos cuadren entre las 4 fases: prensado, desmoldeo, salado, piezas.
@@ -3957,7 +3984,9 @@ function renderPartes(){
   filtrados.forEach(function(p){
     var totalPzas=0;if(p.piezas)Object.keys(p.piezas).forEach(function(k){totalPzas+=(p.piezas[k]||0);});
     var badgeRev = _esRevisadaOficial(p) ? '<span style="background:var(--greenl);color:var(--green);border:1px solid var(--green2);border-radius:10px;padding:1px 7px;font-size:0.62rem;font-weight:700;margin-left:6px">✓ CALIDAD</span>' : '';
-    h+='<div class="parte-item" onclick="verParteHist(\''+p.id+'\')"><div class="parte-item-top"><div class="parte-item-tipo">'+p.tipo+(p.variedad?' · '+p.variedad:'')+badgeRev+'</div><div class="parte-item-badge">Cuba '+p.cuba+'</div></div><div class="parte-item-meta">'+formatearFecha(p.fecha)+' · '+p.litros+'L · '+totalPzas+' pzas · '+(p.operario||'—')+'</div></div>';
+    var fmtTxt = _formatosDeParte(p);
+    var fmtBadge = fmtTxt ? '<span style="color:var(--text3);font-weight:600"> · '+fmtTxt+'</span>' : '';
+    h+='<div class="parte-item" onclick="verParteHist(\''+p.id+'\')"><div class="parte-item-top"><div class="parte-item-tipo">'+p.tipo+(p.variedad?' · '+p.variedad:'')+fmtBadge+badgeRev+'</div><div class="parte-item-badge">Cuba '+p.cuba+'</div></div><div class="parte-item-meta">'+formatearFecha(p.fecha)+' · '+p.litros+'L · '+totalPzas+' pzas · '+(p.operario||'—')+'</div></div>';
   });
   c.innerHTML=h;
 }
