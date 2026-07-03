@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.262</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.263</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -6512,6 +6512,13 @@ function _initFirmaCanvas(){
 
   cv.onmousedown = start; cv.onmousemove = move; cv.onmouseup = end; cv.onmouseleave = end;
   cv.ontouchstart = start; cv.ontouchmove = move; cv.ontouchend = end;
+  // Soporte de LÁPIZ / S-Pen (Samsung) y cualquier puntero: estos dispositivos generan
+  // eventos 'pointer', no 'touch' ni 'mouse'. Sin esto, el lápiz no dibuja la firma.
+  if(window.PointerEvent){
+    cv.onpointerdown = function(ev){ try{ cv.setPointerCapture(ev.pointerId); }catch(e){} start(ev); };
+    cv.onpointermove = move;
+    cv.onpointerup = end; cv.onpointercancel = end; cv.onpointerleave = end;
+  }
 }
 
 function limpiarFirma(){
@@ -7206,10 +7213,12 @@ init();
   var startX=0, startY=0, swiping=false;
   document.addEventListener('touchstart', function(e){
     if(!CUBA_ACTIVA_ID) return;
+    if(document.getElementById('firma-overlay')) return; // no swipear mientras se firma
     var t=e.touches[0]; startX=t.clientX; startY=t.clientY; swiping=true;
   }, {passive:true});
   document.addEventListener('touchend', function(e){
     if(!swiping || !CUBA_ACTIVA_ID) return;
+    if(document.getElementById('firma-overlay')){ swiping=false; return; } // firma abierta: no cambiar de cuba
     swiping=false;
     var t=e.changedTouches[0];
     var dx = t.clientX - startX;
