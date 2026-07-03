@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.261</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.262</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -6726,7 +6726,10 @@ function _aplicarFirmaMasiva(tipo){
   _firmaMasivaLista.forEach(function(p){
     if(tipo==='sala'){ p.firma_sala=img; p.firma_sala_nombre=nombre; p.firma_sala_ts=ts; }
     else { p.firma_quesero=img; p.firma_quesero_nombre=nombre; p.firma_quesero_ts=ts; }
-    try{ enviarParteSheets(p); }catch(e){}
+    // La firma masiva NO envía a Google Sheets: solo se guarda en local (persistir, más
+    // abajo). Firmar es solo firmar; los datos suben cuando el parte se GUARDA/CIERRA con
+    // contenido. Esto evita (a) subir filas cabecera vacías a Sheets y (b) que varios POST
+    // simultáneos disparen la condición de carrera que duplicaba partes con el mismo ID.
     n++;
   });
   try{ persistir(); }catch(e){}
