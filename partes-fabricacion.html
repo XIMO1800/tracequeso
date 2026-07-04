@@ -852,7 +852,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.265</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.266</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -7321,6 +7321,20 @@ function toggleLavadoMetodo(){
   if(hfRow)   hfRow.style.display   = esManguera ? 'none' : '';
   if(tempRow) tempRow.style.display = esManguera ? 'none' : '';
   if(cantRow) cantRow.style.display = esManguera ? '' : 'none';
+  // Valor predeterminado de cantidad de agua = 10% de los litros de la cuba.
+  // Solo se rellena si el campo está VACÍO, para no pisar un valor que el quesero
+  // ya haya ajustado a mano (por si echó más o menos agua de lo normal).
+  if(esManguera){
+    var cantEl = document.getElementById('lavado-cantidad');
+    var litrosEl = document.getElementById('np-litros');
+    if(cantEl && litrosEl && (cantEl.value===''||cantEl.value===null)){
+      var lit = parseFloat(litrosEl.value) || 0;
+      if(lit>0){
+        cantEl.value = Math.round(lit*0.10);
+        if (CUBA_ACTIVA_ID && typeof autoGuardarParte === 'function') autoGuardarParte(CUBA_ACTIVA_ID);
+      }
+    }
+  }
   if (CUBA_ACTIVA_ID && typeof autoGuardarParte === 'function') autoGuardarParte(CUBA_ACTIVA_ID);
 }
 
