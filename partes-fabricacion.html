@@ -72,6 +72,8 @@ select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.o
 input:focus,select:focus,textarea:focus{border-color:var(--green2);background:white}
 input[readonly],input.auto-filled{background:var(--greenl);border-color:var(--green2);color:var(--green);font-weight:700}
 .campo-bloqueado,input.campo-bloqueado,select.campo-bloqueado{background:#eceff1 !important;border-color:#cfd8dc !important;color:#78909c !important;font-weight:600 !important;pointer-events:none}
+/* Campo con candado: sí es pinchable (para pedir el PIN y desbloquear) */
+.campo-candado,input.campo-candado,select.campo-candado{pointer-events:auto !important;cursor:pointer !important}
 .form-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .cas-fila4{display:grid;grid-template-columns:1.3fr 1fr 1fr 0.7fr;gap:10px;align-items:end}
 .cas-uds-val{font-weight:700;font-size:0.95rem;color:var(--text);padding:6px 0;text-align:center}
@@ -852,7 +854,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.266</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.268</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1337,7 +1339,7 @@ function cargarOperariosRemotos(){
   try{
     fetch(API_URL+'?tipo=operarios').then(function(r){return r.json();}).then(function(d){
       if(d && d.ok && d.data && d.data.length){
-        OPERARIOS_DET = d.data.map(function(o){ return {n:String(o.n||'').trim(), rol:String(o.rol||'').toUpperCase().trim()}; })
+        OPERARIOS_DET = d.data.map(function(o){ return {n:String(o.n||'').trim(), rol:String(o.rol||'').toUpperCase().trim(), pin:String(o.pin||'').trim()}; })
                               .filter(function(o){ return o.n; });
         OPERARIOS = OPERARIOS_DET.map(function(o){ return o.n; });
         guardarOperarios();
@@ -1543,6 +1545,11 @@ function nuevaCubaPestana(){
 function abrirCubaPestana(id){
   var p = PARTES.find(function(x){return x.id===id;});
   if(!p) return;
+  // Candado: al cambiar de cuba se pierde cualquier desbloqueo temporal previo
+  // (las fases del quesero vuelven a quedar protegidas). Si vuelve a esta cuba y
+  // era otra la desbloqueada, quedará bloqueada; si era esta, _candadoDesbloqueoActivo
+  // seguirá válido mientras no pasen los 3 min.
+  if(_candadoCubaId && _candadoCubaId !== id) _candadoResetPorCambioCuba();
   CUBA_ACTIVA_ID = id;
   renderPestanasCubas();
   cargarFormularioEnPanel(p);
@@ -1843,9 +1850,11 @@ function rellenarCampos(p){
     btnCerrar.textContent='✓ Cerrar parte (pasa al historial)';
     btnCerrar.onclick = function(){ cerrarParteActivo(p.id); };
     panel.appendChild(btnCerrar);
-    // "Eliminar cuba": si el parte está bloqueado (inicio de moldeo hecho), solo ADMIN/Calidad.
-    // Antes de bloquearse, el propio quesero puede eliminar su cuba si se equivocó.
-    if(!p.bloqueado_quesero || esCalidadOAdmin()){
+    // "Eliminar cuba": si el parte está bloqueado (inicio de moldeo hecho), solo ADMIN/Calidad
+    // o el PROPIO QUESERO dueño del parte (puede corregir su cuba durante el día, hasta cerrar).
+    var _esDuenoElim = p && p.operario && OPERARIO_ACTUAL &&
+                       String(p.operario).trim().toUpperCase() === String(OPERARIO_ACTUAL).trim().toUpperCase();
+    if(!p.bloqueado_quesero || esCalidadOAdmin() || _esDuenoElim){
       var btnEliminar = document.createElement('button');
       btnEliminar.className='btn-eliminar-cuba';
       btnEliminar.textContent='🗑 Eliminar esta cuba';
@@ -2339,6 +2348,35 @@ function esCalidadSinAdmin(){
   return _rolContiene(ROL_ACTUAL,'CALIDAD') && !_rolContiene(ROL_ACTUAL,'ADMIN');
 }
 
+// ══════════════════════════════════════════════
+// CANDADO POR PIN (desbloqueo de fases del quesero)
+// Cuando un parte está bloqueado, los campos del quesero se ven en azul. Al pinchar
+// uno, se pide el PIN. Solo desbloquean: el QUESERO DUEÑO del parte, o Calidad/Admin.
+// Un operario de sala, aunque meta su PIN, NO puede: sigue bloqueado.
+// Verifica el PIN contra OPERARIOS_DET (que ahora incluye el pin de cada uno).
+// Devuelve {ok:bool, motivo:string} para poder dar un mensaje claro.
+// ══════════════════════════════════════════════
+function pinAutorizaDesbloqueo(pin, parte){
+  var p = String(pin||'').trim();
+  if(!p) return {ok:false, motivo:'Introduce el PIN'};
+  // Buscar a quién pertenece este PIN
+  var persona = null;
+  for(var i=0;i<OPERARIOS_DET.length;i++){
+    if(OPERARIOS_DET[i].pin && String(OPERARIOS_DET[i].pin).trim() === p){ persona = OPERARIOS_DET[i]; break; }
+  }
+  if(!persona) return {ok:false, motivo:'PIN no reconocido'};
+  var rol = persona.rol || '';
+  // Calidad o Admin: siempre pueden
+  if(_rolContiene(rol,'CALIDAD') || _rolContiene(rol,'ADMIN')) return {ok:true, quien:persona.n};
+  // El quesero DUEÑO del parte: puede editar lo suyo
+  var esDueno = parte && parte.operario &&
+                String(parte.operario).trim().toUpperCase() === String(persona.n).trim().toUpperCase();
+  if(esDueno) return {ok:true, quien:persona.n};
+  // Cualquier otro (operario de sala): no
+  return {ok:false, motivo:'Este PIN no puede editar las fases del quesero'};
+}
+
+
 // IDs de los campos que pertenecen a las fases del QUESERO (cabecera → inicio de moldeo).
 // Cuando el parte queda bloqueado, estos se ponen en solo lectura para los operarios de sala.
 // NO se incluyen: mol-hf (hora fin moldeo), prensado, desmoldeo, salmuera, piezas → esos los rellena la sala.
@@ -2356,11 +2394,31 @@ var CAMPOS_QUESERO = ['np-tipo-sel','np-var-sel','np-lote','np-litros','np-lvaca
 // El parte queda bloqueado para operarios de sala una vez completado el inicio de moldeo.
 // ADMIN/Calidad nunca quedan bloqueados (pueden corregir).
 function aplicarBloqueoQuesero(p){
-  var bloquear = !!(p && p.bloqueado_quesero) && !esCalidadOAdmin();
+  // El bloqueo protege las fases del quesero frente a los OPERARIOS DE SALA (que por
+  // la tarde completan prensado/desmoldeo/piezas). NO debe afectar a:
+  //   - Calidad / Admin (pueden editar todo), ni
+  //   - el PROPIO QUESERO que hizo el parte (puede repasar y corregir lo suyo durante
+  //     el día; el bloqueo real y definitivo llega al CERRAR el parte).
+  // Antes se bloqueaba a "todo el que no fuera Calidad/Admin", y eso incluía por error
+  // a Jorge sobre sus propias cubas en cuanto completaba el moldeo. (Fix)
+  var esDueno = p && p.operario && OPERARIO_ACTUAL &&
+                String(p.operario).trim().toUpperCase() === String(OPERARIO_ACTUAL).trim().toUpperCase();
+  // Desbloqueo temporal por PIN (candado): activo si es de ESTA cuba y no han pasado 3 min.
+  var desbloqueoActivo = _candadoDesbloqueoActivo(p);
+  var bloquear = !!(p && p.bloqueado_quesero) && !esCalidadOAdmin() && !esDueno && !desbloqueoActivo;
   function set(el){
     if(!el) return;
-    if(bloquear){ el.setAttribute('readonly','readonly'); el.classList.add('campo-bloqueado'); if(el.tagName==='SELECT'||el.type==='checkbox') el.disabled=true; }
-    else { el.removeAttribute('readonly'); el.classList.remove('campo-bloqueado'); }
+    if(bloquear){
+      el.setAttribute('readonly','readonly'); el.classList.add('campo-bloqueado');
+      if(el.tagName==='SELECT'||el.type==='checkbox') el.disabled=true;
+      // Candado: al pinchar un campo bloqueado, pedir PIN para desbloquear.
+      el.classList.add('campo-candado');
+      el.onclick = function(){ abrirCandadoPin(p); };
+    } else {
+      el.removeAttribute('readonly'); el.classList.remove('campo-bloqueado');
+      el.classList.remove('campo-candado'); el.onclick = null;
+      if(el.tagName==='SELECT'||el.type==='checkbox') el.disabled=false;
+    }
   }
   CAMPOS_QUESERO.forEach(function(id){ set(document.getElementById(id)); });
   // Campos dinámicos: dosis de auxiliares, fermentos y cuajo (inputs con clase dosis-input/papel-prod-dosis-input)
@@ -2369,6 +2427,67 @@ function aplicarBloqueoQuesero(p){
   document.querySelectorAll('.cambiar-lnk,.papel-prod-cambiar').forEach(function(el){
     if(el) el.style.display = bloquear ? 'none' : '';
   });
+}
+
+// ── Estado del candado: desbloqueo temporal por PIN ──
+// Guarda qué cuba está desbloqueada y cuándo (para caducar a los 3 min).
+var _candadoCubaId = null;
+var _candadoTs = 0;
+var CANDADO_MINUTOS = 3;
+
+function _candadoDesbloqueoActivo(p){
+  if(!p || !_candadoCubaId) return false;
+  if(_candadoCubaId !== p.id) return false;                 // es de otra cuba
+  var mins = (Date.now() - _candadoTs) / 60000;
+  if(mins > CANDADO_MINUTOS){ _candadoCubaId=null; _candadoTs=0; return false; } // caducado
+  return true;
+}
+
+// Al cambiar de cuba se pierde el desbloqueo (re-bloqueo automático).
+function _candadoResetPorCambioCuba(){
+  _candadoCubaId = null; _candadoTs = 0;
+}
+
+// Modal para introducir el PIN y desbloquear las fases del quesero de esta cuba.
+function abrirCandadoPin(p){
+  if(!p) return;
+  var ov = document.getElementById('candado-overlay');
+  if(ov) ov.remove();
+  ov = document.createElement('div');
+  ov.id = 'candado-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML =
+    '<div style="background:#fff;border-radius:14px;max-width:360px;width:100%;padding:20px;box-shadow:0 6px 30px rgba(0,0,0,.3)">'
+    + '<div style="font-size:1.05rem;font-weight:800;color:var(--granate,#7a1f2b);margin-bottom:4px">🔒 Datos protegidos</div>'
+    + '<div style="font-size:0.85rem;color:#555;margin-bottom:14px">Estas fases las cerró el quesero. Introduce tu PIN para poder editarlas.</div>'
+    + '<input id="candado-pin" type="password" inputmode="numeric" placeholder="PIN" autocomplete="off" '
+    + '  style="width:100%;padding:12px;font-size:1.2rem;text-align:center;letter-spacing:4px;border:1.5px solid #cfd8dc;border-radius:8px;margin-bottom:6px">'
+    + '<div id="candado-msg" style="font-size:0.8rem;color:#c0392b;min-height:18px;margin-bottom:10px"></div>'
+    + '<div style="display:flex;gap:8px">'
+    + '  <button onclick="cerrarCandadoPin()" style="flex:1;padding:12px;border:0;border-radius:8px;background:#eceff1;color:#455a64;font-weight:700">Cancelar</button>'
+    + '  <button onclick="confirmarCandadoPin(\''+p.id+'\')" style="flex:1;padding:12px;border:0;border-radius:8px;background:var(--granate,#7a1f2b);color:#fff;font-weight:700">Desbloquear</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  setTimeout(function(){ var i=document.getElementById('candado-pin'); if(i) i.focus(); }, 50);
+}
+
+function cerrarCandadoPin(){
+  var ov = document.getElementById('candado-overlay'); if(ov) ov.remove();
+}
+
+function confirmarCandadoPin(parteId){
+  var p = PARTES.find(function(x){return x.id===parteId;});
+  if(!p){ cerrarCandadoPin(); return; }
+  var pin = (document.getElementById('candado-pin')||{}).value || '';
+  var res = pinAutorizaDesbloqueo(pin, p);
+  var msg = document.getElementById('candado-msg');
+  if(!res.ok){ if(msg) msg.textContent = res.motivo || 'PIN incorrecto'; return; }
+  // Desbloqueo concedido: activar candado temporal para esta cuba
+  _candadoCubaId = p.id;
+  _candadoTs = Date.now();
+  cerrarCandadoPin();
+  aplicarBloqueoQuesero(p);   // re-pintar: ahora editable
+  toast('🔓 Desbloqueado '+CANDADO_MINUTOS+' min · '+(res.quien||''));
 }
 
 function imprimirParte(id){
