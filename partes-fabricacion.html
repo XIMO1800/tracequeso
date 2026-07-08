@@ -589,8 +589,10 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .parte-status.cerrado{background:var(--greenl);color:var(--green)}
 
 .btn-cerrar-parte{background:var(--green);color:white;border:none;border-radius:10px;padding:16px;font-size:1.05rem;font-weight:800;width:100%;cursor:pointer;margin-top:18px}
-.btn-firmar-quesero{background:var(--amberl);color:var(--amber);border:1.5px solid var(--amber);border-radius:10px;padding:14px;font-size:1rem;font-weight:700;width:100%;cursor:pointer;margin-top:14px}
-.btn-firmar-sala{background:var(--brandl,#efe6f5);color:var(--brand);border:1.5px solid var(--brand);border-radius:10px;padding:14px;font-size:1rem;font-weight:700;width:100%;cursor:pointer;margin-top:10px}
+.btn-firmar-quesero{background:var(--amberl);color:var(--amber);border:1.5px solid var(--amber);border-radius:10px;padding:16px 10px;font-size:0.95rem;font-weight:700;flex:1;cursor:pointer;line-height:1.35;text-align:center}
+.fila-firmas{display:flex;gap:10px;margin-top:14px}
+.firma-ok{font-size:0.8rem;opacity:0.85}
+.btn-firmar-sala{background:var(--brandl,#efe6f5);color:var(--brand);border:1.5px solid var(--brand);border-radius:10px;padding:16px 10px;font-size:0.95rem;font-weight:700;flex:1;cursor:pointer;line-height:1.35;text-align:center}
 .btn-eliminar-cuba{background:transparent;color:#b0868c;border:1px solid #e0cdd0;border-radius:10px;padding:11px;font-size:0.82rem;font-weight:600;width:100%;cursor:pointer;margin-top:34px}
 .sep-antes-eliminar{border:none;border-top:1px dashed #d8ccce;margin:30px 0 0 0}
 
@@ -855,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.271</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.272</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1836,16 +1838,21 @@ function rellenarCampos(p){
   // Añadir botones al final: Firmar (quesero) / Cerrar parte / Eliminar
   var panel = document.getElementById('panel-cuba-activa');
   if(panel){
+    // Las dos firmas van LADO A LADO (dos columnas): botones más estrechos y altos.
+    // Así el grupo de firmas se distingue claramente de la barra ancha "Cerrar parte".
+    var filaFirmas = document.createElement('div');
+    filaFirmas.className = 'fila-firmas';
     var btnFirmar = document.createElement('button');
     btnFirmar.className='btn-firmar-quesero';
-    btnFirmar.textContent = p.firma_quesero ? '✍️ Firmado por el quesero ✓ (volver a firmar)' : '✍️ Firmar (quesero)';
+    btnFirmar.innerHTML = p.firma_quesero ? '✍️ Quesero<br><span class="firma-ok">✓ firmado</span>' : '✍️ Firmar<br>quesero';
     btnFirmar.onclick = function(){ firmarQuesero(p.id); };
-    panel.appendChild(btnFirmar);
+    filaFirmas.appendChild(btnFirmar);
     var btnFirmarSala = document.createElement('button');
     btnFirmarSala.className='btn-firmar-sala';
-    btnFirmarSala.textContent = p.firma_sala ? '✍️ Firmado por operario de sala ✓ (volver a firmar)' : '✍️ Firmar (operario de sala)';
+    btnFirmarSala.innerHTML = p.firma_sala ? '✍️ Op. sala<br><span class="firma-ok">✓ firmado</span>' : '✍️ Firmar<br>op. sala';
     btnFirmarSala.onclick = function(){ firmarSala(p.id); };
-    panel.appendChild(btnFirmarSala);
+    filaFirmas.appendChild(btnFirmarSala);
+    panel.appendChild(filaFirmas);
     var btnCerrar = document.createElement('button');
     btnCerrar.className='btn-cerrar-parte';
     btnCerrar.textContent='✓ Cerrar parte (pasa al historial)';
