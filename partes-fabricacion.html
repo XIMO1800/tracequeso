@@ -588,10 +588,11 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .parte-status.abierto{background:var(--amberl);color:var(--amber)}
 .parte-status.cerrado{background:var(--greenl);color:var(--green)}
 
-.btn-cerrar-parte{background:var(--green);color:white;border:none;border-radius:10px;padding:14px;font-size:1rem;font-weight:700;width:100%;cursor:pointer;margin-top:14px}
+.btn-cerrar-parte{background:var(--green);color:white;border:none;border-radius:10px;padding:16px;font-size:1.05rem;font-weight:800;width:100%;cursor:pointer;margin-top:18px}
 .btn-firmar-quesero{background:var(--amberl);color:var(--amber);border:1.5px solid var(--amber);border-radius:10px;padding:14px;font-size:1rem;font-weight:700;width:100%;cursor:pointer;margin-top:14px}
 .btn-firmar-sala{background:var(--brandl,#efe6f5);color:var(--brand);border:1.5px solid var(--brand);border-radius:10px;padding:14px;font-size:1rem;font-weight:700;width:100%;cursor:pointer;margin-top:10px}
-.btn-eliminar-cuba{background:var(--redl);color:var(--red);border:1.5px solid var(--red);border-radius:10px;padding:12px;font-size:0.9rem;font-weight:700;width:100%;cursor:pointer;margin-top:8px}
+.btn-eliminar-cuba{background:transparent;color:#b0868c;border:1px solid #e0cdd0;border-radius:10px;padding:11px;font-size:0.82rem;font-weight:600;width:100%;cursor:pointer;margin-top:34px}
+.sep-antes-eliminar{border:none;border-top:1px dashed #d8ccce;margin:30px 0 0 0}
 
 /* ── Carrusel de cubas activas ── */
 .cubas-scroll{display:flex;overflow-x:auto;gap:12px;padding:4px 2px 12px;scrollbar-width:none;scroll-snap-type:x mandatory}
@@ -854,7 +855,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.270</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.271</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1855,6 +1856,10 @@ function rellenarCampos(p){
     var _esDuenoElim = p && p.operario && OPERARIO_ACTUAL &&
                        String(p.operario).trim().toUpperCase() === String(OPERARIO_ACTUAL).trim().toUpperCase();
     if(!p.bloqueado_quesero || esCalidadOAdmin() || _esDuenoElim){
+      // Separador visual: aleja "Eliminar" de "Cerrar" para evitar pulsarlo sin querer.
+      var sepDel = document.createElement('hr');
+      sepDel.className = 'sep-antes-eliminar';
+      panel.appendChild(sepDel);
       var btnEliminar = document.createElement('button');
       btnEliminar.className='btn-eliminar-cuba';
       btnEliminar.textContent='🗑 Eliminar esta cuba';
