@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.278</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.279</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2547,6 +2547,7 @@ function _htmlParteImpresion(p){
   var tituloDoc = 'Parte '+fecha+' '+e(p.tipo)+(p.cuba?(' Cuba'+e(p.cuba)):'')+marcaRev;
   H.push('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>'+tituloDoc+'</title><style>');
   H.push('@page{size:A4;margin:8mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#000;margin:0}');
+  H.push('table,.sec{margin-top:-1px}');
   H.push('table{border-collapse:collapse;table-layout:fixed;width:auto}td,th{border:1px solid #000;padding:2px 4px;vertical-align:middle;width:32mm;text-align:center;overflow:hidden}');
   H.push('.sec{background:#e6e6e6;font-weight:bold;text-transform:uppercase;padding:3px 4px;border:1px solid #000;width:192mm;display:block}');
   H.push('.lbl{font-weight:bold}.t{text-align:center}.lft{text-align:left}.mt{margin-top:6px}');
@@ -2562,7 +2563,7 @@ function _htmlParteImpresion(p){
   // sobrantes son celdas .nob: sin borde, quedan en blanco (como el prensado).
   // Excepción: el desmoldeo mantiene sus 7 columnas (grid7).
   H.push('td.nob{border:none}');
-  H.push('table.sechd{width:192mm}table.sechd td.sectd{background:#e6e6e6;font-weight:bold;text-transform:uppercase;text-align:left;width:96mm}');
+  H.push('table.sechd{width:192mm;border:1px solid #000}table.sechd td{background:#e6e6e6;border:none}table.sechd td.sectd{font-weight:bold;text-transform:uppercase;text-align:left;width:96mm}');
   H.push('</style></head><body>');
   H.push('<div class="hdr">'+(logo?'<img src="'+logo+'">':'')+'<div class="ti">PARTE DE FABRICACIÓN</div></div>');
   H.push('<table class="mt"><tr><td class="lft" colspan="2"><span class="lbl">FECHA:</span> '+fecha+'</td><td class="lft" colspan="2"><span class="lbl">TIPO DE QUESO:</span> '+n(p.tipo)+(p.variedad?(' · '+e(p.variedad)):'')+'</td><td class="lft"><span class="lbl">LOTE:</span> '+n(p.lote_queso)+'</td><td class="lft"><span class="lbl">CUAJADA Nº:</span> '+n(p.cuba)+'</td></tr></table>');
