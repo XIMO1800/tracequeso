@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.280</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.281</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2586,8 +2586,11 @@ function _htmlParteImpresion(p){
   var auxList=(p.auxiliares||[]).concat(p.otrosAuxiliares||[]);
   if(auxList.length){ auxList.forEach(function(a){ a=a||{}; H.push('<tr><td>'+n(a.nombre)+'</td><td class="t">'+n(a.dosis_ml_1000L)+'</td><td class="t">'+n(a.consumo_total)+'</td><td class="t">'+n(a.proveedor)+'</td><td class="t">'+n(a.lote)+'</td><td class="t">'+_fechaEsp(a.caducidad)+'</td></tr>'); }); }
   else { H.push('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>'); }
+  // CO2 como fila más de la tabla de auxiliares: cada dato en su columna
+  // (caudal L/h bajo ml/1000L, tiempo bajo ml utilizados, y proveedor/lote/caducidad
+  // alineados con los del cloruro).
+  H.push('<tr><td class="t">CO2</td><td class="t">'+(co.caudal_lh?(e(co.caudal_lh)+' L/h'):'')+'</td><td class="t">'+(co.tiempo_seg?(e(co.tiempo_seg)+' s'):'')+'</td><td class="t">'+n(co.proveedor)+'</td><td class="t">'+n(co.lote)+'</td><td class="t">'+_fechaEsp(co.caducidad)+'</td></tr>');
   H.push('</table>');
-  H.push('<table><tr><td class="lbl">CO2</td><td class="lft">Caducidad: '+_fechaEsp(co.caducidad)+'</td><td class="lft" colspan="2">Lote: '+n(co.lote)+'</td><td class="lft">Tiempo: '+n(co.tiempo_seg)+(co.tiempo_seg?' s':'')+'</td><td class="lft">Litros/Hora: '+n(co.caudal_lh)+'</td></tr></table>');
   var fm = p.ferm_meta || {};
   H.push('<table class="mt sechd"><colgroup><col style="width:96mm"><col style="width:32mm"><col style="width:32mm"><col style="width:32mm"></colgroup><tr><td class="sectd">FERMENTOS LÁCTICOS</td><td class="t">Hora adición: '+n(fm.hadicion)+'</td><td class="t">pH: '+n(fm.ph)+'</td><td class="t">TºC: '+n(fm.temp)+'</td></tr></table>');
   H.push('<table><tr><td class="lbl">Nombre</td><td class="lbl t">Dosis/1000l</td><td class="lbl t">Dosis utili.</td><td class="lbl t">Proveedor</td><td class="lbl t">Lote</td><td class="lbl t">Caducidad</td></tr>');
