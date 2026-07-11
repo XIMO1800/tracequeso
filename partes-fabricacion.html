@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.279</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.280</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2549,7 +2549,7 @@ function _htmlParteImpresion(p){
   H.push('@page{size:A4;margin:8mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#000;margin:0}');
   H.push('table,.sec{margin-top:-1px}');
   H.push('table{border-collapse:collapse;table-layout:fixed;width:auto}td,th{border:1px solid #000;padding:2px 4px;vertical-align:middle;width:32mm;text-align:center;overflow:hidden}');
-  H.push('.sec{background:#e6e6e6;font-weight:bold;text-transform:uppercase;padding:3px 4px;border:1px solid #000;width:192mm;display:block}');
+  H.push('.sec{background:#e6e6e6;font-weight:bold;text-transform:uppercase;padding:3px 4px;border:2px solid #000;width:192mm;display:block}');
   H.push('.lbl{font-weight:bold}.t{text-align:center}.lft{text-align:left}.mt{margin-top:6px}');
   H.push('.hdr{display:flex;align-items:center;gap:12px;border:1px solid #000;padding:6px;width:192mm}.hdr img{height:42px}.hdr .ti{flex:1;text-align:center;font-size:17px;font-weight:bold;letter-spacing:1px}');
   H.push('.firma{margin-top:18px;border:1px solid #000;height:64px;padding:4px}.foot{display:flex;justify-content:space-between;font-size:9px;margin-top:4px;color:#333}');
@@ -2563,7 +2563,7 @@ function _htmlParteImpresion(p){
   // sobrantes son celdas .nob: sin borde, quedan en blanco (como el prensado).
   // Excepción: el desmoldeo mantiene sus 7 columnas (grid7).
   H.push('td.nob{border:none}');
-  H.push('table.sechd{width:192mm;border:1px solid #000}table.sechd td{background:#e6e6e6;border:none}table.sechd td.sectd{font-weight:bold;text-transform:uppercase;text-align:left;width:96mm}');
+  H.push('table.sechd{width:192mm;border:2px solid #000}table.sechd td{background:#e6e6e6;border:none}table.sechd td.sectd{font-weight:bold;text-transform:uppercase;text-align:left}');
   H.push('</style></head><body>');
   H.push('<div class="hdr">'+(logo?'<img src="'+logo+'">':'')+'<div class="ti">PARTE DE FABRICACIÓN</div></div>');
   H.push('<table class="mt"><tr><td class="lft" colspan="2"><span class="lbl">FECHA:</span> '+fecha+'</td><td class="lft" colspan="2"><span class="lbl">TIPO DE QUESO:</span> '+n(p.tipo)+(p.variedad?(' · '+e(p.variedad)):'')+'</td><td class="lft"><span class="lbl">LOTE:</span> '+n(p.lote_queso)+'</td><td class="lft"><span class="lbl">CUAJADA Nº:</span> '+n(p.cuba)+'</td></tr></table>');
@@ -2572,7 +2572,7 @@ function _htmlParteImpresion(p){
   H.push('<tr><td class="lbl lft">TANQUE PROCEDENCIA</td><td class="t">'+z(p.tanque_vaca)+'</td><td class="t">'+z(p.tanque_cabra)+'</td><td class="t">'+z(p.tanque_oveja)+'</td><td class="t"></td><td class="t">'+z(p.tanque)+'</td></tr></table>');
   // Nº CUBA = la cuba FÍSICA donde se elaboró (la que aparece en el parte de papel).
   // El nº cronológico (orden de cuajada del día) va arriba, al lado del LOTE.
-  H.push('<table><tr><td class="lbl lft">Nº CUBA: <span style="font-weight:normal">'+n(p.cuba_fisica||p.cuba)+'</span></td><td class="lbl lft">pH: <span style="font-weight:normal">'+n(p.ph)+'</span></td><td class="lbl lft">ºD: <span style="font-weight:normal">'+n(p.dornic_leche)+'</span></td><td class="lbl lft">TºC: <span style="font-weight:normal">'+n(p.temp)+'</span></td><td class="nob" colspan="2"></td></tr></table>');
+  H.push('<table><tr><td class="lbl lft">Nº CUBA: <span style="font-weight:normal">'+n(p.cuba_fisica||p.cuba)+'</span></td><td class="lbl t">pH: <span style="font-weight:normal">'+n(p.ph)+'</span></td><td class="lbl t">ºD: <span style="font-weight:normal">'+n(p.dornic_leche)+'</span></td><td class="lbl t">TºC: <span style="font-weight:normal">'+n(p.temp)+'</span></td><td class="nob" colspan="2"></td></tr></table>');
   var pcond = pa.temp ? ('Tºc '+e(pa.temp)+(pa.tiempo?(' - '+e(pa.tiempo)+'s'):'')) : '';
   H.push('<div class="sec">Pasteurización</div><table><tr><td class="t lbl">Válvula desvío (C/I)</td><td class="t lbl">Fosfatasa alcalina</td><td class="t lbl">Condiciones pasteurización</td><td class="t lbl">Cruda</td><td class="nob" colspan="2"></td></tr>');
   H.push('<tr><td class="t">'+n(pa.valvula)+'</td><td class="t">'+_fosfatasaTxt(pa.fosfatasa)+'</td><td class="t">'+pcond+'</td><td class="t">'+(pa.cruda?'Sí':'')+'</td><td class="nob" colspan="2"></td></tr></table>');
@@ -2581,7 +2581,7 @@ function _htmlParteImpresion(p){
   var amTemp = am.temp || (co.temp_leche!=null?co.temp_leche:'');
   // Cabecera estilo papel: el título de la sección y (hora adición · pH · TºC) van en
   // la MISMA fila, como en el parte de bolígrafo. Debajo, el desglose de productos.
-  H.push('<table class="mt sechd"><tr><td class="sectd" colspan="3">AUXILIARES DE FABRICACIÓN</td><td class="lft">Hora adición: '+n(am.hadicion)+'</td><td class="lft">pH: '+n(amPh)+'</td><td class="lft">TºC: '+n(amTemp)+'</td></tr></table>');
+  H.push('<table class="mt sechd"><colgroup><col style="width:96mm"><col style="width:32mm"><col style="width:32mm"><col style="width:32mm"></colgroup><tr><td class="sectd">AUXILIARES DE FABRICACIÓN</td><td class="t">Hora adición: '+n(am.hadicion)+'</td><td class="t">pH: '+n(amPh)+'</td><td class="t">TºC: '+n(amTemp)+'</td></tr></table>');
   H.push('<table><tr><td class="lbl">Auxiliar</td><td class="lbl t">ml/1000L</td><td class="lbl t">ml utilizados</td><td class="lbl t">Proveedor</td><td class="lbl t">Lote</td><td class="lbl t">Caducidad</td></tr>');
   var auxList=(p.auxiliares||[]).concat(p.otrosAuxiliares||[]);
   if(auxList.length){ auxList.forEach(function(a){ a=a||{}; H.push('<tr><td>'+n(a.nombre)+'</td><td class="t">'+n(a.dosis_ml_1000L)+'</td><td class="t">'+n(a.consumo_total)+'</td><td class="t">'+n(a.proveedor)+'</td><td class="t">'+n(a.lote)+'</td><td class="t">'+_fechaEsp(a.caducidad)+'</td></tr>'); }); }
@@ -2589,14 +2589,14 @@ function _htmlParteImpresion(p){
   H.push('</table>');
   H.push('<table><tr><td class="lbl">CO2</td><td class="lft">Caducidad: '+_fechaEsp(co.caducidad)+'</td><td class="lft" colspan="2">Lote: '+n(co.lote)+'</td><td class="lft">Tiempo: '+n(co.tiempo_seg)+(co.tiempo_seg?' s':'')+'</td><td class="lft">Litros/Hora: '+n(co.caudal_lh)+'</td></tr></table>');
   var fm = p.ferm_meta || {};
-  H.push('<table class="mt sechd"><tr><td class="sectd" colspan="3">FERMENTOS LÁCTICOS</td><td class="lft">Hora adición: '+n(fm.hadicion)+'</td><td class="lft">pH: '+n(fm.ph)+'</td><td class="lft">TºC: '+n(fm.temp)+'</td></tr></table>');
+  H.push('<table class="mt sechd"><colgroup><col style="width:96mm"><col style="width:32mm"><col style="width:32mm"><col style="width:32mm"></colgroup><tr><td class="sectd">FERMENTOS LÁCTICOS</td><td class="t">Hora adición: '+n(fm.hadicion)+'</td><td class="t">pH: '+n(fm.ph)+'</td><td class="t">TºC: '+n(fm.temp)+'</td></tr></table>');
   H.push('<table><tr><td class="lbl">Nombre</td><td class="lbl t">Dosis/1000l</td><td class="lbl t">Dosis utili.</td><td class="lbl t">Proveedor</td><td class="lbl t">Lote</td><td class="lbl t">Caducidad</td></tr>');
   var fer=p.fermentos||[];
   if(fer.length){ fer.forEach(function(f){ f=f||{}; H.push('<tr><td>'+n(f.nombre)+'</td><td class="t">'+n(f.dosis_ml_1000L)+'</td><td class="t">'+n(f.consumo_total)+'</td><td class="t">'+n(f.proveedor)+'</td><td class="t">'+n(f.lote)+'</td><td class="t">'+_fechaEsp(f.caducidad)+'</td></tr>'); }); }
   else { H.push('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>'); }
   H.push('</table>');
-  H.push('<table class="mt sechd"><tr><td class="sectd" colspan="3">COAGULACIÓN</td><td class="lft">Hora adición: '+n(cg.hadicion)+'</td><td class="lft">pH: '+n(cg.ph)+'</td><td class="lft">TºC: '+n(cg.temp)+'</td></tr></table>');
-  H.push('<table><tr><td class="lft">Hora de corte: '+n(cg.hc)+'</td><td class="lft" colspan="2">Coagulación Total: '+n(cg.total)+(cg.total?' min':'')+'</td><td class="nob" colspan="3"></td></tr></table>');
+  H.push('<table class="mt sechd"><colgroup><col style="width:96mm"><col style="width:32mm"><col style="width:32mm"><col style="width:32mm"></colgroup><tr><td class="sectd">COAGULACIÓN</td><td class="t">Hora adición: '+n(cg.hadicion)+'</td><td class="t">pH: '+n(cg.ph)+'</td><td class="t">TºC: '+n(cg.temp)+'</td></tr></table>');
+  H.push('<table><tr><td class="lft">Hora de corte: '+n(cg.hc)+'</td><td class="lft" colspan="2">Coag. Total: '+n(cg.total)+(cg.total?' min':'')+'</td><td class="nob" colspan="3"></td></tr></table>');
   H.push('<table><tr><td class="lbl">Nombre</td><td class="lbl t">Dosis/1000l</td><td class="lbl t">Dosis utili.</td><td class="lbl t">Proveedor</td><td class="lbl t">Lote</td><td class="lbl t">Caducidad</td></tr>');
   H.push('<tr><td>'+n(cu.nombre)+'</td><td class="t">'+n(cu.dosis_ml_1000L)+'</td><td class="t">'+n(cu.consumo_total)+'</td><td class="t">'+n(cu.proveedor)+'</td><td class="t">'+n(cu.lote)+'</td><td class="t">'+_fechaEsp(cu.caducidad)+'</td></tr></table>');
   H.push('<div class="sec">Desuerado en cuba</div><table>');
