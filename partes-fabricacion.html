@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.281</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.283</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2599,12 +2599,13 @@ function _htmlParteImpresion(p){
   else { H.push('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>'); }
   H.push('</table>');
   H.push('<table class="mt sechd"><colgroup><col style="width:96mm"><col style="width:32mm"><col style="width:32mm"><col style="width:32mm"></colgroup><tr><td class="sectd">COAGULACIÓN</td><td class="t">Hora adición: '+n(cg.hadicion)+'</td><td class="t">pH: '+n(cg.ph)+'</td><td class="t">TºC: '+n(cg.temp)+'</td></tr></table>');
-  H.push('<table><tr><td class="lft">Hora de corte: '+n(cg.hc)+'</td><td class="lft" colspan="2">Coag. Total: '+n(cg.total)+(cg.total?' min':'')+'</td><td class="nob" colspan="3"></td></tr></table>');
+  H.push('<table><tr><td class="nob" colspan="3"></td><td class="t">Hora de corte: '+n(cg.hc)+'</td><td class="t">Coag. Total: '+n(cg.total)+(cg.total?' min':'')+'</td><td class="nob"></td></tr></table>');
   H.push('<table><tr><td class="lbl">Nombre</td><td class="lbl t">Dosis/1000l</td><td class="lbl t">Dosis utili.</td><td class="lbl t">Proveedor</td><td class="lbl t">Lote</td><td class="lbl t">Caducidad</td></tr>');
   H.push('<tr><td>'+n(cu.nombre)+'</td><td class="t">'+n(cu.dosis_ml_1000L)+'</td><td class="t">'+n(cu.consumo_total)+'</td><td class="t">'+n(cu.proveedor)+'</td><td class="t">'+n(cu.lote)+'</td><td class="t">'+_fechaEsp(cu.caducidad)+'</td></tr></table>');
   H.push('<div class="sec">Desuerado en cuba</div><table>');
   H.push('<tr><td class="lbl lft nob" colspan="6">Recalentamiento</td></tr>');
-  H.push('<tr><td class="lft">Hora Inicial: '+n(ds.rec_hi)+'</td><td class="lft">TºC Inicial: '+n(ds.rec_ti)+'</td><td class="lft">pH: '+n(ds.rec_ph)+'</td><td class="lft">ºD(suero): '+n(ds.rec_dornic)+'</td><td class="lft">Hora Final: '+n(ds.rec_hf)+'</td><td class="lft">TºC Final: '+n(ds.rec_tf)+'</td></tr>');
+  H.push('<tr><td class="lft">Hora Inicial: '+n(ds.rec_hi)+'</td><td class="lft">TºC Inicial: '+n(ds.rec_ti)+'</td><td class="lft">pH: '+n(ds.rec_ph)+'</td><td class="lft">ºD(suero): '+n(ds.rec_dornic)+'</td><td class="nob" colspan="2"></td></tr>');
+  H.push('<tr><td class="lft">Hora Final: '+n(ds.rec_hf)+'</td><td class="lft">TºC Final: '+n(ds.rec_tf)+'</td><td class="nob" colspan="4"></td></tr>');
   H.push('<tr><td class="lbl lft nob" colspan="6">Lavado cuajada'+(ds.lavado_metodo?(' · '+e(ds.lavado_metodo)):'')+'</td></tr>');
   H.push('<tr><td class="lft">Hora Inicial: '+n(ds.lavado_hi)+'</td><td class="lft">Hora Final: '+n(ds.lavado_hf)+'</td><td class="lft">TºC: '+n(ds.lavado_temp)+'</td><td class="nob" colspan="3"></td></tr>');
   if(ds.lavado_cantidad) H.push('<tr><td class="lft" colspan="2">Cantidad: '+n(ds.lavado_cantidad)+' L</td><td class="nob" colspan="4"></td></tr>');
