@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.286</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.287</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1300,6 +1300,31 @@ var TIPOS_VARIEDADES = {
   'OVEJA':        ['(ESTÁNDAR)','TIERNO'],
   'CABRA':        ['(ESTÁNDAR)','TIERNO']
 };
+// ── Variedades PERSONALIZADAS (las crea el usuario, sin depender del programador) ──
+// Usa el MISMO almacén que el parte ('tq_partes_variedades') para que lo que se cree
+// en Recetas y en el Parte sea lo mismo. Ese almacén guarda el TIPOS_VARIEDADES completo.
+function _cargarVariedadesCustom(){
+  try{
+    var s = localStorage.getItem('tq_partes_variedades');
+    return s ? JSON.parse(s) : {};
+  }catch(_){ return {}; }
+}
+function variedadesDeTipo(tipo){
+  // TIPOS_VARIEDADES ya viene fusionado en el arranque (cargarVariedadesCustom lo mezcla),
+  // así que basta con leerlo. Se mantiene el helper por claridad.
+  return (TIPOS_VARIEDADES[tipo]||[]).slice();
+}
+// Añade una variedad nueva a un tipo y la guarda en el almacén compartido.
+function anadirVariedadCustom(tipo, nombre){
+  nombre = (nombre||'').trim().toUpperCase();
+  if(!nombre || !tipo) return null;
+  if(!TIPOS_VARIEDADES[tipo]) TIPOS_VARIEDADES[tipo]=[];
+  if(TIPOS_VARIEDADES[tipo].indexOf(nombre)===-1){
+    TIPOS_VARIEDADES[tipo].push(nombre);
+    try{ localStorage.setItem('tq_partes_variedades', JSON.stringify(TIPOS_VARIEDADES)); }catch(_){}
+  }
+  return nombre;
+}
 var FORMATOS = ['3 KG','2 KG','1 KG','1/2 KG','BARRA','GIGANTE','SUPERMINIS'];
 
 var API_URL = 'https://script.google.com/macros/s/AKfycbzRpl0519TiKvlfVZqEK12oZDfUCn9bNrJVT4kRDyni3pCxLg7FTMKmssgeKGJMWEP0/exec';
@@ -6288,23 +6313,35 @@ function renderEditorReceta(){
   abrirModal(h);refrescarIngs();
 }
 
-function onRecVarChange(){
-  var r=window._recetaEditando;
-  var vEl=document.getElementById('rec-var');
-  if(r && vEl) r.variedad = (vEl.value||'').trim().toUpperCase();
-}
-
 function onRecTipoChange(){
   var r=window._recetaEditando;
   var t=document.getElementById('rec-tipo').value;
   if(r) r.tipo = (t||'').trim().toUpperCase();
   var selV=document.getElementById('rec-var');
-  var vars=TIPOS_VARIEDADES[t]||[];
+  var vars=variedadesDeTipo(t);
   if(!t||vars.length===0){selV.innerHTML='<option value="">(sin variedad)</option>';selV.disabled=true;if(r) r.variedad='';return;}
   selV.innerHTML='<option value="">— Variedad —</option>';
   selV.disabled=false;
   vars.forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v;selV.appendChild(o);});
+  // Opción para CREAR una variedad nueva sin depender del programador
+  var oNew=document.createElement("option");oNew.value='__NUEVA__';oNew.textContent='➕ Nueva variedad…';selV.appendChild(oNew);
   if(r) r.variedad='';
+}
+// Si el usuario elige "➕ Nueva variedad…", pedir el nombre, guardarla y seleccionarla
+function onRecVarChange(){
+  var selV=document.getElementById('rec-var');
+  var r=window._recetaEditando;
+  if(selV && selV.value==='__NUEVA__'){
+    var t=document.getElementById('rec-tipo').value;
+    var nombre=prompt('Nombre de la nueva variedad para '+t+':');
+    var creada=anadirVariedadCustom(t, nombre);
+    // Repintar el desplegable con la nueva incluida
+    onRecTipoChange();
+    if(creada){ selV.value=creada; if(r) r.variedad=creada; }
+    else { selV.value=''; if(r) r.variedad=''; }
+    return;
+  }
+  if(r && selV) r.variedad=(selV.value||'').trim().toUpperCase();
 }
 
 function getProductosStockPorCategoria(cat){
