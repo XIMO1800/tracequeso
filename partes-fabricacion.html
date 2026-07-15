@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.287</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.288</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -6424,6 +6424,18 @@ function guardarReceta(){
     var variedadesDelTipo = TIPOS_VARIEDADES[r.tipo] || [];
     if(variedadesDelTipo.length > 0 && !r.variedad){
       toast('⚠ Selecciona una Variedad');return;
+    }
+    // ── Registrar la variedad de la receta en la lista global ──
+    // Si la receta usa una variedad que no está en TIPOS_VARIEDADES (p.ej. una nueva
+    // como GRANA), se añade y se persiste. Así aparece SIEMPRE en el desplegable del
+    // parte, aunque se hubiera creado en otro momento. Esto garantiza que cualquier
+    // receta creada por el usuario sea seleccionable al fabricar.
+    if(r.tipo && r.variedad){
+      if(!TIPOS_VARIEDADES[r.tipo]) TIPOS_VARIEDADES[r.tipo]=[];
+      if(TIPOS_VARIEDADES[r.tipo].indexOf(r.variedad)===-1){
+        TIPOS_VARIEDADES[r.tipo].push(r.variedad);
+        try{ localStorage.setItem('tq_partes_variedades', JSON.stringify(TIPOS_VARIEDADES)); }catch(_){}
+      }
     }
     // Limpiar ingredientes vacíos (filas con nombre en blanco)
     if(r.auxiliares) r.auxiliares = r.auxiliares.filter(function(x){ return x && x.nombre; });
