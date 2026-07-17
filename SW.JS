@@ -1,7 +1,12 @@
 // Service Worker para TraceQueso
-// Versión: v92 - cambiar este número en cada nueva versión del HTML
-const CACHE = 'tracequeso-v123';
+// Versión: cambiar CACHE en cada nueva versión del HTML
+const CACHE = 'tracequeso-v124';
 const ASSETS = ['/tracequeso/', '/tracequeso/index.html'];
+
+// Tiempo máximo (ms) que esperamos a la red para el HTML antes de servir la
+// copia guardada. Evita que con señal intermitente (secadero, nave) la app se
+// quede en blanco esperando eternamente a GitHub. 4s es un buen equilibrio.
+const NET_TIMEOUT = 4000;
 
 // INSTALACIÓN: cachear archivos esenciales
 self.addEventListener('install', function(e) {
@@ -29,15 +34,36 @@ self.addEventListener('activate', function(e) {
   );
 });
 
-// FETCH: network-first para el HTML (siempre lo más reciente)
-// cache-first para el resto
+// Descarga con límite de tiempo. Si la red no responde en NET_TIMEOUT ms,
+// rechaza la promesa para que caigamos al caché en vez de colgarnos en blanco.
+function fetchConTimeout(request) {
+  return new Promise(function(resolve, reject) {
+    var listo = false;
+    var timer = setTimeout(function() {
+      if (!listo) { listo = true; reject(new Error('timeout')); }
+    }, NET_TIMEOUT);
+    fetch(request).then(function(resp) {
+      if (listo) return;      // ya habíamos hecho timeout: ignorar
+      listo = true;
+      clearTimeout(timer);
+      resolve(resp);
+    }).catch(function(err) {
+      if (listo) return;
+      listo = true;
+      clearTimeout(timer);
+      reject(err);
+    });
+  });
+}
+
+// FETCH: network-first CON TIMEOUT para el HTML; cache-first para el resto.
 self.addEventListener('fetch', function(e) {
   var url = e.request.url;
 
-  // Para el HTML siempre intentar red primero
+  // Para el HTML: intentar red (máx NET_TIMEOUT), si no, servir del caché.
   if (url.indexOf('/tracequeso/index.html') >= 0 || url.endsWith('/tracequeso/') || url.endsWith('/tracequeso')) {
     e.respondWith(
-      fetch(e.request).then(function(resp) {
+      fetchConTimeout(e.request).then(function(resp) {
         // Guardar copia en caché para uso offline
         var copy = resp.clone();
         caches.open(CACHE).then(function(cache) {
@@ -45,8 +71,11 @@ self.addEventListener('fetch', function(e) {
         });
         return resp;
       }).catch(function() {
-        // Sin red, servir del caché
-        return caches.match(e.request);
+        // Sin red o red demasiado lenta: servir la copia guardada.
+        // Si por lo que sea no hay copia exacta, probar la raíz de la app.
+        return caches.match(e.request).then(function(r) {
+          return r || caches.match('/tracequeso/index.html') || caches.match('/tracequeso/');
+        });
       })
     );
     return;
