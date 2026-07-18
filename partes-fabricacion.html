@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.288</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.289</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1674,9 +1674,12 @@ function cargarFormularioEnPanel(p){
   setTimeout(function(){
     rellenarCampos(p);
     installAutoSave(p.id);
-    // Desactivar bandera DESPUÉS de que todos los setTimeout internos
-    // de rellenarCampos hayan tenido tiempo de ejecutarse (variedad usa 80ms)
-    setTimeout(function(){ window._cargandoForm = false; }, 400);
+    // Desactivar bandera DESPUÉS de que todos los setTimeout internos de
+    // rellenarCampos hayan terminado. La variedad se pone con reintentos que
+    // pueden llegar a ~1s (hasta 20×50ms) cuando el dropdown tarda en generarse;
+    // 400ms se quedaba corto y dejaba una ventana en la que un autoSave pisaba
+    // el tipo/variedad. 1200ms cubre el peor caso con holgura.
+    setTimeout(function(){ window._cargandoForm = false; }, 1200);
   }, 50);
 }
 
@@ -1954,8 +1957,15 @@ function autoGuardarParte(parteId){
   function gn(id){return parseFloat(String(g(id)).replace(',','.'))||0;}
   function gi(id){return parseInt(g(id))||0;}
 
-  p.tipo = document.getElementById('np-tipo-sel') ? document.getElementById('np-tipo-sel').value : p.tipo;
-  p.variedad = document.getElementById('np-var-sel') ? document.getElementById('np-var-sel').value : p.variedad;
+  // Tipo y variedad: SOLO sobrescribir si el DOM tiene un valor NO vacío.
+  // Durante la carga de una cuba, el desplegable de variedad se regenera de
+  // forma asíncrona y hay un instante en que está vacío; sin esta guarda, un
+  // autoSave en ese momento pisaba p.tipo/p.variedad con '' y obligaba a volver
+  // a teclearlos. Si el DOM está vacío, se conserva el valor ya guardado.
+  var _tDom = document.getElementById('np-tipo-sel') ? document.getElementById('np-tipo-sel').value : '';
+  var _vDom = document.getElementById('np-var-sel')  ? document.getElementById('np-var-sel').value  : '';
+  if (_tDom) p.tipo = _tDom;
+  if (_vDom) p.variedad = _vDom;
   p.litros = gn('np-litros');
   p.lvaca = gn('np-lvaca'); p.lcabra = gn('np-lcabra'); p.loveja = gn('np-loveja');
   p.ph = g('np-ph'); p.temp = g('np-temp'); p.dornic_leche = g('np-dornic');
