@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.293</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.294</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4123,14 +4123,21 @@ function cargarGraficaPasteurizacion(fecha){
       lista.forEach(function(g){
         var etiqueta='Ver gráfica de pasteurización';
         if(g.sufijo){ etiqueta='Ver gráfica de pasteurización ('+g.sufijo+')'; }
+        var _icono='<span style="display:inline-flex;align-items:center;justify-content:center;'
+            + 'width:34px;height:26px;background:#fff;border-radius:5px;flex:0 0 auto;'
+            + 'box-shadow:0 1px 2px rgba(0,0,0,0.2)">'
+            + '<svg width="26" height="18" viewBox="0 0 26 18" xmlns="http://www.w3.org/2000/svg">'
+            + '<polyline points="2,15 8,9 13,12 24,2" fill="none" stroke="#c0392b" '
+            + 'stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'
+            + '<polygon points="24,2 24,7 19,2" fill="#c0392b"/>'
+            + '</svg></span>';
         html+='<a href="'+g.url+'" target="_blank" rel="noopener" '
-            + 'style="display:flex;align-items:center;justify-content:center;gap:9px;'
+            + 'style="display:flex;align-items:center;justify-content:center;gap:10px;'
             + 'text-decoration:none;'
-            + 'background:#0f766e;color:#fff;font-weight:800;font-size:0.88rem;'
-            + 'border:1.5px solid #0b5c55;border-radius:9px;padding:6px 12px;margin-bottom:7px;'
-            + 'box-shadow:0 1px 4px rgba(15,118,110,0.28)">'
-            + '<span style="font-size:1.9rem;line-height:0.8;color:#e23b3b;'
-            + 'text-shadow:0 0 1px rgba(0,0,0,0.25)">📈</span>'
+            + 'background:var(--brand);color:#fff;font-weight:800;font-size:0.88rem;'
+            + 'border-radius:9px;padding:7px 12px;margin-bottom:7px;'
+            + 'box-shadow:0 1px 4px rgba(0,0,0,0.18)">'
+            + _icono
             + '<span>'+etiqueta+'</span></a>';
       });
       cont.innerHTML=html;
