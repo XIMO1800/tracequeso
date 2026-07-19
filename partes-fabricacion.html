@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.290</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.291</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1265,8 +1265,8 @@ input[type="email"] {
     <button onclick="cambiarDiaFiltro(1)" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:1rem;cursor:pointer;flex-shrink:0">›</button>
     <input type="hidden" id="filtro-fecha">
   </div>
-  <div id="grafica-pasteur-cont" style="margin-bottom:12px"></div>
   <div class="card" id="lista-partes"></div>
+  <div id="grafica-pasteur-cont" style="margin-top:14px"></div>
 </div>
 
 <div id="screen-recetas" class="screen">
@@ -4121,12 +4121,16 @@ function cargarGraficaPasteurizacion(fecha){
       if(!lista.length){ cont.innerHTML=''; return; }
       var html='';
       lista.forEach(function(g){
-        var etiqueta='📈 Ver gráfica de pasteurización';
-        if(g.sufijo){ etiqueta='📈 Ver gráfica de pasteurización ('+g.sufijo+')'; }
+        var etiqueta='Ver gráfica de pasteurización';
+        if(g.sufijo){ etiqueta='Ver gráfica de pasteurización ('+g.sufijo+')'; }
         html+='<a href="'+g.url+'" target="_blank" rel="noopener" '
-            + 'style="display:block;text-align:center;text-decoration:none;'
-            + 'background:var(--brand);color:#fff;font-weight:700;font-size:0.9rem;'
-            + 'border-radius:10px;padding:11px;margin-bottom:6px">'+etiqueta+'</a>';
+            + 'style="display:flex;align-items:center;justify-content:center;gap:10px;'
+            + 'text-decoration:none;'
+            + 'background:#0f766e;color:#fff;font-weight:800;font-size:1rem;'
+            + 'border:2px solid #0b5c55;border-radius:12px;padding:15px 12px;margin-bottom:8px;'
+            + 'box-shadow:0 2px 6px rgba(15,118,110,0.35)">'
+            + '<span style="font-size:1.5rem;line-height:1">📈</span>'
+            + '<span>'+etiqueta+'</span></a>';
       });
       cont.innerHTML=html;
     })
