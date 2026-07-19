@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.292</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.293</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4124,12 +4124,12 @@ function cargarGraficaPasteurizacion(fecha){
         var etiqueta='Ver gráfica de pasteurización';
         if(g.sufijo){ etiqueta='Ver gráfica de pasteurización ('+g.sufijo+')'; }
         html+='<a href="'+g.url+'" target="_blank" rel="noopener" '
-            + 'style="display:flex;align-items:center;justify-content:center;gap:10px;'
+            + 'style="display:flex;align-items:center;justify-content:center;gap:9px;'
             + 'text-decoration:none;'
-            + 'background:#0f766e;color:#fff;font-weight:800;font-size:0.9rem;'
-            + 'border:1.5px solid #0b5c55;border-radius:9px;padding:9px 12px;margin-bottom:7px;'
+            + 'background:#0f766e;color:#fff;font-weight:800;font-size:0.88rem;'
+            + 'border:1.5px solid #0b5c55;border-radius:9px;padding:6px 12px;margin-bottom:7px;'
             + 'box-shadow:0 1px 4px rgba(15,118,110,0.28)">'
-            + '<span style="font-size:1.9rem;line-height:1;color:#e23b3b;'
+            + '<span style="font-size:1.9rem;line-height:0.8;color:#e23b3b;'
             + 'text-shadow:0 0 1px rgba(0,0,0,0.25)">📈</span>'
             + '<span>'+etiqueta+'</span></a>';
       });
