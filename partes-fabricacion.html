@@ -38,7 +38,7 @@ body{font-family:Georgia,'Times New Roman',serif;background:var(--bg);color:var(
 .nav-tabs{display:flex;background:var(--card);border-bottom:2px solid var(--border);overflow-x:auto;position:sticky;top:62px;z-index:150;scrollbar-width:none}
 .nav-tabs::-webkit-scrollbar{display:none}
 
-.nav-tab{padding:12px 14px;font-size:0.78rem;font-weight:700;color:var(--text2);cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-2px;letter-spacing:0.03em;text-transform:uppercase;touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0.1);user-select:none;position:relative;z-index:151}
+.nav-tab{padding:12px 14px;font-size:0.78rem;font-weight:700;color:var(--text2);cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-2px;letter-spacing:0.03em;text-transform:uppercase;touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0.1);user-select:none;position:relative;z-index:151;display:flex;align-items:center;gap:4px;line-height:1}
 .nav-tab.active{color:var(--green);border-bottom-color:var(--green)}
 .screen{display:none;padding:16px}
 .card{background:var(--card);border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px}
@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.291</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.292</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4126,10 +4126,11 @@ function cargarGraficaPasteurizacion(fecha){
         html+='<a href="'+g.url+'" target="_blank" rel="noopener" '
             + 'style="display:flex;align-items:center;justify-content:center;gap:10px;'
             + 'text-decoration:none;'
-            + 'background:#0f766e;color:#fff;font-weight:800;font-size:1rem;'
-            + 'border:2px solid #0b5c55;border-radius:12px;padding:15px 12px;margin-bottom:8px;'
-            + 'box-shadow:0 2px 6px rgba(15,118,110,0.35)">'
-            + '<span style="font-size:1.5rem;line-height:1">📈</span>'
+            + 'background:#0f766e;color:#fff;font-weight:800;font-size:0.9rem;'
+            + 'border:1.5px solid #0b5c55;border-radius:9px;padding:9px 12px;margin-bottom:7px;'
+            + 'box-shadow:0 1px 4px rgba(15,118,110,0.28)">'
+            + '<span style="font-size:1.9rem;line-height:1;color:#e23b3b;'
+            + 'text-shadow:0 0 1px rgba(0,0,0,0.25)">📈</span>'
             + '<span>'+etiqueta+'</span></a>';
       });
       cont.innerHTML=html;
