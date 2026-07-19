@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.289</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.290</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1265,6 +1265,7 @@ input[type="email"] {
     <button onclick="cambiarDiaFiltro(1)" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:1rem;cursor:pointer;flex-shrink:0">›</button>
     <input type="hidden" id="filtro-fecha">
   </div>
+  <div id="grafica-pasteur-cont" style="margin-bottom:12px"></div>
   <div class="card" id="lista-partes"></div>
 </div>
 
@@ -2706,7 +2707,7 @@ function switchTab(tab){
   if(badge) badge.style.display = (tab==='hoy' && CUBA_ACTIVA_ID) ? 'block' : 'none';
   // Refrescar contenido según pantalla
   if(tab==='hoy'){ try{ renderPestanasCubas(); }catch(e){} }
-  if(tab==='historial'){ try{ renderPartes(); }catch(e){} try{ cargarPartesSheets(_filtroFecha); }catch(e){} }
+  if(tab==='historial'){ try{ renderPartes(); }catch(e){} try{ cargarPartesSheets(_filtroFecha); }catch(e){} try{ cargarGraficaPasteurizacion(_filtroFecha); }catch(e){} }
 }
 
 function toggleSec(id){var b=document.getElementById('body-'+id);var c=document.getElementById('chev-'+id);if(b)b.classList.toggle('open');if(c)c.classList.toggle('open');}
@@ -4095,6 +4096,41 @@ function cambiarDiaFiltro(delta){
   document.getElementById('filtro-fecha-display').textContent=p[2]+'/'+p[1]+'/'+p[0].slice(2);
   renderPartes();
   try{ cargarPartesSheets(_filtroFecha); }catch(e){}
+  try{ cargarGraficaPasteurizacion(_filtroFecha); }catch(e){}
+}
+
+// ── GRÁFICA DE PASTEURIZACIÓN DEL DÍA (PDF en Drive) ──
+// Solo Calidad/Admin la ven. Consulta el backend por la fecha; si hay PDF(s),
+// pinta un botón "📈 Ver gráfica de pasteurización" que abre el PDF en una
+// pestaña nueva. Si el día tiene una segunda gráfica (sufijo B), pinta 2 botones.
+function cargarGraficaPasteurizacion(fecha){
+  var cont=document.getElementById('grafica-pasteur-cont');
+  if(!cont) return;
+  // Solo Calidad o Admin
+  var esCalAdm = _rolContiene(ROL_ACTUAL,'CALIDAD') || _rolContiene(ROL_ACTUAL,'ADMIN');
+  if(!esCalAdm){ cont.innerHTML=''; return; }
+  if(!fecha){ cont.innerHTML=''; return; }
+  cont.innerHTML='<div style="font-size:0.8rem;color:var(--text3);padding:4px 2px">Buscando gráfica de pasteurización…</div>';
+  fetch(API_URL+'?tipo=grafica&fecha='+encodeURIComponent(fecha))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      // Evitar pintar resultados de una fecha anterior si el usuario ya cambió de día
+      if(fecha!==_filtroFecha) return;
+      var lista=(d && d.data) ? d.data : [];
+      lista=lista.filter(function(x){ return x && x.url; });
+      if(!lista.length){ cont.innerHTML=''; return; }
+      var html='';
+      lista.forEach(function(g){
+        var etiqueta='📈 Ver gráfica de pasteurización';
+        if(g.sufijo){ etiqueta='📈 Ver gráfica de pasteurización ('+g.sufijo+')'; }
+        html+='<a href="'+g.url+'" target="_blank" rel="noopener" '
+            + 'style="display:block;text-align:center;text-decoration:none;'
+            + 'background:var(--brand);color:#fff;font-weight:700;font-size:0.9rem;'
+            + 'border-radius:10px;padding:11px;margin-bottom:6px">'+etiqueta+'</a>';
+      });
+      cont.innerHTML=html;
+    })
+    .catch(function(){ cont.innerHTML=''; });
 }
 
 var _filtroFecha=new Date().toISOString().slice(0,10);
