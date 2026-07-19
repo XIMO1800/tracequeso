@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.294</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.295</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1905,6 +1905,48 @@ function rellenarCampos(p){
   }
   // Aplicar bloqueo visual de las fases del quesero (solo afecta a operarios de sala)
   aplicarBloqueoQuesero(p);
+  // Pre-rellenar horas/temperaturas desde el SCADA (solo campos vacíos, nunca pisa)
+  try{ rellenarDesdeSCADA(p); }catch(e){}
+}
+
+// ── PRE-RELLENO DESDE EL SCADA (Excel/Sheet en Drive) ──
+// Pide al backend los datos de esta cuba+fecha y rellena SOLO los campos que
+// están vacíos. NUNCA pisa lo que el quesero ya ha escrito. Solo lectura.
+function rellenarDesdeSCADA(p){
+  if(!p || !p.fecha) return;
+  // La cuba física es la que se corresponde con el SCADA (1,2,3...). Si no hay,
+  // usar el número de pestaña/cuba lógica.
+  var cuba = String(p.cuba_fisica || p.cuba || '').trim();
+  // Extraer solo el número de cuba (ej. "CUBA 1" -> "1", "1" -> "1")
+  var mCuba = cuba.match(/(\d+)/);
+  if(mCuba) cuba = mCuba[1];
+  if(!cuba) return;
+  var fecha = p.fecha; // formato YYYY-MM-DD
+  fetch(API_URL+'?tipo=scada&fecha='+encodeURIComponent(fecha)+'&cuba='+encodeURIComponent(cuba))
+    .then(function(r){ return r.json(); })
+    .then(function(resp){
+      var d = resp && resp.data;
+      if(!d || d.error) return;   // sin datos o error: no hacer nada
+      // Rellenar SOLO si el campo está vacío (no pisar lo escrito por el quesero)
+      function set(id, val){
+        if(val===undefined || val===null || String(val).trim()==='') return;
+        var el = document.getElementById(id);
+        if(!el) return;
+        if(String(el.value).trim() !== '') return;  // ya tiene dato: respetar
+        el.value = val;
+        // Disparar eventos para que se recalculen totales y se autoguarde
+        try{ el.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){}
+        try{ el.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){}
+      }
+      set('aux-hadicion', d.hora_aux);   set('aux-temp', d.temp_aux);
+      set('ferm-hadicion', d.hora_ferm); set('ferm-temp', d.temp_ferm);
+      set('coag-hadicion', d.hora_cuajado); set('coag-temp', d.temp_cuajado);
+      set('rec-hi', d.hora_ini_recal); set('rec-ti', d.temp_ini_recal);
+      set('rec-hf', d.hora_fin_recal); set('rec-tf', d.temp_fin_recal);
+      set('mol-hi', d.hora_ini_moldeo); set('mol-temp', d.temp_ini_moldeo);
+      set('mol-hf', d.hora_fin_moldeo);
+    })
+    .catch(function(){ /* silencioso: si falla, no molesta al quesero */ });
 }
 
 function installAutoSave(parteId){
