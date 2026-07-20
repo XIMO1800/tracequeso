@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.296</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.297</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1907,11 +1907,38 @@ function rellenarCampos(p){
   aplicarBloqueoQuesero(p);
   // Pre-rellenar horas/temperaturas desde el SCADA (solo campos vacíos, nunca pisa)
   try{ rellenarDesdeSCADA(p); }catch(e){}
+  // Arrancar refresco automático cada 30 s mientras la cuba esté abierta
+  try{ arrancarRefrescoSCADA(p); }catch(e){}
 }
 
 // ── PRE-RELLENO DESDE EL SCADA (Excel/Sheet en Drive) ──
 // Pide al backend los datos de esta cuba+fecha y rellena SOLO los campos que
 // están vacíos. NUNCA pisa lo que el quesero ya ha escrito. Solo lectura.
+// ── REFRESCO AUTOMÁTICO DEL SCADA ──
+// Mientras una cuba está abierta, consulta el Sheet cada 30 s y rellena los
+// campos vacíos según van llegando datos. Se para al cambiar/cerrar la cuba.
+var _scadaTimer = null;
+var _scadaParteId = null;
+function pararRefrescoSCADA(){
+  if(_scadaTimer){ clearInterval(_scadaTimer); _scadaTimer = null; }
+  _scadaParteId = null;
+}
+function arrancarRefrescoSCADA(p){
+  pararRefrescoSCADA();          // limpiar cualquier temporizador anterior
+  if(!p || !p.id) return;
+  _scadaParteId = p.id;
+  _scadaTimer = setInterval(function(){
+    // Si ya no es la cuba activa, parar
+    if(!CUBA_ACTIVA_ID || CUBA_ACTIVA_ID !== _scadaParteId){ pararRefrescoSCADA(); return; }
+    var pAct = (typeof PARTES!=='undefined') ? PARTES.find(function(x){return x.id===_scadaParteId;}) : null;
+    if(!pAct){ pararRefrescoSCADA(); return; }
+    // Actualizar cuba física desde el desplegable por si cambió
+    var selEl = document.getElementById('np-cuba-fisica');
+    if(selEl) pAct.cuba_fisica = selEl.value;
+    try{ rellenarDesdeSCADA(pAct); }catch(e){}
+  }, 30000);   // cada 30 segundos
+}
+
 function rellenarDesdeSCADA(p){
   if(!p || !p.fecha) return;
   // IMPORTANTE: emparejar SOLO por CUBA FÍSICA (1,2,3), que es la que se
