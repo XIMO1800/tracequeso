@@ -1,6 +1,6 @@
 // Service Worker para TraceQueso
 // Versión: cambiar CACHE en cada nueva versión del HTML
-const CACHE = 'tracequeso-v126';
+const CACHE = 'tracequeso-v127';
 
 // Recursos que forman el "núcleo" de la app. Se cachean en la instalación para
 // que la app arranque SIEMPRE desde el móvil, sin depender de internet.
