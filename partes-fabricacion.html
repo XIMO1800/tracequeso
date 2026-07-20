@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.295</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.296</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1914,15 +1914,18 @@ function rellenarCampos(p){
 // están vacíos. NUNCA pisa lo que el quesero ya ha escrito. Solo lectura.
 function rellenarDesdeSCADA(p){
   if(!p || !p.fecha) return;
-  // La cuba física es la que se corresponde con el SCADA (1,2,3...). Si no hay,
-  // usar el número de pestaña/cuba lógica.
-  var cuba = String(p.cuba_fisica || p.cuba || '').trim();
-  // Extraer solo el número de cuba (ej. "CUBA 1" -> "1", "1" -> "1")
-  var mCuba = cuba.match(/(\d+)/);
-  if(mCuba) cuba = mCuba[1];
-  if(!cuba) return;
+  // IMPORTANTE: emparejar SOLO por CUBA FÍSICA (1,2,3), que es la que se
+  // corresponde con el SCADA. NUNCA usar p.cuba (orden cronológico de creación),
+  // porque provocaría coger datos de otra cuba física distinta.
+  var cubaFis = String(p.cuba_fisica || '').trim();
+  // Si el formulario ya está montado, leer el desplegable actual (más fiable)
+  var selEl = document.getElementById('np-cuba-fisica');
+  if(selEl && String(selEl.value).trim() !== '') cubaFis = String(selEl.value).trim();
+  var mCuba = cubaFis.match(/(\d+)/);
+  cubaFis = mCuba ? mCuba[1] : '';
+  if(!cubaFis) return;   // sin cuba física elegida: NO buscar nada (evita emparejar mal)
   var fecha = p.fecha; // formato YYYY-MM-DD
-  fetch(API_URL+'?tipo=scada&fecha='+encodeURIComponent(fecha)+'&cuba='+encodeURIComponent(cuba))
+  fetch(API_URL+'?tipo=scada&fecha='+encodeURIComponent(fecha)+'&cuba='+encodeURIComponent(cubaFis))
     .then(function(r){ return r.json(); })
     .then(function(resp){
       var d = resp && resp.data;
@@ -2848,6 +2851,18 @@ function comprobarCapacidadCuba(){
 // Al elegir cuba en el desplegable
 function onCubaChange(){
   try{ comprobarCapacidadCuba(); }catch(e){}
+  // Al elegir/cambiar la cuba física, pedir los datos del SCADA de esa cuba
+  // (antes no había cuba física al crear el parte). Emparejamiento correcto.
+  try{
+    var pAct = (typeof PARTES!=='undefined' && CUBA_ACTIVA_ID)
+      ? PARTES.find(function(x){return x.id===CUBA_ACTIVA_ID;}) : null;
+    if(pAct){
+      // Actualizar la cuba física en el objeto antes de pedir datos
+      var selEl = document.getElementById('np-cuba-fisica');
+      if(selEl) pAct.cuba_fisica = selEl.value;
+      rellenarDesdeSCADA(pAct);
+    }
+  }catch(e){}
 }
 
 // ── Aviso de pH fuera de rango (no bloquea, solo avisa) ──
