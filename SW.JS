@@ -1,6 +1,6 @@
 // Service Worker para TraceQueso
 // Versión: cambiar CACHE en cada nueva versión del HTML
-const CACHE = 'tracequeso-v125';
+const CACHE = 'tracequeso-v126';
 
 // Recursos que forman el "núcleo" de la app. Se cachean en la instalación para
 // que la app arranque SIEMPRE desde el móvil, sin depender de internet.
@@ -114,4 +114,21 @@ self.addEventListener('fetch', function(e) {
       return r || fetch(e.request);
     })
   );
+});
+
+// ── Background Sync: cuando Android dispara el evento 'sync' (aunque la app
+// este en segundo plano), avisamos a las pestañas abiertas para que intenten
+// enviar la libreta. Nota: el envio real lo hace la pagina (tiene acceso a
+// localStorage); el SW solo la "despierta". Donde el movil no soporte esto, los
+// otros metodos (visibilitychange, focus, intervalo) siguen funcionando.
+self.addEventListener('sync', function(event) {
+  if (event.tag === 'sync-libreta') {
+    event.waitUntil(
+      self.clients.matchAll({ includeUncontrolled: true }).then(function(clients) {
+        clients.forEach(function(client) {
+          client.postMessage({ tipo: 'sincronizar-libreta' });
+        });
+      })
+    );
+  }
 });
