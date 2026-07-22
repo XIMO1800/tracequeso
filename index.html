@@ -8910,7 +8910,9 @@ function renderMatStock(){
       var a=arts[n];
       a.uniPresentacion=matUnidadPresentacion(a.lotes);
       a.totalUnificado=matDesdeBase(a.totalBase, a.uniPresentacion); // total ya convertido a kg/L/uds
-      a.bajoMinimo = (a.minimoArt>0 && a.totalStock<=a.minimoArt);
+      // El mínimo se define y se muestra en la MISMA unidad que el total (kg/L/uds).
+      // La comparación se hace en esa unidad, no mezclando g con kg.
+      a.bajoMinimo = (a.minimoArt>0 && a.totalUnificado<=a.minimoArt);
       if(a.bajoMinimo) a.totalAlerta=1;   // para que el resto del código que mira totalAlerta siga funcionando
     });
 
@@ -8977,13 +8979,12 @@ function renderMatStock(){
   var _minArt=0;
   lotesArt.forEach(function(x){var m=parseFloat(x.alertaMinimo||0)||0; if(m>_minArt)_minArt=m;});
   var _bajoMin=(_minArt>0 && _totalActivo<=_minArt);
-  var _uniArt=_uniPres;
-  var _claveArt=encodeURIComponent(MAT_CAT_SEL+'||'+MAT_ART_SEL);
+  var _uniArt=_uniPres;  var _claveArt=encodeURIComponent(MAT_CAT_SEL+'||'+MAT_ART_SEL);
   html+='<div style="margin:0 14px 12px;border:1.5px solid '+(_bajoMin?'var(--red)':'var(--accent)')+';border-radius:12px;overflow:hidden;box-shadow:var(--shadow);">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:'+(_bajoMin?'rgba(220,38,38,0.06)':'var(--bg2)')+';">'+
       '<div>'+
         '<div style="font-size:0.62rem;color:var(--text3);text-transform:uppercase;font-family:Inconsolata,monospace;font-weight:700;">Mínimo</div>'+
-        '<div style="font-family:Karla,sans-serif;font-weight:800;font-size:1.15rem;color:var(--text);">'+(_minArt>0?_minArt:'—')+'</div>'+
+        '<div style="font-family:Karla,sans-serif;font-weight:800;font-size:1.15rem;color:var(--text);">'+(_minArt>0?(_minArt+' <span style="font-size:0.7rem;color:var(--text3);font-weight:600;">'+_uniArt+'</span>'):'—')+'</div>'+
       '</div>'+
       '<div style="text-align:right;">'+
         '<div style="font-size:0.62rem;color:var(--accent);text-transform:uppercase;font-family:Inconsolata,monospace;font-weight:700;letter-spacing:0.3px;">Stock total activo</div>'+
@@ -9078,9 +9079,13 @@ function gestionarMinimoArticulo(claveArt){
   var actual=0;
   lotesArt.forEach(function(s){var m=gMin(s); if(m>actual)actual=m;});
 
-  var nuevo=prompt('Stock mínimo para '+art+'\n\n(Cuando la suma de lotes activos baje de este número, saltará el aviso.)\n\nMínimo actual: '+actual,actual);
+  // Unidad en la que se debe expresar el mínimo (la misma del stock total: kg/L/uds)
+  var _lotesUni=lotesArt.map(function(s){return {unidad:(s.unidad||s.UNIDAD||'')};});
+  var _uniMin=matUnidadPresentacion(_lotesUni);
+
+  var nuevo=prompt('Stock mínimo para '+art+' (en '+_uniMin+')\n\n(Cuando la suma de lotes activos baje de este número, saltará el aviso.)\n\nMínimo actual: '+actual+' '+_uniMin,actual);
   if(nuevo===null)return;
-  var n=parseInt(nuevo)||0;
+  var n=parseFloat(nuevo)||0;
 
   // Aplicar a TODOS los lotes del artículo (para que quede consistente) y avisar al backend
   lotesArt.forEach(function(s){
