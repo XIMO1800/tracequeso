@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.298</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.299</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2066,15 +2066,37 @@ function autoGuardarParte(parteId){
   p.moldeo = {hi:g('mol-hi'), hf:g('mol-hf'), ph:g('mol-ph'), temp:g('mol-temp')};
   // ── Bloqueo de las fases del quesero ──
   // Cuando el MOLDEO está completo (hora inicio + pH + Tª + HORA FIN), las fases del
-  // quesero quedan protegidas. La hora fin es el último dato del quesero: en cuanto la
-  // mete, se bloquea todo lo suyo AL INSTANTE (azul + candado), sin esperar a cambiar de
-  // cuba. Para reeditar hace falta el PIN (dueño / Calidad / Admin).
-  if(!p.bloqueado_quesero && p.moldeo.hi && p.moldeo.ph && p.moldeo.temp && p.moldeo.hf){
-    p.bloqueado_quesero = true;
-    p.bloqueado_quesero_por = p.operario || OPERARIO_ACTUAL || '';
-    p.bloqueado_quesero_ts = _ahoraSelloMadrid();
-    // Repintar YA para que se ponga en azul en el momento (si es la cuba visible).
-    if(CUBA_ACTIVA_ID === p.id){ setTimeout(function(){ try{ aplicarBloqueoQuesero(p); }catch(e){} }, 100); }
+  // quesero quedan protegidas. La hora fin es el último dato del quesero.
+  // IMPORTANTE: el bloqueo NO salta al instante, sino que:
+  //   1) Solo si la HORA FIN es una hora VÁLIDA y COMPLETA (HH:MM) — "12" a secas
+  //      no cuenta, hay que tener "12:07". Así no bloquea a medio teclear.
+  //   2) Con un margen de gracia de ~4 segundos: si el quesero sigue editando la
+  //      hora, se cancela el bloqueo pendiente y se reprograma. Esto evita que se
+  //      bloquee mientras aún está escribiendo el minuto.
+  var _horaFinCompleta = /^([01]?\d|2[0-3]):[0-5]\d$/.test(String(p.moldeo.hf||'').trim());
+  if(!p.bloqueado_quesero && p.moldeo.hi && p.moldeo.ph && p.moldeo.temp && _horaFinCompleta){
+    // Cancelar cualquier bloqueo pendiente anterior (el quesero sigue tecleando)
+    if(window._timerBloqueoQuesero){ clearTimeout(window._timerBloqueoQuesero); }
+    var _idParteBloq = p.id;
+    window._timerBloqueoQuesero = setTimeout(function(){
+      try{
+        // Releer el parte actual por si cambió algo en estos segundos
+        var pAct = (typeof PARTES!=='undefined') ? PARTES.find(function(x){return x.id===_idParteBloq;}) : p;
+        if(!pAct) pAct = p;
+        // Confirmar que la hora fin sigue siendo válida y no se ha desbloqueado ya
+        var hfOk = /^([01]?\d|2[0-3]):[0-5]\d$/.test(String(pAct.moldeo && pAct.moldeo.hf ? pAct.moldeo.hf : '').trim());
+        if(pAct.bloqueado_quesero || !hfOk) return;
+        pAct.bloqueado_quesero = true;
+        pAct.bloqueado_quesero_por = pAct.operario || OPERARIO_ACTUAL || '';
+        pAct.bloqueado_quesero_ts = _ahoraSelloMadrid();
+        try{ persistir(); }catch(e){}
+        if(CUBA_ACTIVA_ID === pAct.id){ try{ aplicarBloqueoQuesero(pAct); }catch(e){} }
+      }catch(e){}
+    }, 4000);
+  } else if(!_horaFinCompleta && window._timerBloqueoQuesero){
+    // Si la hora fin deja de estar completa (la está editando), cancelar el bloqueo pendiente
+    clearTimeout(window._timerBloqueoQuesero);
+    window._timerBloqueoQuesero = null;
   }
   p.prensados = (typeof recogerPrensados === 'function') ? recogerPrensados() : [];
   p.desmoldeos = (typeof recogerDesmoldeos === 'function') ? recogerDesmoldeos() : [];
