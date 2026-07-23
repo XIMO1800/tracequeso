@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.300</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.301</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1297,7 +1297,7 @@ input[type="email"] {
 var TIPOS_VARIEDADES = {
   'D.O. PAST.':   [],          // Sin variedad
   'D.O. CRUDA':   [],          // Sin variedad
-  'MEZCLA':       ['TIERNO','SEMICURADO','BAJO EN SAL','ACEITE','TOSTADO','BOUQUET','NEGRO','PRUEBA'],
+  'MEZCLA':       ['TIERNO','SEMICURADO','BAJO EN SAL','ACEITE','TOSTADO','BOUQUET','NEGRO','PRUEBA','GRANA','BARRA'],
   'OVEJA':        ['(ESTÁNDAR)','TIERNO'],
   'CABRA':        ['(ESTÁNDAR)','TIERNO']
 };
@@ -3220,7 +3220,16 @@ function cargarVariedadesCustom(){
     var s = localStorage.getItem('tq_partes_variedades');
     if(s){
       var d = JSON.parse(s);
-      Object.keys(d).forEach(function(k){ TIPOS_VARIEDADES[k] = d[k]; });
+      // FUSIONAR (no reemplazar): las variedades guardadas se suman a las del código.
+      // Antes se hacía TIPOS_VARIEDADES[k] = d[k], lo que PISABA la lista del código
+      // y hacía desaparecer variedades nuevas añadidas en la app (ej. BARRA).
+      Object.keys(d).forEach(function(k){
+        var base = TIPOS_VARIEDADES[k] || [];
+        var guard = d[k] || [];
+        var union = base.slice();
+        guard.forEach(function(v){ if(union.indexOf(v) === -1) union.push(v); });
+        TIPOS_VARIEDADES[k] = union;
+      });
     }
   }catch(e){}
 }
