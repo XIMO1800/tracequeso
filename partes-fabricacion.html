@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.303</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.304</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4882,36 +4882,38 @@ function _svgGraficaEvolucion(p){
   }
 
   // Texto identificativo de la cuba para la cabecera.
-  // Formato: "1ª Cuba · <Tipo · Variedad> (<litros> L) · Cuba <física>"
-  //   - Ordinal = orden de colada del día (p.cuba): 1→1ª, 2→2ª, ...
+  // Formato: "②  ·  <Tipo · Variedad> (<litros> L)  ·  Cuba Nº <física>"
+  //   - Ordinal (orden de colada del día) dentro de un círculo, algo más grande
   //   - Litros de la cuba entre paréntesis tras el tipo/variedad
-  //   - Cuba <física> = la cuba real de la nave (p.cuba_fisica)
-  // Ej.: "1ª Cuba · D.O. PAST. (5000 L) · Cuba 2"
+  //   - Cuba Nº <física> = la cuba real de la nave
   var _idCuba = '';
   (function(){
-    function _ordinalCuba(n){
-      var x = parseInt(n,10);
-      if(x>0) return x+'ª Cuba';
-      return 'Cuba '+(n||'');
-    }
     var bloques = [];
-    if(p.cuba) bloques.push(_ordinalCuba(p.cuba));   // orden cronológico
+    var x = parseInt(p.cuba, 10);
+    if(x > 0){
+      // Ordinal dentro de un círculo
+      bloques.push('<span style="display:inline-block;min-width:1.7em;height:1.7em;line-height:1.7em;'
+        + 'border:2px solid #5a4d3f;border-radius:50%;text-align:center;font-weight:800;'
+        + 'font-size:1.18em;vertical-align:middle;">'+x+'</span>');
+    }
     var tv = [];
     if(p.tipo) tv.push(p.tipo);
     if(p.variedad) tv.push(p.variedad);
-    // Litros de la cuba entre paréntesis (si constan)
     var _lit = parseFloat(p.litros || p.litros_totales || 0) || 0;
     var tvTxt = tv.join(' · ');
     if(_lit > 0) tvTxt = (tvTxt ? tvTxt+' ' : '') + '(' + _lit + ' L)';
-    if(tvTxt) bloques.push(tvTxt);                   // tipo · variedad (litros)
-    if(p.cuba_fisica) bloques.push('Cuba '+p.cuba_fisica);  // cuba física
+    if(tvTxt) bloques.push(tvTxt);                          // tipo · variedad (litros)
+    if(p.cuba_fisica) bloques.push('Cuba Nº '+p.cuba_fisica); // cuba física
     _idCuba = bloques.join('  ·  ');
   })();
 
   return '<div id="ep-graf-box" style="background:#fff;border:1px solid #e3ddd2;border-radius:10px;padding:14px">'
-    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
-    + (_idCuba ? '<div style="color:#5a4d3f;font-weight:800;font-size:1rem;">'+_idCuba+'</div>' : '<div></div>')
+    + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px">'
+    + '<div style="flex:1 1 0;min-width:0"></div>'
+    + (_idCuba ? '<div style="flex:0 1 auto;text-align:center;color:#5a4d3f;font-weight:800;font-size:1rem;">'+_idCuba+'</div>' : '<div></div>')
+    + '<div style="flex:1 1 0;min-width:0;display:flex;justify-content:flex-end">'
     + '<button type="button" onclick="pantallaCompletaGrafica()" style="background:#6b5d4f;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap">⛶ Pantalla completa</button>'
+    + '</div>'
     + '</div>'
     + '<div id="ep-graf-svgwrap" style="overflow:auto">' + svg + '</div>'
     + '<div style="display:flex;gap:6px;margin-top:6px"><button type="button" onclick="zoomGrafica(1.25)" style="background:#eee;border:1px solid #ccc;border-radius:6px;padding:4px 12px;font-size:1rem;font-weight:700;cursor:pointer">＋</button>'
