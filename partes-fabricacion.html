@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.304</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.306</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1012,6 +1012,15 @@ input[type="email"] {
           <input type="number" id="aux-temp" step="0.1" inputmode="decimal">
         </div>
       </div>
+      <!-- Resto auxiliares de la receta (CaCl2 fijo, lo demás de receta) -->
+      <div id="aux-container"></div>
+
+      <!-- Otros auxiliares opcionales (lisozima, sales antibutíricas, aceitunas...) -->
+      <div id="otros-aux-block" class="opt-aux-block" style="margin-top:6px">
+        <div id="otros-aux-container"></div>
+        <button type="button" class="btn-add-aux-mini" onclick="anadirOtroAuxiliar()">➕ Añadir auxiliar</button>
+      </div>
+
       <!-- CO2 con check on/off (marcado por defecto), FUERA de la tarjeta -->
       <label class="aux-check-mini">
         <input type="checkbox" id="co2-aplicado" checked onchange="toggleCO2Aplicado()">
@@ -1042,15 +1051,6 @@ input[type="email"] {
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Resto auxiliares de la receta (CaCl2 fijo, lo demás de receta) -->
-      <div id="aux-container"></div>
-
-      <!-- Otros auxiliares opcionales (lisozima, sales antibutíricas, aceitunas...) -->
-      <div id="otros-aux-block" class="opt-aux-block" style="margin-top:6px">
-        <div id="otros-aux-container"></div>
-        <button type="button" class="btn-add-aux-mini" onclick="anadirOtroAuxiliar()">➕ Añadir auxiliar</button>
       </div>
     </div>
   </div>
@@ -4427,6 +4427,15 @@ function _verParteRender(id){
     if(pa) h += bloque('🌡️ Pasteurización', pa);
   }
 
+  // Auxiliares
+  if(p.auxiliares && p.auxiliares.length){
+    var au='';
+    p.auxiliares.forEach(function(x){
+      au += '<div class="resumen-row"><span>'+x.nombre+'</span><b>'+(x.consumo_total||x.dosis_utilizada||'—')+' ml · lote '+(x.lote||'—')+(x.caducidad?(' · cad. '+_fechaEsp(x.caducidad)):'')+'</b></div>';
+    });
+    h += bloque('🧪 Auxiliares', au);
+  }
+
   // CO2
   if(p.co2 && p.co2.aplicado){
     var co='';
@@ -4435,15 +4444,6 @@ function _verParteRender(id){
     co += fila('Tiempo', p.co2.tiempo_seg ? p.co2.tiempo_seg+' s' : '');
     co += fila('Caudal', p.co2.caudal_lh ? p.co2.caudal_lh+' L/h' : '');
     if(co) h += bloque('🌫️ CO₂', co);
-  }
-
-  // Auxiliares
-  if(p.auxiliares && p.auxiliares.length){
-    var au='';
-    p.auxiliares.forEach(function(x){
-      au += '<div class="resumen-row"><span>'+x.nombre+'</span><b>'+(x.consumo_total||x.dosis_utilizada||'—')+' ml · lote '+(x.lote||'—')+(x.caducidad?(' · cad. '+_fechaEsp(x.caducidad)):'')+'</b></div>';
-    });
-    h += bloque('🧪 Auxiliares', au);
   }
 
   // Fermentos
@@ -5224,6 +5224,14 @@ function renderEpForm(skipRecoger){
     'ep-aux-hadicion', (p.aux_meta&&p.aux_meta.hadicion)||'',
     'ep-aux-ph', (p.co2&&p.co2.ph_leche)||'',
     'ep-aux-temp', (p.co2&&p.co2.temp_leche)||'');
+  // Resto de auxiliares
+  if(p.auxiliares.length===0){
+    h += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:6px;padding:6px 8px;background:var(--bg2);border-radius:6px">Sin otros auxiliares registrados. Pulsa para añadir si el quesero olvidó alguno.</div>';
+  }
+  p.auxiliares.forEach(function(a, i){
+    h += _epItemEditable('aux', i, a);
+  });
+
   // Fila especial CO₂ (siempre visible). Lleva ✕ para que Calidad pueda quitarlo
   // si se metió por error (p.ej. botella agotada y no se llegó a aplicar).
   h += '<div style="border-radius:8px;margin-bottom:7px;border:1px solid var(--border);overflow:hidden">';
@@ -5247,14 +5255,6 @@ function renderEpForm(skipRecoger){
      + '<div>'+_epInpC('ep-co2-lote', p.co2.lote)+'</div>'
      + '<div>'+_epInpC('ep-co2-cad', p.co2.caducidad, 'date')+'</div></div>';
   h += '</div></div>';
-
-  // Resto de auxiliares
-  if(p.auxiliares.length===0){
-    h += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:6px;padding:6px 8px;background:var(--bg2);border-radius:6px">Sin otros auxiliares registrados. Pulsa para añadir si el quesero olvidó alguno.</div>';
-  }
-  p.auxiliares.forEach(function(a, i){
-    h += _epItemEditable('aux', i, a);
-  });
 
   // ── FERMENTOS ──
   h += _epSep('🦠 Fermentos', 'fermentos', 'fermento');
