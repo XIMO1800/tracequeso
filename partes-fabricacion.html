@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.308</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.310</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1035,7 +1035,7 @@ input[type="email"] {
             </div>
             <div class="form-row">
               <label class="form-label">Tiempo (seg)</label>
-              <input type="number" id="co2-tiempo" placeholder="—" inputmode="numeric" readonly class="calc-filled">
+              <input type="number" id="co2-tiempo" placeholder="—" inputmode="numeric" class="calc-filled" oninput="onCO2TiempoManual(this)">
             </div>
             <div class="form-row">
               <label class="form-label">Proveedor</label>
@@ -1773,6 +1773,9 @@ function rellenarCampos(p){
     var _tpL = (p.co2.temp_leche===0 || p.co2.temp_leche==='0') ? '' : p.co2.temp_leche;
     v('aux-ph', _phL); v('aux-temp', _tpL);
     v('co2-caudal', p.co2.caudal_lh || 100); v('co2-tiempo', p.co2.tiempo_seg);
+    // (v2.6.310) Recuperar si el tiempo lo puso el quesero a mano, para que la
+    // fórmula no lo pise al volver a esta cuba.
+    if(parteActual) parteActual.co2_tiempo_manual = !!p.co2.tiempo_manual;
   }
   // Hora adición auxiliares (pH/Tª de aux se cargan arriba desde co2; aquí completa si faltan)
   if(p.aux_meta){ v('aux-hadicion', p.aux_meta.hadicion);
@@ -2122,6 +2125,7 @@ function autoGuardarParte(parteId){
     aplicado: co2Chk ? co2Chk.checked : true,
     ph_leche:gn('aux-ph'), temp_leche:gn('aux-temp'),
     caudal_lh:gn('co2-caudal'), tiempo_seg:gi('co2-tiempo'), ph_objetivo:6.48,
+    tiempo_manual: !!(parteActual && parteActual.co2_tiempo_manual),
     lote:      _co2Prev.lote      || _LCO2.lote      || '',
     proveedor: _co2Prev.proveedor || _LCO2.proveedor || '',
     caducidad: _co2Prev.caducidad || _LCO2.caducidad || ''
@@ -2262,6 +2266,23 @@ function _cerrarParteActivoConfirmar(id){
   }, 2500);
 }
 
+// (v2.6.310) Unidad en la que está expresado el CONSUMO de un ingrediente.
+// La dosis de la receta siempre sale en gramos o mililitros (es una dosis por
+// 1000 L). El STOCK, en cambio, puede estar dado de alta en g, kg, ml o L.
+// Esta función traduce la unidad del stock a la familia del consumo:
+//   stock en g o kg  → el consumo está en 'g'
+//   stock en ml o L  → el consumo está en 'ml'
+//   cualquier otra (dosis, sobres, ud...) → '' (no se convierte nada)
+// Es el dato que necesita el backend para saber si tiene que dividir por 1000.
+function _uniConsumoDe(unidadStock){
+  var u = String(unidadStock||'').toLowerCase().trim();
+  if(u==='g'||u==='gr'||u==='grs'||u==='gramo'||u==='gramos') return 'g';
+  if(u==='kg'||u==='kgs'||u==='kilo'||u==='kilos') return 'g';
+  if(u==='ml'||u==='cc'||u==='mililitro'||u==='mililitros') return 'ml';
+  if(u==='l'||u==='lt'||u==='litro'||u==='litros') return 'ml';
+  return '';
+}
+
 // Convierte el consumo (g/ml, porque la dosis es por 1000 L) a la unidad del
 // stock (kg/L) dividiendo por 1000. Igual que en el backend, para que el aviso
 // compare en la misma unidad que el stock.
@@ -2299,13 +2320,14 @@ function _avisoStockInsuficiente(p){
   var faltas = [];
   ings.forEach(function(ing){
     if(!ing || !ing.nombre) return;
-    var necesita = _consumoEnUnidadStockJS(ing.consumo_total, ing.unidad);
+    var _uStk = ing.unidad_stock || ing.unidad;
+    var necesita = _consumoEnUnidadStockJS(ing.consumo_total, _uStk);
     if(necesita <= 0) return;
     var disp = _stockDisponibleDe(ing.nombre, ing.lote);
     if(disp === null){
       faltas.push('• '+ing.nombre+' (lote '+(ing.lote||'—')+'): sin stock registrado');
     } else if(necesita > disp + 0.0000001){
-      var u = ing.unidad || '';
+      var u = _uStk || '';
       faltas.push('• '+ing.nombre+' (lote '+(ing.lote||'—')+'): necesita '+_fmtNum(necesita)+' '+u+', hay '+_fmtNum(disp)+' '+u);
     }
   });
@@ -2329,7 +2351,7 @@ function _capturarAuxFermCuajoEnParte(p){
   function dosisUtil(dosis_1000L, nombre){
     // La dosis utilizada se redondea SIEMPRE al alza, al múltiplo de 5 más cercano por arriba
     // (p.ej. 9500 L × 15/1000 = 142,5 → 145). Aplica a fermentos, auxiliares y cuajo.
-    // (v2.6.308) La casilla "Dosis utilizada" es un TOTAL en gramos/ml, y así se
+    // (v2.6.310) La casilla "Dosis utilizada" es un TOTAL en gramos/ml, y así se
     // muestra en pantalla. Antes aquí se volvía a multiplicar por litros/1000, con
     // lo que escribir 150 en una cuba de 5500 L guardaba 825. Se respeta el número
     // tal cual lo escribió el quesero, sin redondear.
@@ -2339,7 +2361,7 @@ function _capturarAuxFermCuajoEnParte(p){
     var d = parseFloat(dosis_1000L) || 0;
     return _redondeaAlza5(litros * d / 1000);
   }
-  // (v2.6.308) Reparto entre varios lotes: si el quesero repartió un ingrediente
+  // (v2.6.310) Reparto entre varios lotes: si el quesero repartió un ingrediente
   // entre dos lotes (porque se le acabó el primero), esa línea se convierte en
   // UNA LÍNEA POR LOTE, cada una con su lote y su cantidad real. El backend
   // descuenta línea a línea, así que cada lote pierde solo lo suyo.
@@ -2358,7 +2380,8 @@ function _capturarAuxFermCuajoEnParte(p){
       linea.lote          = x.lote      || '';
       linea.proveedor     = x.proveedor || '';
       linea.caducidad     = x.caducidad || '';
-      linea.unidad        = x.unidad    || base.unidad || '';
+      linea.unidad        = x.unidad       || base.unidad || '';
+      linea.unidad_stock  = x.unidad_stock || base.unidad_stock || '';
       out.push(linea);
     });
     return out.length ? out : [base];
@@ -2374,7 +2397,8 @@ function _capturarAuxFermCuajoEnParte(p){
       proveedor:     L.proveedor || '',
       lote:          L.lote || '',
       caducidad:     L.caducidad || '',
-      unidad:        L.unidad || ''
+      unidad:        _uniConsumoDe(L.unidad),
+      unidad_stock:  L.unidad || ''
     };
     _expandirReparto(base, a.nombre).forEach(function(x){ p.auxiliares.push(x); });
   });
@@ -2419,7 +2443,8 @@ function _capturarAuxFermCuajoEnParte(p){
       proveedor:     L.proveedor || '',
       lote:          L.lote || '',
       caducidad:     L.caducidad || '',
-      unidad:        L.unidad || ''
+      unidad:        _uniConsumoDe(L.unidad),
+      unidad_stock:  L.unidad || ''
     };
     _expandirReparto(baseF, f.nombre).forEach(function(x){ p.fermentos.push(x); });
   });
@@ -3869,6 +3894,20 @@ function calcCO2(){
   var detEl   = document.getElementById('co2-formula-detalle');
   if (!el) return;
 
+  // (v2.6.310) Si el quesero ha escrito el tiempo A MANO, la fórmula NO lo pisa.
+  // En las cubas de oveja el quesero casi nunca echa lo que dice la regla, así que
+  // el valor manual es lo normal. La fórmula se sigue mostrando como referencia.
+  var esManual = !!(parteActual && parteActual.co2_tiempo_manual);
+  if (esManual) {
+    if (detEl) {
+      var ref = (litros > 0 && phLeche > phObj) ? Math.round((phLeche - phObj) * litros * 0.3) : 0;
+      detEl.innerHTML = '✍️ <b>Tiempo puesto a mano</b>'
+        + (ref > 0 ? ' · la fórmula daría ' + ref + ' s' : '')
+        + ' <span class="co2-cambiar-lnk" onclick="restaurarCO2Calculado()">volver al calculado</span>';
+    }
+    return;
+  }
+
   if (litros > 0 && phLeche > 0) {
     if (phLeche <= phObj) {
       el.value = '';
@@ -3883,6 +3922,41 @@ function calcCO2(){
     el.value = '';
     if (detEl) detEl.textContent = litros > 0 ? 'Introduce el pH de la leche para calcular' : 'Introduce los litros y el pH para calcular';
   }
+}
+
+// El quesero escribe el tiempo de CO2 a mano: se marca como manual para que la
+// fórmula no lo sobrescriba cuando luego se corrijan litros, pH o caudal.
+// Si borra el campo, se vuelve al cálculo automático.
+function onCO2TiempoManual(el){
+  if(!el || !parteActual) return;
+  var v = String(el.value||'').trim();
+  parteActual.co2_tiempo_manual = (v !== '');
+  try{
+    if(typeof CUBA_ACTIVA_ID !== 'undefined' && CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
+  }catch(e){}
+  if(v === '') calcCO2();
+  else {
+    var detEl = document.getElementById('co2-formula-detalle');
+    if(detEl){
+      var litros  = parseFloat(String(document.getElementById('np-litros').value||'').replace(',','.')) || 0;
+      var phLeche = parseFloat(String(document.getElementById('aux-ph') ? document.getElementById('aux-ph').value : '').replace(',','.')) || 0;
+      var ref = (litros > 0 && phLeche > 6.48) ? Math.round((phLeche - 6.48) * litros * 0.3) : 0;
+      detEl.innerHTML = '✍️ <b>Tiempo puesto a mano</b>'
+        + (ref > 0 ? ' · la fórmula daría ' + ref + ' s' : '')
+        + ' <span class="co2-cambiar-lnk" onclick="restaurarCO2Calculado()">volver al calculado</span>';
+    }
+  }
+}
+
+// Vuelve al tiempo que dice la fórmula (deshace el valor manual).
+function restaurarCO2Calculado(){
+  if(!parteActual) return;
+  parteActual.co2_tiempo_manual = false;
+  calcCO2();
+  try{
+    if(typeof CUBA_ACTIVA_ID !== 'undefined' && CUBA_ACTIVA_ID) autoGuardarParte(CUBA_ACTIVA_ID);
+  }catch(e){}
+  toast('Tiempo de CO₂ recalculado');
 }
 
 function calcCoagTotal(){
@@ -4004,7 +4078,7 @@ function abrirSelectorLote(producto){
   if(stock.length===0){
     h+='<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">No hay lotes activos de '+producto+' en stock.<br>Calidad debe registrar un albarán de entrada desde TraceQueso.</div></div>';
   } else {
-    // (v2.6.308) Opción de repartir la dosis entre dos lotes, para cuando el lote
+    // (v2.6.310) Opción de repartir la dosis entre dos lotes, para cuando el lote
     // en uso se agota a mitad de cuba y hay que completar con el siguiente.
     h+='<div class="opt-row" onclick="abrirRepartoLotes(\''+_escQ(producto)+'\')" style="background:#e8f4ff;border-left:4px solid var(--blue)">'
       +'<div class="opt-row-info">'
@@ -4052,7 +4126,7 @@ function seleccionarLote(producto,idx){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// REPARTO DE UN INGREDIENTE ENTRE VARIOS LOTES  (v2.6.308)
+// REPARTO DE UN INGREDIENTE ENTRE VARIOS LOTES  (v2.6.310)
 // ──────────────────────────────────────────────────────────────────────────
 // Caso real: la receta pide 330 g de un fermento y del lote en uso solo quedan
 // 150 g. El quesero gasta esos 150 y completa con el lote siguiente. Los DOS
@@ -4126,7 +4200,7 @@ function abrirRepartoLotes(producto){
     l1 = rep[1] ? rep[1].lote : '';
     c1 = rep[1] ? rep[1].cantidad : 0;
   } else {
-    // (v2.6.308) Reparto por defecto: MITAD Y MITAD.
+    // (v2.6.310) Reparto por defecto: MITAD Y MITAD.
     // No se calcula desde el stock a propósito. En la práctica el quesero echa
     // siempre algún gramo de más en cada cuba, así que al llegar el cambio real de
     // bote el stock de la app todavía dice que queda fermento de sobra. Fiarse de
@@ -4206,7 +4280,7 @@ function abrirRepartoLotes(producto){
 // Redondeo a 3 decimales para que no salgan colas de coma flotante (330-150=180, no 179.9999)
 function _round3(n){ return Math.round((parseFloat(n)||0) * 1000) / 1000; }
 
-// (v2.6.308) La dosis de la receta SIEMPRE está en gramos o mililitros. El stock,
+// (v2.6.310) La dosis de la receta SIEMPRE está en gramos o mililitros. El stock,
 // en cambio, puede estar dado de alta en g, kg, ml o L (incluso dos lotes del mismo
 // artículo con unidades distintas). Estas dos funciones ponen todo en la unidad de
 // la dosis para poder comparar y para no mostrar cosas como "quedan 0.004999 kg".
@@ -4227,7 +4301,7 @@ function _stockBase(s){
   return _round3(q);
 }
 
-// (v2.6.308) Al cambiar la cantidad del lote viejo, la del lote nuevo se recalcula
+// (v2.6.310) Al cambiar la cantidad del lote viejo, la del lote nuevo se recalcula
 // sola para completar la dosis de la receta. Sigue siendo editable a mano: si el
 // quesero apuró el bote y echó de más, puede tocar la segunda y no se le pisa.
 function _repAjustaSegundo(producto){
@@ -4313,7 +4387,8 @@ function guardarRepartoLotes(producto){
       cantidad:  _round3(par[1]),
       proveedor: d.proveedor || '',
       caducidad: d.caducidad || '',
-      unidad:    d.unidad    || ''
+      unidad:       _uniConsumoDe(d.unidad),
+      unidad_stock: d.unidad || ''
     });
   });
   if(!out.length){ toast('Nada que guardar'); return; }
@@ -4498,7 +4573,7 @@ function guardarParte(){
   });
   if(r.cuajo){parte.cuajo=recogerProd(r.cuajo);descontarStock(r.cuajo.nombre,_consumoProd(r.cuajo));}
   var co2lote=obtenerLoteActivo('CO2');
-  parte.co2={lote:co2lote?co2lote.lote:'',caducidad:co2lote?co2lote.caducidad:'',tiempo_seg:parseInt(document.getElementById('co2-tiempo').value)||0,caudal_lh:parseFloat(document.getElementById('co2-caudal').value)||100,ph_leche:parseFloat(document.getElementById('aux-ph').value)||0,temp_leche:parseFloat(document.getElementById('aux-temp').value)||0,ph_objetivo:6.48};
+  parte.co2={lote:co2lote?co2lote.lote:'',caducidad:co2lote?co2lote.caducidad:'',tiempo_seg:parseInt(document.getElementById('co2-tiempo').value)||0,tiempo_manual:!!(parteActual&&parteActual.co2_tiempo_manual),caudal_lh:parseFloat(document.getElementById('co2-caudal').value)||100,ph_leche:parseFloat(document.getElementById('aux-ph').value)||0,temp_leche:parseFloat(document.getElementById('aux-temp').value)||0,ph_objetivo:6.48};
 
   PARTES.unshift(parte);persistir();
   enviarParteSheets(parte);
@@ -7592,7 +7667,7 @@ function _validarParteCompleto(p){
       var dosis = parseFloat(x&&(x.consumo_total!=null?x.consumo_total:x.dosis_utilizada))||0;
       return nombre && dosis>0 && _esFermentoExcluyente(nombre);
     }).map(function(x){ return x.nombre; });
-    // (v2.6.308) Un mismo fermento puede aparecer en DOS líneas si se repartió entre
+    // (v2.6.310) Un mismo fermento puede aparecer en DOS líneas si se repartió entre
     // dos lotes. Eso no son dos fermentos excluyentes distintos: se cuentan los
     // nombres SIN repetir para no dar un aviso falso.
     exclConDosis = exclConDosis.filter(function(n, i){ return exclConDosis.indexOf(n) === i; });
