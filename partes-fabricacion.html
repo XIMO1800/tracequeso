@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.306</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.307</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1337,7 +1337,7 @@ var STOCK_DEMO = {};
 
 var LOTES_ACTIVOS = {};
 var PARTES = [];
-var parteActual = {receta:null,litros:0,dosis_override:{},lotes_seleccionados:{}};
+var parteActual = {receta:null,litros:0,dosis_override:{},lotes_seleccionados:{},reparto_lotes:{}};
 
 // Propagar valor de un input a otro (encadenar horas)
 function propagarHora(origenId, destinoId){
@@ -1727,6 +1727,7 @@ function rellenarCampos(p){
             try{
               if(p.dosis_override) parteActual.dosis_override = Object.assign({}, p.dosis_override);
               if(p.ferm_seleccionado) parteActual.ferm_seleccionado = p.ferm_seleccionado;
+              if(p.reparto_lotes) parteActual.reparto_lotes = Object.assign({}, p.reparto_lotes);
               if(parteActual.receta){ renderFermentos(parteActual.receta); calcularDosis(); }
             }catch(e){}
           }, 60);
@@ -2130,6 +2131,7 @@ function autoGuardarParte(parteId){
   p.observaciones = g('np-obs');
   p.dosis_override = Object.assign({}, parteActual.dosis_override||{});
   p.ferm_seleccionado = parteActual.ferm_seleccionado||null;
+  p.reparto_lotes = Object.assign({}, parteActual.reparto_lotes||{});
   persistir();
   // Copia de seguridad en Google (con debounce): si la cuba está a medias, queda
   // respaldada en la nube para no perderla ante un cierre/pifia de la tablet.
@@ -2327,16 +2329,45 @@ function _capturarAuxFermCuajoEnParte(p){
   function dosisUtil(dosis_1000L, nombre){
     // La dosis utilizada se redondea SIEMPRE al alza, al múltiplo de 5 más cercano por arriba
     // (p.ej. 9500 L × 15/1000 = 142,5 → 145). Aplica a fermentos, auxiliares y cuajo.
+    // (v2.6.307) La casilla "Dosis utilizada" es un TOTAL en gramos/ml, y así se
+    // muestra en pantalla. Antes aquí se volvía a multiplicar por litros/1000, con
+    // lo que escribir 150 en una cuba de 5500 L guardaba 825. Se respeta el número
+    // tal cual lo escribió el quesero, sin redondear.
     if(nombre && ovr && ovr.hasOwnProperty(nombre)){
-      return _redondeaAlza5(litros * (parseFloat(ovr[nombre])||0) / 1000);
+      return parseFloat(ovr[nombre]) || 0;
     }
     var d = parseFloat(dosis_1000L) || 0;
     return _redondeaAlza5(litros * d / 1000);
   }
+  // (v2.6.307) Reparto entre varios lotes: si el quesero repartió un ingrediente
+  // entre dos lotes (porque se le acabó el primero), esa línea se convierte en
+  // UNA LÍNEA POR LOTE, cada una con su lote y su cantidad real. El backend
+  // descuenta línea a línea, así que cada lote pierde solo lo suyo.
+  var _rep = (p.reparto_lotes) ? p.reparto_lotes
+           : ((parteActual && parteActual===p && parteActual.reparto_lotes) ? parteActual.reparto_lotes : {});
+  function _expandirReparto(base, nombre){
+    var r = (_rep && _rep[nombre]) ? _rep[nombre] : null;
+    if(!r || !r.length) return [base];
+    var out = [];
+    r.forEach(function(x){
+      var cant = parseFloat(x.cantidad) || 0;
+      if(cant <= 0) return;
+      var linea = {};
+      Object.keys(base).forEach(function(k){ linea[k] = base[k]; });
+      linea.consumo_total = cant;
+      linea.lote          = x.lote      || '';
+      linea.proveedor     = x.proveedor || '';
+      linea.caducidad     = x.caducidad || '';
+      linea.unidad        = x.unidad    || base.unidad || '';
+      out.push(linea);
+    });
+    return out.length ? out : [base];
+  }
   // Auxiliares
-  p.auxiliares = (receta.auxiliares||[]).map(function(a){
+  p.auxiliares = [];
+  (receta.auxiliares||[]).forEach(function(a){
     var L = lote(a.nombre);
-    return {
+    var base = {
       nombre:        a.nombre,
       dosis_ml_1000L: a.dosis_ml_1000L || 0,
       consumo_total: dosisUtil(a.dosis_ml_1000L, a.nombre),
@@ -2345,6 +2376,7 @@ function _capturarAuxFermCuajoEnParte(p){
       caducidad:     L.caducidad || '',
       unidad:        L.unidad || ''
     };
+    _expandirReparto(base, a.nombre).forEach(function(x){ p.auxiliares.push(x); });
   });
   // Fermentos
   var repTAcap = _calcReparteTA054(receta, litros);
@@ -2380,7 +2412,7 @@ function _capturarAuxFermCuajoEnParte(p){
     if(_esFermentoExcluyente(f.nombre) && _nombreExclUsado && f.nombre !== _nombreExclUsado) return;
     var L = lote(f.nombre);
     var consumo = doseTA.hasOwnProperty(f.nombre) ? doseTA[f.nombre] : dosisUtil(f.dosis_ml_1000L, f.nombre);
-    p.fermentos.push({
+    var baseF = {
       nombre:        f.nombre,
       dosis_ml_1000L: f.dosis_ml_1000L || 0,
       consumo_total: consumo,
@@ -2388,7 +2420,8 @@ function _capturarAuxFermCuajoEnParte(p){
       lote:          L.lote || '',
       caducidad:     L.caducidad || '',
       unidad:        L.unidad || ''
-    });
+    };
+    _expandirReparto(baseF, f.nombre).forEach(function(x){ p.fermentos.push(x); });
   });
   // Red de seguridad: nunca dejar el parte sin fermentos
   if(!p.fermentos.length && _fermsRec.length){
@@ -3350,6 +3383,7 @@ function onTipoChange(){
   parteActual.receta=receta;
   parteActual.dosis_override={};
   parteActual.lotes_seleccionados={};
+  parteActual.reparto_lotes={};
   // Caseínas: mostrar siempre que sea D.O., independientemente de si hay receta
   var tipoCas = document.getElementById('np-tipo-sel') ? document.getElementById('np-tipo-sel').value : '';
   var esDO = (tipoCas==='D.O. PAST.'||tipoCas==='D.O. CRUDA');
@@ -3567,8 +3601,14 @@ function renderFermentos(receta){
   receta.fermentos.forEach(function(f){
     var key = f.nombre.replace(/[^a-zA-Z0-9]/g,'_');
     var lote = obtenerLoteActivo(f.nombre);
+    var _repF = _repartoDe(f.nombre);
     var loteHTML, cadHTML, provHTML;
-    if(lote){
+    if(_repF){
+      loteHTML = '<span style="font-size:0.7rem;font-weight:700;color:#0a3d62">🔀 '+_repartoTexto(_repF)+'</span> '
+               + '<span class="cambiar-lnk" onclick="event.stopPropagation();abrirRepartoLotes(\''+_escQ(f.nombre)+'\')">cambiar</span>';
+      cadHTML = '—';
+      provHTML = _repF[0].proveedor || '—';
+    } else if(lote){
       loteHTML = '<span>'+lote.lote+'</span> <span class="cambiar-lnk" onclick="abrirSelectorLote(\''+f.nombre+'\')">cambiar</span>';
       cadHTML = formatearFecha(lote.caducidad);
       provHTML = lote.proveedor || '—';
@@ -3619,8 +3659,14 @@ function renderCuajo(receta){
 function renderProductoCard(prod){
   var key = prod.nombre.replace(/[^a-zA-Z0-9]/g,'_');
   var lote = obtenerLoteActivo(prod.nombre);
+  var _repP = _repartoDe(prod.nombre);
   var loteHTML, cadHTML, provHTML;
-  if(lote){
+  if(_repP){
+    loteHTML = '<span class="papel-prod-lote-num" style="font-size:0.7rem">🔀 '+_repartoTexto(_repP)+'</span>'
+             + '<span class="papel-prod-cambiar" onclick="abrirRepartoLotes(\''+_escQ(prod.nombre)+'\')">cambiar</span>';
+    cadHTML = '—';
+    provHTML = _repP[0].proveedor || '—';
+  } else if(lote){
     loteHTML = '<span class="papel-prod-lote-num">'+lote.lote+'</span><span class="papel-prod-cambiar" onclick="abrirSelectorLote(\''+prod.nombre+'\')">cambiar</span>';
     cadHTML = formatearFecha(lote.caducidad);
     provHTML = lote.proveedor || '—';
@@ -3958,7 +4004,15 @@ function abrirSelectorLote(producto){
   if(stock.length===0){
     h+='<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">No hay lotes activos de '+producto+' en stock.<br>Calidad debe registrar un albarán de entrada desde TraceQueso.</div></div>';
   } else {
-    h+='<div style="margin-bottom:8px;font-size:0.8rem;color:var(--text2)">Lotes disponibles (ordenados por caducidad, más antiguo primero):</div>';
+    // (v2.6.307) Opción de repartir la dosis entre dos lotes, para cuando el lote
+    // en uso se agota a mitad de cuba y hay que completar con el siguiente.
+    h+='<div class="opt-row" onclick="abrirRepartoLotes(\''+_escQ(producto)+'\')" style="background:#e8f4ff;border-left:4px solid var(--blue)">'
+      +'<div class="opt-row-info">'
+      +  '<div class="opt-row-lote">🔀 He cambiado de bote en esta cuba</div>'
+      +  '<div class="opt-row-meta">Quedan registrados los dos lotes, mitad y mitad</div>'
+      +'</div>'
+      +'</div>';
+    h+='<div style="margin-bottom:8px;margin-top:10px;font-size:0.8rem;color:var(--text2)">O usar un solo lote (ordenados por caducidad, más antiguo primero):</div>';
     stock.forEach(function(s,i){
       var marca = (i===0) ? ' · 🟢 USAR PRIMERO' : '';
       h+='<div class="opt-row" onclick="seleccionarLote(\''+producto+'\','+i+')">'
@@ -3996,6 +4050,264 @@ function seleccionarLote(producto,idx){
   // por correo (mismo patrón que TraceQueso). Calidad reajustará el stock del lote agotado.
   if(esCambioReal){ try{ avisarCambioLoteCalidad(producto, loteAnterior, s.lote); }catch(e){} }
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// REPARTO DE UN INGREDIENTE ENTRE VARIOS LOTES  (v2.6.307)
+// ──────────────────────────────────────────────────────────────────────────
+// Caso real: la receta pide 330 g de un fermento y del lote en uso solo quedan
+// 150 g. El quesero gasta esos 150 y completa con el lote siguiente. Los DOS
+// lotes tienen que quedar registrados en el parte (trazabilidad obligatoria) y
+// cada uno debe descontar de SU propia ficha de stock.
+//
+// El reparto se guarda en parteActual.reparto_lotes[producto] = [{lote,cantidad,
+// proveedor,caducidad,unidad}, ...] y al cerrar el parte se expande en UNA LÍNEA
+// POR LOTE (ver _expandirReparto en _capturarAuxFermCuajoEnParte). El backend ya
+// descuenta línea a línea por (categoría + artículo + lote), así que no hay que
+// tocar nada en Apps Script.
+// ══════════════════════════════════════════════════════════════════════════
+
+// Dosis total que se está usando ahora mismo para un producto: lo que se ve en la
+// casilla "Dosis utilizada". Si no hay casilla, se calcula desde la receta.
+function _dosisTotalDe(producto){
+  try{
+    var key = String(producto).replace(/[^a-zA-Z0-9]/g,'_');
+    var el = document.getElementById('dosis-'+key);
+    if(el){
+      var v = parseFloat(el.tagName==='INPUT' ? el.value : el.textContent);
+      if(!isNaN(v) && v>0) return v;
+    }
+  }catch(e){}
+  try{
+    var r = parteActual && parteActual.receta;
+    if(r){
+      var lista = (r.auxiliares||[]).concat(r.fermentos||[]).concat(r.cuajo?[r.cuajo]:[]);
+      for(var i=0;i<lista.length;i++){
+        if(lista[i].nombre === producto){
+          return _redondeaAlza5((parseFloat(parteActual.litros)||0) * (parseFloat(lista[i].dosis_ml_1000L)||0) / 1000);
+        }
+      }
+    }
+  }catch(e){}
+  return 0;
+}
+
+// Devuelve el reparto guardado de un producto, o null si no tiene.
+function _repartoDe(producto){
+  if(!parteActual) return null;
+  if(!parteActual.reparto_lotes) parteActual.reparto_lotes = {};
+  var r = parteActual.reparto_lotes[producto];
+  return (r && r.length) ? r : null;
+}
+
+// Texto corto del reparto para mostrarlo en la casilla del lote.
+function _repartoTexto(rep){
+  return rep.map(function(r){ return r.lote + ' (' + r.cantidad + ')'; }).join(' + ');
+}
+
+function _escQ(s){ return String(s||'').replace(/'/g,"\\'"); }
+
+// ── Modal de reparto ──
+function abrirRepartoLotes(producto){
+  var lotes = obtenerLotesDelProducto(producto);
+  if(!lotes.length){
+    abrirModal('<div class="modal-title">Repartir ' + producto + ' <button class="modal-close" onclick="cerrarModal()">×</button></div>'
+      + '<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">No hay lotes con stock de ' + producto + '.<br>Registra la entrada del bote desde Material auxiliar.</div></div>');
+    return;
+  }
+  var total = _dosisTotalDe(producto);
+  var rep = _repartoDe(producto);
+
+  // Valores de partida: si ya hay reparto guardado, se reeditan; si no, se propone
+  // "gastar lo que queda del lote en uso" y completar con el siguiente.
+  var l0, c0, l1, c1;
+  if(rep){
+    l0 = rep[0] ? rep[0].lote : lotes[0].lote;
+    c0 = rep[0] ? rep[0].cantidad : 0;
+    l1 = rep[1] ? rep[1].lote : '';
+    c1 = rep[1] ? rep[1].cantidad : 0;
+  } else {
+    // (v2.6.307) Reparto por defecto: MITAD Y MITAD.
+    // No se calcula desde el stock a propósito. En la práctica el quesero echa
+    // siempre algún gramo de más en cada cuba, así que al llegar el cambio real de
+    // bote el stock de la app todavía dice que queda fermento de sobra. Fiarse de
+    // ese número daría un reparto falso. Lo que importa para la trazabilidad es
+    // que en la cuba constan LOS DOS LOTES; el gramaje exacto lo afina Calidad
+    // en la revisión.
+    var act = null;
+    try{ act = obtenerLoteActivo(producto); }catch(e){}
+    var iAct = -1;
+    if(act && act.lote){
+      for(var i=0;i<lotes.length;i++){ if(String(lotes[i].lote)===String(act.lote)){ iAct=i; break; } }
+    }
+    if(iAct < 0) iAct = 0;
+    l0 = lotes[iAct].lote;
+    var sig = null;
+    for(var j=0;j<lotes.length;j++){ if(j!==iAct){ sig = lotes[j]; break; } }
+    l1 = sig ? sig.lote : '';
+    var mitad = _round3(total / 2);
+    c0 = mitad;
+    c1 = l1 ? _round3(total - mitad) : 0;
+  }
+
+  function opciones(sel){
+    var o = '<option value="">— sin segundo lote —</option>';
+    lotes.forEach(function(s){
+      var q = (s.stockActual != null ? s.stockActual : (s.cantidad != null ? s.cantidad : 0));
+      o += '<option value="' + s.lote + '"' + (String(s.lote)===String(sel) ? ' selected' : '') + '>'
+         + s.lote + ' · quedan ' + q + ' ' + (s.unidad||'') + '</option>';
+    });
+    return o;
+  }
+  function opciones1(sel){
+    var o = '';
+    lotes.forEach(function(s){
+      var q = (s.stockActual != null ? s.stockActual : (s.cantidad != null ? s.cantidad : 0));
+      o += '<option value="' + s.lote + '"' + (String(s.lote)===String(sel) ? ' selected' : '') + '>'
+         + s.lote + ' · quedan ' + q + ' ' + (s.unidad||'') + '</option>';
+    });
+    return o;
+  }
+
+  var uni = lotes[0].unidad || '';
+  var pEsc = _escQ(producto);
+  var h = '<div class="modal-title">🔀 Repartir ' + producto + ' <button class="modal-close" onclick="cerrarModal()">×</button></div>'
+    + '<div style="background:#e8f4ff;border-left:4px solid var(--blue);padding:8px 10px;border-radius:6px;font-size:0.8rem;color:#0a3d62;margin-bottom:10px">'
+    +   'La receta pide <b>' + total + ' ' + uni + '</b>. Se reparte <b>mitad y mitad</b> entre los dos lotes.<br>'
+    +   '<span style="font-size:0.74rem">Lo importante es que en la cuba consten los dos lotes. Calidad afinará el gramaje en la revisión.</span>'
+    + '</div>'
+    + '<div style="display:flex;flex-direction:column;gap:10px">'
+    +   '<div>'
+    +     '<div style="font-size:0.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:3px">Lote que se ha acabado</div>'
+    +     '<select id="rep-lote-0" onchange="_repRecalc(\'' + pEsc + '\')" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:0.85rem">' + opciones1(l0) + '</select>'
+    +     '<div style="display:flex;align-items:center;gap:8px;margin-top:5px">'
+    +       '<span style="font-size:0.78rem;color:var(--text2)">Cantidad usada</span>'
+    +       '<input type="number" step="any" inputmode="decimal" id="rep-cant-0" value="' + c0 + '" oninput="_repRecalc(\'' + pEsc + '\')" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:0.9rem;text-align:right">'
+    +       '<span style="font-size:0.78rem;color:var(--text3)">' + uni + '</span>'
+    +     '</div>'
+    +   '</div>'
+    +   '<div>'
+    +     '<div style="font-size:0.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:3px">Lote nuevo que has abierto</div>'
+    +     '<select id="rep-lote-1" onchange="_repRecalc(\'' + pEsc + '\')" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:0.85rem">' + opciones(l1) + '</select>'
+    +     '<div style="display:flex;align-items:center;gap:8px;margin-top:5px">'
+    +       '<span style="font-size:0.78rem;color:var(--text2)">Cantidad usada</span>'
+    +       '<input type="number" step="any" inputmode="decimal" id="rep-cant-1" value="' + c1 + '" oninput="_repRecalc(\'' + pEsc + '\')" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:0.9rem;text-align:right">'
+    +       '<span style="font-size:0.78rem;color:var(--text3)">' + uni + '</span>'
+    +     '</div>'
+    +   '</div>'
+    +   '<div id="rep-resumen" style="font-size:0.82rem;padding:8px 10px;border-radius:6px;text-align:center"></div>'
+    +   '<button type="button" onclick="guardarRepartoLotes(\'' + pEsc + '\')" style="width:100%;padding:12px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:0.95rem;font-weight:700">Guardar reparto</button>'
+    +   (rep ? '<button type="button" onclick="quitarRepartoLotes(\'' + pEsc + '\')" style="width:100%;padding:10px;background:#fff;color:var(--brand);border:1px solid var(--brand);border-radius:8px;font-size:0.85rem;font-weight:600">Quitar el reparto (volver a un solo lote)</button>' : '')
+    + '</div>';
+  abrirModal(h);
+  _repRecalc(producto);
+}
+
+// Redondeo a 3 decimales para que no salgan colas de coma flotante (330-150=180, no 179.9999)
+function _round3(n){ return Math.round((parseFloat(n)||0) * 1000) / 1000; }
+
+// Recalcula el resumen del reparto (suma vs. dosis de receta). NO bloquea si no
+// cuadra: el quesero puede haber apurado el bote y gastado algo más. Solo avisa.
+function _repRecalc(producto){
+  var e0 = document.getElementById('rep-cant-0');
+  var e1 = document.getElementById('rep-cant-1');
+  var res = document.getElementById('rep-resumen');
+  if(!e0 || !res) return;
+  var c0 = parseFloat(e0.value) || 0;
+  var c1 = e1 ? (parseFloat(e1.value) || 0) : 0;
+  var suma = _round3(c0 + c1);
+  var total = _dosisTotalDe(producto);
+  var dif = _round3(suma - total);
+  if(Math.abs(dif) < 0.0005){
+    res.style.background = '#e8f7e8';
+    res.style.color = '#1b5e20';
+    res.innerHTML = '✅ Suma <b>' + suma + '</b> = los ' + total + ' de la receta';
+  } else {
+    res.style.background = '#fff8e1';
+    res.style.color = '#5a4500';
+    res.innerHTML = '⚠️ Suma <b>' + suma + '</b> · la receta pide ' + total
+                  + ' (' + (dif > 0 ? '+' : '') + dif + '). Se guardará lo que pongas.';
+  }
+}
+
+function guardarRepartoLotes(producto){
+  var lotes = obtenerLotesDelProducto(producto);
+  function datosDe(loteTxt){
+    for(var i=0;i<lotes.length;i++){
+      if(String(lotes[i].lote) === String(loteTxt)) return lotes[i];
+    }
+    return null;
+  }
+  var s0 = document.getElementById('rep-lote-0');
+  var s1 = document.getElementById('rep-lote-1');
+  var c0 = parseFloat((document.getElementById('rep-cant-0')||{}).value) || 0;
+  var c1 = parseFloat((document.getElementById('rep-cant-1')||{}).value) || 0;
+  var lote0 = s0 ? s0.value : '';
+  var lote1 = s1 ? s1.value : '';
+
+  if(!lote0 || c0 <= 0){ toast('Pon el primer lote y su cantidad'); return; }
+  if(lote1 && String(lote1) === String(lote0)){ toast('Los dos lotes no pueden ser el mismo'); return; }
+  if(lote1 && c1 <= 0){ toast('Pon la cantidad del segundo lote (o quítalo)'); return; }
+
+  var out = [];
+  [[lote0, c0], [lote1, c1]].forEach(function(par){
+    if(!par[0] || par[1] <= 0) return;
+    var d = datosDe(par[0]) || {};
+    out.push({
+      lote:      par[0],
+      cantidad:  _round3(par[1]),
+      proveedor: d.proveedor || '',
+      caducidad: d.caducidad || '',
+      unidad:    d.unidad    || ''
+    });
+  });
+  if(!out.length){ toast('Nada que guardar'); return; }
+
+  if(!parteActual.reparto_lotes) parteActual.reparto_lotes = {};
+  if(out.length === 1){
+    // Un solo lote: no es un reparto, es un cambio de lote normal.
+    delete parteActual.reparto_lotes[producto];
+    LOTES_ACTIVOS[producto] = {
+      lote: out[0].lote, caducidad: out[0].caducidad,
+      proveedor: out[0].proveedor, cantidad: null, unidad: out[0].unidad
+    };
+    parteActual.lotes_seleccionados[producto] = out[0].lote;
+  } else {
+    parteActual.reparto_lotes[producto] = out;
+  }
+
+  persistir();
+  if(typeof CUBA_ACTIVA_ID !== 'undefined' && CUBA_ACTIVA_ID){
+    try{ autoGuardarParte(CUBA_ACTIVA_ID); }catch(e){}
+  }
+  cerrarModal();
+  _refrescarIngredientes();
+  toast(out.length > 1 ? '✅ Reparto guardado: ' + _repartoTexto(out) : '✅ Lote ' + out[0].lote + ' seleccionado');
+}
+
+function quitarRepartoLotes(producto){
+  if(parteActual.reparto_lotes) delete parteActual.reparto_lotes[producto];
+  persistir();
+  if(typeof CUBA_ACTIVA_ID !== 'undefined' && CUBA_ACTIVA_ID){
+    try{ autoGuardarParte(CUBA_ACTIVA_ID); }catch(e){}
+  }
+  cerrarModal();
+  _refrescarIngredientes();
+  toast('Reparto quitado');
+}
+
+// Repinta las tres tablas de ingredientes sin recargar toda la receta (así no se
+// pierde nada de lo que el quesero ya tenga escrito en el resto del parte).
+function _refrescarIngredientes(){
+  try{
+    if(parteActual && parteActual.receta){
+      renderAuxiliares(parteActual.receta);
+      renderFermentos(parteActual.receta);
+      renderCuajo(parteActual.receta);
+      calcularDosis();
+    }
+  }catch(e){}
+}
+
 
 // Envía a Calidad un aviso por correo de cambio de lote (vía Apps Script).
 function avisarCambioLoteCalidad(producto, loteAnterior, loteNuevo){
@@ -7224,6 +7536,10 @@ function _validarParteCompleto(p){
       var dosis = parseFloat(x&&(x.consumo_total!=null?x.consumo_total:x.dosis_utilizada))||0;
       return nombre && dosis>0 && _esFermentoExcluyente(nombre);
     }).map(function(x){ return x.nombre; });
+    // (v2.6.307) Un mismo fermento puede aparecer en DOS líneas si se repartió entre
+    // dos lotes. Eso no son dos fermentos excluyentes distintos: se cuentan los
+    // nombres SIN repetir para no dar un aviso falso.
+    exclConDosis = exclConDosis.filter(function(n, i){ return exclConDosis.indexOf(n) === i; });
     if(exclConDosis.length>=2){
       faltan.push('Hay varios fermentos excluyentes con dosis ('+exclConDosis.join(', ')+'). Normalmente solo se usa uno: pon a 0 (o quita con la ✕) los que no se utilizaron.');
     }
