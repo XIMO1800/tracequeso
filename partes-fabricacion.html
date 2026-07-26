@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.310</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.311</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1773,7 +1773,7 @@ function rellenarCampos(p){
     var _tpL = (p.co2.temp_leche===0 || p.co2.temp_leche==='0') ? '' : p.co2.temp_leche;
     v('aux-ph', _phL); v('aux-temp', _tpL);
     v('co2-caudal', p.co2.caudal_lh || 100); v('co2-tiempo', p.co2.tiempo_seg);
-    // (v2.6.310) Recuperar si el tiempo lo puso el quesero a mano, para que la
+    // (v2.6.311) Recuperar si el tiempo lo puso el quesero a mano, para que la
     // fórmula no lo pise al volver a esta cuba.
     if(parteActual) parteActual.co2_tiempo_manual = !!p.co2.tiempo_manual;
   }
@@ -2242,6 +2242,14 @@ function _cerrarParteActivoConfirmar(id){
   p = PARTES.find(function(x){return x.id===id;}) || p;
   // Descartar prensados vacíos (un "+ Añadir" por error no debe dejar filas en blanco)
   limpiarPrensadosVacios(p);
+  // (v2.6.311) AVISO DE INGREDIENTE SIN LOTE.
+  // Un consumo sin lote no se puede convertir de unidades (el sistema no sabe si la
+  // ficha está en g, kg, ml o L), así que el stock se descuadra, y además la
+  // trazabilidad queda incompleta: no consta de qué bote salió.
+  // No bloquea del todo a propósito: el parte de producción TIENE que poder
+  // registrarse siempre. Pero hay que aceptarlo a conciencia, no por descuido.
+  var avisoLote = _avisoIngredienteSinLote(p);
+  if(avisoLote && !confirm(avisoLote)) return;
   // Aviso si algún ingrediente deja el stock en negativo (no bloquea, solo avisa)
   var avisoStock = _avisoStockInsuficiente(p);
   if(avisoStock && !confirm(avisoStock)) return;
@@ -2266,7 +2274,7 @@ function _cerrarParteActivoConfirmar(id){
   }, 2500);
 }
 
-// (v2.6.310) Unidad en la que está expresado el CONSUMO de un ingrediente.
+// (v2.6.311) Unidad en la que está expresado el CONSUMO de un ingrediente.
 // La dosis de la receta siempre sale en gramos o mililitros (es una dosis por
 // 1000 L). El STOCK, en cambio, puede estar dado de alta en g, kg, ml o L.
 // Esta función traduce la unidad del stock a la familia del consumo:
@@ -2311,6 +2319,40 @@ function _stockDisponibleDe(articulo, lote){
   return parseFloat(fila['STOCK ACTUAL']) || 0;
 }
 
+// (v2.6.311) Devuelve un mensaje si algún ingrediente con dosis va SIN LOTE.
+// Es la causa de los descuadres de stock del 24 y del 26 de julio: sin lote no se
+// puede saber en qué unidad está dada de alta la ficha, y el consumo se registra
+// en bruto (700 en vez de 0,7). Además la trazabilidad queda coja.
+function _avisoIngredienteSinLote(p){
+  var sinLote = [];
+  function revisar(lista, etiqueta){
+    (lista||[]).forEach(function(ing){
+      if(!ing || !ing.nombre) return;
+      var dosis = parseFloat(ing.consumo_total) || 0;
+      if(dosis <= 0) return;
+      if(!String(ing.lote||'').trim()) sinLote.push('• ' + ing.nombre + ' (' + etiqueta + ')');
+    });
+  }
+  revisar(p.auxiliares, 'auxiliar');
+  revisar(p.fermentos, 'fermento');
+  if(p.cuajo && p.cuajo.nombre && (parseFloat(p.cuajo.consumo_total)||0) > 0 && !String(p.cuajo.lote||'').trim()){
+    sinLote.push('• ' + p.cuajo.nombre + ' (cuajo)');
+  }
+  if(p.co2 && p.co2.aplicado !== false && (parseFloat(p.co2.tiempo_seg)||0) > 0 && !String(p.co2.lote||'').trim()){
+    sinLote.push('• CO2');
+  }
+  if(!sinLote.length) return '';
+  return '⚠️ FALTA EL LOTE\n\nEstos productos se van a registrar SIN LOTE:\n\n'
+       + sinLote.join('\n')
+       + '\n\nDos problemas:\n'
+       + '1) La trazabilidad queda incompleta (no consta de qué bote salió).\n'
+       + '2) El stock se va a descontar MAL, porque sin lote el sistema no sabe en qué\n'
+       + '   unidad está dada de alta la ficha.\n\n'
+       + 'Lo recomendable es cancelar, pulsar "elegir" en el lote y volver a cerrar.\n'
+       + 'Si el lote no aparece en la lista, es que su stock está a cero o en negativo.\n\n'
+       + '¿Cerrar el parte de todos modos?';
+}
+
 // Devuelve un mensaje de aviso si algún ingrediente del parte deja el stock
 // en negativo, o '' si todo cuadra. No bloquea: solo informa.
 function _avisoStockInsuficiente(p){
@@ -2351,7 +2393,7 @@ function _capturarAuxFermCuajoEnParte(p){
   function dosisUtil(dosis_1000L, nombre){
     // La dosis utilizada se redondea SIEMPRE al alza, al múltiplo de 5 más cercano por arriba
     // (p.ej. 9500 L × 15/1000 = 142,5 → 145). Aplica a fermentos, auxiliares y cuajo.
-    // (v2.6.310) La casilla "Dosis utilizada" es un TOTAL en gramos/ml, y así se
+    // (v2.6.311) La casilla "Dosis utilizada" es un TOTAL en gramos/ml, y así se
     // muestra en pantalla. Antes aquí se volvía a multiplicar por litros/1000, con
     // lo que escribir 150 en una cuba de 5500 L guardaba 825. Se respeta el número
     // tal cual lo escribió el quesero, sin redondear.
@@ -2361,7 +2403,7 @@ function _capturarAuxFermCuajoEnParte(p){
     var d = parseFloat(dosis_1000L) || 0;
     return _redondeaAlza5(litros * d / 1000);
   }
-  // (v2.6.310) Reparto entre varios lotes: si el quesero repartió un ingrediente
+  // (v2.6.311) Reparto entre varios lotes: si el quesero repartió un ingrediente
   // entre dos lotes (porque se le acabó el primero), esa línea se convierte en
   // UNA LÍNEA POR LOTE, cada una con su lote y su cantidad real. El backend
   // descuenta línea a línea, así que cada lote pierde solo lo suyo.
@@ -3894,7 +3936,7 @@ function calcCO2(){
   var detEl   = document.getElementById('co2-formula-detalle');
   if (!el) return;
 
-  // (v2.6.310) Si el quesero ha escrito el tiempo A MANO, la fórmula NO lo pisa.
+  // (v2.6.311) Si el quesero ha escrito el tiempo A MANO, la fórmula NO lo pisa.
   // En las cubas de oveja el quesero casi nunca echa lo que dice la regla, así que
   // el valor manual es lo normal. La fórmula se sigue mostrando como referencia.
   var esManual = !!(parteActual && parteActual.co2_tiempo_manual);
@@ -4078,7 +4120,7 @@ function abrirSelectorLote(producto){
   if(stock.length===0){
     h+='<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">No hay lotes activos de '+producto+' en stock.<br>Calidad debe registrar un albarán de entrada desde TraceQueso.</div></div>';
   } else {
-    // (v2.6.310) Opción de repartir la dosis entre dos lotes, para cuando el lote
+    // (v2.6.311) Opción de repartir la dosis entre dos lotes, para cuando el lote
     // en uso se agota a mitad de cuba y hay que completar con el siguiente.
     h+='<div class="opt-row" onclick="abrirRepartoLotes(\''+_escQ(producto)+'\')" style="background:#e8f4ff;border-left:4px solid var(--blue)">'
       +'<div class="opt-row-info">'
@@ -4126,7 +4168,7 @@ function seleccionarLote(producto,idx){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// REPARTO DE UN INGREDIENTE ENTRE VARIOS LOTES  (v2.6.310)
+// REPARTO DE UN INGREDIENTE ENTRE VARIOS LOTES  (v2.6.311)
 // ──────────────────────────────────────────────────────────────────────────
 // Caso real: la receta pide 330 g de un fermento y del lote en uso solo quedan
 // 150 g. El quesero gasta esos 150 y completa con el lote siguiente. Los DOS
@@ -4200,7 +4242,7 @@ function abrirRepartoLotes(producto){
     l1 = rep[1] ? rep[1].lote : '';
     c1 = rep[1] ? rep[1].cantidad : 0;
   } else {
-    // (v2.6.310) Reparto por defecto: MITAD Y MITAD.
+    // (v2.6.311) Reparto por defecto: MITAD Y MITAD.
     // No se calcula desde el stock a propósito. En la práctica el quesero echa
     // siempre algún gramo de más en cada cuba, así que al llegar el cambio real de
     // bote el stock de la app todavía dice que queda fermento de sobra. Fiarse de
@@ -4280,7 +4322,7 @@ function abrirRepartoLotes(producto){
 // Redondeo a 3 decimales para que no salgan colas de coma flotante (330-150=180, no 179.9999)
 function _round3(n){ return Math.round((parseFloat(n)||0) * 1000) / 1000; }
 
-// (v2.6.310) La dosis de la receta SIEMPRE está en gramos o mililitros. El stock,
+// (v2.6.311) La dosis de la receta SIEMPRE está en gramos o mililitros. El stock,
 // en cambio, puede estar dado de alta en g, kg, ml o L (incluso dos lotes del mismo
 // artículo con unidades distintas). Estas dos funciones ponen todo en la unidad de
 // la dosis para poder comparar y para no mostrar cosas como "quedan 0.004999 kg".
@@ -4301,7 +4343,7 @@ function _stockBase(s){
   return _round3(q);
 }
 
-// (v2.6.310) Al cambiar la cantidad del lote viejo, la del lote nuevo se recalcula
+// (v2.6.311) Al cambiar la cantidad del lote viejo, la del lote nuevo se recalcula
 // sola para completar la dosis de la receta. Sigue siendo editable a mano: si el
 // quesero apuró el bote y echó de más, puede tocar la segunda y no se le pisa.
 function _repAjustaSegundo(producto){
@@ -6892,7 +6934,7 @@ function abrirReceta(id){
   var stockVacio = !STOCK_REMOTO || !STOCK_REMOTO.stock || !STOCK_REMOTO.stock.length;
   if(stockVacio){
     fetch(API_URL+'?tipo=matAux').then(function(r){return r.json();}).then(function(d){
-      if(d && d.ok && d.data) STOCK_REMOTO = d.data;
+      if(d && d.ok && d.data){ STOCK_REMOTO = d.data; try{ guardarCacheStock(d.data.stock); }catch(e){} }
       renderEditorReceta();
     }).catch(function(){
       renderEditorReceta();
@@ -7667,7 +7709,7 @@ function _validarParteCompleto(p){
       var dosis = parseFloat(x&&(x.consumo_total!=null?x.consumo_total:x.dosis_utilizada))||0;
       return nombre && dosis>0 && _esFermentoExcluyente(nombre);
     }).map(function(x){ return x.nombre; });
-    // (v2.6.310) Un mismo fermento puede aparecer en DOS líneas si se repartió entre
+    // (v2.6.311) Un mismo fermento puede aparecer en DOS líneas si se repartió entre
     // dos lotes. Eso no son dos fermentos excluyentes distintos: se cuentan los
     // nombres SIN repetir para no dar un aviso falso.
     exclConDosis = exclConDosis.filter(function(n, i){ return exclConDosis.indexOf(n) === i; });
@@ -7909,10 +7951,59 @@ function _limpiarCO2Receta(r){
 
 // Stock material auxiliar (lectura desde TraceQueso · Sheets)
 var STOCK_REMOTO = { stock: [], entradas: [], salidas: [] };
+
+// ══════════════════════════════════════════════════════════════════════════
+// (v2.6.311) CACHÉ LOCAL DE LA LISTA DE LOTES
+// ──────────────────────────────────────────────────────────────────────────
+// Antes, la lista de lotes empezaba VACÍA en cada arranque y solo se llenaba
+// cuando llegaba la respuesta del servidor. En esa ventana —o directamente sin
+// cobertura, que en la fábrica pasa— la app no conocía ningún lote: los
+// ingredientes salían "sin lote", y si el quesero cerraba el parte en ese
+// momento, el consumo se registraba sin lote y el stock se descuadraba.
+// Ahora la lista se guarda en la tablet en cuanto llega, y en el siguiente
+// arranque está disponible al instante. Luego se refresca en segundo plano.
+// Se guarda SOLO el stock (no entradas ni salidas): es lo único que se usa aquí
+// y así el archivo se mantiene pequeño para el almacenamiento del navegador.
+// ══════════════════════════════════════════════════════════════════════════
+var CACHE_STOCK_KEY = 'tq_stock_cache';
+
+function guardarCacheStock(stockArr){
+  try{
+    if(!stockArr || !stockArr.length) return;
+    localStorage.setItem(CACHE_STOCK_KEY, JSON.stringify({ t: Date.now(), stock: stockArr }));
+  }catch(e){ /* almacenamiento lleno: no es crítico, seguimos */ }
+}
+
+function cargarCacheStock(){
+  try{
+    var raw = localStorage.getItem(CACHE_STOCK_KEY);
+    if(!raw) return false;
+    var d = JSON.parse(raw);
+    if(!d || !d.stock || !d.stock.length) return false;
+    // Solo se usa si todavía no hay datos frescos del servidor
+    if(STOCK_REMOTO && STOCK_REMOTO.stock && STOCK_REMOTO.stock.length) return false;
+    STOCK_REMOTO = { stock: d.stock, entradas: [], salidas: [] };
+    try{ renderLotes(); }catch(e){}
+    try{ poblarFermentosDesdeStock(); }catch(e){}
+    try{
+      if(parteActual && parteActual.receta){
+        renderAuxiliares(parteActual.receta);
+        renderFermentos(parteActual.receta);
+        renderCuajo(parteActual.receta);
+      }
+    }catch(e){}
+    return true;
+  }catch(e){ return false; }
+}
+
 function cargarStockMaterial(){
+  // Primero, lo que haya guardado en la tablet: así los lotes están disponibles
+  // desde el segundo cero, con o sin cobertura.
+  try{ cargarCacheStock(); }catch(e){}
   fetch(API_URL+'?tipo=matAux').then(function(r){return r.json();}).then(function(d){
     if(d && d.ok && d.data){
       STOCK_REMOTO = d.data;
+      try{ guardarCacheStock(d.data.stock); }catch(e){}
       try{ renderStock(); }catch(e){ console.error('renderStock:',e); }
       try{ renderLotes(); }catch(e){ console.error('renderLotes:',e); }
       try{ poblarFermentosDesdeStock(); }catch(e){ console.error('poblarFermentos:',e); }
