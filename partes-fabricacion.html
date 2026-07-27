@@ -118,7 +118,7 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
 .parte-item-top{display:flex;align-items:center;justify-content:space-between}
 .parte-item-tipo{font-size:0.95rem;font-weight:700;color:var(--text)}
 .parte-item-meta{font-size:0.72rem;color:var(--text3);margin-top:3px}
-.parte-item-badge{background:var(--greenl);color:var(--green);font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:20px}
+.parte-item-badge{background:var(--greenl);color:var(--green);font-size:1.02rem;font-weight:800;padding:5px 13px;border-radius:20px;white-space:nowrap}
 .receta-item{padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer}
 .receta-item:last-child{border-bottom:none}
 .receta-item:active{background:var(--bg2)}
@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.328</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.329</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1535,7 +1535,7 @@ function renderPestanasCubas(){
     } else {
       etiqueta = '—';
     }
-    // (v2.6.328) Si es una cuba REACTIVADA de un día anterior, se marca con su fecha.
+    // (v2.6.329) Si es una cuba REACTIVADA de un día anterior, se marca con su fecha.
     // Sin esto, al reactivar la cuba 1 del día 24 aparecen dos pestañas "1" idénticas
     // junto a la cuba 1 de hoy y es imposible distinguirlas: fácil meter los datos de
     // una en la otra. Los datos nunca se mezclan (cada parte va por su ID interno),
@@ -1790,7 +1790,7 @@ function rellenarCampos(p){
     v('aux-ph', _phL); v('aux-temp', _tpL);
     v('co2-caudal', p.co2.caudal_lh || 100); v('co2-tiempo', p.co2.tiempo_seg);
   }
-  // (v2.6.328) La marca de "tiempo de CO2 puesto a mano" se recupera SIEMPRE, aunque
+  // (v2.6.329) La marca de "tiempo de CO2 puesto a mano" se recupera SIEMPRE, aunque
   // el parte todavía no tenga bloque co2. Si solo se hiciera dentro del if, al pasar
   // de una cuba con tiempo manual a una cuba nueva la marca se quedaría pegada y la
   // fórmula no rellenaría el tiempo en la cuba nueva.
@@ -2261,7 +2261,7 @@ function _cerrarParteActivoConfirmar(id){
   p = PARTES.find(function(x){return x.id===id;}) || p;
   // Descartar prensados vacíos (un "+ Añadir" por error no debe dejar filas en blanco)
   limpiarPrensadosVacios(p);
-  // (v2.6.328) AVISO DE INGREDIENTE SIN LOTE.
+  // (v2.6.329) AVISO DE INGREDIENTE SIN LOTE.
   // Un consumo sin lote no se puede convertir de unidades (el sistema no sabe si la
   // ficha está en g, kg, ml o L), así que el stock se descuadra, y además la
   // trazabilidad queda incompleta: no consta de qué bote salió.
@@ -2293,7 +2293,7 @@ function _cerrarParteActivoConfirmar(id){
   }, 2500);
 }
 
-// (v2.6.328) Unidad en la que está expresado el CONSUMO de un ingrediente.
+// (v2.6.329) Unidad en la que está expresado el CONSUMO de un ingrediente.
 // La dosis de la receta siempre sale en gramos o mililitros (es una dosis por
 // 1000 L). El STOCK, en cambio, puede estar dado de alta en g, kg, ml o L.
 // Esta función traduce la unidad del stock a la familia del consumo:
@@ -2338,7 +2338,7 @@ function _stockDisponibleDe(articulo, lote){
   return parseFloat(fila['STOCK ACTUAL']) || 0;
 }
 
-// (v2.6.328) Devuelve un mensaje si algún ingrediente con dosis va SIN LOTE.
+// (v2.6.329) Devuelve un mensaje si algún ingrediente con dosis va SIN LOTE.
 // Es la causa de los descuadres de stock del 24 y del 26 de julio: sin lote no se
 // puede saber en qué unidad está dada de alta la ficha, y el consumo se registra
 // en bruto (700 en vez de 0,7). Además la trazabilidad queda coja.
@@ -2379,7 +2379,7 @@ function _avisoStockInsuficiente(p){
   if(!STOCK_REMOTO || !STOCK_REMOTO.stock || !STOCK_REMOTO.stock.length) return '';
   var ings = (p.auxiliares||[]).concat(p.fermentos||[]);
   if(p.cuajo && p.cuajo.nombre) ings = ings.concat([p.cuajo]);
-  // (v2.6.328) Mitades extra del cuajo cuando se ha repartido entre dos lotes
+  // (v2.6.329) Mitades extra del cuajo cuando se ha repartido entre dos lotes
   if(p.cuajos_extra && p.cuajos_extra.length) ings = ings.concat(p.cuajos_extra);
   var faltas = [];
   ings.forEach(function(ing){
@@ -2395,7 +2395,7 @@ function _avisoStockInsuficiente(p){
       faltas.push('• '+ing.nombre+' (lote '+(ing.lote||'—')+'): necesita '+_fmtNum(necesita)+' '+u+', hay '+_fmtNum(disp)+' '+u);
     }
   });
-  // (v2.6.328) EL CO2 TAMBIÉN SE REVISA.
+  // (v2.6.329) EL CO2 TAMBIÉN SE REVISA.
   // Su consumo no se guarda como ingrediente del parte: se calcula al cerrar
   // (tiempo ÷ 3600 × caudal = litros). Por eso este aviso no lo miraba nunca y podías
   // vaciar una botella sin que nadie dijera nada. Los litros ya están en la unidad del
@@ -2405,7 +2405,7 @@ function _avisoStockInsuficiente(p){
       var _cSeg = parseFloat(p.co2.tiempo_seg) || 0;
       var _cCau = parseFloat(p.co2.caudal_lh)  || 0;
       if(_cSeg > 0 && _cCau > 0){
-        // (v2.6.328) El caudalímetro marca litros por MINUTO, no por hora. Contrastado
+        // (v2.6.329) El caudalímetro marca litros por MINUTO, no por hora. Contrastado
         // con el consumo real: una bombona (50 kg ≈ 25.450 L de gas) dura unas 65 cubas,
         // lo que da ~94 L/min con el aparato puesto en 100. Con la fórmula vieja (÷3600)
         // una bombona habría durado 3.665 cubas.
@@ -2439,11 +2439,11 @@ function _capturarAuxFermCuajoEnParte(p){
   function dosisUtil(dosis_1000L, nombre){
     // La dosis utilizada se redondea SIEMPRE al alza, al múltiplo de 5 más cercano por arriba
     // (p.ej. 9500 L × 15/1000 = 142,5 → 145). Aplica a fermentos, auxiliares y cuajo.
-    // (v2.6.328) La casilla "Dosis utilizada" es un TOTAL en gramos/ml, y así se
+    // (v2.6.329) La casilla "Dosis utilizada" es un TOTAL en gramos/ml, y así se
     // muestra en pantalla. Antes aquí se volvía a multiplicar por litros/1000, con
     // lo que escribir 150 en una cuba de 5500 L guardaba 825. Se respeta el número
     // tal cual lo escribió el quesero, sin redondear.
-    // (v2.6.328) Si el quesero cambió la DOSIS /1000L, el total se calcula con ella.
+    // (v2.6.329) Si el quesero cambió la DOSIS /1000L, el total se calcula con ella.
     if(nombre && ov1000 && ov1000.hasOwnProperty(nombre)){
       return _redondeaAlza5(litros * (parseFloat(ov1000[nombre])||0) / 1000);
     }
@@ -2454,7 +2454,7 @@ function _capturarAuxFermCuajoEnParte(p){
     var d = parseFloat(dosis_1000L) || 0;
     return _redondeaAlza5(litros * d / 1000);
   }
-  // (v2.6.328) Reparto entre varios lotes: si el quesero repartió un ingrediente
+  // (v2.6.329) Reparto entre varios lotes: si el quesero repartió un ingrediente
   // entre dos lotes (porque se le acabó el primero), esa línea se convierte en
   // UNA LÍNEA POR LOTE, cada una con su lote y su cantidad real. El backend
   // descuenta línea a línea, así que cada lote pierde solo lo suyo.
@@ -2480,7 +2480,7 @@ function _capturarAuxFermCuajoEnParte(p){
     });
     return out.length ? out : [base];
   }
-  // (v2.6.328) Dosis /1000L que se REGISTRA en el parte. Si el quesero cambió la dosis
+  // (v2.6.329) Dosis /1000L que se REGISTRA en el parte. Si el quesero cambió la dosis
   // utilizada a mano, se guarda la dosis real (total/litros*1000) en vez de la de la
   // receta, para que el parte refleje lo que de verdad se echó. Si no la tocó, se
   // guarda la de la receta tal cual (sin recalcular, para no meter decimales por el
@@ -2576,7 +2576,7 @@ function _capturarAuxFermCuajoEnParte(p){
       unidad:        _uniConsumoDe(Lc.unidad),
       unidad_stock:  Lc.unidad || ''
     };
-    // (v2.6.328) Reparto del cuajo entre dos lotes. El backend solo admite UN cuajo
+    // (v2.6.329) Reparto del cuajo entre dos lotes. El backend solo admite UN cuajo
     // en el campo 'cuajo', así que la primera mitad va ahí y las demás en
     // 'cuajos_extra'. El backend las trata como líneas de CUAJO (misma categoría),
     // que es lo único que descuenta de la ficha correcta.
@@ -2741,7 +2741,7 @@ function aplicarBloqueoQuesero(p){
       el.onclick = function(){ abrirCandadoPin(p); };
     } else {
       el.removeAttribute('readonly'); el.classList.remove('campo-bloqueado');
-      // (v2.6.328) Los totales son CALCULADOS: siguen siendo de solo lectura aunque
+      // (v2.6.329) Los totales son CALCULADOS: siguen siendo de solo lectura aunque
       // el parte esté desbloqueado. Lo editable es la dosis /1000L.
       if(el.classList.contains('dosis-calc')) el.setAttribute('readonly','readonly');
       // La dosis /1000L vuelve a cerrarse: se abre solo al tocarla a propósito
@@ -3842,7 +3842,7 @@ function obtenerLoteActivo(producto){
   if(!producto) return null;
   // 1) Si el usuario seleccionó manualmente un lote para este producto, lo respetamos
   if(LOTES_ACTIVOS[producto]){
-    // (v2.6.328) PERO refrescando sus datos desde el stock actual. La copia guardada
+    // (v2.6.329) PERO refrescando sus datos desde el stock actual. La copia guardada
     // en la tablet se grabó cuando se eligió el lote y puede llevar meses ahí con
     // datos viejos: una caducidad corregida después en la ficha, un proveedor
     // cambiado, o —como pasó con el R-604— una fecha que en su día se leyó con un
@@ -3920,7 +3920,7 @@ function obtenerLotesDelProducto(producto){
 }
 
 function onDosisOverride(input){
-  // (v2.6.328) Si se escribe el TOTAL, manda el total: se olvida la dosis /1000L
+  // (v2.6.329) Si se escribe el TOTAL, manda el total: se olvida la dosis /1000L
   // que se hubiera puesto a mano, y la columna de dosis pasa a mostrarse calculada.
   try{
     var _pr = input ? (input.getAttribute('data-prod')||'') : '';
@@ -3945,7 +3945,7 @@ function onDosisOverride(input){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// (v2.6.328) DOSIS /1000L EFECTIVA
+// (v2.6.329) DOSIS /1000L EFECTIVA
 // Si el quesero cambia a mano la dosis utilizada, la columna "Dosis /1000L" tiene
 // que reflejar lo que REALMENTE se ha echado, no lo que dice la receta. Ejemplo:
 // receta 100 ml/1000L, cuba de 9000 L → propuesta 900 ml. Si echa 2250 ml, la dosis
@@ -3995,11 +3995,11 @@ function _setValOrText(el, v){
   else { el.textContent = String(v); }
 }
 
-// (v2.6.328) El quesero escribe la DOSIS /1000L. Manda sobre la receta y sobre un
+// (v2.6.329) El quesero escribe la DOSIS /1000L. Manda sobre la receta y sobre un
 // total escrito antes: al tocar esta casilla se borra el override del total para que
 // el total se recalcule (litros × dosis / 1000). Es el sentido natural: la dosis es
 // el dato que se conoce, el total es la consecuencia.
-// (v2.6.328) La dosis /1000L nace en SOLO LECTURA: así el cursor no se planta ahí
+// (v2.6.329) La dosis /1000L nace en SOLO LECTURA: así el cursor no se planta ahí
 // solo, no salta el teclado al pasar por encima, y no se cambia sin querer una dosis
 // de receta que casi nunca hay que tocar. Al tocarla a propósito se abre y se escribe.
 function _editarDosisBase(el){
@@ -4089,7 +4089,7 @@ function calcularDosis(){
     }
     // Si el quesero escribió a mano la dosis utilizada (override), ese valor ES el total
     // directo que se muestra en la casilla (no se recalcula por litros). Si no, propuesta = litros×dosis/1000.
-    // (v2.6.328) La DOSIS /1000L es el dato maestro: el total se calcula siempre.
+    // (v2.6.329) La DOSIS /1000L es el dato maestro: el total se calcula siempre.
     // Si un parte antiguo traía un total escrito a mano, se convierte a su dosis
     // equivalente para no perder el dato y que el total salga igual.
     if(!parteActual.dosis1000_override) parteActual.dosis1000_override = {};
@@ -4155,7 +4155,7 @@ function calcCO2(){
   var detEl   = document.getElementById('co2-formula-detalle');
   if (!el) return;
 
-  // (v2.6.328) Si el quesero ha escrito el tiempo A MANO, la fórmula NO lo pisa.
+  // (v2.6.329) Si el quesero ha escrito el tiempo A MANO, la fórmula NO lo pisa.
   // En las cubas de oveja el quesero casi nunca echa lo que dice la regla, así que
   // el valor manual es lo normal. La fórmula se sigue mostrando como referencia.
   var esManual = !!(parteActual && parteActual.co2_tiempo_manual);
@@ -4187,7 +4187,7 @@ function calcCO2(){
 
 // El quesero escribe el tiempo de CO2 a mano: se marca como manual para que la
 // fórmula no lo sobrescriba cuando luego se corrijan litros, pH o caudal.
-// (v2.6.328) IMPORTANTE: la marca se pone SIEMPRE, incluso si el campo queda
+// (v2.6.329) IMPORTANTE: la marca se pone SIEMPRE, incluso si el campo queda
 // vacío. Antes, al vaciarlo se volvía al cálculo automático, y eso hacía que
 // borrando el último dígito reaparecieran los tres de golpe: no se podía
 // reescribir el número. Para volver al automático está el enlace explícito.
@@ -4338,7 +4338,7 @@ function abrirSelectorLote(producto){
   if(stock.length===0){
     h+='<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">No hay lotes activos de '+producto+' en stock.<br>Calidad debe registrar un albarán de entrada desde TraceQueso.</div></div>';
   } else {
-    // (v2.6.328) Opción de repartir la dosis entre dos lotes, para cuando el lote
+    // (v2.6.329) Opción de repartir la dosis entre dos lotes, para cuando el lote
     // en uso se agota a mitad de cuba y hay que completar con el siguiente.
     h+='<div class="opt-row" onclick="abrirRepartoLotes(\''+_escQ(producto)+'\')" style="background:#e8f4ff;border-left:4px solid var(--blue)">'
       +'<div class="opt-row-info">'
@@ -4347,7 +4347,7 @@ function abrirSelectorLote(producto){
       +'</div>'
       +'</div>';
     h+='<div style="margin-bottom:8px;margin-top:10px;font-size:0.8rem;color:var(--text2)">O usar un solo lote (ordenados por caducidad, más antiguo primero):</div>';
-    // (v2.6.328) Las cantidades se muestran en gramos/mililitros, igual que en el
+    // (v2.6.329) Las cantidades se muestran en gramos/mililitros, igual que en el
     // reparto y que la dosis de la receta. Antes cada lote se mostraba en la unidad
     // de su propia ficha, así que un mismo producto salía en kg y en g a la vez, y
     // los kg arrastraban colas de decimales tipo 0.004999999999999005.
@@ -4391,7 +4391,7 @@ function seleccionarLote(producto,idx){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// REPARTO DE UN INGREDIENTE ENTRE VARIOS LOTES  (v2.6.328)
+// REPARTO DE UN INGREDIENTE ENTRE VARIOS LOTES  (v2.6.329)
 // ──────────────────────────────────────────────────────────────────────────
 // Caso real: la receta pide 330 g de un fermento y del lote en uso solo quedan
 // 150 g. El quesero gasta esos 150 y completa con el lote siguiente. Los DOS
@@ -4443,7 +4443,7 @@ function _repartoTexto(rep){
   return rep.map(function(r){ return r.lote + ' (' + r.cantidad + ')'; }).join(' + ');
 }
 
-// (v2.6.328) Caducidades de los lotes del reparto, en el MISMO ORDEN que salen los
+// (v2.6.329) Caducidades de los lotes del reparto, en el MISMO ORDEN que salen los
 // lotes en su casilla, para que se lean emparejadas. Cada línea del reparto guarda
 // su propia caducidad, así que el parte queda completo también en trazabilidad.
 function _repartoCaducidades(rep){
@@ -4485,7 +4485,7 @@ function abrirRepartoLotes(producto){
     l1 = rep[1] ? rep[1].lote : '';
     c1 = rep[1] ? rep[1].cantidad : 0;
   } else {
-    // (v2.6.328) Reparto por defecto: MITAD Y MITAD.
+    // (v2.6.329) Reparto por defecto: MITAD Y MITAD.
     // No se calcula desde el stock a propósito. En la práctica el quesero echa
     // siempre algún gramo de más en cada cuba, así que al llegar el cambio real de
     // bote el stock de la app todavía dice que queda fermento de sobra. Fiarse de
@@ -4529,7 +4529,7 @@ function abrirRepartoLotes(producto){
     return o;
   }
 
-  // (v2.6.328) OJO: aquí había un 'var uni = lotes[0].unidad' que pisaba la unidad
+  // (v2.6.329) OJO: aquí había un 'var uni = lotes[0].unidad' que pisaba la unidad
   // buena calculada arriba con _uniBase(). Como las cantidades ya se muestran
   // convertidas a gramos/mililitros, la etiqueta tomaba la unidad de la ficha del
   // primer lote (kg) y salía "5000 kg" donde son 5000 g. NO volver a declarar 'uni'.
@@ -4568,7 +4568,7 @@ function abrirRepartoLotes(producto){
 // Redondeo a 3 decimales para que no salgan colas de coma flotante (330-150=180, no 179.9999)
 function _round3(n){ return Math.round((parseFloat(n)||0) * 1000) / 1000; }
 
-// (v2.6.328) La dosis de la receta SIEMPRE está en gramos o mililitros. El stock,
+// (v2.6.329) La dosis de la receta SIEMPRE está en gramos o mililitros. El stock,
 // en cambio, puede estar dado de alta en g, kg, ml o L (incluso dos lotes del mismo
 // artículo con unidades distintas). Estas dos funciones ponen todo en la unidad de
 // la dosis para poder comparar y para no mostrar cosas como "quedan 0.004999 kg".
@@ -4589,7 +4589,7 @@ function _stockBase(s){
   return _round3(q);
 }
 
-// (v2.6.328) Al cambiar la cantidad del lote viejo, la del lote nuevo se recalcula
+// (v2.6.329) Al cambiar la cantidad del lote viejo, la del lote nuevo se recalcula
 // sola para completar la dosis de la receta. Sigue siendo editable a mano: si el
 // quesero apuró el bote y echó de más, puede tocar la segunda y no se le pisa.
 function _repAjustaSegundo(producto){
@@ -5069,7 +5069,10 @@ function renderPartes(){
     var totalPzas=0;if(p.piezas)Object.keys(p.piezas).forEach(function(k){totalPzas+=(p.piezas[k]||0);});
     var badgeRev = _esRevisadaOficial(p) ? '<span style="background:var(--greenl);color:var(--green);border:1px solid var(--green2);border-radius:10px;padding:1px 7px;font-size:0.62rem;font-weight:700;margin-left:6px">✓ CALIDAD</span>' : '';
     var fmtTxt = _formatosDeParte(p);
-    var fmtBadge = fmtTxt ? '<span style="color:var(--text3);font-weight:600"> · '+fmtTxt+'</span>' : '';
+    // (v2.6.329) El formato (3 kg, 1 kg + Gigante) iba en gris claro y en pantalla de
+// ordenador se perdía. El historial se revisa a final de día en el PC, no en tablet,
+// así que aquí manda la legibilidad en pantalla grande: azul marino oscuro.
+    var fmtBadge = fmtTxt ? '<span style="color:#123a5e;font-weight:800"> · '+fmtTxt+'</span>' : '';
     h+='<div class="parte-item" onclick="verParteHist(\''+p.id+'\')"><div class="parte-item-top"><div class="parte-item-tipo">'+p.tipo+(p.variedad?' · '+p.variedad:'')+fmtBadge+badgeRev+'<span style="font-weight:800;color:var(--brand);margin-left:6px">'+(p.litros||0)+' L</span></div><div class="parte-item-badge">'+_badgeCubaFisica(p)+'</div></div><div class="parte-item-meta">'+totalPzas+' pzas · '+(p.operario||'—')+'</div></div>';
   });
   c.innerHTML=h;
@@ -5078,7 +5081,7 @@ function renderPartes(){
 // Ver un parte del HISTORIAL con la MISMA vista del editor, pero en modo lectura.
 // Reutiliza editarParteCompleto(id, true). Si faltan ingredientes (viene del
 // histórico de Sheets), los pide primero y luego abre, igual que verParte.
-// (v2.6.328) En el historial, la etiqueta de la derecha muestra la CUBA FÍSICA:
+// (v2.6.329) En el historial, la etiqueta de la derecha muestra la CUBA FÍSICA:
 // el orden en el que se hicieron ya lo da la propia lista (van en orden), así que
 // ese hueco es más útil diciendo en qué cuba de la fábrica se elaboró cada una.
 // Si un parte no tiene cuba física apuntada, se enseña la cronológica para no dejar
@@ -7393,7 +7396,7 @@ function eliminarReceta(id){
 function fechaISO(v){
   if(!v) return '';
   if(typeof v === 'string'){
-    // (v2.6.328) Si la celda de Google es una FECHA de verdad (no texto), llega como
+    // (v2.6.329) Si la celda de Google es una FECHA de verdad (no texto), llega como
     // instante en UTC: la medianoche del 24/04/2028 en Madrid es 2028-04-23T22:00:00Z.
     // Antes se cogían los diez primeros caracteres y salía el día ANTERIOR (el 23).
     // Cuando el texto trae hora, hay que interpretarlo como instante y quedarse con
@@ -7979,7 +7982,7 @@ function _validarParteCompleto(p){
       var dosis = parseFloat(x&&(x.consumo_total!=null?x.consumo_total:x.dosis_utilizada))||0;
       return nombre && dosis>0 && _esFermentoExcluyente(nombre);
     }).map(function(x){ return x.nombre; });
-    // (v2.6.328) Un mismo fermento puede aparecer en DOS líneas si se repartió entre
+    // (v2.6.329) Un mismo fermento puede aparecer en DOS líneas si se repartió entre
     // dos lotes. Eso no son dos fermentos excluyentes distintos: se cuentan los
     // nombres SIN repetir para no dar un aviso falso.
     exclConDosis = exclConDosis.filter(function(n, i){ return exclConDosis.indexOf(n) === i; });
@@ -8223,7 +8226,7 @@ function _limpiarCO2Receta(r){
 var STOCK_REMOTO = { stock: [], entradas: [], salidas: [] };
 
 // ══════════════════════════════════════════════════════════════════════════
-// (v2.6.328) CACHÉ LOCAL DE LA LISTA DE LOTES
+// (v2.6.329) CACHÉ LOCAL DE LA LISTA DE LOTES
 // ──────────────────────────────────────────────────────────────────────────
 // Antes, la lista de lotes empezaba VACÍA en cada arranque y solo se llenaba
 // cuando llegaba la respuesta del servidor. En esa ventana —o directamente sin
@@ -8422,7 +8425,7 @@ if('serviceWorker' in navigator){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// (v2.6.328) CERRAR EL CÍRCULO — LLEGAR DIRECTO A UN PARTE
+// (v2.6.329) CERRAR EL CÍRCULO — LLEGAR DIRECTO A UN PARTE
 // ──────────────────────────────────────────────────────────────────────────
 // Desde Material auxiliar (index.html) se pincha un consumo y se aterriza aquí,
 // en el parte de fabricación que lo generó. La llamada es:
@@ -8435,7 +8438,7 @@ if('serviceWorker' in navigator){
 // La dirección se limpia nada más entrar: así, si recargas la página, no vuelve a
 // saltar al parte y te quedas donde estabas.
 // ══════════════════════════════════════════════════════════════════════════
-// (v2.6.328) Botón para volver a la ficha de material auxiliar de la que se vino.
+// (v2.6.329) Botón para volver a la ficha de material auxiliar de la que se vino.
 // Solo aparece si se ha llegado aquí pinchando un consumo. Index guarda la sesión
 // y la ficha, así que al volver no pide el PIN ni hay que rehacer el camino.
 function _mostrarBotonVolverMatAux(){
