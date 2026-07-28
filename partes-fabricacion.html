@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.329</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.330</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2045,8 +2045,13 @@ function autoGuardarParte(parteId){
   if (window._cargandoForm) return;
   var p = PARTES.find(function(x){return x.id===parteId;});
   if(!p) return;
-  // Solo guardar en el parte si la cuba actualmente visible es ese parteId
-  if (CUBA_ACTIVA_ID && CUBA_ACTIVA_ID !== parteId) return;
+  // Solo guardar en el parte si la cuba actualmente visible es ese parteId.
+  // (v2.6.330) Antes ponía "if (CUBA_ACTIVA_ID && ...)": cuando NO había ninguna
+  // cuba abierta —justo después de cerrar un parte, que deja CUBA_ACTIVA_ID en
+  // null y vacía el panel— la guarda no saltaba, y un autoguardado pendiente de
+  // otra cuba escribía la pantalla VACÍA encima: litros a 0, pH, temperatura,
+  // tanques y cuba física en blanco. Sin cuba visible no hay nada que guardar.
+  if (CUBA_ACTIVA_ID !== parteId) return;
   var varDOM = document.getElementById('np-var-sel') ? document.getElementById('np-var-sel').value : '(no existe)';
   function g(id){var el=document.getElementById(id); return el?el.value:'';}
   function gn(id){return parseFloat(String(g(id)).replace(',','.'))||0;}
@@ -3492,14 +3497,23 @@ function onTipoSelChange(){
 }
 
 function onVarSelChange(){
-  setTimeout(function(){ try{ calcPasteurizacion(); refrescarPestanaCubaActiva();
-    // Actualizar sticky bar con tipo·variedad nuevo
+  setTimeout(function(){ try{ calcPasteurizacion();
+    // (v2.6.330) AQUÍ ESTABA LA FUGA DEL TIPO Y LA VARIEDAD.
+    // Antes, justo debajo, se hacía esto:
+    //     p.tipo     = document.getElementById('np-tipo-sel').value;
+    //     p.variedad = document.getElementById('np-var-sel').value;
+    // sin ninguna de las dos protecciones que sí tienen autoGuardarParte() y
+    // refrescarPestanaCubaActiva(): ni saltarse la escritura mientras se está
+    // cargando el formulario, ni comprobar que el desplegable tenga valor.
+    // Y como rellenarCampos() llama a onVarSelChange() CADA VEZ que se abre una
+    // cuba, bastaba con cambiar de pestaña o cerrar un parte en el instante malo
+    // —mientras onTipoSelChange() regenera el desplegable de variedad y está
+    // vacío— para que el tipo y la variedad de otra cuba se quedaran en blanco.
+    // refrescarPestanaCubaActiva() ya guarda tipo/variedad, y lo hace bien.
+    // Aquí solo queda refrescar la barra de arriba.
+    refrescarPestanaCubaActiva();
     var p = PARTES.find(function(x){return x.id===CUBA_ACTIVA_ID;});
-    if(p){
-      p.tipo = document.getElementById('np-tipo-sel').value;
-      p.variedad = document.getElementById('np-var-sel').value;
-      actualizarCubaStickyBar(p);
-    }
+    if(p) actualizarCubaStickyBar(p);
 }catch(e){} }, 60);
   var t=document.getElementById('np-tipo-sel').value;
   var v=document.getElementById('np-var-sel').value;
