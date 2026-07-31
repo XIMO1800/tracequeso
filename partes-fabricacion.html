@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.332</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.333</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4732,6 +4732,24 @@ function guardarRepartoLotes(producto){
     parteActual.lotes_seleccionados[producto] = out[0].lote;
   } else {
     parteActual.reparto_lotes[producto] = out;
+    // (v2.6.333) UN REPARTO TAMBIÉN ES UN CAMBIO DE LOTE.
+    // Repartir entre dos lotes significa que el primero se ha AGOTADO a mitad de
+    // la cuba y se ha continuado con el segundo. A partir de ahí el lote activo
+    // es el SEGUNDO. Antes esto solo se apuntaba en el cambio simple, así que la
+    // cuba siguiente volvía a proponer el lote viejo —el que ya no queda— y había
+    // que repetir el cambio a mano en cada parte.
+    // Se toca solo LOTES_ACTIVOS, que es lo que se consulta para PROPONER el lote
+    // en las cubas siguientes. El reparto de ESTA cuba se queda como está.
+    var _ultimo = out[out.length - 1];
+    if (_ultimo && _ultimo.lote) {
+      LOTES_ACTIVOS[producto] = {
+        lote:      _ultimo.lote,
+        caducidad: _ultimo.caducidad,
+        proveedor: _ultimo.proveedor,
+        cantidad:  null,
+        unidad:    _ultimo.unidad
+      };
+    }
   }
 
   persistir();
