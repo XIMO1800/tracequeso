@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.331</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.332</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1708,6 +1708,28 @@ function rellenarCampos(p){
   v('np-fecha', p.fecha);
   v('np-cuba-fisica', p.cuba_fisica || '');
   v('np-litros', p.litros);
+  // (v2.6.332) RECALCULAR LAS DOSIS AL ABRIR LA CUBA.
+  // La dosis utilizada solo se calculaba al TECLEAR en el campo de litros
+  // (oninput). Si los litros ya venían guardados —que es lo normal cuando se
+  // preparan las cabeceras de las cinco cubas a primera hora y luego se van
+  // rellenando una a una— la columna "dosis utilizada" aparecía vacía, y había
+  // que borrar un cero y volver a escribirlo para que saliera.
+  // Se reintenta en vez de llamar una sola vez porque la receta tarda en estar
+  // lista: el tipo y la variedad se colocan de forma asíncrona y las recetas
+  // vienen de Google.
+  // Es seguro repetirlo: calcularDosis() respeta las dosis escritas a mano
+  // (dosis_override) y no toca un campo que se esté escribiendo en ese momento.
+  (function(){
+    var _idCuba = p.id, _int = 0;
+    (function _reintentaDosis(){
+      _int++;
+      if (CUBA_ACTIVA_ID !== _idCuba) return;   // se ha cambiado de cuba: no tocar nada
+      try{
+        if (parteActual && parteActual.receta) { calcularDosis(); return; }
+      }catch(e){}
+      if (_int < 25) setTimeout(_reintentaDosis, 100);
+    })();
+  })();
   setTimeout(function(){ try{ comprobarCapacidadCuba(); }catch(e){} try{ _activarAvisosPh(); }catch(e){} try{ _activarHorasTexto(); }catch(e){} }, 50);
   // Operario: poblar select con el valor del parte o el actual
   poblarSelectOperario(p.operario || OPERARIO_ACTUAL);
