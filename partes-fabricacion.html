@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.330</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.331</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -886,8 +886,12 @@ input[type="email"] {
   <!-- Firma rápida: aplica una firma a TODOS los partes de hoy de una vez -->
   <div id="firmar-todos-wrap" style="padding:14px 12px 30px">
     <div id="firmar-todos-titulo" style="font-size:0.78rem;color:var(--text3);text-align:center;margin-bottom:8px">Firmar todos los partes de hoy de una vez</div>
-    <button id="btn-firmar-todos-sala" class="btn-firmar-sala" onclick="firmarTodosHoy('sala')">✍️ Firmar todos (operario de sala)</button>
+    <!-- (v2.6.331) MISMO ORDEN QUE LOS BOTONES DE FIRMA DE ARRIBA: quesero a la
+         izquierda y operario de sala a la derecha. Estaban al revés y se cruzaban
+         los cables al firmar los cinco partes de golpe. Cada botón conserva su
+         color (quesero ámbar, sala lila), que es lo que identifica el rol. -->
     <button id="btn-firmar-todos-quesero" class="btn-firmar-quesero" onclick="firmarTodosHoy('quesero')">✍️ Firmar todos (quesero)</button>
+    <button id="btn-firmar-todos-sala" class="btn-firmar-sala" onclick="firmarTodosHoy('sala')">✍️ Firmar todos (operario de sala)</button>
   </div>
 
   <!-- Mantenimiento: un único botón de seguridad, por si la pantalla se descuadra -->
