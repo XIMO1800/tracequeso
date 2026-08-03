@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.333</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.334</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1694,12 +1694,22 @@ function cargarFormularioEnPanel(p){
   setTimeout(function(){
     rellenarCampos(p);
     installAutoSave(p.id);
-    // Desactivar bandera DESPUÉS de que todos los setTimeout internos de
-    // rellenarCampos hayan terminado. La variedad se pone con reintentos que
-    // pueden llegar a ~1s (hasta 20×50ms) cuando el dropdown tarda en generarse;
-    // 400ms se quedaba corto y dejaba una ventana en la que un autoSave pisaba
-    // el tipo/variedad. 1200ms cubre el peor caso con holgura.
-    setTimeout(function(){ window._cargandoForm = false; }, 1200);
+    // (v2.6.334) LA BANDERA SE BAJA CUANDO LA CARGA HA TERMINADO DE VERDAD,
+    // no a los 1200 ms a ciegas. rellenarCampos() coloca la variedad con
+    // reintentos: espera 80 ms y luego hasta 20 intentos cada 50 ms, o sea que
+    // puede acabar pasado el segundo. Si el dropdown tarda —y tarda más cuando se
+    // acaba de cerrar un parte y el navegador está ocupado— la bandera ya estaba
+    // baja y un autoguardado pisaba el tipo y la variedad con el desplegable
+    // todavía vacío. Ese es el motivo de que "se vayan" al volver a la cuba.
+    // Ahora rellenarCampos() avisa al terminar (_cargaFormListo) y aquí solo
+    // queda una red de seguridad por si algo fallara.
+    window._cargaFormToken = (window._cargaFormToken||0) + 1;
+    var _tok = window._cargaFormToken;
+    window._cargaFormListo = function(){
+      if(_tok !== window._cargaFormToken) return;   // ya se abrió otra cuba
+      window._cargandoForm = false;
+    };
+    setTimeout(function(){ if(_tok===window._cargaFormToken) window._cargandoForm=false; }, 4000);
   }, 50);
 }
 
@@ -1742,6 +1752,10 @@ function rellenarCampos(p){
   v('np-tanque-cabra', p.tanque_cabra);
   v('np-tanque-oveja', p.tanque_oveja);
   // Tipo y variedad
+  if(!p.tipo){
+    // Sin tipo no hay nada asíncrono que esperar: se abre la mano enseguida.
+    setTimeout(function(){ try{ if(window._cargaFormListo) window._cargaFormListo(); }catch(e){} }, 200);
+  }
   if(p.tipo){
     var ts = document.getElementById('np-tipo-sel');
     if(ts){ ts.value=p.tipo; onTipoSelChange(); }
@@ -1774,13 +1788,21 @@ function rellenarCampos(p){
             }catch(e){}
           }, 60);
           setTimeout(function(){ try{ refrescarPestanaCubaActiva(); }catch(e){} }, 50);
+          // Variedad colocada: la carga ha terminado. Se deja un margen para que
+          // los setTimeout de dentro (60 ms y 50 ms) acaben antes de abrir la mano.
+          setTimeout(function(){ try{ if(window._cargaFormListo) window._cargaFormListo(); }catch(e){} }, 300);
         } else if (intentos < 20) {
           setTimeout(intentarPonerVariedad, 50);
+        } else {
+          // Agotados los intentos: la variedad no existe en el desplegable. Se
+          // abre la mano igual, pero sin haberla podido poner.
+          setTimeout(function(){ try{ if(window._cargaFormListo) window._cargaFormListo(); }catch(e){} }, 100);
         }
       }
       setTimeout(intentarPonerVariedad, 80);
     } else {
       setTimeout(function(){ try{ refrescarPestanaCubaActiva(); }catch(e){} }, 100);
+      setTimeout(function(){ try{ if(window._cargaFormListo) window._cargaFormListo(); }catch(e){} }, 250);
     }
   }
   // Pasteurización
@@ -2091,7 +2113,18 @@ function autoGuardarParte(parteId){
   var _tDom = document.getElementById('np-tipo-sel') ? document.getElementById('np-tipo-sel').value : '';
   var _vDom = document.getElementById('np-var-sel')  ? document.getElementById('np-var-sel').value  : '';
   if (_tDom) p.tipo = _tDom;
-  if (_vDom) p.variedad = _vDom;
+  // (v2.6.334) SEGUNDA PROTECCIÓN PARA LA VARIEDAD.
+  // Comprobar que no está vacía no basta. Cuando se abre una cuba,
+  // onTipoSelChange() REGENERA el desplegable de variedades y, hasta que el
+  // reintento coloca la buena, queda seleccionada la PRIMERA de la lista, que es
+  // un valor distinto pero no vacío. Un autoguardado en ese instante escribía esa
+  // variedad equivocada encima de la buena.
+  // Regla: si el parte ya tiene variedad guardada y el desplegable marca otra
+  // mientras se está cargando, manda la guardada. Fuera de la carga, el cambio es
+  // del usuario y sí se respeta.
+  if (_vDom) {
+    if (!window._cargandoForm || !p.variedad || _vDom === p.variedad) p.variedad = _vDom;
+  }
   p.litros = gn('np-litros');
   p.lvaca = gn('np-lvaca'); p.lcabra = gn('np-lcabra'); p.loveja = gn('np-loveja');
   p.ph = g('np-ph'); p.temp = g('np-temp'); p.dornic_leche = g('np-dornic');
