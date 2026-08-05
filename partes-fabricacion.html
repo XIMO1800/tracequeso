@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.334</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.335</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3059,8 +3059,32 @@ function toggleSec(id){var b=document.getElementById('body-'+id);var c=document.
 function poblarSelectTipos(){
   var selT=document.getElementById('np-tipo-sel');
   if(!selT)return;
+  // (v2.6.335) AQUÍ ESTABA LA FUGA DEL TIPO, Y NO ERA UNA CARRERA DE TIEMPOS.
+  // Esta función BORRA y regenera el desplegable de tipos, con lo que el valor
+  // seleccionado se pierde. Y se llama desde cargarRecetasSheets(), que se
+  // dispara 2,5 s DESPUÉS DE CERRAR UN PARTE para refrescar stock y recetas.
+  // O sea: cierras la cuba 1, te vas a la 2, y a los pocos segundos llegan las
+  // recetas de Google y te vacían el «Tipo» de la cuba que estás mirando. Por eso
+  // se perdía al tocar Pasteurización: no lo causaba ese toque, es que para
+  // entonces ya había llegado la respuesta.
+  // Solución: guardar lo que hay seleccionado y volver a ponerlo al terminar.
+  var _sel = selT.value;
   selT.innerHTML='<option value="">— Tipo —</option>';
   Object.keys(TIPOS_VARIEDADES).forEach(function(t){var o=document.createElement('option');o.value=t;o.textContent=t;selT.appendChild(o);});
+  if(_sel){
+    selT.value=_sel;
+    // Si el tipo ya no existe en las recetas nuevas, se recupera del parte abierto
+    // para no dejar el campo en blanco.
+    if(selT.value!==_sel){
+      try{
+        var _p=PARTES.find(function(x){return x.id===CUBA_ACTIVA_ID;});
+        if(_p && _p.tipo){
+          var _o=document.createElement('option'); _o.value=_p.tipo; _o.textContent=_p.tipo;
+          selT.appendChild(_o); selT.value=_p.tipo;
+        }
+      }catch(e){}
+    }
+  }
 }
 
 function poblarFiltroTipos(){}
@@ -3539,6 +3563,13 @@ function onTipoSelChange(){
   var selV=document.getElementById('np-var-sel');
   selV.innerHTML='<option value="">— Variedad —</option>';
   if(!t){selV.disabled=true;document.getElementById('np-tipo').value='';onTipoChange();return;}
+  // (v2.6.335) Guardar la variedad seleccionada ANTES de regenerar la lista, para
+  // volver a ponerla al final. Esta función se llama en sitios que no son un
+  // cambio de tipo del usuario (recarga de recetas, carga de cuba), y sin esto la
+  // variedad se perdía aunque el tipo se conservara.
+  var _selV = selV.value || (function(){
+    try{ var _p=PARTES.find(function(x){return x.id===CUBA_ACTIVA_ID;}); return _p?(_p.variedad||''):''; }catch(e){ return ''; }
+  })();
   var vars=TIPOS_VARIEDADES[t]||[];
   if(vars.length===0){
     selV.innerHTML='<option value="">(sin variedad)</option>';
@@ -3550,6 +3581,8 @@ function onTipoSelChange(){
   }
   vars.forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v;selV.appendChild(o);});
   selV.disabled=false;
+  // Restaurar la variedad que había, si sigue existiendo para este tipo.
+  if(_selV){ selV.value=_selV; }
   document.getElementById('np-tipo').value='';
   onTipoChange();
   refrescarPestanaCubaActiva();
