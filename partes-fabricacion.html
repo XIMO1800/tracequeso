@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.335</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.336</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4082,7 +4082,14 @@ function _pintaDosisBase(key, base, total, litrosV, esOverride, nombre){
     el.title = (Math.abs((parseFloat(d1)||0) - b) > 0.005) ? ('Receta: ' + b + ' — cambiado a mano') : '';
     return;
   }
-  if(esOverride){
+  // (v2.6.336) LOS SOBRES TA-054 NO SE RECALCULAN.
+  // En el resto de productos la "dosis utilizada" son mililitros, así que si el
+  // quesero cambia el total tiene sentido recalcular la dosis/1000L a partir de
+  // él. Pero en los TA-054 la casilla son DOSIS de sobre, no ml: echar un sobre
+  // de 25 son 25 dosis, y hacer 25/3000×1000 daba 8,33, un número sin sentido.
+  // La dosis/1000L de un sobre es un dato fijo de la receta (20 para el de 50,
+  // 8,33 para el de 25) y no cambia porque se eche uno más o uno menos.
+  if(esOverride && !_sobreFermento(nombre)){
     var ef = _dosisEfectiva(total, litrosV, b);
     if(Math.abs(ef - b) > 0.005){
       _setValOrText(el, ef);
