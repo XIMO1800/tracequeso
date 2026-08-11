@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.336</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.337</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4188,16 +4188,23 @@ function calcularDosis(){
     // Si es un sobre TA-054, el reparto es solo una PROPUESTA inicial.
     // Si el quesero ya escribió un valor a mano (override), se respeta y NO se machaca.
     if(repTA && nombresTA.hasOwnProperty(p.nombre)){
+      // (v2.6.337) AQUÍ ESTABA EL FALLO DEL 8,33, Y NO ERA DONDE MIRÉ ANTES.
+      // Estas dos llamadas a _pintaDosisBase() NO pasaban el 'nombre' del producto.
+      // Sin nombre, la guarda que puse en la v2.6.336 —"si es un sobre, no
+      // recalcules"— no puede saber que es un sobre, así que no salta y la
+      // dosis/1000L se recalcula como 25/3000×1000 = 8,33.
+      // Pasando el nombre, la guarda funciona y la dosis/1000L se queda en la de
+      // la receta (10 para el sobre de 25).
       if(parteActual.dosis_override.hasOwnProperty(p.nombre)){
         // El quesero lo editó: dejar su valor tal cual (no tocar el input)
-        _pintaDosisBase(key, p.dosis_ml_1000L, parteActual.dosis_override[p.nombre], litros, true);
+        _pintaDosisBase(key, p.dosis_ml_1000L, parteActual.dosis_override[p.nombre], litros, true, p.nombre);
         return;
       }
       var val = nombresTA[p.nombre];
       // No reescribir el campo si lo estás editando (tablet: el foco se pierde y machaca lo escrito)
       if(el.tagName==='INPUT'){ if(document.activeElement!==el) el.value = litros>0 ? String(val) : ''; }
       else el.textContent = litros>0 ? String(val) : '—';
-      _pintaDosisBase(key, p.dosis_ml_1000L, val, litros, false);
+      _pintaDosisBase(key, p.dosis_ml_1000L, val, litros, false, p.nombre);
       return;
     }
     // Si el quesero escribió a mano la dosis utilizada (override), ese valor ES el total
