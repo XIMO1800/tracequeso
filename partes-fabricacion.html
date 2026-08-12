@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.337</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.338</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1729,15 +1729,52 @@ function rellenarCampos(p){
   // vienen de Google.
   // Es seguro repetirlo: calcularDosis() respeta las dosis escritas a mano
   // (dosis_override) y no toca un campo que se esté escribiendo en ese momento.
+  // (v2.6.338) AQUÍ ESTABA LO DEL CLORURO QUE NO SALE HASTA PINCHAR DOS VECES.
+  // El reintento esperaba a que EXISTIERA una receta y entonces calculaba. Pero al
+  // abrir la cuba siguiente, parteActual.receta todavía contiene LA RECETA DE LA
+  // CUBA ANTERIOR: no está vacía, así que la condición se cumplía al primer
+  // intento, calculaba con la receta equivocada y se rendía. Cuando después
+  // llegaba la receta correcta, ya no había nadie recalculando.
+  // Por eso al pinchar otra pestaña y volver sí salía: para entonces la receta ya
+  // era la buena desde el principio.
+  // Ahora se comprueba que la receta sea LA DE ESTA CUBA (mismo tipo y variedad)
+  // y que haya litros. Y al final se da una pasada de confirmación, porque tras
+  // cerrar un parte el navegador va cargado y todo llega más tarde.
   (function(){
     var _idCuba = p.id, _int = 0;
+    var _t = String(p.tipo||'').toUpperCase().trim();
+    var _v = String(p.variedad||'').toUpperCase().trim();
+    function _recetaEsDeEstaCuba(){
+      if (!parteActual || !parteActual.receta) return false;
+      if (!_t) return true;                     // sin tipo no hay nada que comparar
+      var rt = String(parteActual.receta.tipo||'').toUpperCase().trim();
+      if (rt !== _t) return false;
+      if (!_v) return true;
+      var rv = String(parteActual.receta.variedad||'').toUpperCase().trim();
+      return rv === _v;
+    }
+    function _hayLitros(){
+      try{
+        var e=document.getElementById('np-litros');
+        return e ? ((parseFloat(String(e.value).replace(',','.'))||0) > 0) : false;
+      }catch(_){ return false; }
+    }
     (function _reintentaDosis(){
       _int++;
       if (CUBA_ACTIVA_ID !== _idCuba) return;   // se ha cambiado de cuba: no tocar nada
       try{
-        if (parteActual && parteActual.receta) { calcularDosis(); return; }
+        if (_recetaEsDeEstaCuba() && _hayLitros()) {
+          calcularDosis();
+          // Pasada de confirmación: si algo llegó con retraso, se recalcula. Es
+          // seguro repetirlo (calcularDosis respeta las dosis puestas a mano).
+          setTimeout(function(){
+            if (CUBA_ACTIVA_ID !== _idCuba) return;
+            try{ if (_recetaEsDeEstaCuba()) calcularDosis(); }catch(_){}
+          }, 500);
+          return;
+        }
       }catch(e){}
-      if (_int < 25) setTimeout(_reintentaDosis, 100);
+      if (_int < 40) setTimeout(_reintentaDosis, 100);
     })();
   })();
   setTimeout(function(){ try{ comprobarCapacidadCuba(); }catch(e){} try{ _activarAvisosPh(); }catch(e){} try{ _activarHorasTexto(); }catch(e){} }, 50);
