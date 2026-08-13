@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.347</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.348</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -5207,6 +5207,7 @@ function _lavadosDelDia(fecha){
       res.push({cuba:orden, fisica:String(p.cuba_fisica||'').trim(), hi:hi,
                 hf:String(ds.lavado_hf||'').trim(), ref:ref,
                 litros:parseFloat(String(p.litros||'').replace(',','.'))||0,
+                formato:String((p.desmoldeo&&p.desmoldeo.formato)||'').trim(),
                 temp:ds.lavado_temp||'', tipo:String(p.tipo||'').trim(),
                 variedad:String(p.variedad||'').trim()});
     });
@@ -5261,6 +5262,16 @@ function _htmlGraficaPasteur(D){
   }
   // Marco exterior, como el del papel
   sv.push('<rect x="'+ML+'" y="'+MT+'" width="'+(W-ML-MR)+'" height="'+(H-MT-MB)+'" fill="none" stroke="#7a8ba8" stroke-width="1.4"/>');
+  // ══ (v2.6.348) PASTEURIZANDO SIN BACTOFUGADORA ══
+  // Franja roja rayada sobre el tramo afectado. Los saltitos de la línea azul son
+  // las descargas de la bactofugadora cada cuarto de hora; si falta, desaparecen.
+  // Aquí queda marcado sin tener que ir buscándolos.
+  (D.sinBacto||[]).forEach(function(b4){
+    var x1=X(b4.t1), x2=X(b4.t2);
+    sv.push('<rect x="'+x1.toFixed(1)+'" y="'+MT+'" width="'+Math.max(3,(x2-x1)).toFixed(1)+'" height="'+(H-MT-MB)+'" fill="rgba(200,40,40,0.10)" stroke="#c02828" stroke-width="1.2" stroke-dasharray="5,4"/>');
+    sv.push('<text x="'+((x1+x2)/2).toFixed(1)+'" y="'+(H-MB-8)+'" font-size="11" font-weight="800" fill="#c02828" text-anchor="middle">SIN BACTOFUGADORA · '+b4.mins+' min</text>');
+  });
+
   // La línea de 80 °C: la referencia para juzgar las limpiezas
   sv.push('<line x1="'+ML+'" y1="'+Y(80).toFixed(1)+'" x2="'+(W-MR)+'" y2="'+Y(80).toFixed(1)+'" stroke="#8b1a1a" stroke-width="2" stroke-dasharray="9,5"/>');
   sv.push('<text x="'+(ML+5)+'" y="'+(Y(80)-6).toFixed(1)+'" font-size="12" font-weight="700" fill="#8b1a1a">80 °C</text>');
@@ -5335,6 +5346,7 @@ function _htmlGraficaPasteur(D){
       var frac = Ltot>0 ? (pt.litros||0)/Ltot : 1/res.length;
       var d1=acum, d2=acum+frac*Dtot; acum=d2;
       return {n:pt.cuba, tipo:pt.tipo, variedad:pt.variedad||'',
+              formato:pt.formato||'', litros:pt.litros||0,
               x1:_tiempoEnSegs(segs,d1), x2:_tiempoEnSegs(segs,d2)};
     });
   }
@@ -5368,7 +5380,12 @@ function _htmlGraficaPasteur(D){
       sv.push('<text x="'+cx.toFixed(1)+'" y="'+(MT+17)+'" font-size="12.5" font-weight="800" fill="#1f5fbf" text-anchor="middle" opacity=".92">'+c.n+'.'+c.tipo+'</text>');
       var vr=String(c.variedad||'').trim();
       if(vr && vr!=='—') sv.push('<text x="'+cx.toFixed(1)+'" y="'+(MT+31)+'" font-size="11" font-weight="700" fill="#1f5fbf" text-anchor="middle" opacity=".72">'+vr+'</text>');
-      if(k>0) sv.push('<line x1="'+X(c.x1).toFixed(1)+'" y1="'+(MT+4)+'" x2="'+X(c.x1).toFixed(1)+'" y2="'+(MT+35)+'" stroke="#1f5fbf" stroke-width="1.4" opacity=".55"/>');
+      // (v2.6.348) Tercera línea: formato y litros, más pequeño y sin negrita.
+      var l3=[];
+      if(c.formato) l3.push(c.formato);
+      if(c.litros) l3.push(Math.round(c.litros).toLocaleString('es-ES')+' L');
+      if(l3.length) sv.push('<text x="'+cx.toFixed(1)+'" y="'+(MT+44)+'" font-size="10" fill="#1f5fbf" text-anchor="middle" opacity=".62">'+l3.join(' · ')+'</text>');
+      if(k>0) sv.push('<line x1="'+X(c.x1).toFixed(1)+'" y1="'+(MT+4)+'" x2="'+X(c.x1).toFixed(1)+'" y2="'+(MT+48)+'" stroke="#1f5fbf" stroke-width="1.4" opacity=".55"/>');
     });
 
     // ══ (v2.6.346) SALTO DE CUBA O CAMBIO DE DEPÓSITO ══
@@ -5387,8 +5404,8 @@ function _htmlGraficaPasteur(D){
       });
       if(esCambioCuba || !dentroDe) continue;
       var xt=X(tCorte);
-      sv.push('<line x1="'+xt.toFixed(1)+'" y1="'+(MT+40)+'" x2="'+xt.toFixed(1)+'" y2="'+(MT+58)+'" stroke="#7a3fa8" stroke-width="1.6" stroke-dasharray="4,3"/>');
-      sv.push('<text x="'+xt.toFixed(1)+'" y="'+(MT+70)+'" font-size="10" font-weight="700" fill="#7a3fa8" text-anchor="middle">cambio de depósito</text>');
+      sv.push('<line x1="'+xt.toFixed(1)+'" y1="'+(MT+52)+'" x2="'+xt.toFixed(1)+'" y2="'+(MT+68)+'" stroke="#7a3fa8" stroke-width="1.6" stroke-dasharray="4,3"/>');
+      sv.push('<text x="'+xt.toFixed(1)+'" y="'+(MT+80)+'" font-size="10" font-weight="700" fill="#7a3fa8" text-anchor="middle">cambio de depósito</text>');
     }
   });
   (D.anotaciones||[]).forEach(function(a){
