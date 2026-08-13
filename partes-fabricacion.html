@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.341</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.342</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -5298,16 +5298,40 @@ function _htmlGraficaPasteur(D){
     var m=String(t||'').match(/^(\d{1,2}):(\d{2})/);
     return m ? (+m[1])*3600+(+m[2])*60 : null;
   }
+  // (v2.6.342) QUÉ ENVÍOS PUEDEN SER UN LAVADO DE CUAJADA.
+  // El 13/08 salieron un círculo 1 y un 2 sobre la limpieza: aquel día NINGÚN
+  // lavado pasó por el pasteurizador, se hicieron todos con manguera. El fallo
+  // era emparejar por hora sin más, con ±25 min de margen.
+  // Ahora un envío solo puede ser lavado de cuajada si:
+  //   · NO cae dentro de un bloque de limpieza (ahí circula agua todo el rato)
+  //   · NO dura más de 20 min (un lavado son unos minutos, no media hora)
+  //   · y la hora del parte cae a menos de 12 min
+  // Si el parte anota lavado y ninguno cumple, es que se hizo CON MANGUERA:
+  // no pasa por el pasteurizador y no deja rastro. Eso es lo normal, no un error.
+  function _dentroDeLimpieza(e){
+    var hay=false;
+    (D.anotaciones||[]).forEach(function(a){
+      if(a.tipo!=='limpieza') return;
+      if(e.t1 < a.t2 && e.t2 > a.t1) hay=true;   // se solapan
+    });
+    return hay;
+  }
+  function _puedeSerLavado(e){
+    if(_dentroDeLimpieza(e)) return false;
+    if(e.mins > 20) return false;
+    return true;
+  }
+
   var emparejado={};
   var lavados=[];
   (D.partes||[]).forEach(function(pt){
     var ha=aSeg(pt.hi);
-    if(ha===null) return;
+    if(ha===null){ lavados.push({cuba:pt.cuba, sinHora:true}); return; }
     var mejor=null, dif=null;
     (D.envios||[]).forEach(function(e,ix){
-      if(emparejado[ix]) return;
+      if(emparejado[ix] || !_puedeSerLavado(e)) return;
       var x=Math.abs(e.t1-ha);
-      if(x<=25*60 && (dif===null || x<dif)){ dif=x; mejor=ix; }
+      if(x<=12*60 && (dif===null || x<dif)){ dif=x; mejor=ix; }
     });
     if(mejor===null){ lavados.push({cuba:pt.cuba, manguera:true}); return; }
     emparejado[mejor]=true;
@@ -5316,15 +5340,18 @@ function _htmlGraficaPasteur(D){
                   mins:e.mins, temp:e.temp, desvio:Math.round((e.t1-ha)/60)});
   });
 
+  // Los envíos que no son lavado van discretos y SIN texto: son aclarados,
+  // arrastres o agua de limpieza, y llenaban la gráfica de números sueltos.
   (D.envios||[]).forEach(function(e,ix){
     if(emparejado[ix]) return;
     var yy=Y(e.temp);
-    sv.push('<line x1="'+X(e.t1).toFixed(1)+'" y1="'+yy.toFixed(1)+'" x2="'+X(e.t2).toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="#b0956e" stroke-width="1.5" stroke-dasharray="4,3"/>');
-    sv.push('<text x="'+((X(e.t1)+X(e.t2))/2).toFixed(1)+'" y="'+(yy-7).toFixed(1)+'" font-size="9.5" fill="#8a7550" text-anchor="middle">agua '+e.mins+' min</text>');
+    sv.push('<line x1="'+X(e.t1).toFixed(1)+'" y1="'+yy.toFixed(1)+'" x2="'+X(e.t2).toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="#c9b48f" stroke-width="1.2" stroke-dasharray="3,4"/>');
   });
 
   lavados.forEach(function(l){
-    if(l.manguera) return;
+    // Solo se dibuja el círculo si hay un envío de agua emparejado de verdad.
+    // Con manguera, o sin hora en el parte, no hay nada que marcar en la gráfica.
+    if(l.manguera || l.sinHora || l.t1===undefined || l.t1===null) return;
     var yy=Y(l.temp), xr=X(l.t1), xf=X(l.t2), xm=(xr+xf)/2;
     // El tramo de agua, ahora bien visible
     sv.push('<line x1="'+xr.toFixed(1)+'" y1="'+yy.toFixed(1)+'" x2="'+xf.toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="#c8780a" stroke-width="2.6"/>');
@@ -5347,6 +5374,9 @@ function _htmlGraficaPasteur(D){
         + '<div class="nota">Ningún parte de este día recoge lavado de cuajada por el pasteurizador.</div></div>';
     }
     var fl=lav.map(function(l){
+      if(l.sinHora)
+        return '<tr><td><strong style="color:#c8780a">Cuba '+l.cuba+'</strong></td>'
+          + '<td colspan="4" style="color:#8a8a90">El parte no recoge hora de lavado.</td></tr>';
       if(l.manguera)
         return '<tr><td><strong style="color:#c8780a">Cuba '+l.cuba+'</strong></td>'
           + '<td colspan="4" style="color:#8a8a90">Con <strong>manguera</strong>: no pasa por el pasteurizador y no deja rastro.</td></tr>';
@@ -5386,7 +5416,9 @@ function _htmlGraficaPasteur(D){
    +'.leyenda i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:4px}'
    +'table{width:100%;border-collapse:collapse;font-size:.78rem}th,td{padding:6px 4px;border-bottom:1px solid #eee;text-align:left}'
    +'th{font-size:.68rem;color:#8a8a90;text-transform:uppercase;letter-spacing:.4px}td.n{text-align:right;font-variant-numeric:tabular-nums}'
-   +'.nota{font-size:.72rem;color:#8a8a90;line-height:1.5;margin-top:8px}</style></head><body>'
+   +'.nota{font-size:.72rem;color:#8a8a90;line-height:1.5;margin-top:8px}'
+   +'.zb{padding:7px 15px;background:#8b2a2a;color:#fff;border:none;border-radius:8px;'
+   +'font-weight:800;font-size:.9rem;cursor:pointer}</style></head><body>'
    +'<div class="cab">'
    + (D.logo ? '<img src="'+D.logo+'" alt="El Hidalgo">' : '')
    + '<div class="tit">Control Pasteurización</div></div>'
@@ -5398,9 +5430,18 @@ function _htmlGraficaPasteur(D){
    +'<span><i style="background:#7a3fa8"></i>Bactofugadora</span>'
    +'<span><i style="background:#c8780a"></i>Hacia cuba</span>'
    +'<span><i style="background:#8b1a1a;height:2px"></i>80 °C</span></div>'
-   +'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">'
-   +'<svg viewBox="0 0 '+W+' '+H+'" style="width:'+W+'px;max-width:none;height:auto;display:block">'+sv.join('')+'</svg></div>'
-   +'<div class="nota" style="text-align:center">Desliza el dedo para recorrer el día →</div></div>'
+   +'<div style="display:flex;gap:6px;justify-content:center;margin-bottom:6px">'
+   +'<button class="zb" onclick="zoom(-1)">−</button>'
+   +'<button class="zb" onclick="zoom(0)">Ajustar</button>'
+   +'<button class="zb" onclick="zoom(1)">+</button></div>'
+   +'<div style="overflow:auto;-webkit-overflow-scrolling:touch">'
+   +'<svg id="gsvg" viewBox="0 0 '+W+' '+H+'" style="width:'+W+'px;max-width:none;height:auto;display:block">'+sv.join('')+'</svg></div>'
+   +'<div class="nota" style="text-align:center">Desliza para recorrer el día · usa + y − para acercar</div></div>'
+   +'<script>var _z='+W+';function zoom(d){'
+   +'var g=document.getElementById("gsvg");'
+   +'if(d===0){_z=Math.max(320,document.body.clientWidth-40);}'
+   +'else{_z=Math.min(6000,Math.max(600,_z*(d>0?1.4:1/1.4)));}'
+   +'g.style.width=Math.round(_z)+"px";}<\/script>'
    +'<div class="caja"><div style="font-weight:700;font-size:.82rem;margin-bottom:4px">Hornadas de leche</div>'
    +'<table><thead><tr><th>Hora</th><th class="n">Min</th><th class="n">Past.</th><th class="n">Agua</th>'
    +'<th class="n">Salto</th><th class="n">Bacto.</th><th class="n">A cuba</th></tr></thead><tbody>'+filasTabla+'</tbody></table>'
