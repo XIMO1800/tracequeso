@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.344</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.347</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -5206,6 +5206,7 @@ function _lavadosDelDia(fecha){
       try{ ref = String((p.coag&&p.coag.hadicion) || (p.moldeo&&p.moldeo.hi) || hi || '').trim(); }catch(e){}
       res.push({cuba:orden, fisica:String(p.cuba_fisica||'').trim(), hi:hi,
                 hf:String(ds.lavado_hf||'').trim(), ref:ref,
+                litros:parseFloat(String(p.litros||'').replace(',','.'))||0,
                 temp:ds.lavado_temp||'', tipo:String(p.tipo||'').trim(),
                 variedad:String(p.variedad||'').trim()});
     });
@@ -5295,46 +5296,103 @@ function _htmlGraficaPasteur(D){
     sv.push('<text x="'+xm.toFixed(1)+'" y="'+(yT+12.5)+'" font-size="11" font-weight="700" fill="'+col+'" text-anchor="middle">'+l1+'</text>');
     if(l2) sv.push('<text x="'+xm.toFixed(1)+'" y="'+(yT+24)+'" font-size="10.5" fill="'+col+'" text-anchor="middle">'+l2+'</text>');
   }
-  // (v2.6.343) QUÉ CUBAS SE HICIERON EN CADA HORNADA.
-  // Cada parte se sitúa en su hornada por la hora de adición del cuajo: la cuba
-  // se llena durante la hornada y el cuajo va justo después. Así, debajo del
-  // recuadro sale el tipo de queso de cada cuajada en orden: "OVEJA · OVEJA",
-  // "MEZCLA · MEZCLA"… La variedad se omite a propósito: no cabe y no aporta.
-  function _tiposDeHornada(a){
-    var ini=(D.anotaciones||[]).filter(function(x){return x.tipo==='pasteurizacion';})
-                               .map(function(x){return x.t1;}).sort(function(p,q){return p-q;});
-    var idx=ini.indexOf(a.t1);
-    var sig=(idx>=0 && idx+1<ini.length) ? ini[idx+1] : 1e9;
-    var t=[];
+  // ══ (v2.6.345) HORNADAS Y CUAJADAS ══
+  // Un salto térmico NO significa otra hornada. Cuando se acaba la leche de un
+  // tipo y empieza otra, se aclara con agua tres o cuatro minutos y se sigue: la
+  // gráfica se parte en dos bloques, pero es la MISMA hornada. Las hornadas de
+  // verdad están separadas por horas (una sobre las 5:30 y otra sobre las 9:00).
+  // Por eso: bloques a menos de 45 min = una sola hornada.
+  var HUECO_HORNADA = 45*60;
+  var _blq=(D.anotaciones||[]).filter(function(x){return x.tipo==='pasteurizacion';})
+                              .sort(function(p,q){return p.t1-q.t1;});
+  var HORNADAS=[];
+  _blq.forEach(function(b2){
+    var u=HORNADAS[HORNADAS.length-1];
+    if(u && (b2.t1 - u.t2) <= HUECO_HORNADA){ u.bloques.push(b2); u.t2=b2.t2; }
+    else HORNADAS.push({t1:b2.t1, t2:b2.t2, bloques:[b2]});
+  });
+
+  // Reparto de las cuajadas dentro de la hornada POR LITROS.
+  // El pasteurizador va a 15.000 L/h, así que cada cuba ocupa un tramo
+  // proporcional a sus litros. Contrastado con el 13/08: cubas de 2.800 + 6.500 L
+  // dan 37,2 min (bloque de 38) y la de 9.700 L da 38,8 min (bloque de 41).
+  function _cuajadasDeHornada(h){
+    var res=[];
     (D.partes||[]).forEach(function(pt){
       var r=aSeg(pt.ref);
-      if(r===null) return;
-      if(r>=a.t1 && r<sig && pt.tipo) t.push({n:pt.cuba, tipo:pt.tipo});
+      if(r===null || !pt.tipo) return;
+      if(r>=h.t1 && r<=h.t2+90*60) res.push(pt);
     });
-    return t;
+    res.sort(function(a2,b2){ return (parseInt(a2.cuba)||0)-(parseInt(b2.cuba)||0); });
+    if(!res.length) return [];
+    // Duración útil = suma de los bloques (sin contar los aclarados de en medio)
+    var segs=h.bloques.map(function(b2){ return {t1:b2.t1, t2:b2.t2, d:b2.t2-b2.t1}; });
+    var Dtot=segs.reduce(function(x,sg){ return x+sg.d; },0);
+    var Ltot=res.reduce(function(x,pt){ return x+(pt.litros||0); },0);
+    // Sin litros no se puede repartir: se hace a partes iguales
+    var acum=0;
+    return res.map(function(pt){
+      var frac = Ltot>0 ? (pt.litros||0)/Ltot : 1/res.length;
+      var d1=acum, d2=acum+frac*Dtot; acum=d2;
+      return {n:pt.cuba, tipo:pt.tipo, variedad:pt.variedad||'',
+              x1:_tiempoEnSegs(segs,d1), x2:_tiempoEnSegs(segs,d2)};
+    });
+  }
+  // Convierte "minuto N de pasteurización efectiva" en la hora real, saltándose
+  // los huecos de aclarado entre bloques.
+  function _tiempoEnSegs(segs, d){
+    var q=d;
+    for(var i=0;i<segs.length;i++){
+      if(q<=segs[i].d) return segs[i].t1+q;
+      q-=segs[i].d;
+    }
+    return segs[segs.length-1].t2;
   }
 
-  (D.anotaciones||[]).forEach(function(a){
-    if(a.tipo==='pasteurizacion'){
-      boca(a.t1,a.t2,'PASTEURIZACIÓN · '+a.mins+' min','leche '+a.leche+' · agua '+a.agua+' · salto '+a.salto,'#1f5fbf');
-      // (v2.6.344) LAS CUAJADAS DE LA HORNADA, REPARTIDAS A LO ANCHO.
-      // "3.MEZCLA  4.MEZCLA" ocupando el ancho de la hornada, cada una centrada en
-      // su tramo. Como la pasteurización va seguida, no se sabe dónde acaba una y
-      // empieza la otra, así que se reparte a partes iguales: sirve para ver de un
-      // vistazo cuántas cubas salieron de esa hornada y de qué tipo.
-      var tp=_tiposDeHornada(a);
-      if(tp.length){
-        var xa1=X(a.t1), xa2=X(a.t2), anchoT=(xa2-xa1)/tp.length;
-        tp.forEach(function(c, k){
-          var cx = xa1 + anchoT*(k+0.5);
-          sv.push('<text x="'+cx.toFixed(1)+'" y="'+(MT+17)+'" font-size="12.5" font-weight="800" fill="#1f5fbf" text-anchor="middle" opacity=".92">'+c.n+'.'+c.tipo+'</text>');
-          // separador fino entre cuajadas, para que se vean como bloques
-          if(k>0) sv.push('<line x1="'+(xa1+anchoT*k).toFixed(1)+'" y1="'+(MT+4)+'" x2="'+(xa1+anchoT*k).toFixed(1)+'" y2="'+(MT+22)+'" stroke="#1f5fbf" stroke-width="1" opacity=".4"/>');
-        });
-      }
-    } else {
-      boca(a.t1,a.t2,a.nombre,a.mins+' min · '+a.temp+' °C','#8b1a1a');
+  // UN recuadro por hornada, con el total de minutos y las medias de sus bloques
+  HORNADAS.forEach(function(h){
+    var mins=Math.round(h.bloques.reduce(function(x,b2){ return x+b2.mins; },0));
+    function med(c){
+      var v=h.bloques.map(function(b2){ return b2[c]; }).filter(function(x){ return x>0; });
+      return v.length ? Math.round(v.reduce(function(p,q){return p+q;},0)/v.length*10)/10 : 0;
     }
+    var lec=med('leche'), ag=med('agua');
+    boca(h.t1, h.t2, 'PASTEURIZACIÓN · '+mins+' min',
+         'leche '+lec+' · agua '+ag+' · salto '+(Math.round((ag-lec)*100)/100), '#1f5fbf');
+    // Las cuajadas, cada una en su tramo real según los litros
+    var cuaj=_cuajadasDeHornada(h);
+    // (v2.6.347) La VARIEDAD va en una segunda línea debajo del tipo, para que no
+    // se choquen entre cuajadas cuando los tramos son estrechos.
+    cuaj.forEach(function(c, k){
+      var cx=(X(c.x1)+X(c.x2))/2;
+      sv.push('<text x="'+cx.toFixed(1)+'" y="'+(MT+17)+'" font-size="12.5" font-weight="800" fill="#1f5fbf" text-anchor="middle" opacity=".92">'+c.n+'.'+c.tipo+'</text>');
+      var vr=String(c.variedad||'').trim();
+      if(vr && vr!=='—') sv.push('<text x="'+cx.toFixed(1)+'" y="'+(MT+31)+'" font-size="11" font-weight="700" fill="#1f5fbf" text-anchor="middle" opacity=".72">'+vr+'</text>');
+      if(k>0) sv.push('<line x1="'+X(c.x1).toFixed(1)+'" y1="'+(MT+4)+'" x2="'+X(c.x1).toFixed(1)+'" y2="'+(MT+35)+'" stroke="#1f5fbf" stroke-width="1.4" opacity=".55"/>');
+    });
+
+    // ══ (v2.6.346) SALTO DE CUBA O CAMBIO DE DEPÓSITO ══
+    // Un salto térmico dentro de la hornada puede ser dos cosas muy distintas:
+    //   · fin de una cuba y comienzo de la siguiente
+    //   · o que se acabó la leche de un tanque y se pasó a otro
+    // Los litros lo distinguen: si el salto coincide con el final de una cuajada
+    // (±4 min), es cambio de cuba. Si cae EN MITAD de una cuajada, esa cuba se
+    // llenó con leche de dos depósitos, y eso se marca aparte.
+    for(var bi=0; bi+1<h.bloques.length; bi++){
+      var tCorte=(h.bloques[bi].t2 + h.bloques[bi+1].t1)/2;
+      var esCambioCuba=false, dentroDe=null;
+      cuaj.forEach(function(c, k){
+        if(k>0 && Math.abs(c.x1-tCorte) <= 4*60) esCambioCuba=true;
+        if(tCorte>c.x1+3*60 && tCorte<c.x2-3*60) dentroDe=c;
+      });
+      if(esCambioCuba || !dentroDe) continue;
+      var xt=X(tCorte);
+      sv.push('<line x1="'+xt.toFixed(1)+'" y1="'+(MT+40)+'" x2="'+xt.toFixed(1)+'" y2="'+(MT+58)+'" stroke="#7a3fa8" stroke-width="1.6" stroke-dasharray="4,3"/>');
+      sv.push('<text x="'+xt.toFixed(1)+'" y="'+(MT+70)+'" font-size="10" font-weight="700" fill="#7a3fa8" text-anchor="middle">cambio de depósito</text>');
+    }
+  });
+  (D.anotaciones||[]).forEach(function(a){
+    if(a.tipo==='limpieza') boca(a.t1,a.t2,a.nombre,a.mins+' min · '+a.temp+' °C','#8b1a1a');
   });
   // ── LAVADOS DE CUAJADA: EL CÍRCULO CON EL NÚMERO DE CUBA ──
   // Cada lavado anotado en un parte se empareja con el envío de agua más cercano
