@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.340</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.341</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -5166,10 +5166,52 @@ var _PASTEUR_DATOS = null;
 function abrirGraficaPasteurizacion(){
   var d=_PASTEUR_DATOS;
   if(!d){ toast('No hay datos de pasteurización para este día','err'); return; }
+  // (v2.6.341) LOS LAVADOS DE CUAJADA SALEN DEL PARTE, NO DEL SCADA.
+  // El SCADA solo sabe CUÁNDO entró agua a la cuba; para qué, lo dice el parte.
+  // De cada parte del día se coge la hora que anotó el quesero y el nº de cuba
+  // física, y con eso se dibuja el círculo sobre el envío de agua que le
+  // corresponde. Si el parte dice lavado y no hay envío cerca, se hizo con
+  // manguera y no deja rastro.
+  d = JSON.parse(JSON.stringify(d));
+  d.partes = _lavadosDelDia(d.fecha);
+  d.logo = _logoHidalgo();
   var w=window.open('','_blank');
   if(!w){ toast('Permite las ventanas emergentes para ver la gráfica','err'); return; }
   w.document.write(_htmlGraficaPasteur(d));
   w.document.close();
+}
+
+function _logoHidalgo(){
+  try{
+    var im=document.querySelector('img[src^="data:image"]');
+    return im ? im.src : '';
+  }catch(e){ return ''; }
+}
+
+function _lavadosDelDia(fecha){
+  var res=[];
+  try{
+    (PARTES||[]).forEach(function(p){
+      if(!p || _fechaKeyLocal(p.fecha)!==_fechaKeyLocal(fecha)) return;
+      var ds=p.desuerado||{};
+      var hi=String(ds.lavado_hi||'').trim();
+      var cuba=String(p.cuba_fisica||p.cuba||'').trim();
+      if(!cuba) return;
+      res.push({cuba:cuba, hi:hi, hf:String(ds.lavado_hf||'').trim(),
+                temp:ds.lavado_temp||'', tipo:String(p.tipo||'').trim(),
+                variedad:String(p.variedad||'').trim()});
+    });
+  }catch(e){}
+  return res;
+}
+
+function _fechaKeyLocal(v){
+  var t=String(v||'').trim();
+  var iso=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(iso) return iso[1]+'-'+('0'+iso[2]).slice(-2)+'-'+('0'+iso[3]).slice(-2);
+  var dmy=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(dmy) return dmy[3]+'-'+('0'+dmy[2]).slice(-2)+'-'+('0'+dmy[1]).slice(-2);
+  return t;
 }
 
 function _htmlGraficaPasteur(D){
@@ -5186,17 +5228,29 @@ function _htmlGraficaPasteur(D){
     if(a.tipo!=='limpieza') return;
     sv.push('<rect x="'+X(a.t1).toFixed(1)+'" y="'+MT+'" width="'+(X(a.t2)-X(a.t1)).toFixed(1)+'" height="'+(H-MT-MB)+'" fill="rgba(139,26,26,0.055)"/>');
   });
-  // Cuadrícula de 5 minutos y 5 °C, como en el papel
+  // (v2.6.341) CUADRÍCULA COMO LA DEL PAPEL DEL SCADA: milimetrada en azul claro,
+  // fina cada minuto, marcada cada 5 y más marcada cada 30. Antes era muy pálida
+  // y no se apreciaba.
+  for(var s1=Math.ceil(t0/60)*60; s1<=t1; s1+=60){
+    if(s1%300===0) continue;
+    sv.push('<line x1="'+X(s1).toFixed(1)+'" y1="'+MT+'" x2="'+X(s1).toFixed(1)+'" y2="'+(H-MB)+'" stroke="#e8eef7"/>');
+  }
   for(var s2=Math.ceil(t0/300)*300; s2<=t1; s2+=300){
     var med=(s2%1800===0);
-    sv.push('<line x1="'+X(s2).toFixed(1)+'" y1="'+MT+'" x2="'+X(s2).toFixed(1)+'" y2="'+(H-MB)+'" stroke="'+(med?'#dcdce0':'#f0f0f2')+'"/>');
-    if(med) sv.push('<text x="'+X(s2).toFixed(1)+'" y="'+(H-MB+16)+'" font-size="11" fill="#8a8a90" text-anchor="middle">'+hhmm(s2)+'</text>');
+    sv.push('<line x1="'+X(s2).toFixed(1)+'" y1="'+MT+'" x2="'+X(s2).toFixed(1)+'" y2="'+(H-MB)+'" stroke="'+(med?'#a8bcd8':'#cdd9e8')+'" stroke-width="'+(med?1.2:1)+'"/>');
+    if(med) sv.push('<text x="'+X(s2).toFixed(1)+'" y="'+(H-MB+16)+'" font-size="11" fill="#4a5568" text-anchor="middle">'+hhmm(s2)+'</text>');
+  }
+  for(var v1=yMin; v1<=yMax; v1++){
+    if(v1%5===0) continue;
+    sv.push('<line x1="'+ML+'" y1="'+Y(v1).toFixed(1)+'" x2="'+(W-MR)+'" y2="'+Y(v1).toFixed(1)+'" stroke="#e8eef7"/>');
   }
   for(var v=yMin; v<=yMax; v+=5){
     var dec=(v%10===0);
-    sv.push('<line x1="'+ML+'" y1="'+Y(v).toFixed(1)+'" x2="'+(W-MR)+'" y2="'+Y(v).toFixed(1)+'" stroke="'+(dec?'#dcdce0':'#f0f0f2')+'"/>');
-    if(dec) sv.push('<text x="'+(ML-6)+'" y="'+(Y(v)+4).toFixed(1)+'" font-size="11" fill="#8a8a90" text-anchor="end">'+v+'</text>');
+    sv.push('<line x1="'+ML+'" y1="'+Y(v).toFixed(1)+'" x2="'+(W-MR)+'" y2="'+Y(v).toFixed(1)+'" stroke="'+(dec?'#a8bcd8':'#cdd9e8')+'" stroke-width="'+(dec?1.2:1)+'"/>');
+    if(dec) sv.push('<text x="'+(ML-6)+'" y="'+(Y(v)+4).toFixed(1)+'" font-size="11" fill="#4a5568" text-anchor="end">'+v+'</text>');
   }
+  // Marco exterior, como el del papel
+  sv.push('<rect x="'+ML+'" y="'+MT+'" width="'+(W-ML-MR)+'" height="'+(H-MT-MB)+'" fill="none" stroke="#7a8ba8" stroke-width="1.4"/>');
   // La línea de 80 °C: la referencia para juzgar las limpiezas
   sv.push('<line x1="'+ML+'" y1="'+Y(80).toFixed(1)+'" x2="'+(W-MR)+'" y2="'+Y(80).toFixed(1)+'" stroke="#8b1a1a" stroke-width="2" stroke-dasharray="9,5"/>');
   sv.push('<text x="'+(ML+5)+'" y="'+(Y(80)-6).toFixed(1)+'" font-size="12" font-weight="700" fill="#8b1a1a">80 °C</text>');
@@ -5236,13 +5290,79 @@ function _htmlGraficaPasteur(D){
     if(a.tipo==='pasteurizacion') boca(a.t1,a.t2,'PASTEURIZACIÓN · '+a.mins+' min','leche '+a.leche+' · agua '+a.agua+' · salto '+a.salto,'#1f5fbf');
     else boca(a.t1,a.t2,a.nombre+' · '+a.mins+' min',a.temp+' °C','#8b1a1a');
   });
-  // Envíos de agua a la cuba: en gris, porque cuáles son lavados de cuajada lo
-  // dice el parte, no el SCADA.
-  (D.envios||[]).forEach(function(e){
-    var yy=Y(e.temp);
-    sv.push('<line x1="'+X(e.t1).toFixed(1)+'" y1="'+yy.toFixed(1)+'" x2="'+X(e.t2).toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="#a0a0a8" stroke-width="1.6" stroke-dasharray="4,3"/>');
-    sv.push('<text x="'+((X(e.t1)+X(e.t2))/2).toFixed(1)+'" y="'+(yy-7).toFixed(1)+'" font-size="9" fill="#8a8a90" text-anchor="middle">agua '+e.mins+' min · '+e.temp+' °C</text>');
+  // ── LAVADOS DE CUAJADA: EL CÍRCULO CON EL NÚMERO DE CUBA ──
+  // Cada lavado anotado en un parte se empareja con el envío de agua más cercano
+  // (±25 min). Ese lleva círculo. Los envíos que no casan con ningún parte son
+  // aclarados o arrastres y van discretos, sin número.
+  function aSeg(t){
+    var m=String(t||'').match(/^(\d{1,2}):(\d{2})/);
+    return m ? (+m[1])*3600+(+m[2])*60 : null;
+  }
+  var emparejado={};
+  var lavados=[];
+  (D.partes||[]).forEach(function(pt){
+    var ha=aSeg(pt.hi);
+    if(ha===null) return;
+    var mejor=null, dif=null;
+    (D.envios||[]).forEach(function(e,ix){
+      if(emparejado[ix]) return;
+      var x=Math.abs(e.t1-ha);
+      if(x<=25*60 && (dif===null || x<dif)){ dif=x; mejor=ix; }
+    });
+    if(mejor===null){ lavados.push({cuba:pt.cuba, manguera:true}); return; }
+    emparejado[mejor]=true;
+    var e=D.envios[mejor];
+    lavados.push({cuba:pt.cuba, tipo:pt.tipo, anotado:ha, t1:e.t1, t2:e.t2,
+                  mins:e.mins, temp:e.temp, desvio:Math.round((e.t1-ha)/60)});
   });
+
+  (D.envios||[]).forEach(function(e,ix){
+    if(emparejado[ix]) return;
+    var yy=Y(e.temp);
+    sv.push('<line x1="'+X(e.t1).toFixed(1)+'" y1="'+yy.toFixed(1)+'" x2="'+X(e.t2).toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="#b0956e" stroke-width="1.5" stroke-dasharray="4,3"/>');
+    sv.push('<text x="'+((X(e.t1)+X(e.t2))/2).toFixed(1)+'" y="'+(yy-7).toFixed(1)+'" font-size="9.5" fill="#8a7550" text-anchor="middle">agua '+e.mins+' min</text>');
+  });
+
+  lavados.forEach(function(l){
+    if(l.manguera) return;
+    var yy=Y(l.temp), xr=X(l.t1), xf=X(l.t2), xm=(xr+xf)/2;
+    // El tramo de agua, ahora bien visible
+    sv.push('<line x1="'+xr.toFixed(1)+'" y1="'+yy.toFixed(1)+'" x2="'+xf.toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="#c8780a" stroke-width="2.6"/>');
+    sv.push('<line x1="'+xr.toFixed(1)+'" y1="'+(yy-6).toFixed(1)+'" x2="'+xr.toFixed(1)+'" y2="'+(yy+6).toFixed(1)+'" stroke="#c8780a" stroke-width="2"/>');
+    sv.push('<line x1="'+xf.toFixed(1)+'" y1="'+(yy-6).toFixed(1)+'" x2="'+xf.toFixed(1)+'" y2="'+(yy+6).toFixed(1)+'" stroke="#c8780a" stroke-width="2"/>');
+    // Lo que anotó el quesero, si difiere
+    if(Math.abs(l.desvio)>=1){
+      var xa=X(l.anotado);
+      sv.push('<line x1="'+xa.toFixed(1)+'" y1="'+(yy-10).toFixed(1)+'" x2="'+xa.toFixed(1)+'" y2="'+(yy+10).toFixed(1)+'" stroke="#7a8ba8" stroke-width="1.6" stroke-dasharray="3,2"/>');
+      sv.push('<text x="'+((xa+xr)/2).toFixed(1)+'" y="'+(yy+21).toFixed(1)+'" font-size="9.5" font-weight="700" fill="#7a8ba8" text-anchor="middle">'+(l.desvio>0?'+':'')+l.desvio+' min</text>');
+    }
+    // EL CÍRCULO CON EL NÚMERO DE CUBA, como el que se dibujaba a mano
+    sv.push('<circle cx="'+xm.toFixed(1)+'" cy="'+(yy-30).toFixed(1)+'" r="15" fill="#fff" stroke="#c8780a" stroke-width="2.4"/>');
+    sv.push('<text x="'+xm.toFixed(1)+'" y="'+(yy-24.5).toFixed(1)+'" font-size="16" font-weight="800" fill="#c8780a" text-anchor="middle">'+l.cuba+'</text>');
+    sv.push('<text x="'+xm.toFixed(1)+'" y="'+(yy-49).toFixed(1)+'" font-size="10" font-weight="700" fill="#c8780a" text-anchor="middle">'+l.temp+' °C · '+l.mins+' min</text>');
+  });
+  function _tablaLavados(lav, hh){
+    if(!lav || !lav.length){
+      return '<div class="caja"><div style="font-weight:700;font-size:.82rem;margin-bottom:4px">Lavado de cuajada</div>'
+        + '<div class="nota">Ningún parte de este día recoge lavado de cuajada por el pasteurizador.</div></div>';
+    }
+    var fl=lav.map(function(l){
+      if(l.manguera)
+        return '<tr><td><strong style="color:#c8780a">Cuba '+l.cuba+'</strong></td>'
+          + '<td colspan="4" style="color:#8a8a90">Con <strong>manguera</strong>: no pasa por el pasteurizador y no deja rastro.</td></tr>';
+      var col = Math.abs(l.desvio)<=5 ? '#2e8b2e' : '#8b1a1a';
+      return '<tr><td><strong style="color:#c8780a">Cuba '+l.cuba+'</strong></td>'
+        + '<td>'+hh(l.anotado)+'</td><td>'+hh(l.t1)+'</td>'
+        + '<td class="n" style="color:'+col+';font-weight:700">'+(l.desvio>0?'+':'')+l.desvio+' min</td>'
+        + '<td class="n"><strong>'+l.temp+' °C</strong> · '+l.mins+' min</td></tr>';
+    }).join('');
+    return '<div class="caja"><div style="font-weight:700;font-size:.82rem;margin-bottom:4px">Lavado de cuajada · lo anotado frente a lo real</div>'
+      + '<table><thead><tr><th>Cuba</th><th>Parte</th><th>SCADA</th><th class="n">Desvío</th><th class="n">Agua a cuba</th></tr></thead>'
+      + '<tbody>'+fl+'</tbody></table>'
+      + '<div class="nota">El quesero suele apuntar la hora del recalentamiento y dar por hecho que el agua '
+      + 'entró entonces. El SCADA dice cuándo entró de verdad. Pocos minutos es normal; si se va a siete u ocho, conviene mirarlo.</div></div>';
+  }
+
   var ps=(D.anotaciones||[]).filter(function(a){return a.tipo==='pasteurizacion';});
   var filasTabla=ps.map(function(a){
     return '<tr><td>'+hhmm(a.t1)+' → '+hhmm(a.t2)+'</td><td class="n">'+a.mins+'</td>'
@@ -5257,14 +5377,19 @@ function _htmlGraficaPasteur(D){
    +'<meta name="viewport" content="width=device-width,initial-scale=1">'
    +'<title>Pasteurización '+D.fecha+'</title><style>'
    +'*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f7f7f8;color:#2b2b2e;padding:12px}'
-   +'h1{font-size:1rem;font-weight:800;color:#8b2a2a}.sub{font-size:.78rem;color:#8a8a90;margin-top:2px}'
+   +'.cab{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #d4c9b5;border-radius:10px;padding:8px 14px}'
+   +'.cab img{height:38px;object-fit:contain}'
+   +'.cab .tit{flex:1;text-align:center;font-size:1.05rem;font-weight:800;font-style:italic;color:#2b2b2e}'
+   +'.sub{font-size:.78rem;color:#8a8a90;margin-top:5px;padding-left:3px}'
    +'.caja{background:#fff;border:1px solid #e6e6e8;border-radius:12px;padding:10px;margin-top:10px}'
    +'.leyenda{display:flex;flex-wrap:wrap;gap:11px;font-size:.73rem;margin-bottom:7px;color:#5a5a60}'
    +'.leyenda i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:4px}'
    +'table{width:100%;border-collapse:collapse;font-size:.78rem}th,td{padding:6px 4px;border-bottom:1px solid #eee;text-align:left}'
    +'th{font-size:.68rem;color:#8a8a90;text-transform:uppercase;letter-spacing:.4px}td.n{text-align:right;font-variant-numeric:tabular-nums}'
    +'.nota{font-size:.72rem;color:#8a8a90;line-height:1.5;margin-top:8px}</style></head><body>'
-   +'<h1>Control de Pasteurización</h1>'
+   +'<div class="cab">'
+   + (D.logo ? '<img src="'+D.logo+'" alt="El Hidalgo">' : '')
+   + '<div class="tit">Control Pasteurización</div></div>'
    +'<div class="sub">'+D.fecha.split('-').reverse().join('/')+' · '+hhmm(t0)+' a '+hhmm(t1)+' · '+(D.medidas||P.length)+' medidas</div>'
    +'<div class="caja"><div class="leyenda">'
    +'<span><i style="background:#1f5fbf"></i>Pasteurización</span>'
@@ -5280,8 +5405,8 @@ function _htmlGraficaPasteur(D){
    +'<table><thead><tr><th>Hora</th><th class="n">Min</th><th class="n">Past.</th><th class="n">Agua</th>'
    +'<th class="n">Salto</th><th class="n">Bacto.</th><th class="n">A cuba</th></tr></thead><tbody>'+filasTabla+'</tbody></table>'
    +'<div class="nota"><strong>Salto</strong> = grados de más que necesita el agua sobre la leche. '
-   +'Si la limpieza empeora, sube. Salto medio del día: <strong>'+medio+' °C</strong>.<br>'
-   +'Los envíos de agua en gris no son necesariamente lavados de cuajada: eso lo dice el parte.</div></div>'
+   +'Si la limpieza empeora, sube. Salto medio del día: <strong>'+medio+' °C</strong>.</div></div>'
+   + _tablaLavados(lavados, hhmm)
    +'</body></html>';
 }
 
