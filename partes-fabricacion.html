@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.342</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.344</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -5195,12 +5195,21 @@ function _lavadosDelDia(fecha){
       if(!p || _fechaKeyLocal(p.fecha)!==_fechaKeyLocal(fecha)) return;
       var ds=p.desuerado||{};
       var hi=String(ds.lavado_hi||'').trim();
-      var cuba=String(p.cuba_fisica||p.cuba||'').trim();
-      if(!cuba) return;
-      res.push({cuba:cuba, hi:hi, hf:String(ds.lavado_hf||'').trim(),
+      // (v2.6.343) EL NÚMERO ES EL ORDEN DE CUAJADA, NO LA CUBA FÍSICA.
+      // Lo que importa es si fue la 1ª, la 2ª o la 3ª del día, no en qué cuba
+      // se hizo. p.cuba ya es ese orden cronológico; cuba_fisica es la máquina.
+      var orden=String(p.cuba||'').trim();
+      if(!orden) return;
+      // Hora de referencia para saber a qué hornada pertenece: la adición del
+      // cuajo va justo después de llenar la cuba, así que sitúa bien el parte.
+      var ref='';
+      try{ ref = String((p.coag&&p.coag.hadicion) || (p.moldeo&&p.moldeo.hi) || hi || '').trim(); }catch(e){}
+      res.push({cuba:orden, fisica:String(p.cuba_fisica||'').trim(), hi:hi,
+                hf:String(ds.lavado_hf||'').trim(), ref:ref,
                 temp:ds.lavado_temp||'', tipo:String(p.tipo||'').trim(),
                 variedad:String(p.variedad||'').trim()});
     });
+    res.sort(function(a,b){ return (parseInt(a.cuba)||0)-(parseInt(b.cuba)||0); });
   }catch(e){}
   return res;
 }
@@ -5286,9 +5295,46 @@ function _htmlGraficaPasteur(D){
     sv.push('<text x="'+xm.toFixed(1)+'" y="'+(yT+12.5)+'" font-size="11" font-weight="700" fill="'+col+'" text-anchor="middle">'+l1+'</text>');
     if(l2) sv.push('<text x="'+xm.toFixed(1)+'" y="'+(yT+24)+'" font-size="10.5" fill="'+col+'" text-anchor="middle">'+l2+'</text>');
   }
+  // (v2.6.343) QUÉ CUBAS SE HICIERON EN CADA HORNADA.
+  // Cada parte se sitúa en su hornada por la hora de adición del cuajo: la cuba
+  // se llena durante la hornada y el cuajo va justo después. Así, debajo del
+  // recuadro sale el tipo de queso de cada cuajada en orden: "OVEJA · OVEJA",
+  // "MEZCLA · MEZCLA"… La variedad se omite a propósito: no cabe y no aporta.
+  function _tiposDeHornada(a){
+    var ini=(D.anotaciones||[]).filter(function(x){return x.tipo==='pasteurizacion';})
+                               .map(function(x){return x.t1;}).sort(function(p,q){return p-q;});
+    var idx=ini.indexOf(a.t1);
+    var sig=(idx>=0 && idx+1<ini.length) ? ini[idx+1] : 1e9;
+    var t=[];
+    (D.partes||[]).forEach(function(pt){
+      var r=aSeg(pt.ref);
+      if(r===null) return;
+      if(r>=a.t1 && r<sig && pt.tipo) t.push({n:pt.cuba, tipo:pt.tipo});
+    });
+    return t;
+  }
+
   (D.anotaciones||[]).forEach(function(a){
-    if(a.tipo==='pasteurizacion') boca(a.t1,a.t2,'PASTEURIZACIÓN · '+a.mins+' min','leche '+a.leche+' · agua '+a.agua+' · salto '+a.salto,'#1f5fbf');
-    else boca(a.t1,a.t2,a.nombre+' · '+a.mins+' min',a.temp+' °C','#8b1a1a');
+    if(a.tipo==='pasteurizacion'){
+      boca(a.t1,a.t2,'PASTEURIZACIÓN · '+a.mins+' min','leche '+a.leche+' · agua '+a.agua+' · salto '+a.salto,'#1f5fbf');
+      // (v2.6.344) LAS CUAJADAS DE LA HORNADA, REPARTIDAS A LO ANCHO.
+      // "3.MEZCLA  4.MEZCLA" ocupando el ancho de la hornada, cada una centrada en
+      // su tramo. Como la pasteurización va seguida, no se sabe dónde acaba una y
+      // empieza la otra, así que se reparte a partes iguales: sirve para ver de un
+      // vistazo cuántas cubas salieron de esa hornada y de qué tipo.
+      var tp=_tiposDeHornada(a);
+      if(tp.length){
+        var xa1=X(a.t1), xa2=X(a.t2), anchoT=(xa2-xa1)/tp.length;
+        tp.forEach(function(c, k){
+          var cx = xa1 + anchoT*(k+0.5);
+          sv.push('<text x="'+cx.toFixed(1)+'" y="'+(MT+17)+'" font-size="12.5" font-weight="800" fill="#1f5fbf" text-anchor="middle" opacity=".92">'+c.n+'.'+c.tipo+'</text>');
+          // separador fino entre cuajadas, para que se vean como bloques
+          if(k>0) sv.push('<line x1="'+(xa1+anchoT*k).toFixed(1)+'" y1="'+(MT+4)+'" x2="'+(xa1+anchoT*k).toFixed(1)+'" y2="'+(MT+22)+'" stroke="#1f5fbf" stroke-width="1" opacity=".4"/>');
+        });
+      }
+    } else {
+      boca(a.t1,a.t2,a.nombre,a.mins+' min · '+a.temp+' °C','#8b1a1a');
+    }
   });
   // ── LAVADOS DE CUAJADA: EL CÍRCULO CON EL NÚMERO DE CUBA ──
   // Cada lavado anotado en un parte se empareja con el envío de agua más cercano
@@ -5333,7 +5379,7 @@ function _htmlGraficaPasteur(D){
       var x=Math.abs(e.t1-ha);
       if(x<=12*60 && (dif===null || x<dif)){ dif=x; mejor=ix; }
     });
-    if(mejor===null){ lavados.push({cuba:pt.cuba, manguera:true}); return; }
+    if(mejor===null){ lavados.push({cuba:pt.cuba, manguera:true, anotado:ha}); return; }
     emparejado[mejor]=true;
     var e=D.envios[mejor];
     lavados.push({cuba:pt.cuba, tipo:pt.tipo, anotado:ha, t1:e.t1, t2:e.t2,
@@ -5349,8 +5395,18 @@ function _htmlGraficaPasteur(D){
   });
 
   lavados.forEach(function(l){
-    // Solo se dibuja el círculo si hay un envío de agua emparejado de verdad.
-    // Con manguera, o sin hora en el parte, no hay nada que marcar en la gráfica.
+    // CON MANGUERA: el pasteurizador no interviene, así que no hay temperatura ni
+    // duración que mostrar. Solo la hora que anotó el quesero, con su cruz verde.
+    if(l.manguera && l.anotado!==undefined && l.anotado!==null){
+      var xg=X(l.anotado), yg=Y(46);
+      sv.push('<g stroke="#1f8a3c" stroke-width="2.2" stroke-linecap="round">'
+        + '<line x1="'+(xg-6).toFixed(1)+'" y1="'+(yg-6).toFixed(1)+'" x2="'+(xg+6).toFixed(1)+'" y2="'+(yg+6).toFixed(1)+'"/>'
+        + '<line x1="'+(xg+6).toFixed(1)+'" y1="'+(yg-6).toFixed(1)+'" x2="'+(xg-6).toFixed(1)+'" y2="'+(yg+6).toFixed(1)+'"/></g>');
+      sv.push('<circle cx="'+xg.toFixed(1)+'" cy="'+(yg-26).toFixed(1)+'" r="14" fill="#fff" stroke="#1f8a3c" stroke-width="2" stroke-dasharray="4,3"/>');
+      sv.push('<text x="'+xg.toFixed(1)+'" y="'+(yg-20.5).toFixed(1)+'" font-size="15" font-weight="800" fill="#1f8a3c" text-anchor="middle">'+l.cuba+'</text>');
+      sv.push('<text x="'+xg.toFixed(1)+'" y="'+(yg-44).toFixed(1)+'" font-size="9.5" font-weight="700" fill="#1f8a3c" text-anchor="middle">manguera</text>');
+      return;
+    }
     if(l.manguera || l.sinHora || l.t1===undefined || l.t1===null) return;
     var yy=Y(l.temp), xr=X(l.t1), xf=X(l.t2), xm=(xr+xf)/2;
     // El tramo de agua, ahora bien visible
@@ -5358,10 +5414,16 @@ function _htmlGraficaPasteur(D){
     sv.push('<line x1="'+xr.toFixed(1)+'" y1="'+(yy-6).toFixed(1)+'" x2="'+xr.toFixed(1)+'" y2="'+(yy+6).toFixed(1)+'" stroke="#c8780a" stroke-width="2"/>');
     sv.push('<line x1="'+xf.toFixed(1)+'" y1="'+(yy-6).toFixed(1)+'" x2="'+xf.toFixed(1)+'" y2="'+(yy+6).toFixed(1)+'" stroke="#c8780a" stroke-width="2"/>');
     // Lo que anotó el quesero, si difiere
+    // (v2.6.343) LA CRUZ VERDE = LA HORA QUE PUSO EL QUESERO EN EL PARTE.
+    // El naranja es lo que dice el pasteurizador. La distancia entre las dos es
+    // justo lo que se quiere comparar de un vistazo.
+    var xa=X(l.anotado);
+    sv.push('<g stroke="#1f8a3c" stroke-width="2.2" stroke-linecap="round">'
+      + '<line x1="'+(xa-6).toFixed(1)+'" y1="'+(yy-6).toFixed(1)+'" x2="'+(xa+6).toFixed(1)+'" y2="'+(yy+6).toFixed(1)+'"/>'
+      + '<line x1="'+(xa+6).toFixed(1)+'" y1="'+(yy-6).toFixed(1)+'" x2="'+(xa-6).toFixed(1)+'" y2="'+(yy+6).toFixed(1)+'"/></g>');
     if(Math.abs(l.desvio)>=1){
-      var xa=X(l.anotado);
-      sv.push('<line x1="'+xa.toFixed(1)+'" y1="'+(yy-10).toFixed(1)+'" x2="'+xa.toFixed(1)+'" y2="'+(yy+10).toFixed(1)+'" stroke="#7a8ba8" stroke-width="1.6" stroke-dasharray="3,2"/>');
-      sv.push('<text x="'+((xa+xr)/2).toFixed(1)+'" y="'+(yy+21).toFixed(1)+'" font-size="9.5" font-weight="700" fill="#7a8ba8" text-anchor="middle">'+(l.desvio>0?'+':'')+l.desvio+' min</text>');
+      sv.push('<line x1="'+xa.toFixed(1)+'" y1="'+yy.toFixed(1)+'" x2="'+xr.toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="#1f8a3c" stroke-width="1" stroke-dasharray="2,3"/>');
+      sv.push('<text x="'+((xa+xr)/2).toFixed(1)+'" y="'+(yy+22).toFixed(1)+'" font-size="10" font-weight="700" fill="#1f8a3c" text-anchor="middle">'+(l.desvio>0?'+':'')+l.desvio+' min</text>');
     }
     // EL CÍRCULO CON EL NÚMERO DE CUBA, como el que se dibujaba a mano
     sv.push('<circle cx="'+xm.toFixed(1)+'" cy="'+(yy-30).toFixed(1)+'" r="15" fill="#fff" stroke="#c8780a" stroke-width="2.4"/>');
