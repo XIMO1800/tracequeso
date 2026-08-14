@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.350</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.351</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -5211,7 +5211,7 @@ function _lavadosDelDia(fecha){
       res.push({cuba:orden, fisica:String(p.cuba_fisica||'').trim(), hi:hi,
                 hf:String(ds.lavado_hf||'').trim(), ref:ref,
                 litros:parseFloat(String(p.litros||'').replace(',','.'))||0,
-                formato:String((p.desmoldeo&&p.desmoldeo.formato)||'').trim(),
+                formato:(function(){ try{ return _formatosDeParte(p)||''; }catch(e){ return ''; } })().toUpperCase(),
                 temp:ds.lavado_temp||'', tipo:String(p.tipo||'').trim(),
                 variedad:String(p.variedad||'').trim()});
     });
@@ -5377,44 +5377,69 @@ function _htmlGraficaPasteur(D){
          'leche '+lec+' · agua '+ag+' · salto '+(Math.round((ag-lec)*100)/100), '#1f5fbf');
     // Las cuajadas, cada una en su tramo real según los litros
     var cuaj=_cuajadasDeHornada(h);
-    // (v2.6.350) ROTULACIÓN DE LA CUAJADA, EN LÍNEAS.
-    //   1ª  →  número, tipo y FORMATO juntos:  "3.MEZCLA · 3 KG"
-    //   2ª  →  variedad (TOSTADO, ESTÁNDAR…)
-    //   3ª  →  solo los litros
-    // Si el formato no cabe al lado del tipo (tramos estrechos, "MEZCLA BARRA"),
-    // baja él solo a una línea propia en vez de encogerse hasta no verse.
-    // Todo el texto lleva halo blanco detrás: antes la última línea caía justo
-    // encima de la raya del 90 °C y había que forzar la vista para leerla.
+    // (v2.6.351) ROTULACIÓN DE LA CUAJADA, EN CUATRO LÍNEAS.
+    //   1ª  →  número y tipo:  "3.MEZCLA"
+    //   2ª  →  variedad:       "TOSTADO"
+    //   3ª  →  formato:        "3 KG"   (de prensado/desmoldeo/salmuera)
+    //   4ª  →  litros
+    // El problema de las cubas pequeñas: una de 2.800 L ocupa 11 minutos, y en ese
+    // ancho la letra tenía que encogerse tanto que no se leía. Bajarla no vale,
+    // porque se metería sobre la línea de 80 °C. La solución: la etiqueta SE SALE
+    // de su tramo hacia el lado que tenga sitio, y una línea de puntos la une con
+    // el centro de su cuajada. Así la letra se mantiene siempre legible.
     var _yFinCuaj = MT+48;
-    cuaj.forEach(function(c, k){
-      var cx=(X(c.x1)+X(c.x2))/2;
-      var ancho=Math.max(34, X(c.x2)-X(c.x1)-8);
-      function anchoTxt(t,fs,neg){ return String(t).length*fs*(neg?0.60:0.55); }
-      function encoge(t,fs,neg,minimo){ while(fs>minimo && anchoTxt(t,fs,neg)>ancho) fs-=0.5; return fs; }
+    function _anchoTxt(t,fs,neg){ return String(t).length*fs*(neg?0.60:0.55); }
 
+    var etiq = cuaj.map(function(c){
       var vr=String(c.variedad||'').trim(); if(vr==='—') vr='';
       var fm=String(c.formato||'').trim();
       var lit=c.litros ? (Math.round(c.litros).toLocaleString('es-ES')+' L') : '';
+      var L=[{t:c.n+'.'+c.tipo, fs:12.5, w:800, op:0.95}];
+      if(vr)  L.push({t:vr,  fs:11, w:700, op:0.78});
+      if(fm)  L.push({t:fm,  fs:11, w:800, op:0.9});
+      if(lit) L.push({t:lit, fs:11, w:700, op:0.9});
+      var an=0; L.forEach(function(x){ var a=_anchoTxt(x.t,x.fs,x.w>=700); if(a>an) an=a; });
+      return {c:c, lineas:L, w:an, cx:(X(c.x1)+X(c.x2))/2, ideal:(X(c.x1)+X(c.x2))/2};
+    });
 
-      var cab=c.n+'.'+c.tipo;
-      var l1=cab+(fm?(' · '+fm):''), fmAparte=false;
-      var fs1=encoge(l1,12.5,true,10);
-      if(fm && anchoTxt(l1,fs1,true)>ancho){ l1=cab; fmAparte=true; fs1=encoge(l1,12.5,true,10); }
+    // ¿Caben todas seguidas dentro de la hornada? Si no, se encogen un poco (nunca
+    // por debajo del 82 %) y el conjunto se centra sobre ella.
+    var GAP=9, esc=1;
+    if(etiq.length){
+      var falta=etiq.reduce(function(s,e){ return s+e.w; },0)+GAP*(etiq.length-1);
+      var hueco=X(cuaj[cuaj.length-1].x2)-X(cuaj[0].x1)+56;
+      if(falta>hueco) esc=Math.max(0.82, hueco/falta);
+      etiq.forEach(function(e){ e.w*=esc; });
+      // Colocación: cada una en su sitio y, si se pisan, se empujan hacia la derecha
+      for(var i2=1;i2<etiq.length;i2++){
+        var minX=etiq[i2-1].cx+etiq[i2-1].w/2+GAP+etiq[i2].w/2;
+        if(etiq[i2].cx<minX) etiq[i2].cx=minX;
+      }
+      // Y si el empuje ha sacado la última por la derecha, se recoloca todo hacia atrás
+      var sobra=(etiq[etiq.length-1].cx+etiq[etiq.length-1].w/2)-(X(cuaj[cuaj.length-1].x2)+28);
+      if(sobra>0) for(var i3=etiq.length-1;i3>=0;i3--){
+        etiq[i3].cx-=sobra;
+        if(i3>0){
+          var maxX=etiq[i3].cx-etiq[i3].w/2-GAP-etiq[i3-1].w/2;
+          if(etiq[i3-1].cx<=maxX) break;
+          sobra=etiq[i3-1].cx-maxX;
+        }
+      }
+    }
 
-      var lineas=[{t:l1, fs:fs1, w:800, op:0.95}];
-      if(fmAparte)  lineas.push({t:fm, fs:11,  w:700, op:0.9});
-      if(vr)        lineas.push({t:vr, fs:11,  w:700, op:0.75});
-      if(lit)       lineas.push({t:lit,fs:11,  w:700, op:0.9});
-
-      var y=MT+17, _tope=99;
-      lineas.forEach(function(L){
-        var f=encoge(L.t, Math.min(L.fs, _tope), L.w>=700, 8);
-        _tope=Math.min(_tope, f);
-        sv.push('<text x="'+cx.toFixed(1)+'" y="'+y+'" font-size="'+f+'" font-weight="'+L.w+'" fill="#1f5fbf" text-anchor="middle" opacity="'+L.op+'" stroke="#fff" stroke-width="3.4" stroke-linejoin="round" style="paint-order:stroke">'+L.t+'</text>');
-        y+=14;
+    etiq.forEach(function(e, k){
+      var y=MT+17;
+      // Si la etiqueta ha tenido que desplazarse, se marca de dónde es
+      if(Math.abs(e.cx-e.ideal)>5){
+        sv.push('<path d="M'+e.cx.toFixed(1)+' '+(MT+6)+' L'+e.ideal.toFixed(1)+' '+(MT-2)+'" fill="none" stroke="#1f5fbf" stroke-width="1" stroke-dasharray="2,3" opacity=".5"/>');
+      }
+      e.lineas.forEach(function(L){
+        var f=Math.round(L.fs*esc*10)/10;
+        sv.push('<text x="'+e.cx.toFixed(1)+'" y="'+y.toFixed(1)+'" font-size="'+f+'" font-weight="'+L.w+'" fill="#1f5fbf" text-anchor="middle" opacity="'+L.op+'" stroke="#fff" stroke-width="3.4" stroke-linejoin="round" style="paint-order:stroke">'+L.t+'</text>');
+        y+=f+2.5;
       });
       if(y>_yFinCuaj) _yFinCuaj=y;
-      if(k>0) sv.push('<line x1="'+X(c.x1).toFixed(1)+'" y1="'+(MT+4)+'" x2="'+X(c.x1).toFixed(1)+'" y2="'+(y-6)+'" stroke="#1f5fbf" stroke-width="1.4" opacity=".55"/>');
+      if(k>0) sv.push('<line x1="'+X(e.c.x1).toFixed(1)+'" y1="'+(MT+4)+'" x2="'+X(e.c.x1).toFixed(1)+'" y2="'+(MT+62)+'" stroke="#1f5fbf" stroke-width="1.4" opacity=".55"/>');
     });
 
     // ══ (v2.6.346) SALTO DE CUBA O CAMBIO DE DEPÓSITO ══
