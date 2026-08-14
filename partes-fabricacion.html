@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.348</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.350</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -5207,13 +5207,33 @@ function _lavadosDelDia(fecha){
       res.push({cuba:orden, fisica:String(p.cuba_fisica||'').trim(), hi:hi,
                 hf:String(ds.lavado_hf||'').trim(), ref:ref,
                 litros:parseFloat(String(p.litros||'').replace(',','.'))||0,
-                formato:String((p.desmoldeo&&p.desmoldeo.formato)||'').trim(),
+                formato:_formatoDelParte(p),
                 temp:ds.lavado_temp||'', tipo:String(p.tipo||'').trim(),
                 variedad:String(p.variedad||'').trim()});
     });
     res.sort(function(a,b){ return (parseInt(a.cuba)||0)-(parseInt(b.cuba)||0); });
   }catch(e){}
   return res;
+}
+
+// (v2.6.349) EL FORMATO SALE DE LAS PIEZAS FABRICADAS, no del bloque de desmoldeo.
+// DES FORMATO se queda vacío muchas veces; las piezas se rellenan siempre y además
+// dicen lo que de verdad salió de la cuba. Una cuba puede dar dos formatos a la vez
+// (por ejemplo 3 KG y 1/2 KG), así que se listan todos los que tengan piezas.
+function _formatoDelParte(p){
+  try{
+    var pz = p.piezas || {};
+    var mapa = [['3kg','3 KG'],['2kg','2 KG'],['1kg','1 KG'],
+                ['05kg','1/2 KG'],['barra','BARRA'],['gigante','GIGANTE']];
+    var out = [];
+    mapa.forEach(function(m){
+      var n = parseFloat(String(pz[m[0]]||'').replace(',','.')) || 0;
+      if(n > 0) out.push(m[1]);
+    });
+    if(out.length) return out.join(' + ');
+    // Si aún no hay piezas (parte a medias), se recurre al desmoldeo
+    return String((p.desmoldeo && p.desmoldeo.formato) || '').trim();
+  }catch(e){ return ''; }
 }
 
 function _fechaKeyLocal(v){
@@ -5377,15 +5397,18 @@ function _htmlGraficaPasteur(D){
     // se choquen entre cuajadas cuando los tramos son estrechos.
     cuaj.forEach(function(c, k){
       var cx=(X(c.x1)+X(c.x2))/2;
-      sv.push('<text x="'+cx.toFixed(1)+'" y="'+(MT+17)+'" font-size="12.5" font-weight="800" fill="#1f5fbf" text-anchor="middle" opacity=".92">'+c.n+'.'+c.tipo+'</text>');
+      sv.push('<text x="'+cx.toFixed(1)+'" y="'+(MT+16)+'" font-size="12.5" font-weight="800" fill="#1f5fbf" text-anchor="middle" opacity=".92">'+c.n+'.'+c.tipo+'</text>');
       var vr=String(c.variedad||'').trim();
-      if(vr && vr!=='—') sv.push('<text x="'+cx.toFixed(1)+'" y="'+(MT+31)+'" font-size="11" font-weight="700" fill="#1f5fbf" text-anchor="middle" opacity=".72">'+vr+'</text>');
+      if(vr && vr!=='—') sv.push('<text x="'+cx.toFixed(1)+'" y="'+(MT+30)+'" font-size="11" font-weight="700" fill="#1f5fbf" text-anchor="middle" opacity=".72">'+vr+'</text>');
       // (v2.6.348) Tercera línea: formato y litros, más pequeño y sin negrita.
       var l3=[];
       if(c.formato) l3.push(c.formato);
       if(c.litros) l3.push(Math.round(c.litros).toLocaleString('es-ES')+' L');
-      if(l3.length) sv.push('<text x="'+cx.toFixed(1)+'" y="'+(MT+44)+'" font-size="10" fill="#1f5fbf" text-anchor="middle" opacity=".62">'+l3.join(' · ')+'</text>');
-      if(k>0) sv.push('<line x1="'+X(c.x1).toFixed(1)+'" y1="'+(MT+4)+'" x2="'+X(c.x1).toFixed(1)+'" y2="'+(MT+48)+'" stroke="#1f5fbf" stroke-width="1.4" opacity=".55"/>');
+      if(l3.length) sv.push('<text x="'+cx.toFixed(1)+'" y="'+(MT+43)+'" font-size="10" fill="#1f5fbf" text-anchor="middle" opacity=".62">'+l3.join(' · ')+'</text>');
+      // (v2.6.350) El separador es una marca CORTA arriba del todo. Antes bajaba
+      // hasta MT+50 y cruzaba las tres líneas: en las cuajadas estrechas, los
+      // litros quedaban justo encima de la raya y no se leían.
+      if(k>0) sv.push('<line x1="'+X(c.x1).toFixed(1)+'" y1="'+(MT+2)+'" x2="'+X(c.x1).toFixed(1)+'" y2="'+(MT+8)+'" stroke="#1f5fbf" stroke-width="1.6" opacity=".6"/>');
     });
 
     // ══ (v2.6.346) SALTO DE CUBA O CAMBIO DE DEPÓSITO ══
