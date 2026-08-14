@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.351</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.352</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -5231,7 +5231,11 @@ function _fechaKeyLocal(v){
 
 function _htmlGraficaPasteur(D){
   function hhmm(s){ var h=Math.floor(s/3600), m=Math.floor((s%3600)/60); return (h<10?'0':'')+h+':'+(m<10?'0':'')+m; }
-  var W=1700,H=760,ML=48,MR=18,MT=110,MB=34, yMin=20,yMax=95;
+  // (v2.6.352) La franja blanca de arriba crece de 110 a 150: ahí van, además de
+  // los bocadillos, el tipo y la variedad de cada cuajada. Dentro del área de la
+  // gráfica solo quedan el formato y los litros. Separar los cuatro datos a un
+  // lado y otro del borde se lee mucho mejor que las cuatro líneas seguidas.
+  var W=1700,H=800,ML=48,MR=18,MT=150,MB=34, yMin=20,yMax=95;
   var P=D.puntos, t0=P[0].t, t1=P[P.length-1].t;
   function X(t){ return ML+(t-t0)/(t1-t0)*(W-ML-MR); }
   function Y(v){ return MT+(yMax-v)/(yMax-yMin)*(H-MT-MB); }
@@ -5387,19 +5391,25 @@ function _htmlGraficaPasteur(D){
     // porque se metería sobre la línea de 80 °C. La solución: la etiqueta SE SALE
     // de su tramo hacia el lado que tenga sitio, y una línea de puntos la une con
     // el centro de su cuajada. Así la letra se mantiene siempre legible.
-    var _yFinCuaj = MT+48;
+    var _yFinCuaj = MT+40;
     function _anchoTxt(t,fs,neg){ return String(t).length*fs*(neg?0.60:0.55); }
 
     var etiq = cuaj.map(function(c){
       var vr=String(c.variedad||'').trim(); if(vr==='—') vr='';
       var fm=String(c.formato||'').trim();
+      // Si el formato repite lo que ya dice la variedad (BARRA / BARRA), sobra
+      if(fm && vr && fm.toUpperCase()===vr.toUpperCase()) fm='';
       var lit=c.litros ? (Math.round(c.litros).toLocaleString('es-ES')+' L') : '';
-      var L=[{t:c.n+'.'+c.tipo, fs:12.5, w:800, op:0.95}];
-      if(vr)  L.push({t:vr,  fs:11, w:700, op:0.78});
-      if(fm)  L.push({t:fm,  fs:11, w:800, op:0.9});
-      if(lit) L.push({t:lit, fs:11, w:700, op:0.9});
-      var an=0; L.forEach(function(x){ var a=_anchoTxt(x.t,x.fs,x.w>=700); if(a>an) an=a; });
-      return {c:c, lineas:L, w:an, cx:(X(c.x1)+X(c.x2))/2, ideal:(X(c.x1)+X(c.x2))/2};
+      // ARRIBA del borde, en la franja blanca: qué se fabricó
+      var A=[{t:c.n+'.'+c.tipo, fs:12.5, w:800, op:0.95}];
+      if(vr) A.push({t:vr, fs:11, w:700, op:0.78});
+      // DENTRO de la gráfica: con qué formato y cuánto
+      var B=[];
+      if(fm)  B.push({t:fm,  fs:11, w:800, op:0.88});
+      if(lit) B.push({t:lit, fs:11, w:700, op:0.88});
+      var an=0;
+      A.concat(B).forEach(function(x){ var a=_anchoTxt(x.t,x.fs,x.w>=700); if(a>an) an=a; });
+      return {c:c, arriba:A, abajo:B, w:an, cx:(X(c.x1)+X(c.x2))/2, ideal:(X(c.x1)+X(c.x2))/2};
     });
 
     // ¿Caben todas seguidas dentro de la hornada? Si no, se encogen un poco (nunca
@@ -5428,18 +5438,25 @@ function _htmlGraficaPasteur(D){
     }
 
     etiq.forEach(function(e, k){
-      var y=MT+17;
       // Si la etiqueta ha tenido que desplazarse, se marca de dónde es
       if(Math.abs(e.cx-e.ideal)>5){
-        sv.push('<path d="M'+e.cx.toFixed(1)+' '+(MT+6)+' L'+e.ideal.toFixed(1)+' '+(MT-2)+'" fill="none" stroke="#1f5fbf" stroke-width="1" stroke-dasharray="2,3" opacity=".5"/>');
+        sv.push('<path d="M'+e.cx.toFixed(1)+' '+(MT-46)+' L'+e.ideal.toFixed(1)+' '+(MT-14)+'" fill="none" stroke="#1f5fbf" stroke-width="1" stroke-dasharray="2,3" opacity=".5"/>');
       }
-      e.lineas.forEach(function(L){
-        var f=Math.round(L.fs*esc*10)/10;
-        sv.push('<text x="'+e.cx.toFixed(1)+'" y="'+y.toFixed(1)+'" font-size="'+f+'" font-weight="'+L.w+'" fill="#1f5fbf" text-anchor="middle" opacity="'+L.op+'" stroke="#fff" stroke-width="3.4" stroke-linejoin="round" style="paint-order:stroke">'+L.t+'</text>');
-        y+=f+2.5;
-      });
-      if(y>_yFinCuaj) _yFinCuaj=y;
-      if(k>0) sv.push('<line x1="'+X(e.c.x1).toFixed(1)+'" y1="'+(MT+4)+'" x2="'+X(e.c.x1).toFixed(1)+'" y2="'+(MT+62)+'" stroke="#1f5fbf" stroke-width="1.4" opacity=".55"/>');
+      function pinta(lista, y0){
+        var y=y0;
+        lista.forEach(function(L){
+          var f=Math.round(L.fs*esc*10)/10;
+          sv.push('<text x="'+e.cx.toFixed(1)+'" y="'+y.toFixed(1)+'" font-size="'+f+'" font-weight="'+L.w+'" fill="#1f5fbf" text-anchor="middle" opacity="'+L.op+'" stroke="#fff" stroke-width="3.4" stroke-linejoin="round" style="paint-order:stroke">'+L.t+'</text>');
+          y+=f+3;
+        });
+        return y;
+      }
+      // ARRIBA: tipo y variedad, pegados al borde superior de la gráfica
+      pinta(e.arriba, MT - 16 - (e.arriba.length-1)*14);
+      // ABAJO: formato y litros, ya dentro
+      var yb=pinta(e.abajo, MT+16);
+      if(yb>_yFinCuaj) _yFinCuaj=yb;
+      if(k>0) sv.push('<line x1="'+X(e.c.x1).toFixed(1)+'" y1="'+(MT-44)+'" x2="'+X(e.c.x1).toFixed(1)+'" y2="'+(MT+34)+'" stroke="#1f5fbf" stroke-width="1.4" opacity=".55"/>');
     });
 
     // ══ (v2.6.346) SALTO DE CUBA O CAMBIO DE DEPÓSITO ══
