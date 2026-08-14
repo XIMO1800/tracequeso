@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.354</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.355</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -5282,6 +5282,10 @@ function _htmlGraficaPasteur(D){
   // las descargas de la bactofugadora cada cuarto de hora; si falta, desaparecen.
   // Aquí queda marcado sin tener que ir buscándolos.
   (D.sinBacto||[]).forEach(function(b4){
+    // (v2.6.355) Solo se marca en rojo si lo que pasaba era LECHE. Si el tramo
+    // coincide con un envío de agua, era un lavado de cuajada: eso no es una
+    // anomalía y se cuenta junto al círculo del lavado, no como alarma.
+    if(b4.agua) return;
     var x1=X(b4.t1), x2=X(b4.t2);
     sv.push('<rect x="'+x1.toFixed(1)+'" y="'+MT+'" width="'+Math.max(3,(x2-x1)).toFixed(1)+'" height="'+(H-MT-MB)+'" fill="rgba(200,40,40,0.10)" stroke="#c02828" stroke-width="1.2" stroke-dasharray="5,4"/>');
     sv.push('<text x="'+((x1+x2)/2).toFixed(1)+'" y="'+(H-MB-8)+'" font-size="11" font-weight="800" fill="#c02828" text-anchor="middle">SIN BACTOFUGADORA · '+b4.mins+' min</text>');
@@ -5626,6 +5630,14 @@ function _htmlGraficaPasteur(D){
     sv.push('<circle cx="'+xm.toFixed(1)+'" cy="'+(yy-30).toFixed(1)+'" r="15" fill="#fff" stroke="#c8780a" stroke-width="2.4"/>');
     sv.push('<text x="'+xm.toFixed(1)+'" y="'+(yy-24.5).toFixed(1)+'" font-size="16" font-weight="800" fill="#c8780a" text-anchor="middle">'+l.cuba+'</text>');
     sv.push('<text x="'+xm.toFixed(1)+'" y="'+(yy-49).toFixed(1)+'" font-size="11.5" font-weight="700" fill="#c8780a" text-anchor="middle">'+l.temp+' °C · '+l.mins+' min</text>');
+    // (v2.6.355) ¿Se lavó con la bactofugadora en marcha o no? Unas veces sí y
+    // otras no, y es un dato que interesa. Va en gris, discreto: no es una
+    // anomalía, es información. La franja roja se reserva para la leche.
+    var _sb=false;
+    (D.sinBacto||[]).forEach(function(b5){
+      if(b5.agua && l.t1 < b5.t2 && l.t2 > b5.t1) _sb=true;
+    });
+    if(_sb) sv.push('<text x="'+xm.toFixed(1)+'" y="'+(yy-64).toFixed(1)+'" font-size="10" font-weight="700" fill="#8a8a90" text-anchor="middle" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">sin bactofugadora</text>');
   });
   function _tablaLavados(lav, hh){
     if(!lav || !lav.length){
