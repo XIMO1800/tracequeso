@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.353</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.354</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -5213,6 +5213,13 @@ function _lavadosDelDia(fecha){
                 litros:parseFloat(String(p.litros||'').replace(',','.'))||0,
                 formato:(function(){ try{ return _formatosDeParte(p)||''; }catch(e){ return ''; } })().toUpperCase(),
                 temp:ds.lavado_temp||'', tipo:String(p.tipo||'').trim(),
+                // (v2.6.354) EL MÉTODO LO DICE EL PARTE, NO SE ADIVINA.
+                // Jorge elige "Manguera" o "Pasteurizador" en el desplegable y
+                // eso se guarda en lavado_metodo. Hasta ahora la gráfica no lo
+                // leía: deducía "manguera" cuando no encontraba un envío que
+                // encajase, y marcaba como manguera lavados hechos con el
+                // pasteurizador (la Cuba 2 del 14/08, anotada a las 7:02).
+                metodo:String(ds.lavado_metodo||'').trim().toLowerCase(),
                 variedad:String(p.variedad||'').trim()});
     });
     res.sort(function(a,b){ return (parseInt(a.cuba)||0)-(parseInt(b.cuba)||0); });
@@ -5516,21 +5523,51 @@ function _htmlGraficaPasteur(D){
 
   var emparejado={};
   var lavados=[];
+  // (v2.6.354) EL MÉTODO MANDA, Y LOS DE MANGUERA SE APARTAN PRIMERO.
+  // Antes se recorrían los partes en orden y el primero que pasaba cerca de un
+  // envío se lo quedaba. Un lavado con manguera podía así robarle el envío al
+  // de la cuba siguiente, que sí había usado el pasteurizador, y ésta se quedaba
+  // sin pareja y salía marcada como manguera. Ahora:
+  //   · si el parte dice MANGUERA, se marca como tal y NO toca ningún envío
+  //   · si dice PASTEURIZADOR, tiene que haber envío; se buscan después, con
+  //     todos los envíos libres, y si aun así no aparece se avisa en vez de
+  //     rebautizarlo como manguera, que es justo lo que no hizo el quesero
+  var conPast=[];
   (D.partes||[]).forEach(function(pt){
     var ha=aSeg(pt.hi);
+    if(pt.metodo==='manguera'){ lavados.push({cuba:pt.cuba, manguera:true, anotado:ha}); return; }
     if(ha===null){ lavados.push({cuba:pt.cuba, sinHora:true}); return; }
-    var mejor=null, dif=null;
-    (D.envios||[]).forEach(function(e,ix){
-      if(emparejado[ix] || !_puedeSerLavado(e)) return;
-      var x=Math.abs(e.t1-ha);
-      if(x<=12*60 && (dif===null || x<dif)){ dif=x; mejor=ix; }
-    });
-    if(mejor===null){ lavados.push({cuba:pt.cuba, manguera:true, anotado:ha}); return; }
-    emparejado[mejor]=true;
-    var e=D.envios[mejor];
-    lavados.push({cuba:pt.cuba, tipo:pt.tipo, anotado:ha, t1:e.t1, t2:e.t2,
-                  mins:e.mins, temp:e.temp, desvio:Math.round((e.t1-ha)/60)});
+    conPast.push({pt:pt, ha:ha});
   });
+  // Se emparejan de menor a mayor desvío, para que cada envío vaya al parte que
+  // de verdad le corresponde y no al que se mire primero.
+  var pares=[];
+  conPast.forEach(function(c, ic){
+    (D.envios||[]).forEach(function(e,ix){
+      if(!_puedeSerLavado(e)) return;
+      var x=Math.abs(e.t1-c.ha);
+      if(x<=12*60) pares.push({ic:ic, ix:ix, dif:x});
+    });
+  });
+  pares.sort(function(a,b){ return a.dif-b.dif; });
+  var usadoParte={};
+  pares.forEach(function(pr){
+    if(usadoParte[pr.ic] || emparejado[pr.ix]) return;
+    usadoParte[pr.ic]=pr.ix; emparejado[pr.ix]=true;
+  });
+  conPast.forEach(function(c, ic){
+    var pt=c.pt;
+    if(usadoParte[ic]===undefined){
+      // El parte dice pasteurizador pero no hay ningún envío a esa hora.
+      // No se rebautiza como manguera: se avisa para que se revise.
+      lavados.push({cuba:pt.cuba, sinRastro:true, anotado:c.ha});
+      return;
+    }
+    var e=D.envios[usadoParte[ic]];
+    lavados.push({cuba:pt.cuba, tipo:pt.tipo, anotado:c.ha, t1:e.t1, t2:e.t2,
+                  mins:e.mins, temp:e.temp, desvio:Math.round((e.t1-c.ha)/60)});
+  });
+  lavados.sort(function(a,b){ return (parseInt(a.cuba)||0)-(parseInt(b.cuba)||0); });
 
   // Los envíos que no son lavado van discretos y SIN texto: son aclarados,
   // arrastres o agua de limpieza, y llenaban la gráfica de números sueltos.
@@ -5553,7 +5590,21 @@ function _htmlGraficaPasteur(D){
       sv.push('<text x="'+xg.toFixed(1)+'" y="'+(yg-44).toFixed(1)+'" font-size="11" font-weight="700" fill="#1f8a3c" text-anchor="middle">manguera</text>');
       return;
     }
-    if(l.manguera || l.sinHora || l.t1===undefined || l.t1===null) return;
+    // (v2.6.354) SIN RASTRO: el parte dice pasteurizador pero el SCADA no ve
+    // ningún envío de agua a esa hora. No se rebautiza como manguera, se marca
+    // en ámbar para que se revise: o la hora del parte está muy desplazada, o
+    // se hizo con manguera y se eligió mal el método.
+    if(l.sinRastro && l.anotado!==undefined && l.anotado!==null){
+      var xs=X(l.anotado), ys=Y(46);
+      sv.push('<g stroke="#c8780a" stroke-width="2.2" stroke-linecap="round">'
+        + '<line x1="'+(xs-6).toFixed(1)+'" y1="'+(ys-6).toFixed(1)+'" x2="'+(xs+6).toFixed(1)+'" y2="'+(ys+6).toFixed(1)+'"/>'
+        + '<line x1="'+(xs+6).toFixed(1)+'" y1="'+(ys-6).toFixed(1)+'" x2="'+(xs-6).toFixed(1)+'" y2="'+(ys+6).toFixed(1)+'"/></g>');
+      sv.push('<circle cx="'+xs.toFixed(1)+'" cy="'+(ys-26).toFixed(1)+'" r="14" fill="#fff" stroke="#c8780a" stroke-width="2" stroke-dasharray="4,3"/>');
+      sv.push('<text x="'+xs.toFixed(1)+'" y="'+(ys-20.5).toFixed(1)+'" font-size="15" font-weight="800" fill="#c8780a" text-anchor="middle">'+l.cuba+'</text>');
+      sv.push('<text x="'+xs.toFixed(1)+'" y="'+(ys-44).toFixed(1)+'" font-size="11" font-weight="700" fill="#c8780a" text-anchor="middle" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">sin rastro</text>');
+      return;
+    }
+    if(l.manguera || l.sinHora || l.sinRastro || l.t1===undefined || l.t1===null) return;
     var yy=Y(l.temp), xr=X(l.t1), xf=X(l.t2), xm=(xr+xf)/2;
     // El tramo de agua, ahora bien visible
     sv.push('<line x1="'+xr.toFixed(1)+'" y1="'+yy.toFixed(1)+'" x2="'+xf.toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="#c8780a" stroke-width="2.6"/>');
@@ -5585,6 +5636,9 @@ function _htmlGraficaPasteur(D){
       if(l.sinHora)
         return '<tr><td><strong style="color:#c8780a">Cuba '+l.cuba+'</strong></td>'
           + '<td colspan="4" style="color:#8a8a90">El parte no recoge hora de lavado.</td></tr>';
+      if(l.sinRastro)
+        return '<tr><td><strong style="color:#c8780a">Cuba '+l.cuba+'</strong></td>'
+          + '<td colspan="4" style="color:#8a5a00">El parte dice <strong>pasteurizador</strong> a las '+hh(l.anotado)+', pero el SCADA no registra envío de agua a esa hora. Revisar.</td></tr>';
       if(l.manguera)
         return '<tr><td><strong style="color:#c8780a">Cuba '+l.cuba+'</strong></td>'
           + '<td colspan="4" style="color:#8a8a90">Con <strong>manguera</strong>: no pasa por el pasteurizador y no deja rastro.</td></tr>';
