@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.355</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.356</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -6379,7 +6379,11 @@ function _svgGraficaEvolucion(p){
     if(h.ph!=null){
       s+='<circle cx="'+xx+'" cy="'+yPh(h.ph)+'" r="3.5" fill="#7B3FA0"/>';
       var yp=yPh(h.ph)+18;
-      s+='<text x="'+xx+'" y="'+yp+'" text-anchor="middle" font-size="10.5" fill="#7B3FA0" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+h.ph+'</text>';
+      // (v2.6.356) EL pH, SIEMPRE CON DOS DECIMALES.
+      // Se escribía el número tal cual y JavaScript se come el cero final: un
+      // pH de 6,50 salía como "6.5" y parecía que faltaba un dígito, sobre todo
+      // al lado de 6.79 · 6.64 · 6.57. Con toFixed(2) queda 6.50 y no hay duda.
+      s+='<text x="'+xx+'" y="'+yp+'" text-anchor="middle" font-size="10.5" fill="#7B3FA0" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+Number(h.ph).toFixed(2)+'</text>';
     }
   });
   var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block">'+s+'</svg>';
