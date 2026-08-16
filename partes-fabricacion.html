@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.356</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.357</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3893,7 +3893,14 @@ function renderFermentos(receta){
      + '</div>';
   receta.fermentos.forEach(function(f){
     var key = f.nombre.replace(/[^a-zA-Z0-9]/g,'_');
-    var lote = obtenerLoteActivo(f.nombre);
+    // (v2.6.357) EL LOTE LO MANDA EL PARTE, NO EL STOCK DE HOY.
+    // Aquí se llamaba a obtenerLoteActivo(), que devuelve el lote activo en ESTE
+    // momento. Al reactivar un parte de días atrás, los lotes que aparecían no
+    // eran los que se usaron: eran los de hoy. Y al volver a cerrarlo, el stock
+    // se descontaba del lote equivocado. Ahora, si el parte ya trae su lote
+    // guardado, ese manda. Solo cuando no lo trae (parte nuevo) se pregunta al
+    // stock cuál toca.
+    var lote = _loteDelParte('fermentos', f.nombre) || obtenerLoteActivo(f.nombre);
     var _repF = _repartoDe(f.nombre);
     var loteHTML, cadHTML, provHTML;
     if(_repF){
@@ -3949,9 +3956,45 @@ function renderCuajo(receta){
   c.innerHTML=renderProductoCard(receta.cuajo);
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// EL LOTE QUE YA LLEVA EL PARTE  (v2.6.357)
+// ──────────────────────────────────────────────────────────────────────────
+// Busca, dentro de la cuba que se está editando, el lote guardado para un
+// producto (fermento, cuajo o auxiliar). Es lo que permite que al reactivar un
+// parte cerrado vuelvan a salir SUS lotes y no los que estén activos hoy.
+//
+// Devuelve null si el parte todavía no tiene ese producto —una cuba nueva—, y
+// entonces quien llama pregunta al stock, como se hacía siempre.
+//
+// Un lote sin número no cuenta: se devuelve null para que se elija uno.
+// ══════════════════════════════════════════════════════════════════════════
+function _loteDelParte(bloque, nombre){
+  try{
+    var p = PARTES.find(function(x){ return x.id===CUBA_ACTIVA_ID; });
+    if(!p || !nombre) return null;
+    var nUp = String(nombre).trim().toUpperCase();
+    var listas = bloque ? [p[bloque]] : [p.fermentos, p.auxiliares, [p.cuajo], p.cuajos_extra];
+    for(var i=0;i<listas.length;i++){
+      var L = listas[i];
+      if(!L || !L.length) continue;
+      for(var j=0;j<L.length;j++){
+        var it = L[j];
+        if(!it || !it.nombre) continue;
+        if(String(it.nombre).trim().toUpperCase() !== nUp) continue;
+        if(!it.lote) return null;      // lo tiene, pero sin lote: que se elija
+        return { lote: it.lote, caducidad: it.caducidad||'',
+                 proveedor: it.proveedor||'', cantidad: null,
+                 unidad: it.unidad_stock || it.unidad || '' };
+      }
+    }
+  }catch(e){}
+  return null;
+}
+
 function renderProductoCard(prod){
   var key = prod.nombre.replace(/[^a-zA-Z0-9]/g,'_');
-  var lote = obtenerLoteActivo(prod.nombre);
+  // (v2.6.357) Igual que en los fermentos: si el parte ya trae lote, ese manda.
+  var lote = _loteDelParte(null, prod.nombre) || obtenerLoteActivo(prod.nombre);
   var _repP = _repartoDe(prod.nombre);
   var loteHTML, cadHTML, provHTML;
   if(_repP){
