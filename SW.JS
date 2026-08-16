@@ -1,6 +1,6 @@
 // Service Worker para TraceQueso
-// Versión: v304 - cambiar este número en cada nueva versión del HTML
-const CACHE = 'tracequeso-v304';
+// Versión: v305 - cambiar este número en cada nueva versión del HTML
+const CACHE = 'tracequeso-v305';
 const ASSETS = ['/tracequeso/', '/tracequeso/index.html'];
 
 // INSTALACIÓN: cachear archivos esenciales
