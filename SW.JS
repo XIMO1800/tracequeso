@@ -1,6 +1,30 @@
 // Service Worker para TraceQueso
-// Versión: v323 - cambiar este número en cada nueva versión del HTML
-const CACHE = 'tracequeso-v323';
+// Versión: v325
+//
+// ═══════════════════════════════════════════════════════════════════════════
+// POR QUÉ EL NOMBRE DE LA CACHÉ YA NO LLEVA VERSIÓN  (v325)
+// ───────────────────────────────────────────────────────────────────────────
+// Antes era 'tracequeso-vNNN', un nombre distinto en cada versión. Eso abría un
+// agujero por el que la app se quedaba SIN NINGUNA COPIA guardada:
+//
+//   1. Se sube una versión → la caché pasa a llamarse de otra forma.
+//   2. install intenta descargar el HTML. Sin cobertura falla, y el error se
+//      ignoraba en silencio (.catch vacío): caché nueva VACÍA.
+//   3. activate borraba "las cachés viejas", entre ellas la ÚNICA que tenía la
+//      copia buena.
+//   4. La tablet se quedaba sin copia: necesita red obligatoriamente y, sin
+//      cobertura, sale el "¡Vaya! Se ha producido un error".
+//
+// Es exactamente lo que pasaba en la sala de envasar: cobertura mala, la pestaña
+// se recarga, no hay copia, y se pierde el registro a medias. Y empeoraba cada
+// vez que subíamos una versión.
+//
+// Con nombre FIJO la copia guardada no se tira nunca. El HTML nuevo se escribe
+// encima cuando se puede descargar; si no se puede, se sigue sirviendo el
+// anterior. Nunca hay un momento sin app.
+// ═══════════════════════════════════════════════════════════════════════════
+const CACHE = 'tracequeso-app';   // FIJO. No poner la versión aquí nunca más.
+const VERSION = 'v325';           // solo informativo
 const ASSETS = ['/tracequeso/', '/tracequeso/index.html'];
 
 // INSTALACIÓN: cachear archivos esenciales
@@ -18,11 +42,20 @@ self.addEventListener('install', function(e) {
 // ACTIVACIÓN: borrar cachés viejos
 self.addEventListener('activate', function(e) {
   e.waitUntil(
-    caches.keys().then(function(keys) {
-      return Promise.all(
-        keys.filter(function(k){ return k !== CACHE; })
-            .map(function(k){ return caches.delete(k); })
-      );
+    // Se limpian las cachés de nombre antiguo ('tracequeso-vNNN'), pero SOLO
+    // después de comprobar que la caché fija tiene de verdad el HTML dentro.
+    // Si no lo tiene, no se borra nada: antes ocupar sitio que dejar la app
+    // muerta en un secadero sin cobertura.
+    caches.open(CACHE).then(function(cache) {
+      return cache.match('/tracequeso/index.html').then(function(hayCopia) {
+        if (!hayCopia) return;
+        return caches.keys().then(function(keys) {
+          return Promise.all(
+            keys.filter(function(k){ return k !== CACHE; })
+                .map(function(k){ return caches.delete(k); })
+          );
+        });
+      });
     }).then(function() {
       return self.clients.claim();
     })
@@ -80,7 +113,9 @@ self.addEventListener('fetch', function(e) {
       caches.match(e.request).then(function(cacheado) {
         // Comprobar si hay versión nueva POR DETRÁS. Nadie espera a esto.
         var actualizar = fetchConLimite(e.request, 8000).then(function(resp) {
-          if (resp && resp.ok) {
+          // Solo se guarda si la respuesta es BUENA. Un error de GitHub o una
+          // respuesta a medias no deben machacar la copia que ya funciona.
+          if (resp && resp.ok && resp.status === 200) {
             var copy = resp.clone();
             caches.open(CACHE).then(function(cache) {
               cache.put(e.request, copy).catch(function(){});
@@ -96,9 +131,13 @@ self.addEventListener('fetch', function(e) {
           return cacheado;
         }
 
-        // Primera instalación en este móvil: no hay copia, toca esperar.
+        // Primera instalación en este aparato: no hay copia, toca esperar.
         return actualizar.then(function(resp) {
-          return resp || new Response(
+          if (resp && resp.ok) return resp;
+          // Último intento antes de rendirse: mirar si quedó copia en cualquier
+          // otra caché. Mejor servir algo viejo que no servir nada.
+          return caches.match('/tracequeso/index.html').then(function(alt) {
+          return alt || new Response(
             '<!doctype html><html lang="es"><meta charset="utf-8">' +
             '<meta name="viewport" content="width=device-width,initial-scale=1">' +
             '<body style="font-family:sans-serif;text-align:center;padding:40px 24px;background:#f5f1e8;color:#3a2f28">' +
@@ -110,6 +149,7 @@ self.addEventListener('fetch', function(e) {
             '</body></html>',
             { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
           );
+          });
         });
       })
     );
