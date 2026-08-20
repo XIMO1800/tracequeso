@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.357</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.359</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1303,7 +1303,13 @@ var TIPOS_VARIEDADES = {
   'D.O. CRUDA':   [],          // Sin variedad
   'MEZCLA':       ['TIERNO','SEMICURADO','BAJO EN SAL','ACEITE','TOSTADO','BOUQUET','NEGRO','PRUEBA','GRANA','BARRA'],
   'OVEJA':        ['(ESTÁNDAR)','TIERNO'],
-  'CABRA':        ['(ESTÁNDAR)','TIERNO']
+  'CABRA':        ['(ESTÁNDAR)','TIERNO'],
+  // (v2.6.358) MESNERA. Es un TIPO de leche, no una variedad: en la leyenda del
+  // SCADA de las cubas ya figura al mismo nivel que las demás
+  // (1.OVEJA 2.CABRA 3.MEZCLA 4.PRUEBA 5.MESNERA). Se le da la misma forma que a
+  // OVEJA y CABRA —estándar más tierno— y si hacen falta más variedades se
+  // añaden desde Recetas sin tocar el código.
+  'MESNERA':      ['(ESTÁNDAR)','TIERNO']
 };
 // ── Variedades PERSONALIZADAS (las crea el usuario, sin depender del programador) ──
 // Usa el MISMO almacén que el parte ('tq_partes_variedades') para que lo que se cree
