@@ -1,5 +1,5 @@
 // Service Worker para TraceQueso
-// Versión: v331
+// Versión: v333
 //
 // ═══════════════════════════════════════════════════════════════════════════
 // POR QUÉ EL NOMBRE DE LA CACHÉ YA NO LLEVA VERSIÓN  (v325)
@@ -24,7 +24,7 @@
 // anterior. Nunca hay un momento sin app.
 // ═══════════════════════════════════════════════════════════════════════════
 const CACHE = 'tracequeso-app';   // FIJO. No poner la versión aquí nunca más.
-const VERSION = 'v331';           // solo informativo
+const VERSION = 'v333';           // solo informativo
 const ASSETS = ['/tracequeso/', '/tracequeso/index.html'];
 
 // INSTALACIÓN: cachear archivos esenciales
