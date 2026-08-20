@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.359</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.360</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2621,6 +2621,21 @@ function _capturarAuxFermCuajoEnParte(p){
     doseTA[repTAcap.fGrande] = repTAcap.nG * repTAcap.tamG;
     if(repTAcap.fPeq) doseTA[repTAcap.fPeq] = repTAcap.nP * repTAcap.tamP;
   }
+  // (v2.6.360) LO QUE MANDA ES EL PARTE, NO LA RECETA.
+  // doseTA es el reparto que PROPONE la receta para los sobres de TA-054 (para
+  // 8000 L: un sobre de 50 y otro de 25). Hasta ahora esa propuesta pisaba lo que
+  // el quesero hubiera escrito, y el parte se guardaba con 50 y 25 aunque en la
+  // casilla pusiera 100 y 0. El descuento de stock salía del parte, así que
+  // descontaba un sobre de cada uno cuando de verdad se habían gastado dos de 50
+  // y ninguno de 25 (comprobado en el stock del 20/08).
+  // La pantalla ya avisaba de que era "propuesta — puedes cambiar la dosis
+  // utilizada de cada sobre": ahora se cumple. La propuesta solo se aplica al
+  // sobre que el quesero NO haya tocado. Y un 0 escrito vale como 0, no como
+  // "vacío": significa que ese sobre no se abrió.
+  function _consumoFerm(f){
+    if(doseTA.hasOwnProperty(f.nombre) && !ovr.hasOwnProperty(f.nombre)) return doseTA[f.nombre];
+    return dosisUtil(f.dosis_ml_1000L, f.nombre);
+  }
   // Determinar cuál EXCLUYENTE (R-603/R-604/CC-08) se usó: selección manual → rotación del día → mayor dosis.
   var _fermsRec = (receta.fermentos||[]);
   var _nombreExclUsado = null;
@@ -2647,7 +2662,7 @@ function _capturarAuxFermCuajoEnParte(p){
     // De los excluyentes, guardar SOLO el usado; los complementarios (Flora, TA-054) siempre.
     if(_esFermentoExcluyente(f.nombre) && _nombreExclUsado && f.nombre !== _nombreExclUsado) return;
     var L = lote(f.nombre);
-    var consumo = doseTA.hasOwnProperty(f.nombre) ? doseTA[f.nombre] : dosisUtil(f.dosis_ml_1000L, f.nombre);
+    var consumo = _consumoFerm(f);
     var baseF = {
       nombre:        f.nombre,
       dosis_ml_1000L: _dosisRegistrada(f.nombre, consumo, f.dosis_ml_1000L),
@@ -2664,7 +2679,7 @@ function _capturarAuxFermCuajoEnParte(p){
   if(!p.fermentos.length && _fermsRec.length){
     p.fermentos = _fermsRec.map(function(f){
       var L = lote(f.nombre);
-      var consumo = doseTA.hasOwnProperty(f.nombre) ? doseTA[f.nombre] : dosisUtil(f.dosis_ml_1000L, f.nombre);
+      var consumo = _consumoFerm(f);
       return { nombre:f.nombre, dosis_ml_1000L:f.dosis_ml_1000L||0, consumo_total:consumo, proveedor:L.proveedor||'', lote:L.lote||'', caducidad:L.caducidad||'', unidad:_uniConsumoDe(L.unidad), unidad_stock:L.unidad||'' };
     });
   }
