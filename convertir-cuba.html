@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Convertir cuba · El Hidalgo</title>
+<!-- JSZip desde CDN: hace falta INTERNET la primera vez que se abre la página.
+     Se usa este y no el descompresor propio del navegador porque el Chrome del
+     PC del SCADA es antiguo y no lo trae. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f5f0e8;color:#2a1505;padding:18px;max-width:760px;margin:0 auto;}
+  h1{font-size:1.15rem;font-weight:800;color:#8b2a2a;}
+  .sub{font-size:.82rem;color:#9a7a5a;margin-top:3px;}
+  .caja{background:#fff;border:1px solid #d4c9b5;border-radius:14px;padding:16px;margin-top:14px;box-shadow:0 2px 8px rgba(42,21,5,.08);}
+  .zona{border:2px dashed #c4b49b;border-radius:12px;padding:34px 18px;text-align:center;background:#faf7f1;cursor:pointer;transition:.15s;}
+  .zona:hover,.zona.on{border-color:#8b2a2a;background:#fdf6f2;}
+  .zona .ico{font-size:2.4rem;}
+  .zona .t{font-family:sans-serif;font-weight:800;font-size:1rem;margin-top:8px;}
+  .zona .s{font-size:.8rem;color:#9a7a5a;margin-top:4px;}
+  input[type=file]{display:none;}
+  .paso{display:flex;gap:11px;align-items:flex-start;font-size:.86rem;margin-bottom:9px;line-height:1.45;}
+  .paso b{background:#8b2a2a;color:#fff;width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.74rem;flex-shrink:0;margin-top:1px;}
+  .estado{font-size:.86rem;padding:11px 13px;border-radius:10px;margin-top:12px;display:none;line-height:1.5;}
+  .trabajando{background:#fdf6e8;border:1px solid #c8780a;color:#8a5a00;}
+  .bien{background:#eef7ee;border:1px solid #2e8b2e;color:#1f5f1f;}
+  .mal{background:#fdeeee;border:1px solid #8b1a1a;color:#8b1a1a;}
+  .btn{display:block;width:100%;padding:14px;background:#8b2a2a;color:#fff;border:none;border-radius:11px;font-family:sans-serif;font-weight:800;font-size:1rem;cursor:pointer;margin-top:12px;}
+  .btn:disabled{background:#c4b49b;cursor:default;}
+  table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:10px;}
+  td,th{padding:5px 3px;border-bottom:1px solid #eee7dc;text-align:left;}
+  th{font-size:.68rem;color:#9a7a5a;text-transform:uppercase;letter-spacing:.4px;}
+  td.n{text-align:right;font-variant-numeric:tabular-nums;}
+  .nota{font-size:.75rem;color:#9a7a5a;line-height:1.5;margin-top:10px;}
+  .cab{font-weight:800;font-size:.9rem;margin-bottom:2px;}
+</style>
+</head>
+<body>
+
+<h1>Convertir datos de la cuba</h1>
+<div class="sub">Lácteos Cuquerella · El Hidalgo · v1.1</div>
+
+<div class="caja">
+  <div class="paso"><b>1</b><span>Arrastra aquí el <strong>.xps</strong> de una cuba (el de <em>Control Cuba</em>). El número de cuba lo lee del propio archivo.</span></div>
+  <div class="paso"><b>2</b><span>Espera unos segundos mientras lo lee.</span></div>
+  <div class="paso"><b>3</b><span>Se descarga <strong>cuba1-14.08.2026.json</strong>. Súbelo a Drive, a la carpeta de datos de cubas.</span></div>
+
+  <label class="zona" id="zona">
+    <div class="ico">🥛</div>
+    <div class="t">Arrastra el .xps aquí</div>
+    <div class="s">o toca para elegirlo</div>
+    <input type="file" id="fichero" accept=".xps">
+  </label>
+
+  <div class="estado" id="estado"></div>
+
+  <!-- (v1.1) El export de la ventana "Tabla Control" no lleva dentro el número
+       de cuba: su cabecera es la ruta del proyecto de WinCC, no "Control Cuba 3".
+       Si no se puede leer del archivo, hay que decirlo a mano, porque el nombre
+       del JSON y la comparativa dependen de saber de qué cuba se trata. -->
+  <div id="pedircuba" style="display:none;margin-top:12px;padding:12px;background:#fdf6e8;border:1px solid #c8780a;border-radius:10px;">
+    <div style="font-size:.86rem;font-weight:800;color:#8a5a00;margin-bottom:8px;">¿De qué cuba es este archivo?</div>
+    <div style="display:flex;gap:8px;">
+      <button class="btncuba" data-c="1" style="flex:1;padding:12px;border:1px solid #c8780a;background:#fff;border-radius:9px;font-weight:800;font-size:1rem;cursor:pointer;">Cuba 1</button>
+      <button class="btncuba" data-c="2" style="flex:1;padding:12px;border:1px solid #c8780a;background:#fff;border-radius:9px;font-weight:800;font-size:1rem;cursor:pointer;">Cuba 2</button>
+      <button class="btncuba" data-c="3" style="flex:1;padding:12px;border:1px solid #c8780a;background:#fff;border-radius:9px;font-weight:800;font-size:1rem;cursor:pointer;">Cuba 3</button>
+    </div>
+  </div>
+  <button class="btn" id="descargar" style="display:none">⬇️ Descargar el archivo para Drive</button>
+</div>
+
+<div class="caja" id="resumen" style="display:none">
+  <div class="cab">Lo que ha hecho la cuba</div>
+  <div class="sub" id="rescab"></div>
+  <table><thead><tr><th>Fase</th><th>Desde</th><th>Hasta</th><th class="n">Min</th><th class="n">Tª</th></tr></thead>
+  <tbody id="restb"></tbody></table>
+  <div class="nota" id="resnota"></div>
+</div>
+
+<div class="caja" id="resumen2" style="display:none">
+  <div class="cab">Paradas del agitador durante el llenado</div>
+  <div class="nota" style="margin-top:2px">Cuando el quesero echa el cloruro o el fermento, para el agitador. Aquí están
+  esas paradas, pero <strong>el dato no dice qué se echó</strong>: solo que se paró.</div>
+  <table><thead><tr><th>Hora</th><th class="n">Duración</th><th class="n">Tª</th></tr></thead>
+  <tbody id="restb2"></tbody></table>
+</div>
+
+<div class="caja">
+  <div class="nota">
+    El archivo <strong>no sale de este ordenador</strong>: todo se lee aquí, en el navegador.
+    Lo único que necesita internet es la primera vez que se abre esta página.<br><br>
+    Las columnas del SCADA son <strong>cronómetros</strong>: cada fase arranca el suyo y cuenta
+    segundos. De ahí sale la hora exacta de cada hito, sin tener que deducir nada.
+  </div>
+</div>
+
+<script>
+var RESULTADO = null, NOMBRE = 'cuba.json';
+
+var zona = document.getElementById('zona');
+var estado = document.getElementById('estado');
+
+function decir(txt, clase){
+  estado.style.display = '';
+  estado.className = 'estado ' + clase;
+  estado.innerHTML = txt;
+}
+
+['dragenter','dragover'].forEach(function(e){
+  zona.addEventListener(e, function(ev){ ev.preventDefault(); zona.classList.add('on'); });
+});
+['dragleave','drop'].forEach(function(e){
+  zona.addEventListener(e, function(ev){ ev.preventDefault(); zona.classList.remove('on'); });
+});
+zona.addEventListener('drop', function(ev){
+  if(ev.dataTransfer.files.length) procesar(ev.dataTransfer.files[0]);
+});
+document.getElementById('fichero').addEventListener('change', function(){
+  if(this.files.length) procesar(this.files[0]);
+});
+
+function hhmm(s){ var h=Math.floor(s/3600), m=Math.floor((s%3600)/60); return (h<10?'0':'')+h+':'+(m<10?'0':'')+m; }
+function num(v){ var x=parseFloat(String(v).replace(',','.')); return isNaN(x)?0:x; }
+
+function procesar(file){
+  document.getElementById('descargar').style.display='none';
+  document.getElementById('resumen').style.display='none';
+  document.getElementById('resumen2').style.display='none';
+
+  if(!/\.xps$/i.test(file.name)){
+    decir('Ese archivo no es un <strong>.xps</strong>. Tiene que ser el del SCADA de la cuba.','mal');
+    return;
+  }
+  if(typeof JSZip === 'undefined'){
+    decir('No se ha podido cargar el lector de archivos. Comprueba que hay internet y vuelve a abrir esta página.','mal');
+    return;
+  }
+  decir('⏳ Leyendo <strong>'+file.name+'</strong>… no cierres esta página.','trabajando');
+  setTimeout(function(){ leer(file); }, 60);
+}
+
+var CABECERA = '';
+
+function leer(file){
+  CABECERA = '';
+  JSZip.loadAsync(file).then(function(zip){
+    var paginas = [];
+    zip.forEach(function(ruta, entrada){
+      if(/Documents\/1\/Pages\/\d+\.fpage$/i.test(ruta)) paginas.push({ruta:ruta, e:entrada});
+    });
+    if(!paginas.length) throw new Error('Este .xps no tiene páginas de datos. ¿Es el archivo de la cuba?');
+    paginas.sort(function(a,b){
+      var na=parseInt(a.ruta.match(/(\d+)\.fpage/)[1]), nb=parseInt(b.ruta.match(/(\d+)\.fpage/)[1]);
+      return na-nb;
+    });
+    decir('⏳ '+paginas.length+' páginas. Extrayendo las medidas…','trabajando');
+    return siguiente(paginas, 0, []);
+  }).then(function(filas){
+    if(!filas.length) throw new Error('No se han encontrado medidas dentro del archivo.');
+    // (v1.1) UN SOLO DÍA POR ARCHIVO.
+    // El export de la ventana de tabla arranca con las últimas filas del día
+    // anterior, porque el archivo de WinCC es continuo. Si se dejan, la fecha
+    // del JSON sale del día equivocado y los hitos se descolocan: el orden se
+    // calcula con la hora del día, así que una fila de las 9:52 de ayer se
+    // coloca DESPUÉS de una de las 5:23 de hoy.
+    // Se toma el día de la ÚLTIMA fila, que es el que de verdad contiene la
+    // fabricación, y se descarta lo anterior. En el informe automático todas las
+    // filas son del mismo día, así que ahí no recorta nada.
+    var diaFinal = filas[filas.length-1][0].split(' ')[0];
+    var antes = filas.length;
+    filas = filas.filter(function(f){ return f[0].split(' ')[0] === diaFinal; });
+    if(antes !== filas.length){
+      console.log('Descartadas '+(antes-filas.length)+' filas de días anteriores.');
+    }
+    if(!filas.length) throw new Error('No quedan medidas después de separar por día.');
+    construir(filas);
+  }).catch(function(err){
+    decir('❌ '+(err && err.message ? err.message : err),'mal');
+  });
+}
+
+function siguiente(paginas, i, filas){
+  if(i >= paginas.length) return Promise.resolve(filas);
+  var lote = paginas.slice(i, i+40);
+  return Promise.all(lote.map(function(p){ return p.e.async('string'); })).then(function(textos){
+    textos.forEach(function(t){ extraer(t, filas); });
+    if(i % 120 === 0){
+      decir('⏳ Leyendo… '+Math.round(i/paginas.length*100)+'%  ·  '+filas.length+' medidas','trabajando');
+    }
+    return new Promise(function(res){
+      setTimeout(function(){ res(siguiente(paginas, i+40, filas)); }, 0);
+    });
+  });
+}
+
+var RE_TXT = /UnicodeString="([^"]*)"/g;
+var RE_HORA = /^\d{2}\/\d{2}\/\d{2} \d{1,2}:\d{2}:\d{2}$/;
+
+function extraer(xml, filas){
+  var txt = [], m;
+  RE_TXT.lastIndex = 0;
+  while((m = RE_TXT.exec(xml)) !== null){
+    txt.push(m[1].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"'));
+  }
+  // El número de cuba va en el título de la primera página: "Control Cuba 1"
+  if(!CABECERA){
+    for(var q=0;q<txt.length && q<6;q++){
+      if(/Control\s+Cuba/i.test(txt[q])){ CABECERA = txt[q]; break; }
+    }
+  }
+  // Cada fila son 18 celdas: hora + 17 valores
+  var j = 0;
+  while(j < txt.length){
+    if(RE_HORA.test(txt[j])){
+      if(j+17 < txt.length) filas.push(txt.slice(j, j+18));
+      j += 18;
+    } else j++;
+  }
+}
+
+// columnas: 0 TIEMPO · 1 Q · 2 TEMP · 3 LLENA · 4 CUAJA · 5 COAG · 6 CO1 · 7 PARA
+//           8 CO2 · 9 CO3 · 10 CO4 · 11 CAL · 12 BAT · 13 VAC · 14 FRE · 15 VAP · 16 V1 · 17 V2
+var FASES = [
+  {col:3,  clave:'llenado',         nombre:'Llenado'},
+  {col:4,  clave:'cuajado',         nombre:'Cuajado'},
+  {col:5,  clave:'coagulacion',     nombre:'Coagulación'},
+  {col:6,  clave:'corte1',          nombre:'Corte 1'},
+  {col:7,  clave:'parada',          nombre:'Parada'},
+  {col:8,  clave:'corte2',          nombre:'Corte 2'},
+  {col:9,  clave:'corte3',          nombre:'Corte 3'},
+  {col:10, clave:'corte4',          nombre:'Corte 4'},
+  {col:11, clave:'recalentamiento', nombre:'Recalentamiento'},
+  {col:12, clave:'batido',          nombre:'Batido'},
+  {col:13, clave:'vaciado',         nombre:'Vaciado'}
+];
+
+function construir(filas){
+  function seg(t){ var p=t.split(' ')[1].split(':'); return (+p[0])*3600+(+p[1])*60+(+p[2]); }
+
+  // ── LOS CRONÓMETROS ──
+  // Cada columna cuenta segundos mientras su fase está en marcha. Se buscan los
+  // tramos en los que el número SUBE: ahí empieza y acaba la fase. Cuando deja de
+  // subir es que ha terminado (el contador se queda con su último valor hasta el
+  // final del día, y por eso no vale mirar dónde deja de ser cero).
+  function tramos(col){
+    var out=[], ini=null, ult=null, prev=null;
+    for(var k=0;k<filas.length;k++){
+      var v=num(filas[k][col]);
+      if(prev===null || v<prev){                 // arranca, o reinicia otra vez
+        if(ini!==null && ult!==null && prev>0) out.push([ini,ult,prev]);
+        ini = v>0 ? k : null; ult = v>0 ? k : null;
+      } else if(v>prev){
+        if(ini===null) ini=k;
+        ult=k;
+      }
+      prev=v;
+    }
+    if(ini!==null && ult!==null && prev>0) out.push([ini,ult,prev]);
+    return out;
+  }
+
+  var hitos=[];
+  FASES.forEach(function(f){
+    tramos(f.col).forEach(function(t){
+      hitos.push({clave:f.clave, nombre:f.nombre,
+        t1:seg(filas[t[0]][0]), t2:seg(filas[t[1]][0]),
+        segs:Math.round(t[2]), mins:Math.round(t[2]/60*10)/10,
+        ti:num(filas[t[0]][2]), tf:num(filas[t[1]][2])});
+    });
+  });
+  hitos.sort(function(a,b){ return a.t1-b.t1; });
+
+  // ── EL ACLARADO DE PRIMERA HORA ──
+  // Antes de empezar se aclaran las tres cubas a la vez. Eso arranca el contador
+  // de vaciado y aparece como un vaciado más, pero no lo es: va antes del llenado.
+  var tLlen = null;
+  hitos.forEach(function(h){ if(h.clave==='llenado' && tLlen===null) tLlen=h.t1; });
+  hitos.forEach(function(h){
+    if(h.clave==='vaciado' && tLlen!==null && h.t2 <= tLlen){ h.clave='aclarado'; h.nombre='Aclarado inicial'; }
+  });
+
+  // ── PARADAS DEL AGITADOR DURANTE EL LLENADO ──
+  // La columna FRE es la frecuencia del agitador. Cuando el quesero echa el
+  // cloruro o el fermento, lo para. OJO: el dato dice que se paró, no qué se
+  // echó. Sirve para contrastar, no para afirmar.
+  var tCuaj = null;
+  hitos.forEach(function(h){ if(h.clave==='cuajado' && tCuaj===null) tCuaj=h.t1; });
+  var paradas=[], ini2=null, prev2=null;
+  if(tLlen!==null && tCuaj!==null){
+    for(var k2=0;k2<filas.length;k2++){
+      var t=seg(filas[k2][0]);
+      if(t<tLlen || t>tCuaj) continue;
+      var f2=num(filas[k2][14]);
+      if(f2===0 && ini2===null) ini2=k2;
+      if(f2>0 && ini2!==null){
+        var dur=seg(filas[prev2][0])-seg(filas[ini2][0])+5;
+        if(dur>=20) paradas.push({t1:seg(filas[ini2][0]), t2:seg(filas[prev2][0]),
+                                  segs:dur, temp:num(filas[ini2][2])});
+        ini2=null;
+      }
+      if(f2===0) prev2=k2;
+    }
+  }
+
+  // Una medida cada 20 segundos para poder dibujar la curva de temperatura
+  var puntos=[];
+  for(var i=0;i<filas.length;i+=4){
+    puntos.push({t:seg(filas[i][0]), temp:num(filas[i][2]), fre:num(filas[i][14])});
+  }
+
+  var mc = String(CABECERA||'').match(/Cuba\s*(\d+)/i);
+  var f0 = filas[0][0].split(' ')[0].split('/');
+  RESULTADO = {
+    fecha: '20'+f0[2]+'-'+f0[1]+'-'+f0[0],
+    cuba: mc ? parseInt(mc[1]) : null,
+    medidas: filas.length,
+    hitos: hitos, paradas: paradas, puntos: puntos
+  };
+
+  NOMBRE = 'cuba'+(RESULTADO.cuba||'')+'-'+f0[0]+'.'+f0[1]+'.20'+f0[2]+'.json';
+
+  var kb = Math.round(JSON.stringify(RESULTADO).length/1024);
+  // (v1.1) Si el archivo no dice de qué cuba es, no se inventa: se pregunta.
+  // El botón de descarga no aparece hasta tenerlo, porque un JSON sin cuba no
+  // se puede cruzar con el parte y además todos se llamarían igual.
+  if(RESULTADO.cuba){
+    document.getElementById('pedircuba').style.display='none';
+    decir('✅ Listo. <strong>Cuba '+RESULTADO.cuba+'</strong> · '+filas.length.toLocaleString('es-ES')+
+          ' medidas · el archivo para Drive ocupa <strong>'+kb+' KB</strong>.','bien');
+    document.getElementById('descargar').style.display='';
+  } else {
+    document.getElementById('pedircuba').style.display='';
+    document.getElementById('descargar').style.display='none';
+    decir('⏳ Leídas '+filas.length.toLocaleString('es-ES')+' medidas ('+kb+' KB), pero este archivo '
+        + '<strong>no dice de qué cuba es</strong>. Es lo normal en el export de la ventana de tabla. '
+        + 'Elígela abajo.','trabajando');
+  }
+  resumir();
+}
+
+// (v1.1) Fija la cuba elegida a mano y deja descargar.
+function _fijarCuba(n){
+  if(!RESULTADO) return;
+  RESULTADO.cuba = n;
+  var f0 = RESULTADO.fecha.split('-');   // aaaa-mm-dd
+  NOMBRE = 'cuba'+n+'-'+f0[2]+'.'+f0[1]+'.'+f0[0]+'.json';
+  document.getElementById('pedircuba').style.display='none';
+  document.getElementById('descargar').style.display='';
+  document.getElementById('rescab').textContent =
+    'Cuba ' + n + ' · ' + RESULTADO.fecha.split('-').reverse().join('/');
+  decir('✅ <strong>Cuba '+n+'</strong> · '+RESULTADO.medidas.toLocaleString('es-ES')+
+        ' medidas. Ya puedes descargarlo.','bien');
+}
+
+function resumir(){
+  document.getElementById('resumen').style.display='';
+  document.getElementById('rescab').textContent =
+    'Cuba ' + (RESULTADO.cuba||'?') + ' · ' + RESULTADO.fecha.split('-').reverse().join('/');
+  document.getElementById('restb').innerHTML = RESULTADO.hitos.map(function(h){
+    var gris = h.clave==='aclarado' ? ' style="color:#9a7a5a"' : '';
+    return '<tr'+gris+'><td><strong>'+h.nombre+'</strong></td><td>'+hhmm(h.t1)+'</td><td>'+hhmm(h.t2)+
+           '</td><td class="n">'+h.mins+'</td><td class="n">'+h.ti+' → '+h.tf+'</td></tr>';
+  }).join('');
+  var rec=null;
+  RESULTADO.hitos.forEach(function(h){ if(h.clave==='recalentamiento' && !rec) rec=h; });
+  document.getElementById('resnota').innerHTML = rec
+    ? 'El <strong>recalentamiento empieza a las '+hhmm(rec.t1)+'</strong>. Es cuando entra el agua del '
+      + 'lavado de cuajada, así que debe cuadrar con el envío que marca la gráfica de pasteurización.'
+    : 'No se ha detectado recalentamiento en este archivo.';
+
+  document.getElementById('resumen2').style.display='';
+  document.getElementById('restb2').innerHTML = RESULTADO.paradas.length
+    ? RESULTADO.paradas.map(function(p){
+        return '<tr><td><strong>'+hhmm(p.t1)+'</strong></td><td class="n">'+p.segs+' s</td><td class="n">'+p.temp+' °C</td></tr>';
+      }).join('')
+    : '<tr><td colspan="3" style="color:#9a7a5a">No se ha parado el agitador durante el llenado.</td></tr>';
+}
+
+// (v1.1) Botones de cuba, para cuando el archivo no lo dice.
+Array.prototype.forEach.call(document.querySelectorAll('.btncuba'), function(b){
+  b.addEventListener('click', function(){ _fijarCuba(parseInt(b.getAttribute('data-c'),10)); });
+});
+
+document.getElementById('descargar').addEventListener('click', function(){
+  if(!RESULTADO) return;
+  var blob = new Blob([JSON.stringify(RESULTADO)], {type:'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = NOMBRE;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+  decir('✅ Descargado <strong>'+NOMBRE+'</strong>. Súbelo a Drive, a la carpeta de datos de cubas.','bien');
+});
+</script>
+</body>
+</html>

@@ -857,7 +857,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.360</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.361</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -866,6 +866,10 @@ input[type="email"] {
   <div class="nav-tab" data-tab="recetas" onclick="switchTab('recetas')">📖 RECETAS</div>
   <div class="nav-tab" data-tab="stock" onclick="switchTab('stock')">🏷️ LOTES</div>
   <div class="nav-tab" data-tab="lotes" onclick="switchTab('lotes')">📦 STOCK</div>
+  <!-- (v2.6.361) Las dos siguientes solo las ve ADMIN. Se ocultan de entrada y
+       las abre _aplicarPestanasAdmin() al conocerse el rol. Calidad NO las ve. -->
+  <div class="nav-tab" data-tab="saladero" onclick="switchTab('saladero')" id="tab-saladero" style="display:none">🧂 SALADERO</div>
+  <div class="nav-tab" data-tab="comparativa" onclick="switchTab('comparativa')" id="tab-comparativa" style="display:none">⚖️ COMPARATIVA</div>
 </div>
 
 <div id="screen-hoy" class="screen">
@@ -1289,6 +1293,72 @@ input[type="email"] {
   <div class="card" id="lista-stock"></div>
 </div>
 
+<!-- ════════════════════ SALADERO  (v2.6.361) ════════════════════
+     Pendiente de desarrollar. Se deja puesta a propósito, para tenerla delante
+     al pasar los partes cada día y no perder el hilo.
+     La idea: Calidad anota a diario el pH, la temperatura y los °Bé de la
+     salmuera, y esos datos se pintan en la gráfica de cada parte junto al pH
+     con el que el queso entra en salmuera. El objetivo es cruzar ambos pH para
+     seguir la pista al cortezón. -->
+<div id="screen-saladero" class="screen">
+  <div class="warn-banner">🧂 Datos diarios de la salmuera. Pendiente de desarrollar.</div>
+  <div class="card" style="padding:18px 16px;">
+    <div style="font-weight:800;font-size:1rem;margin-bottom:10px;">Qué irá aquí</div>
+    <div style="font-size:0.9rem;line-height:1.7;color:#444;">
+      • Un registro por día: <b>pH</b>, <b>temperatura</b> y <b>°Bé</b> de la salmuera.<br>
+      • Lo introduce Calidad, una vez al día.<br>
+      • Esos valores se pintarán en la gráfica de cada parte, al lado del pH con
+        el que el queso entra en salmuera.<br>
+      • Fin: vigilar la diferencia entre el pH del queso y el de la salmuera,
+        que es la pista que seguimos para el <b>cortezón</b>.
+    </div>
+    <div style="margin-top:14px;padding:10px 12px;background:#fff8e1;border-left:4px solid #C8821C;border-radius:6px;font-size:0.85rem;">
+      Sin decidir todavía: si el dato es uno por saladero o uno por fábrica, y
+      cuántas tomas al día.
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ COMPARATIVA SCADA ↔ PARTE  (v2.6.361) ════════════════════
+     Solo ADMIN. Ni Calidad ni el quesero.
+     Enfrenta lo que el quesero escribió con lo que registró el SCADA, campo a
+     campo, para poder revisar el día de un vistazo en vez de bucear en 2.000
+     filas por cuba. -->
+<div id="screen-comparativa" class="screen">
+  <div class="warn-banner">⚖️ Lo que dice el parte frente a lo que midió la máquina. En construcción.</div>
+  <div class="card" style="padding:18px 16px;">
+    <div style="font-weight:800;font-size:1rem;margin-bottom:10px;">Campos que SÍ se pueden comparar</div>
+    <div style="font-size:0.9rem;line-height:1.7;color:#444;">
+      Contrastados ya contra partes reales del 18 al 21 de agosto:<br><br>
+      • <b>Receta</b> — el SCADA guarda el número de programa<br>
+      • <b>Hora del cuajo</b> — arranque del contador CUAJA<br>
+      • <b>Hora de corte</b> — arranque del primer corte<br>
+      • <b>Coagulación total</b> — contador CUAJA (cuadró exacto en 8 de 8)<br>
+      • <b>Recalentamiento</b> — inicio, fin y temperaturas<br>
+      • <b>Batido</b> — inicio, fin y duración<br>
+      • <b>Moldeo</b> — apertura de las dos válvulas<br>
+      • <b>Temperatura MÁXIMA de cada fase</b>, no solo la final
+    </div>
+    <div style="margin-top:14px;padding:10px 12px;background:#e8f4e8;border-left:4px solid #2d5a2d;border-radius:6px;font-size:0.85rem;">
+      <b>Por qué también la máxima:</b> el 21/08 la cuba 3 marcó 36,9 °C al abrir
+      válvulas —justo lo que apuntó el quesero, y era cierto— pero por el camino
+      había llegado a <b>39,3 °C</b> con una receta equivocada. Comparando solo
+      el valor final, el error no se ve.
+    </div>
+    <div style="margin-top:12px;font-weight:800;font-size:1rem;margin-bottom:8px;">Campos que NO se comparan</div>
+    <div style="font-size:0.9rem;line-height:1.7;color:#444;">
+      pH, fermentos, cloruro, cuajo en ml, litros: el SCADA no los mide. Se
+      quedan como los escribe el quesero.
+    </div>
+    <div style="margin-top:14px;padding:10px 12px;background:#fdecea;border-left:4px solid #c02828;border-radius:6px;font-size:0.85rem;">
+      <b>Falta la pieza principal:</b> los datos de cuba del SCADA todavía no
+      llegan a la aplicación. Hoy son ficheros <code>.xps</code> sueltos. Hace
+      falta un conversor a JSON —como el de pasteurización— y subirlos a Drive.
+      Sin eso, esta pantalla no tiene con qué comparar.
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal"><div class="modal" id="modal-content"></div></div>
 <div id="toast"></div>
 
@@ -1446,6 +1516,7 @@ function cargarOperarios(){
       if(d.det && d.det.length) OPERARIOS_DET = d.det;
       if(d.actual) OPERARIO_ACTUAL = d.actual;
       if(d.rol) ROL_ACTUAL = d.rol;
+      try{_aplicarPestanasAdmin();}catch(e){}   // (v2.6.361)
     }
   }catch(e){}
   // Operario recibido desde TraceQueso (al pulsar "Partes de Fabricación" en el menú)
@@ -1457,6 +1528,7 @@ function cargarOperarios(){
         OPERARIO_ACTUAL = h.operario;
         if(OPERARIOS.indexOf(h.operario)<0) OPERARIOS.unshift(h.operario);
         if(h.rol) ROL_ACTUAL = h.rol;
+        try{_aplicarPestanasAdmin();}catch(e){}   // (v2.6.361)
         guardarOperarios();
       }
       localStorage.removeItem('tq_partes_handoff');
@@ -2785,6 +2857,30 @@ function esCalidadOAdmin(){
 // SIEMPRE edita sobre la REVISADA, nunca sobre el original (integridad de auditoría).
 function esAdminPuro(){
   return _rolContiene(ROL_ACTUAL,'ADMIN');
+}
+
+// (v2.6.361) Muestra SALADERO y COMPARATIVA solo si el rol es ADMIN.
+// Las dos nacen ocultas en el HTML y esta función las descubre. Se llama cada
+// vez que se conoce o cambia el rol, porque el rol llega de TraceQueso y puede
+// tardar en estar disponible; si no se vuelve a llamar, las pestañas no
+// aparecerían aunque el usuario sea Admin.
+// Calidad NO las ve: la comparativa contrasta el trabajo del quesero y esa
+// revisión es de dirección, no del departamento de calidad.
+function _aplicarPestanasAdmin(){
+  try{
+    var v = esAdminPuro() ? 'block' : 'none';
+    ['tab-saladero','tab-comparativa'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el) el.style.display=v;
+    });
+    // Si dejo de ser Admin estando en una de ellas, salgo a HOY.
+    if(!esAdminPuro()){
+      ['saladero','comparativa'].forEach(function(t){
+        var s=document.getElementById('screen-'+t);
+        if(s && s.style.display==='block') switchTab('hoy');
+      });
+    }
+  }catch(e){}
 }
 
 // ¿Es Calidad pero NO Admin? (Calidad "pura"). Esta gente edita siempre la revisada.
