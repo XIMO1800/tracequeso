@@ -878,7 +878,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.364</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.365</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2672,7 +2672,71 @@ function _capturarAuxFermCuajoEnParte(p){
   // Override de dosis y selección de fermento del propio parte (lo que tocó el quesero)
   var ovr = (p.dosis_override) ? p.dosis_override : ((parteActual && parteActual===p && parteActual.dosis_override) ? parteActual.dosis_override : {});
   var fermSel = p.ferm_seleccionado || (parteActual && parteActual===p ? parteActual.ferm_seleccionado : null) || null;
-  function lote(prod){ try{ return obtenerLoteActivo(prod) || {}; }catch(e){ return {}; } }
+  // ── (v2.6.365) DE QUÉ LOTE SE CONSUME  ──
+  //
+  // EL FALLO QUE ARREGLA: aquí se preguntaba siempre por el LOTE ACTIVO DE HOY.
+  // Al reactivar un parte de ayer y volver a cerrarlo, los lotes que el parte ya
+  // tenía guardados se tiraban a la basura y el consumo se cargaba al lote que
+  // estuviera activo en ese momento — que podía ser uno viejo ya regularizado a
+  // cero. De ahí el aviso de "falta cuajo" de un lote que ya no está en
+  // circulación y que el quesero no había tocado.
+  //
+  // Era además incoherente: en la pantalla, la línea del fermento SÍ muestra el
+  // lote del parte (_loteDelParte). Se veía uno y se guardaba otro.
+  //
+  // ORDEN CORRECTO, de más fuerte a más débil:
+  //   1) El que se haya elegido A MANO en este parte (lotes_seleccionados).
+  //      Es una decisión explícita del quesero y manda sobre todo lo demás.
+  //   2) El que el parte YA TENÍA guardado. Éste es el caso de la reactivación:
+  //      un parte de ayer conserva sus lotes de ayer.
+  //   3) El lote activo de hoy. Solo para partes nuevos, que aún no tienen nada.
+  //
+  // El reparto entre dos lotes no pasa por aquí: lo resuelve _expandirReparto,
+  // que sobrescribe el lote de cada línea con el suyo.
+  function _fichaStockDeLote(nombre, numLote){
+    try{
+      var nUp = String(nombre).trim().toUpperCase();
+      var lUp = String(numLote).trim().toUpperCase();
+      var f = (STOCK_REMOTO && STOCK_REMOTO.stock ? STOCK_REMOTO.stock.map(normRowStock) : [])
+        .filter(function(r){
+          return String(r.articulo||'').trim().toUpperCase() === nUp &&
+                 String(r.lote||'').trim().toUpperCase() === lUp;
+        })[0];
+      if(f) return {lote:f.lote, caducidad:f.caducidad, proveedor:f.proveedor, unidad:f.unidad};
+    }catch(e){}
+    return null;
+  }
+  function _loteYaEnParte(nombre){
+    try{
+      var nUp = String(nombre).trim().toUpperCase();
+      var listas = [p.fermentos, p.auxiliares, (p.cuajo ? [p.cuajo] : []), p.cuajos_extra];
+      for(var i=0;i<listas.length;i++){
+        var L = listas[i];
+        if(!L || !L.length) continue;
+        for(var j=0;j<L.length;j++){
+          var it = L[j];
+          if(!it || !it.nombre || !it.lote) continue;
+          if(String(it.nombre).trim().toUpperCase() !== nUp) continue;
+          return {lote:it.lote, caducidad:it.caducidad||'', proveedor:it.proveedor||'',
+                  unidad:it.unidad_stock || it.unidad || ''};
+        }
+      }
+    }catch(e){}
+    return null;
+  }
+  function lote(prod){
+    try{
+      var sel = (p.lotes_seleccionados && p.lotes_seleccionados[prod]) ? p.lotes_seleccionados[prod] : '';
+      if(sel){
+        var ficha = _fichaStockDeLote(prod, sel);
+        if(ficha) return ficha;
+        return {lote:sel, caducidad:'', proveedor:'', unidad:''};
+      }
+      var guardado = _loteYaEnParte(prod);
+      if(guardado) return guardado;
+      return obtenerLoteActivo(prod) || {};
+    }catch(e){ return {}; }
+  }
   // Dosis utilizada: si hay override manual para ese producto, se respeta (incluido 0);
   // si no, se calcula desde la dosis de receta.
   function dosisUtil(dosis_1000L, nombre){
