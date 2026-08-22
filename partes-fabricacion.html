@@ -878,7 +878,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.371</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.372</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4483,6 +4483,17 @@ function renderProductoCard(prod){
     + '</div>';
 }
 
+// (v2.6.372) CUÁNDO SE CONSIDERA QUE UN LOTE SE HA ACABADO.
+//
+// Al agotar un bote, la coma flotante deja colas absurdas: el Naturén 3816495
+// figuraba con 0,0000000000000142 L. Eso es mayor que cero, así que TODOS los
+// filtros que decían "stockActual > 0" lo daban por vivo: salía como lote activo,
+// se le marcaba el 🟢 USAR PRIMERO y se le cargaban los consumos.
+// En la v2.6.371 puse el umbral solo donde se comprueba la elección manual, y me
+// dejé la búsqueda por caducidad y las dos pestañas. Por eso seguía apareciendo.
+// Media milésima es el umbral: por debajo, el bote está gastado.
+var STOCK_MINIMO_VIVO = 0.0005;
+
 function obtenerLoteActivo(producto){
   if(!producto) return null;
   // 1) Si el usuario seleccionó manualmente un lote para este producto, lo respetamos
@@ -4515,7 +4526,7 @@ function obtenerLoteActivo(producto){
         // (v2.6.371) Un resto de 0,0000000000000142 L no es stock: es la cola que
         // deja la coma flotante al agotar un bote. Con 0,0005 de holgura, un lote
         // gastado deja de considerarse activo aunque no dé exactamente cero.
-        if(_fr && !(_fr.stockActual > 0.0005)){
+        if(_fr && !(_fr.stockActual > STOCK_MINIMO_VIVO)){
           try{ delete LOTES_ACTIVOS[producto]; persistir(); }catch(e){}
         } else if(_fr) return {
           lote:      _fr.lote,
@@ -4540,7 +4551,7 @@ function obtenerLoteActivo(producto){
       .map(normRowStock)
       .filter(function(r){
         var coincide = String(r.articulo||'').trim().toUpperCase() === nombreUp;
-        return coincide && (esCO2 || r.stockActual > 0);
+        return coincide && (esCO2 || r.stockActual > STOCK_MINIMO_VIVO);
       });
     if(candidatos.length){
       // Ordenar por caducidad ascendente (FIFO: el más antiguo primero)
@@ -4571,7 +4582,7 @@ function obtenerLotesDelProducto(producto){
   var lotes = STOCK_REMOTO.stock
     .map(normRowStock)
     .filter(function(r){
-      return String(r.articulo||'').trim().toUpperCase() === nombreUp && r.stockActual > 0;
+      return String(r.articulo||'').trim().toUpperCase() === nombreUp && r.stockActual > STOCK_MINIMO_VIVO;
     });
   lotes.sort(function(a,b){
     if(!a.caducidad) return 1;
@@ -8889,8 +8900,10 @@ function _esLoteActivo(articulo, lote){
 function _cant3(v){
   var n = parseFloat(v);
   if(isNaN(n)) return v;
-  if(Math.abs(n) < 0.0005) n = 0;
-  return String(Math.round(n*1000)/1000).replace('.', ',');
+  if(Math.abs(n) < STOCK_MINIMO_VIVO) n = 0;
+  // (v2.6.372) SIEMPRE tres decimales. Antes unos números salían con decimales y
+  // otros sin ellos según cayera el redondeo, y las columnas no se podían leer.
+  return (Math.round(n*1000)/1000).toFixed(3).replace('.', ',');
 }
 
 // ── Pestaña LOTES: lotes activos por artículo (solo lectura) ──
@@ -8902,7 +8915,7 @@ function renderLotes(){
   var CATS_FABRI = ['FERMENTO','AUXILIAR FABRICACION','CUAJO'];
   // Solo lotes activos (con stock > 0) y de categorías de fabricación
   var activos = stock.filter(function(r){
-    return r.stockActual > 0 && CATS_FABRI.indexOf((r.categoria||'').toUpperCase()) >= 0;
+    return r.stockActual > STOCK_MINIMO_VIVO && CATS_FABRI.indexOf((r.categoria||'').toUpperCase()) >= 0;
   });
   if(!activos.length){
     c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏷️</div><div class="empty-state-text">Sin lotes activos de fabricación</div><div style="margin-top:6px;font-size:0.78rem;color:var(--text3)">Calidad debe registrar fermentos, cuajos y auxiliares desde TraceQueso</div></div>';
@@ -8960,7 +8973,7 @@ function renderStock(){
   // en uso, para verificar contra la bolsa física.
   var CATS_FABRI = ['FERMENTO','AUXILIAR FABRICACION','CUAJO'];
   var stock = stockTodo.filter(function(r){
-    return r.stockActual > 0 && CATS_FABRI.indexOf((r.categoria||'').toUpperCase()) >= 0;
+    return r.stockActual > STOCK_MINIMO_VIVO && CATS_FABRI.indexOf((r.categoria||'').toUpperCase()) >= 0;
   });
   if(!stock.length){
     c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏷️</div><div class="empty-state-text">Sin lotes activos de fabricación</div><div style="margin-top:6px;font-size:0.78rem;color:var(--text3)">Calidad debe registrar fermentos, cuajos y auxiliares desde TraceQueso</div></div>';
