@@ -878,7 +878,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.366</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.367</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2724,14 +2724,19 @@ function _capturarAuxFermCuajoEnParte(p){
     }catch(e){}
     return null;
   }
+  // (v2.6.367) UNA SOLA VERDAD: EL LOTE QUE HAY DENTRO DEL PARTE.
+  //
+  // En la v2.6.365 puse aquí como primera prioridad 'lotes_seleccionados', una
+  // lista aparte que el parte arrastra desde que se creó. Fue un error: esa lista
+  // podía tener un lote antiguo y PISABA el que se ve en pantalla, porque la
+  // pantalla solo mira lo que hay dentro del parte. Se veía la Flora 3836019 y el
+  // aviso de stock hablaba de la 3829884.
+  //
+  // Desde la v2.6.366, al cambiar un lote se escribe DENTRO del parte, así que esa
+  // lista ya no aporta nada. Se deja de consultar y con eso la pantalla, el aviso
+  // de stock y lo que se guarda leen todos del mismo sitio.
   function lote(prod){
     try{
-      var sel = (p.lotes_seleccionados && p.lotes_seleccionados[prod]) ? p.lotes_seleccionados[prod] : '';
-      if(sel){
-        var ficha = _fichaStockDeLote(prod, sel);
-        if(ficha) return ficha;
-        return {lote:sel, caducidad:'', proveedor:'', unidad:''};
-      }
       var guardado = _loteYaEnParte(prod);
       if(guardado) return guardado;
       return obtenerLoteActivo(prod) || {};
