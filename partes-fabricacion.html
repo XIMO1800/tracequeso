@@ -878,7 +878,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.370</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.371</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4512,7 +4512,10 @@ function obtenerLoteActivo(producto){
         // El lote activo es el que se está gastando; uno a cero no se está
         // gastando. Si está agotado se olvida la elección y se sigue por
         // caducidad, que es lo que se hacía cuando no había ninguna elección.
-        if(_fr && !(_fr.stockActual > 0)){
+        // (v2.6.371) Un resto de 0,0000000000000142 L no es stock: es la cola que
+        // deja la coma flotante al agotar un bote. Con 0,0005 de holgura, un lote
+        // gastado deja de considerarse activo aunque no dé exactamente cero.
+        if(_fr && !(_fr.stockActual > 0.0005)){
           try{ delete LOTES_ACTIVOS[producto]; persistir(); }catch(e){}
         } else if(_fr) return {
           lote:      _fr.lote,
@@ -8862,6 +8865,34 @@ function iconoCategoria(cat){
   return '📦';
 }
 
+// ── (v2.6.371) EL LOTE ACTIVO, UNA SOLA REGLA PARA TODA LA APP ──
+//
+// EL FALLO QUE ARREGLA: las pestañas LOTES y STOCK marcaban con el 🟢 USAR PRIMERO
+// el lote de caducidad más próxima, por su cuenta. El parte, en cambio, propone el
+// lote ACTIVO (el que se está gastando). Dos reglas distintas para la misma
+// pregunta, y por eso las pestañas señalaban un bote agotado mientras el parte
+// proponía otro.
+// Ahora las pestañas preguntan a obtenerLoteActivo(), la MISMA función que usa el
+// parte. Lo que se ve aquí es, por definición, lo que saldrá en el próximo parte.
+function _esLoteActivo(articulo, lote){
+  try{
+    var a = obtenerLoteActivo(articulo);
+    if(!a || !a.lote) return false;
+    return String(a.lote).trim().toUpperCase() === String(lote).trim().toUpperCase();
+  }catch(e){ return false; }
+}
+
+// (v2.6.371) Cantidades con 3 decimales como mucho.
+// Los cálculos en coma flotante dejan colas absurdas: 9.629999999999999 L, o un
+// cuajo agotado que figura como 1.4210854715202004e-14 L. Con tres decimales
+// sobra para gramos y mililitros, y desaparece el ruido.
+function _cant3(v){
+  var n = parseFloat(v);
+  if(isNaN(n)) return v;
+  if(Math.abs(n) < 0.0005) n = 0;
+  return String(Math.round(n*1000)/1000).replace('.', ',');
+}
+
 // ── Pestaña LOTES: lotes activos por artículo (solo lectura) ──
 // Solo categorías relacionadas con fabricación de cuba: FERMENTO, AUXILIAR, CUAJO
 function renderLotes(){
@@ -8900,13 +8931,13 @@ function renderLotes(){
     html += '<div style="margin-bottom:14px;padding:10px;background:var(--bg2);border-radius:10px;border:1px solid var(--border)">';
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:1.1rem">'+icono+'</span><b>'+a.articulo+'</b><span style="font-size:0.7rem;color:var(--text3)">·'+a.categoria+'</span></div>';
     a.lotes.forEach(function(l, idx){
-      var esFifo = idx===0;
+      var esFifo = _esLoteActivo(a.articulo, l.lote);   // (v2.6.371) el activo, no el más antiguo
       var color = esFifo ? 'var(--accent)' : 'var(--text3)';
       var marca = esFifo ? '🟢 USAR PRIMERO' : '';
       html += '<div style="font-size:0.78rem;padding:6px 8px;margin:3px 0;color:var(--text2);border-radius:6px;background:var(--bg);border-left:3px solid '+color+'">';
       html += '<div style="display:flex;justify-content:space-between;align-items:center">';
       html += '<span><span style="font-family:Courier New,monospace;font-weight:700;color:var(--text)">'+l.lote+'</span>'+(l.proveedor?' · '+l.proveedor:'')+'</span>';
-      html += '<b>'+l.stockActual+' '+(l.unidad||'')+'</b>';
+      html += '<b>'+_cant3(l.stockActual)+' '+(l.unidad||'')+'</b>';
       html += '</div>';
       if(l.caducidad || marca){
         html += '<div style="margin-top:3px;font-size:0.7rem;color:var(--text3)">'+(l.caducidad?'Cad: '+_fechaEsp(l.caducidad):'')+(marca?' · <b style="color:var(--accent)">'+marca+'</b>':'')+'</div>';
@@ -8945,13 +8976,19 @@ function renderStock(){
   var html='';
   Object.keys(porArt).sort().forEach(function(k){
     var a = porArt[k];
-    // El lote activo = el más antiguo por caducidad (mismo criterio FIFO que usa el parte)
+    // (v2.6.371) El lote que se destaca es EL ACTIVO —el que propondrá el próximo
+    // parte—, no el de caducidad más próxima. Los demás se ordenan por caducidad
+    // detrás de él, para ver de un vistazo cuál viene después.
     a.lotes.sort(function(x,y){
       if(!x.caducidad) return 1;
       if(!y.caducidad) return -1;
       return x.caducidad.localeCompare(y.caducidad);
     });
-    var l = a.lotes[0];
+    var _iAct = -1;
+    for(var _q=0;_q<a.lotes.length;_q++){
+      if(_esLoteActivo(a.articulo, a.lotes[_q].lote)){ _iAct=_q; break; }
+    }
+    var l = a.lotes[_iAct >= 0 ? _iAct : 0];
     var icono = iconoCategoria(a.categoria);
     var nOtros = a.lotes.length - 1;
     html += '<div style="margin-bottom:12px;padding:10px;background:var(--bg2);border-radius:10px;border:1px solid var(--border)">';
@@ -8959,7 +8996,7 @@ function renderStock(){
     html += '<div style="font-size:0.82rem;padding:7px 9px;color:var(--text2);border-radius:6px;background:var(--bg);border-left:3px solid var(--accent)">';
     html += '<div style="display:flex;justify-content:space-between;align-items:center">';
     html += '<span><span style="font-family:Courier New,monospace;font-weight:700;color:var(--text)">'+l.lote+'</span>'+(l.proveedor?' · '+l.proveedor:'')+'</span>';
-    html += '<b>'+l.stockActual+' '+(l.unidad||'')+'</b>';
+    html += '<b>'+_cant3(l.stockActual)+' '+(l.unidad||'')+'</b>';
     html += '</div>';
     html += '<div style="margin-top:3px;font-size:0.7rem;color:var(--text3)">'+(l.caducidad?'Cad: '+_fechaEsp(l.caducidad)+' · ':'')+'<b style="color:var(--accent)">🟢 USAR PRIMERO</b></div>';
     html += '</div>';
