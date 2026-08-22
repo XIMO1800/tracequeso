@@ -878,7 +878,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.367</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.368</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2706,9 +2706,35 @@ function _capturarAuxFermCuajoEnParte(p){
     }catch(e){}
     return null;
   }
+  // (v2.6.368) FOTO DE LOS LOTES **ANTES** DE VACIAR NADA.
+  //
+  // EL FALLO QUE ARREGLA: más abajo esta misma función hace `p.auxiliares = []`
+  // y `p.fermentos = []` antes de recorrer la receta. Así que cuando se pregunta
+  // por el lote de un fermento, la lista del parte YA ESTÁ VACÍA: no encuentra
+  // nada y se va al lote activo de hoy. Por eso el cuajo salía bien —ése se
+  // reasigna al final, así que todavía está entero cuando se le pregunta— y los
+  // fermentos no. La Flora se veía en pantalla como 3836019 y se consumía del
+  // 3829884.
+  // La foto se toma aquí arriba, con el parte intacto, y es lo que se consulta.
+  var _lotesPrevios = {};
+  try{
+    [p.fermentos, p.auxiliares, (p.cuajo ? [p.cuajo] : []), p.cuajos_extra].forEach(function(L){
+      if(!L || !L.length) return;
+      L.forEach(function(it){
+        if(!it || !it.nombre || !it.lote) return;
+        var k = String(it.nombre).trim().toUpperCase();
+        if(_lotesPrevios[k]) return;   // el primero que aparezca manda
+        _lotesPrevios[k] = {lote:it.lote, caducidad:it.caducidad||'',
+                            proveedor:it.proveedor||'',
+                            unidad:it.unidad_stock || it.unidad || ''};
+      });
+    });
+  }catch(e){}
   function _loteYaEnParte(nombre){
     try{
-      var nUp = String(nombre).trim().toUpperCase();
+      var k = String(nombre).trim().toUpperCase();
+      if(_lotesPrevios[k]) return _lotesPrevios[k];
+      var nUp = k;
       var listas = [p.fermentos, p.auxiliares, (p.cuajo ? [p.cuajo] : []), p.cuajos_extra];
       for(var i=0;i<listas.length;i++){
         var L = listas[i];
@@ -4976,8 +5002,27 @@ function abrirSelectorLote(producto){
     // de su propia ficha, así que un mismo producto salía en kg y en g a la vez, y
     // los kg arrastraban colas de decimales tipo 0.004999999999999005.
     var _uniSel = _uniBase(stock);
+    // (v2.6.368) "USAR PRIMERO" MARCA EL LOTE QUE SE ESTÁ GASTANDO.
+    //
+    // Antes marcaba siempre el primero de la lista, que va ordenada por caducidad.
+    // Eso señalaba un bote con 5 g como "usar primero" mientras el quesero estaba
+    // en mitad de otro, y encima contradecía a la propia app: en un parte nuevo se
+    // propone el lote activo, no el de caducidad más próxima. Dos criterios
+    // distintos para la misma pregunta.
+    // Ahora la marca apunta al MISMO lote que la app propone al abrir un parte. Si
+    // no hay ninguno activo, se cae en el de caducidad más próxima, como antes.
+    var _act = null;
+    try{ _act = obtenerLoteActivo(producto); }catch(e){}
+    var _actNum = (_act && _act.lote) ? String(_act.lote).trim().toUpperCase() : '';
+    var _iMarca = -1;
+    if(_actNum){
+      for(var _k=0;_k<stock.length;_k++){
+        if(String(stock[_k].lote).trim().toUpperCase() === _actNum){ _iMarca=_k; break; }
+      }
+    }
+    if(_iMarca < 0) _iMarca = 0;
     stock.forEach(function(s,i){
-      var marca = (i===0) ? ' · 🟢 USAR PRIMERO' : '';
+      var marca = (i===_iMarca) ? ' · 🟢 USAR PRIMERO' : '';
       h+='<div class="opt-row" onclick="seleccionarLote(\''+producto+'\','+i+')">'
         +'<div class="opt-row-info">'
         +  '<div class="opt-row-lote">'+s.lote+marca+'</div>'
