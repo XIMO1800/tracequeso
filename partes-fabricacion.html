@@ -878,7 +878,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.368</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.370</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2724,9 +2724,18 @@ function _capturarAuxFermCuajoEnParte(p){
         if(!it || !it.nombre || !it.lote) return;
         var k = String(it.nombre).trim().toUpperCase();
         if(_lotesPrevios[k]) return;   // el primero que aparezca manda
-        _lotesPrevios[k] = {lote:it.lote, caducidad:it.caducidad||'',
-                            proveedor:it.proveedor||'',
-                            unidad:it.unidad_stock || it.unidad || ''};
+        // (v2.6.370) LA UNIDAD SE SACA SIEMPRE DE LA FICHA DE STOCK, no del parte.
+        // En la v2.6.368 la copiaba de lo guardado en el parte, que es la unidad del
+        // CONSUMO (ml, g). La ficha puede estar dada de alta en otra (L, kg): el
+        // CaCl2 está en litros. Con la unidad equivocada, el aviso comparaba 550 ml
+        // contra 541,79 L como si fuesen lo mismo y cantaba falta de stock habiendo
+        // quinientos litros. El número de lote lo manda el parte; la unidad, la ficha.
+        var _f = null;
+        try{ _f = _fichaStockDeLote(it.nombre, it.lote); }catch(e){}
+        _lotesPrevios[k] = {lote:it.lote,
+                            caducidad:(_f && _f.caducidad) || it.caducidad || '',
+                            proveedor:(_f && _f.proveedor) || it.proveedor || '',
+                            unidad:(_f && _f.unidad) || it.unidad_stock || it.unidad || ''};
       });
     });
   }catch(e){}
@@ -4493,7 +4502,19 @@ function obtenerLoteActivo(producto){
           return String(r.articulo||'').trim().toUpperCase() === _nUp &&
                  String(r.lote||'').trim().toUpperCase() === _lUp;
         })[0];
-        if(_fr) return {
+        // (v2.6.369) SI YA NO QUEDA, DEJA DE SER EL ACTIVO.
+        //
+        // EL FALLO QUE ARREGLA: la elección manual de lote se quedaba apuntada
+        // para siempre y NUNCA se comprobaba si a ese bote le quedaba algo. Un
+        // lote elegido hace semanas y ya agotado seguía saliendo como activo: se
+        // proponía en los partes nuevos, se marcaba con el 🟢 USAR PRIMERO y el
+        // consumo se le cargaba a él, dejándolo en negativo.
+        // El lote activo es el que se está gastando; uno a cero no se está
+        // gastando. Si está agotado se olvida la elección y se sigue por
+        // caducidad, que es lo que se hacía cuando no había ninguna elección.
+        if(_fr && !(_fr.stockActual > 0)){
+          try{ delete LOTES_ACTIVOS[producto]; persistir(); }catch(e){}
+        } else if(_fr) return {
           lote:      _fr.lote,
           caducidad: _fr.caducidad,
           proveedor: _fr.proveedor,
@@ -4502,7 +4523,9 @@ function obtenerLoteActivo(producto){
         };
       }
     }catch(e){}
-    return _sel;
+    // (v2.6.369) Solo se devuelve la copia guardada si sigue siendo el activo.
+    // Si se acaba de descartar por estar agotada, se cae al criterio por caducidad.
+    if(LOTES_ACTIVOS[producto]) return _sel;
   }
   // 2) Buscar en el stock real de Sheets (STOCK_REMOTO)
   if(STOCK_REMOTO && STOCK_REMOTO.stock && STOCK_REMOTO.stock.length){
