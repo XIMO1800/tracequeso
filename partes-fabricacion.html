@@ -878,7 +878,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.365</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.366</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4985,6 +4985,41 @@ function abrirSelectorLote(producto){
   abrirModal(h);
 }
 
+// ── (v2.6.366) ESCRIBIR EL LOTE ELEGIDO DENTRO DEL PARTE ──
+//
+// EL FALLO QUE ARREGLA: al pulsar "cambiar" y elegir un lote, la elección se
+// guardaba en LOTES_ACTIVOS (el lote activo de la fábrica) y en
+// lotes_seleccionados, pero NO dentro del parte. Y la pantalla pinta lo que hay
+// DENTRO del parte (_loteDelParte manda sobre el activo). Resultado: cambiabas
+// el lote, la pantalla seguía igual, y al cerrar se guardaba el de antes.
+// Con un parte reactivado no había forma de corregir el lote.
+//
+// Ahora la elección se escribe en el propio parte, que es lo que se ve y lo que
+// se guarda. Una sola verdad, en un solo sitio.
+function _fijarLoteEnParte(producto, datos){
+  try{
+    if(!producto || !datos || !datos.lote) return;
+    var nUp = String(producto).trim().toUpperCase();
+    var objetivos = [];
+    try{ var pA = PARTES.find(function(x){ return x.id===CUBA_ACTIVA_ID; }); if(pA) objetivos.push(pA); }catch(e){}
+    if(typeof parteActual!=='undefined' && parteActual && objetivos.indexOf(parteActual)<0) objetivos.push(parteActual);
+    objetivos.forEach(function(p){
+      var listas = [p.fermentos, p.auxiliares, (p.cuajo ? [p.cuajo] : []), p.cuajos_extra];
+      listas.forEach(function(L){
+        if(!L || !L.length) return;
+        L.forEach(function(it){
+          if(!it || !it.nombre) return;
+          if(String(it.nombre).trim().toUpperCase() !== nUp) return;
+          it.lote      = datos.lote;
+          it.caducidad = datos.caducidad || '';
+          it.proveedor = datos.proveedor || '';
+          if(datos.unidad) it.unidad = datos.unidad;
+        });
+      });
+    });
+  }catch(e){}
+}
+
 function seleccionarLote(producto,idx){
   var lotes=obtenerLotesDelProducto(producto);
   if(!lotes[idx]) return;
@@ -5000,6 +5035,8 @@ function seleccionarLote(producto,idx){
     unidad:s.unidad
   };
   parteActual.lotes_seleccionados[producto]=s.lote;
+  // (v2.6.366) Y, sobre todo, dentro del parte: es lo que se ve y lo que se guarda.
+  _fijarLoteEnParte(producto, {lote:s.lote, caducidad:s.caducidad, proveedor:s.proveedor, unidad:s.unidad});
   persistir();cerrarModal();
   if(parteActual.receta){var rid=parteActual.receta.id;document.getElementById('np-tipo').value=rid;onTipoChange();}
   iniciarCO2();
@@ -5354,6 +5391,9 @@ function guardarRepartoLotes(producto){
       proveedor: out[0].proveedor, cantidad: null, unidad: out[0].unidad
     };
     parteActual.lotes_seleccionados[producto] = out[0].lote;
+    // (v2.6.366) Un solo lote es un cambio de lote: escribirlo dentro del parte.
+    _fijarLoteEnParte(producto, {lote:out[0].lote, caducidad:out[0].caducidad,
+                                 proveedor:out[0].proveedor, unidad:out[0].unidad});
   } else {
     parteActual.reparto_lotes[producto] = out;
     // (v2.6.333) UN REPARTO TAMBIÉN ES UN CAMBIO DE LOTE.
@@ -9316,7 +9356,19 @@ function enviarParteSheets(parte){
 // a descontar con los datos que tenga en ese momento.
 function enviarReactivacionSheets(parte){
   var payload=Object.assign({},parte,{_SHEET:'PARTES', _UPDATE:true, _REACTIVAR:true, ID: parte.id});
-  fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).catch(function(){SYNC_PENDIENTE.push({tipo:'parte',data:payload});persistir();});
+  // (v2.6.366) RECARGAR EL STOCK DESPUÉS DE REACTIVAR.
+  //
+  // EL FALLO QUE ARREGLA: el backend devuelve al stock todo lo que el parte había
+  // consumido —eso funcionaba bien—, pero la app se quedaba con la copia que tenía
+  // en memoria, de antes de la devolución. Así que enseñaba el lote todavía en
+  // negativo y, peor, calculaba con ese número el aviso de "stock insuficiente" al
+  // cerrar. Salía un aviso falso por un stock que ya se había devuelto.
+  //
+  // Se recarga cuando Google confirma. Si falla la red, la reactivación queda en la
+  // libreta y el stock se pondrá al día en la siguiente carga.
+  fetch(API_URL,{method:'POST',body:JSON.stringify(payload)})
+    .then(function(){ try{ cargarStockMaterial(); }catch(e){} })
+    .catch(function(){SYNC_PENDIENTE.push({tipo:'parte',data:payload});persistir();});
 }
 
 function enviarRecetaSheets(receta,eliminar){
