@@ -839,6 +839,27 @@ input[type="email"] {
 .ferm-tabla-fila .sinlote{color:var(--amber);font-style:italic;font-size:0.78rem}
 .ferm-tabla-fila .cambiar-lnk{font-size:0.7rem;color:var(--green);font-weight:700;cursor:pointer;text-decoration:underline;margin-left:4px}
 
+
+/* ══════ TABLA DE SALMUERA (v2.6.363) ══════
+   Imita el impreso de papel: rejilla cerrada, cabecera a dos alturas y una
+   fila por día. Va pensada para pantalla de ordenador, que es donde la
+   rellena Calidad, pero con scroll horizontal para que no se rompa en tablet. */
+.saltab{border-collapse:collapse;width:100%;min-width:1080px;font-size:0.82rem;}
+.saltab th,.saltab td{border:1px solid #d8c9b4;padding:4px 6px;text-align:center;vertical-align:middle;}
+.saltab thead th{background:#f3ebdd;font-weight:800;color:#5a4632;position:sticky;top:0;z-index:2;}
+.saltab .th2{font-weight:400;font-size:0.68rem;opacity:0.75;}
+.saltab td.fecha{font-weight:700;white-space:nowrap;background:#faf6ef;}
+.saltab tr.hoy td{background:#fffbe9;}
+.saltab tr.hoy td.fecha{background:#fff3c4;}
+.saltab input{width:100%;box-sizing:border-box;border:1px solid transparent;background:transparent;
+  border-radius:4px;padding:3px 4px;font:inherit;text-align:center;color:inherit;}
+.saltab input:hover{border-color:#e0d3bd;}
+.saltab input:focus{border-color:var(--brand);background:#fff;outline:none;}
+.saltab input.mal{background:#ffe9e6;border-color:#d9534f;color:#a1281f;font-weight:700;}
+.saltab td.obs{text-align:left;min-width:150px;}
+.saltab td.lote{min-width:110px;}
+.saltab .firma{font-size:0.72rem;color:#7a5a3a;white-space:nowrap;}
+.saltab tr.sinfiltrante td.filtrante{color:#b06a00;}
 </style>
 </head>
 <body>
@@ -857,7 +878,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.361</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.364</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -867,7 +888,8 @@ input[type="email"] {
   <div class="nav-tab" data-tab="stock" onclick="switchTab('stock')">🏷️ LOTES</div>
   <div class="nav-tab" data-tab="lotes" onclick="switchTab('lotes')">📦 STOCK</div>
   <!-- (v2.6.361) Las dos siguientes solo las ve ADMIN. Se ocultan de entrada y
-       las abre _aplicarPestanasAdmin() al conocerse el rol. Calidad NO las ve. -->
+       las abre _aplicarPestanasAdmin() al conocerse el rol: SALADERO para Calidad
+       y Admin, COMPARATIVA solo para Admin. (v2.6.362) -->
   <div class="nav-tab" data-tab="saladero" onclick="switchTab('saladero')" id="tab-saladero" style="display:none">🧂 SALADERO</div>
   <div class="nav-tab" data-tab="comparativa" onclick="switchTab('comparativa')" id="tab-comparativa" style="display:none">⚖️ COMPARATIVA</div>
 </div>
@@ -1301,21 +1323,59 @@ input[type="email"] {
      con el que el queso entra en salmuera. El objetivo es cruzar ambos pH para
      seguir la pista al cortezón. -->
 <div id="screen-saladero" class="screen">
-  <div class="warn-banner">🧂 Datos diarios de la salmuera. Pendiente de desarrollar.</div>
-  <div class="card" style="padding:18px 16px;">
-    <div style="font-weight:800;font-size:1rem;margin-bottom:10px;">Qué irá aquí</div>
-    <div style="font-size:0.9rem;line-height:1.7;color:#444;">
-      • Un registro por día: <b>pH</b>, <b>temperatura</b> y <b>°Bé</b> de la salmuera.<br>
-      • Lo introduce Calidad, una vez al día.<br>
-      • Esos valores se pintarán en la gráfica de cada parte, al lado del pH con
-        el que el queso entra en salmuera.<br>
-      • Fin: vigilar la diferencia entre el pH del queso y el de la salmuera,
-        que es la pista que seguimos para el <b>cortezón</b>.
+  <!-- ════════════════ CONTROL DE SALMUERA  (v2.6.363) ════════════════
+       Réplica del impreso FOR 08-02: una fila por día, las últimas arriba,
+       scroll hacia abajo para ver el mes. Lo rellena Calidad desde el
+       ordenador, así que la tabla va a lo ancho.
+       Diarios y obligatorios: pH, temperatura, °Bé y nº de filtrados.
+       Lo demás solo cuando toca: sal (unos 5 sacos), material filtrante
+       (cada 4-10 días según producción) y, muy de tarde en tarde, Dornic
+       y ácido láctico.
+       El proveedor de la sal es SIEMPRE Unión Salinera y el lote dura un
+       camión entero (5-6 meses): los dos se proponen solos con el último
+       valor usado, para no escribirlos a diario. -->
+  <div id="sal-aviso" class="warn-banner" style="display:none;"></div>
+
+  <div class="card" style="padding:14px 16px;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div style="font-weight:800;font-size:1.05rem;">🧂 Control de salmuera</div>
+      <div id="sal-filtrante-info" style="font-size:0.82rem;color:#7a5a3a;background:#fff8e1;border-radius:6px;padding:4px 10px;"></div>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button class="btn" id="sal-btn-hoy" onclick="salNuevoDia()">+ Anotar hoy</button>
+      </div>
     </div>
-    <div style="margin-top:14px;padding:10px 12px;background:#fff8e1;border-left:4px solid #C8821C;border-radius:6px;font-size:0.85rem;">
-      Sin decidir todavía: si el dato es uno por saladero o uno por fábrica, y
-      cuántas tomas al día.
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="overflow-x:auto;">
+      <table class="saltab">
+        <thead>
+          <tr>
+            <th rowspan="2">Fecha</th>
+            <th colspan="4">Controles diarios</th>
+            <th rowspan="2">Dornic<br><span class="th2">semanal</span></th>
+            <th colspan="3">Cuando se añade sal</th>
+            <th colspan="3">Ácido láctico</th>
+            <th rowspan="2">Material<br>filtrante</th>
+            <th rowspan="2">Observaciones</th>
+            <th rowspan="2">Firma</th>
+          </tr>
+          <tr>
+            <th>pH</th><th>T °C</th><th>°Bé</th><th>Filtrados</th>
+            <th>Cant.</th><th>Lote</th><th>Prov.</th>
+            <th>Cant.</th><th>Lote</th><th>Prov.</th>
+          </tr>
+        </thead>
+        <tbody id="sal-tbody">
+          <tr><td colspan="15" style="padding:22px;text-align:center;color:#9a7a5a;">Cargando…</td></tr>
+        </tbody>
+      </table>
     </div>
+  </div>
+
+  <div style="margin-top:10px;font-size:0.8rem;color:#7a5a3a;">
+    El <b>°Bé</b> se busca en torno a 18. Entre 17,5 y 18,5 es lo normal; fuera de
+    ahí la casilla se marca en rojo.
   </div>
 </div>
 
@@ -2859,27 +2919,204 @@ function esAdminPuro(){
   return _rolContiene(ROL_ACTUAL,'ADMIN');
 }
 
-// (v2.6.361) Muestra SALADERO y COMPARATIVA solo si el rol es ADMIN.
+// (v2.6.362) Cada pestaña nueva tiene SU PROPIO permiso. Antes iban las dos
+// juntas como "solo Admin", y era un error de bulto:
+//   · SALADERO  → CALIDAD y ADMIN. Es Calidad quien mide y mete a diario la
+//     temperatura, el pH y los grados Baumé de la salmuera. Si no ve la
+//     pestaña, no puede meter nada y la pantalla no sirve para nada.
+//   · COMPARATIVA → solo ADMIN. Contrasta el trabajo del quesero contra el
+//     SCADA, y esa revisión es de dirección.
 // Las dos nacen ocultas en el HTML y esta función las descubre. Se llama cada
 // vez que se conoce o cambia el rol, porque el rol llega de TraceQueso y puede
-// tardar en estar disponible; si no se vuelve a llamar, las pestañas no
-// aparecerían aunque el usuario sea Admin.
-// Calidad NO las ve: la comparativa contrasta el trabajo del quesero y esa
-// revisión es de dirección, no del departamento de calidad.
+// tardar en estar disponible; si no se vuelve a llamar, no aparecerían aunque
+// el usuario tuviera permiso.
+
+// ═══════════════════════════════════════════════════════════════════════
+// CONTROL DE SALMUERA  (v2.6.363)
+//
+// Réplica del impreso FOR 08-02. Una fila por día, la más reciente arriba.
+// Lo rellena Calidad, a diario, desde el ordenador.
+//
+// DE MOMENTO GUARDA SOLO EN EL PROPIO APARATO (localStorage). El envío a
+// Google Sheets queda pendiente de añadir la función en el Apps Script; la
+// pantalla avisa de ello para que nadie crea que el dato ya está a salvo.
+// Cuando exista la hoja SALADERO, solo hay que rellenar salEnviar().
+// ═══════════════════════════════════════════════════════════════════════
+var SAL_KEY   = 'tq_salmuera';
+var SAL_DATOS = [];                 // [{fecha, ph, temp, be, filtrados, dornic,
+                                    //   sal_cant, sal_lote, sal_prov,
+                                    //   al_cant, al_lote, al_prov,
+                                    //   filtrante, obs, firma}]
+var SAL_BE_MIN = 17.5, SAL_BE_MAX = 18.5;   // fuera de aquí, casilla en rojo
+
+function salCargar(){
+  try{ SAL_DATOS = JSON.parse(localStorage.getItem(SAL_KEY)||'[]') || []; }
+  catch(e){ SAL_DATOS = []; }
+  SAL_DATOS.sort(function(a,b){ return a.fecha < b.fecha ? 1 : -1; });   // reciente arriba
+}
+function salGuardar(){
+  try{ localStorage.setItem(SAL_KEY, JSON.stringify(SAL_DATOS)); }catch(e){}
+}
+function salHoyISO(){
+  var d=new Date();
+  return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+}
+function salBonita(iso){
+  var p=String(iso||'').split('-');
+  return p.length===3 ? p[2]+'/'+p[1]+'/'+p[0].slice(2) : iso;
+}
+// Último valor no vacío de un campo, mirando hacia atrás en el tiempo.
+// Sirve para proponer el proveedor y el lote de la sal sin escribirlos.
+function salUltimo(campo){
+  for(var i=0;i<SAL_DATOS.length;i++){
+    var v=SAL_DATOS[i][campo];
+    if(v!==undefined && v!==null && String(v).trim()!=='') return String(v).trim();
+  }
+  return '';
+}
+// Días transcurridos desde el último cambio de material filtrante. Es dato
+// informativo, no un aviso por calendario: el cambio depende de cuánto se
+// fabrique (de 4 días en plena campaña a 10 en otoño).
+function salDiasFiltrante(){
+  for(var i=0;i<SAL_DATOS.length;i++){
+    if(String(SAL_DATOS[i].filtrante||'').trim()!==''){
+      var d1=new Date(SAL_DATOS[i].fecha), d2=new Date(salHoyISO());
+      return Math.round((d2-d1)/86400000);
+    }
+  }
+  return null;
+}
+function salNuevoDia(){
+  var hoy=salHoyISO();
+  for(var i=0;i<SAL_DATOS.length;i++){
+    if(SAL_DATOS[i].fecha===hoy){
+      var el=document.getElementById('sal-ph-'+hoy);
+      if(el){ el.focus(); el.select(); }
+      return;
+    }
+  }
+  SAL_DATOS.unshift({
+    fecha: hoy, ph:'', temp:'', be:'', filtrados:'', dornic:'',
+    sal_cant:'', sal_lote:'', sal_prov:'',
+    al_cant:'', al_lote:'', al_prov:'',
+    filtrante:'', obs:'',
+    firma: (typeof OPERARIO_ACTUAL!=='undefined' && OPERARIO_ACTUAL) ? OPERARIO_ACTUAL : ''
+  });
+  salGuardar(); salPintar();
+  var e2=document.getElementById('sal-ph-'+hoy);
+  if(e2) e2.focus();
+}
+// Un cambio en cualquier casilla: se apunta en memoria, se guarda y se
+// revisa el °Bé. La firma se pone sola con quien esté dentro de la app.
+function salEditar(fecha, campo, valor){
+  for(var i=0;i<SAL_DATOS.length;i++){
+    if(SAL_DATOS[i].fecha===fecha){
+      SAL_DATOS[i][campo]=valor;
+      if(!SAL_DATOS[i].firma && typeof OPERARIO_ACTUAL!=='undefined' && OPERARIO_ACTUAL){
+        SAL_DATOS[i].firma=OPERARIO_ACTUAL;
+      }
+      salGuardar();
+      if(campo==='be') salRevisarBe(fecha);
+      if(campo==='filtrante') salCabecera();
+      return;
+    }
+  }
+}
+function salRevisarBe(fecha){
+  var el=document.getElementById('sal-be-'+fecha);
+  if(!el) return;
+  var v=parseFloat(String(el.value).replace(',','.'));
+  var mal = !isNaN(v) && (v<SAL_BE_MIN || v>SAL_BE_MAX);
+  el.className = mal ? 'mal' : '';
+  el.title = mal ? 'Fuera de lo normal (17,5 – 18,5 °Bé)' : '';
+}
+function salCabecera(){
+  var d=salDiasFiltrante();
+  var el=document.getElementById('sal-filtrante-info');
+  if(!el) return;
+  if(d===null){ el.textContent='Sin ningún cambio de material filtrante anotado.'; return; }
+  el.textContent = d===0 ? 'Material filtrante cambiado hoy.'
+                 : 'Último cambio de material filtrante: hace '+d+(d===1?' día.':' días.');
+}
+function salCelda(f, campo, ancho, ph){
+  var val = f[campo]===undefined||f[campo]===null ? '' : String(f[campo]);
+  return '<input id="sal-'+campo+'-'+f.fecha+'" value="'+val.replace(/"/g,'&quot;')+'"'
+       + (ph?' placeholder="'+ph+'"':'')
+       + ' oninput="salEditar(\''+f.fecha+'\',\''+campo+'\',this.value)">';
+}
+function salPintar(){
+  var tb=document.getElementById('sal-tbody');
+  if(!tb) return;
+  if(!SAL_DATOS.length){
+    tb.innerHTML='<tr><td colspan="15" style="padding:22px;text-align:center;color:#9a7a5a;">'
+      + 'Todavía no hay ningún día anotado. Pulsa <b>+ Anotar hoy</b>.</td></tr>';
+    salCabecera(); return;
+  }
+  var hoy=salHoyISO();
+  tb.innerHTML = SAL_DATOS.map(function(f){
+    var cl = (f.fecha===hoy?' class="hoy"':'');
+    return '<tr'+cl+'>'
+      + '<td class="fecha">'+salBonita(f.fecha)+'</td>'
+      + '<td>'+salCelda(f,'ph')+'</td>'
+      + '<td>'+salCelda(f,'temp')+'</td>'
+      + '<td>'+salCelda(f,'be')+'</td>'
+      + '<td>'+salCelda(f,'filtrados')+'</td>'
+      + '<td>'+salCelda(f,'dornic')+'</td>'
+      + '<td>'+salCelda(f,'sal_cant','','sacos')+'</td>'
+      + '<td class="lote">'+salCelda(f,'sal_lote')+'</td>'
+      + '<td class="lote">'+salCelda(f,'sal_prov')+'</td>'
+      + '<td>'+salCelda(f,'al_cant')+'</td>'
+      + '<td class="lote">'+salCelda(f,'al_lote')+'</td>'
+      + '<td class="lote">'+salCelda(f,'al_prov')+'</td>'
+      + '<td class="lote filtrante">'+salCelda(f,'filtrante','','lote')+'</td>'
+      + '<td class="obs">'+salCelda(f,'obs')+'</td>'
+      + '<td class="firma">'+(f.firma||'')+'</td>'
+      + '</tr>';
+  }).join('');
+  SAL_DATOS.forEach(function(f){ salRevisarBe(f.fecha); });
+  salCabecera();
+}
+// Al abrir la pestaña: cargar, y si hoy no está anotado, crearlo ya con el
+// proveedor y el lote de sal heredados del último día que los tuviera.
+function salAbrir(){
+  salCargar();
+  var hoy=salHoyISO(), existe=false;
+  for(var i=0;i<SAL_DATOS.length;i++) if(SAL_DATOS[i].fecha===hoy) existe=true;
+  if(!existe){
+    var prov=salUltimo('sal_prov') || 'UNIÓN SALINERA';
+    SAL_DATOS.unshift({
+      fecha:hoy, ph:'', temp:'', be:'', filtrados:'', dornic:'',
+      sal_cant:'', sal_lote:salUltimo('sal_lote'), sal_prov:prov,
+      al_cant:'', al_lote:'', al_prov:'',
+      filtrante:'', obs:'',
+      firma:(typeof OPERARIO_ACTUAL!=='undefined' && OPERARIO_ACTUAL)?OPERARIO_ACTUAL:''
+    });
+    salGuardar();
+  }
+  salPintar();
+  var av=document.getElementById('sal-aviso');
+  if(av){
+    av.style.display='';
+    av.innerHTML='⚠️ Estos datos se guardan <b>solo en este aparato</b>. Falta añadir '
+               + 'la hoja SALADERO al Apps Script para que suban a Google Sheets.';
+  }
+}
+
 function _aplicarPestanasAdmin(){
   try{
-    var v = esAdminPuro() ? 'block' : 'none';
-    ['tab-saladero','tab-comparativa'].forEach(function(id){
-      var el=document.getElementById(id);
-      if(el) el.style.display=v;
-    });
-    // Si dejo de ser Admin estando en una de ellas, salgo a HOY.
-    if(!esAdminPuro()){
-      ['saladero','comparativa'].forEach(function(t){
+    var permiso = {
+      'saladero'   : esCalidadOAdmin(),   // Calidad mete los datos
+      'comparativa': esAdminPuro()        // solo dirección
+    };
+    Object.keys(permiso).forEach(function(t){
+      var el=document.getElementById('tab-'+t);
+      if(el) el.style.display = permiso[t] ? 'block' : 'none';
+      // Si pierdo el permiso estando dentro de esa pantalla, salgo a HOY.
+      if(!permiso[t]){
         var s=document.getElementById('screen-'+t);
         if(s && s.style.display==='block') switchTab('hoy');
-      });
-    }
+      }
+    });
   }catch(e){}
 }
 
@@ -3201,6 +3438,7 @@ function switchTab(tab){
   if(badge) badge.style.display = (tab==='hoy' && CUBA_ACTIVA_ID) ? 'block' : 'none';
   // Refrescar contenido según pantalla
   if(tab==='hoy'){ try{ renderPestanasCubas(); }catch(e){} }
+  if(tab==='saladero'){ try{ salAbrir(); }catch(e){} }   // (v2.6.363)
   if(tab==='historial'){ try{ renderPartes(); }catch(e){} try{ cargarPartesSheets(_filtroFecha); }catch(e){} try{ cargarGraficaPasteurizacion(_filtroFecha); }catch(e){} }
 }
 
@@ -4782,9 +5020,54 @@ function _repartoProveedores(rep){
 
 function _escQ(s){ return String(s||'').replace(/'/g,"\\'"); }
 
+// ── (v2.6.364) LOS LOTES QUE PUEDEN SALIR EN EL REPARTO ──
+//
+// EL FALLO QUE ARREGLA: obtenerLotesDelProducto() solo devuelve lotes con
+// stock > 0. Pero el reparto existe justamente para decir "SE ME ACABÓ este
+// bote y abrí el siguiente", y el bote que se acaba tiene, por definición,
+// cero. Así que el lote que se quiere declarar como agotado era el único que
+// NO aparecía en el desplegable. Quedaban los dos huecos ofreciendo el lote
+// nuevo, y no había forma de repartir: todo se iba al lote nuevo.
+// Caso real del 22/08 en la cuba 4: C-1050 con 435 g del lote 3789744 y un
+// consumo de 570; el desplegable solo ofrecía el 3842608.
+//
+// EL ARREGLO: al listado con stock se le añade, por delante, el lote que este
+// parte tiene puesto ahora mismo para ese producto, si es que ya no figura.
+// Va primero porque es el que se acaba, que es lo que se pregunta arriba.
+function _lotesParaReparto(producto){
+  var lotes = obtenerLotesDelProducto(producto) || [];
+  try{
+    var act = _loteDelParte(null, producto);
+    if(act && act.lote){
+      var yaEsta = lotes.some(function(s){
+        return String(s.lote).trim().toUpperCase() === String(act.lote).trim().toUpperCase();
+      });
+      if(!yaEsta){
+        // Se busca su ficha en el stock aunque esté a cero, para conservar
+        // caducidad, proveedor y unidad. Si ni eso, se monta con lo del parte.
+        var ficha = null;
+        try{
+          var nUp = String(producto).trim().toUpperCase();
+          var lUp = String(act.lote).trim().toUpperCase();
+          ficha = (STOCK_REMOTO && STOCK_REMOTO.stock ? STOCK_REMOTO.stock.map(normRowStock) : [])
+            .filter(function(r){
+              return String(r.articulo||'').trim().toUpperCase() === nUp &&
+                     String(r.lote||'').trim().toUpperCase() === lUp;
+            })[0] || null;
+        }catch(e){}
+        lotes.unshift(ficha || {
+          articulo: producto, lote: act.lote, caducidad: act.caducidad||'',
+          proveedor: act.proveedor||'', stockActual: 0, unidad: act.unidad||''
+        });
+      }
+    }
+  }catch(e){}
+  return lotes;
+}
+
 // ── Modal de reparto ──
 function abrirRepartoLotes(producto){
-  var lotes = obtenerLotesDelProducto(producto);
+  var lotes = _lotesParaReparto(producto);
   if(!lotes.length){
     abrirModal('<div class="modal-title">Repartir ' + producto + ' <button class="modal-close" onclick="cerrarModal()">×</button></div>'
       + '<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">No hay lotes con stock de ' + producto + '.<br>Registra la entrada del bote desde Material auxiliar.</div></div>');
