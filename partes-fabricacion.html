@@ -891,7 +891,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.379</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.383</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1406,7 +1406,7 @@ input[type="email"] {
       <div style="font-weight:800;font-size:1.05rem;">⚖️ Parte contra SCADA</div>
       <input type="date" id="cmp-fecha" class="finput" style="width:auto;"
              onchange="cmpCambiarFecha(this.value)">
-      <button class="btn" onclick="cmpCargar()">Actualizar</button>
+      <button class="btn" onclick="cmpForzar()">Actualizar</button>
     </div>
     <div style="margin-top:8px;font-size:0.8rem;color:#7a6a5c;">
       Tolerancias provisionales: ±3 min y ±0,5 °C. El ámbar significa
@@ -3367,7 +3367,17 @@ function cmpAbrir(){
   cmpCargar();
 }
 
-function cmpCambiarFecha(v){ CMP_FECHA = v; cmpCargar(); }
+function cmpCambiarFecha(v){ CMP_FECHA = v; CMP_CACHE = {}; cmpCargar(); }
+
+// (v2.6.380) "Actualizar" ahora OLVIDA lo que ya había pedido. Antes guardaba
+// en memoria la respuesta de cada cuba y no volvía a preguntar, así que después
+// de subir un JSON corregido al Drive el botón seguía enseñando el viejo y
+// parecía que el arreglo no había servido. Un botón que se llama Actualizar
+// tiene que ir a buscar de nuevo.
+function cmpForzar(){
+  CMP_CACHE = {};
+  cmpCargar();
+}
 
 // PARTES en memoria solo tiene los partes del día que se pidió la última vez
 // (cargarPartesSheets baja UNA fecha). Si se elige un día pasado sin bajarlo
@@ -3568,7 +3578,14 @@ function cmpTarjeta(p, d){
   }
   var recetaTxt = (f.receta ? ('<div style="font-size:0.84rem;color:#7a6a5c;margin-top:4px;">'
        + 'Receta del SCADA: <b>'+f.receta+'</b> · objetivo '+(f.objetivo_recal||'?')+' °C</div>') : '')
-       + _avisoCuajada;
+       + _avisoCuajada
+       + (d.conversor
+            ? '<div style="font-size:0.72rem;color:#b09a86;margin-top:2px;">Archivo del conversor v'+d.conversor+'</div>'
+            // Sin sello = v1.6 o anterior. NO quiere decir que el dato esté mal:
+            // la v1.6 ya traía la coagulación corregida y las varias cuajadas.
+            // Por eso va en gris y no en ámbar: es información, no una alarma.
+            : '<div style="font-size:0.72rem;color:#b09a86;margin-top:2px;">'
+              + 'Archivo sin sellar (conversor v1.6 o anterior).</div>');
 
   return '<div class="card" style="padding:14px 16px;margin-bottom:12px;">'
     + cab + recetaTxt + av + cuerpo + '</div>';
@@ -7307,7 +7324,7 @@ function _hitosDeParte(p){
   ];
   if(p.desmoldeos && p.desmoldeos.length){
     var d = p.desmoldeos[0];
-    hitos.push({nombre:'Desmoldeo', hora:d.hi||d.hf||'', ph:_numOr(d.ph), temp:_numOr(d.temp)});
+    hitos.push({nombre:'Desmoldeo inicio', hora:d.hi||d.hf||'', ph:_numOr(d.ph), temp:_numOr(d.temp)});
     if(d.hf && d.hi && d.hf!==d.hi){
       hitos.push({nombre:'Desmoldeo fin', hora:d.hf, ph:null, temp:null});
     }
@@ -7381,6 +7398,7 @@ function _svgGraficaEvolucion(p){
   HITOS.forEach(function(h,i){
     var m=_horaAMin(h.hora); var xx=x(m);
     s+='<line x1="'+xx+'" y1="'+mt+'" x2="'+xx+'" y2="'+(mt+alto)+'" stroke="#e8e4d8" stroke-width="1" stroke-dasharray="3 3"/>';
+    if(h.suelto) return;   // (v2.6.382) la salmuera lleva su rótulo arriba, junto a los rombos
     var yNombre = mt+alto+18 + niveles[i]*22; // nivel 0,1,2 → escalonado
     s+='<text x="'+xx+'" y="'+yNombre+'" text-anchor="middle" font-size="10.5" font-family="Arial,Helvetica,sans-serif" fill="#5a4d3f" font-weight="700">'+h.nombre+'</text>';
     // (v2.6.377) La salmuera NO lleva hora: se coloca a la derecha del desmoldeo
@@ -7444,22 +7462,37 @@ function _svgGraficaEvolucion(p){
       }
       var _yT = (h.temp!=null) ? yTp(h.temp) : null;
       var _yP = (h.ph!=null)   ? yPh(h.ph)   : null;
-      // Posición de partida: temperatura encima de su rombo, pH debajo del suyo.
-      var _lT = (_yT!=null) ? _yT-12 : null;
-      var _lP = (_yP!=null) ? _yP+20 : null;
-      // El °Bé cuelga del pH; si no hay pH, del rombo de temperatura.
-      var _lB = (_lP!=null) ? _lP+14 : ((_lT!=null) ? _lT+28 : null);
-      if(_lT!=null && _lP!=null && (_lP-_lT) < 30){
-        var _falta = 30-(_lP-_lT);
-        _lT -= _falta/2;  _lP += _falta/2;  _lB = _lP+14;
+      // (v2.6.382) CADA RÓTULO AL LADO DE SU ROMBO.
+      // Antes se daba por hecho que la temperatura va arriba y el pH abajo, que
+      // es lo que pasa durante toda la fabricación. En la salmuera es al revés:
+      // con pH 5,25 y 12 °C el rombo del pH queda MÁS ALTO que el de la
+      // temperatura, y al apartar las etiquetas cada número acababa pegado al
+      // rombo del otro. Ahora no se supone nada: se mira quién está más arriba.
+      var _arriba=null, _abajo=null;
+      if(_yT!=null && _yP!=null){
+        _arriba = (_yT < _yP) ? {y:_yT, es:'T'} : {y:_yP, es:'P'};
+        _abajo  = (_yT < _yP) ? {y:_yP, es:'P'} : {y:_yT, es:'T'};
+      } else if(_yT!=null){ _arriba = {y:_yT, es:'T'}; }
+      else if(_yP!=null){   _arriba = {y:_yP, es:'P'}; }
+      var _lArr = _arriba ? _arriba.y - 10 : null;   // el de arriba, por encima
+      var _lAba = _abajo  ? _abajo.y  + 16 : null;   // el de abajo, por debajo
+      if(_lArr!=null && _lAba!=null && (_lAba-_lArr) < 28){
+        var _falta = 28-(_lAba-_lArr);
+        _lArr -= _falta/2;  _lAba += _falta/2;
       }
+      function _txtT(){ return h.temp+'°'; }
+      function _txtP(){ return Number(h.ph).toFixed(2); }
+      function _pinta(col, txt, yy){
+        s+='<text x="'+(xx+9)+'" y="'+yy+'" text-anchor="start" font-size="10.5" fill="'+col
+         +'" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+txt+'</text>';
+      }
+      // Líneas de puntos y rombos
       if(_yT!=null){
         if(_prevT){
           s+='<line x1="'+x(_horaAMin(_prevT.hora))+'" y1="'+yTp(_prevT.temp)+'" x2="'+xx+'" y2="'+_yT
            +'" stroke="#c0392b" stroke-width="1.6" stroke-dasharray="4,3" opacity="0.75"/>';
         }
         s+=_rombo(_yT, '#c0392b');
-        s+='<text x="'+(xx+9)+'" y="'+_lT+'" text-anchor="start" font-size="10.5" fill="#c0392b" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+h.temp+'°</text>';
       }
       if(_yP!=null){
         if(_prevP){
@@ -7467,10 +7500,24 @@ function _svgGraficaEvolucion(p){
            +'" stroke="#7B3FA0" stroke-width="1.6" stroke-dasharray="4,3" opacity="0.75"/>';
         }
         s+=_rombo(_yP, '#7B3FA0');
-        s+='<text x="'+(xx+9)+'" y="'+_lP+'" text-anchor="start" font-size="10.5" fill="#7B3FA0" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+Number(h.ph).toFixed(2)+'</text>';
       }
-      if(h.be!=null && _lB!=null){
-        s+='<text x="'+(xx+9)+'" y="'+_lB+'" text-anchor="start" font-size="10" fill="#8a6a2a" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+h.be+' °Bé</text>';
+      // Rótulos, cada uno con el color de su magnitud, en su sitio
+      if(_arriba) _pinta(_arriba.es==='T'?'#c0392b':'#7B3FA0', _arriba.es==='T'?_txtT():_txtP(), _lArr);
+      if(_abajo)  _pinta(_abajo.es==='T' ?'#c0392b':'#7B3FA0', _abajo.es==='T' ?_txtT():_txtP(), _lAba);
+      // (v2.6.383) Los grados Baumé, arriba, a la altura de su propio valor leído
+      // en la escala de temperatura: 18 °Bé cae cerca de la línea del 20. No es
+      // que estén en esa escala —son otra magnitud—, pero así quedan en un sitio
+      // fijo y previsible, y nunca chocan con la temperatura, que en la salmuera
+      // no pasa de 14. Antes colgaban del rótulo de abajo y bailaban con él.
+      if(h.be!=null){
+        var _yB = yTp(h.be);
+        if(_yT!=null && Math.abs(_yB-_yT) < 16) _yB = _yT - 16;   // por si acaso
+        s+='<text x="'+(xx+9)+'" y="'+_yB+'" text-anchor="start" font-size="10" fill="#8a6a2a" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+h.be+' °Bé</text>';
+      }
+      // El nombre, arriba junto a los datos y no abajo con los hitos del reloj:
+      // la salmuera no está en la línea de tiempos.
+      if(_lArr!=null){
+        s+='<text x="'+(xx+9)+'" y="'+(_lArr-13)+'" text-anchor="start" font-size="10" fill="#5a4d3f" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">Salmuera</text>';
       }
       return;
     }
