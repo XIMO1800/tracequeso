@@ -860,6 +860,19 @@ input[type="email"] {
 .saltab td.lote{min-width:110px;}
 .saltab .firma{font-size:0.72rem;color:#7a5a3a;white-space:nowrap;}
 .saltab tr.sinfiltrante td.filtrante{color:#b06a00;}
+
+/* ══════ COMPARATIVA (v2.6.373) ══════ */
+.cmptab{width:100%;border-collapse:collapse;font-size:0.86rem;margin-top:10px;}
+.cmptab th{text-align:left;font-size:0.74rem;text-transform:uppercase;letter-spacing:0.04em;
+  color:#8a7a6a;border-bottom:1px solid #e0d3bd;padding:4px 6px;font-weight:700;}
+.cmptab td{padding:5px 6px;border-bottom:1px solid #f0e8dc;}
+.cmptab td:nth-child(2),.cmptab td:nth-child(3){font-family:'Inconsolata',monospace;}
+.cmptab .cmp-rot{color:#5a4632;font-weight:600;}
+.cmptab .cmp-nota{display:block;font-size:0.7rem;font-weight:400;color:#9a8a7a;}
+.cmptab tr.cmp-ojo{background:#fff8e9;}
+.cmp-chivato{margin-top:10px;padding:9px 12px;border-radius:8px;font-size:0.86rem;line-height:1.5;}
+.cmp-chivato.bien{background:#eaf5ea;border-left:4px solid #2d7a2d;}
+.cmp-chivato.mal{background:#fdeeea;border-left:4px solid #b03030;}
 </style>
 </head>
 <body>
@@ -878,7 +891,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.372</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.373</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1385,38 +1398,22 @@ input[type="email"] {
      campo, para poder revisar el día de un vistazo en vez de bucear en 2.000
      filas por cuba. -->
 <div id="screen-comparativa" class="screen">
-  <div class="warn-banner">⚖️ Lo que dice el parte frente a lo que midió la máquina. En construcción.</div>
-  <div class="card" style="padding:18px 16px;">
-    <div style="font-weight:800;font-size:1rem;margin-bottom:10px;">Campos que SÍ se pueden comparar</div>
-    <div style="font-size:0.9rem;line-height:1.7;color:#444;">
-      Contrastados ya contra partes reales del 18 al 21 de agosto:<br><br>
-      • <b>Receta</b> — el SCADA guarda el número de programa<br>
-      • <b>Hora del cuajo</b> — arranque del contador CUAJA<br>
-      • <b>Hora de corte</b> — arranque del primer corte<br>
-      • <b>Coagulación total</b> — contador CUAJA (cuadró exacto en 8 de 8)<br>
-      • <b>Recalentamiento</b> — inicio, fin y temperaturas<br>
-      • <b>Batido</b> — inicio, fin y duración<br>
-      • <b>Moldeo</b> — apertura de las dos válvulas<br>
-      • <b>Temperatura MÁXIMA de cada fase</b>, no solo la final
+  <!-- ══════════ COMPARATIVA PARTE ↔ SCADA  (v2.6.373) ══════════
+       Las reglas de lectura del SCADA NO están aquí: el conversor ya entrega la
+       ficha con las normas aplicadas y esta pantalla solo resta y pinta. -->
+  <div class="card" style="padding:12px 16px;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div style="font-weight:800;font-size:1.05rem;">⚖️ Parte contra máquina</div>
+      <input type="date" id="cmp-fecha" class="finput" style="width:auto;"
+             onchange="cmpCambiarFecha(this.value)">
+      <button class="btn" onclick="cmpCargar()">Actualizar</button>
     </div>
-    <div style="margin-top:14px;padding:10px 12px;background:#e8f4e8;border-left:4px solid #2d5a2d;border-radius:6px;font-size:0.85rem;">
-      <b>Por qué también la máxima:</b> el 21/08 la cuba 3 marcó 36,9 °C al abrir
-      válvulas —justo lo que apuntó el quesero, y era cierto— pero por el camino
-      había llegado a <b>39,3 °C</b> con una receta equivocada. Comparando solo
-      el valor final, el error no se ve.
-    </div>
-    <div style="margin-top:12px;font-weight:800;font-size:1rem;margin-bottom:8px;">Campos que NO se comparan</div>
-    <div style="font-size:0.9rem;line-height:1.7;color:#444;">
-      pH, fermentos, cloruro, cuajo en ml, litros: el SCADA no los mide. Se
-      quedan como los escribe el quesero.
-    </div>
-    <div style="margin-top:14px;padding:10px 12px;background:#fdecea;border-left:4px solid #c02828;border-radius:6px;font-size:0.85rem;">
-      <b>Falta la pieza principal:</b> los datos de cuba del SCADA todavía no
-      llegan a la aplicación. Hoy son ficheros <code>.xps</code> sueltos. Hace
-      falta un conversor a JSON —como el de pasteurización— y subirlos a Drive.
-      Sin eso, esta pantalla no tiene con qué comparar.
+    <div style="margin-top:8px;font-size:0.8rem;color:#7a6a5c;">
+      Tolerancias provisionales: ±3 min y ±0,5 °C. El ámbar significa
+      <b>míralo</b>, no <b>está mal</b>: con dos días de datos aún no se pueden afinar.
     </div>
   </div>
+  <div id="cmp-lista"></div>
 </div>
 
 <div class="modal-overlay" id="modal"><div class="modal" id="modal-content"></div></div>
@@ -3206,6 +3203,225 @@ function salAbrir(){
   }
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════
+// COMPARATIVA: EL PARTE FRENTE A LO QUE MIDIÓ LA MÁQUINA   (v2.6.373)
+// ═══════════════════════════════════════════════════════════════════════
+// Contrasta lo que apuntó el quesero contra el JSON que deja el SCADA.
+//
+// LAS REGLAS NO VIVEN AQUÍ. El conversor (convertir-cuba.html) ya entrega la
+// ficha con las normas de casa aplicadas: la temperatura final del
+// recalentamiento es la del instante en que abren las dos válvulas, el batido
+// del parte llega hasta el primer corte de la llenadora, etc. Aquí solo se
+// restan números y se pintan. Un solo sitio donde vive cada regla, que es la
+// lección más cara de este fin de semana.
+//
+// TOLERANCIAS PROVISIONALES. Con dos días de datos no se pueden fijar bien, así
+// que se marca en ámbar (para mirarlo) en vez de en rojo (está mal). Cuando
+// haya cinco o seis días se ajustan y ya se podrá ser tajante.
+// ═══════════════════════════════════════════════════════════════════════
+var CMP_CACHE = {};        // {'2026-08-22|1': datos}  para no pedir dos veces lo mismo
+var CMP_FECHA = null;
+
+// Minutos y grados que se consideran normales. Provisionales.
+var CMP_TOL_MIN  = 3;      // diferencia de hora, en minutos
+var CMP_TOL_TEMP = 0.5;    // diferencia de temperatura, en grados
+
+function cmpHoy(){
+  var d = new Date();
+  return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+}
+// Los tiempos del SCADA vienen en segundos desde medianoche.
+function cmpHora(seg){
+  if(seg===null || seg===undefined || seg==='') return null;
+  var s = parseInt(seg,10); if(isNaN(s)) return null;
+  var h=Math.floor(s/3600), m=Math.floor((s%3600)/60);
+  return ('0'+h).slice(-2)+':'+('0'+m).slice(-2);
+}
+// "07:04" o "7:04" → minutos desde medianoche. Sirve para restar horas.
+function cmpMin(hhmm){
+  if(!hhmm) return null;
+  var m = String(hhmm).trim().match(/^(\d{1,2})[:.](\d{2})/);
+  if(!m) return null;
+  return parseInt(m[1],10)*60 + parseInt(m[2],10);
+}
+function cmpNum(v){
+  if(v===null||v===undefined||v==='') return null;
+  var n = parseFloat(String(v).replace(',','.'));
+  return isNaN(n) ? null : n;
+}
+
+// Una fila de la tabla: qué dice el parte, qué dice la máquina y cuánto se separan.
+function cmpFila(rotulo, valParte, valScada, tipo, nota){
+  var dif = null, estado = 'sin';
+  if(valParte !== null && valScada !== null){
+    if(tipo === 'hora'){
+      var a = cmpMin(valParte), b = cmpMin(valScada);
+      if(a !== null && b !== null){
+        dif = b - a;
+        estado = Math.abs(dif) <= CMP_TOL_MIN ? 'ok' : 'ojo';
+      }
+    } else if(tipo === 'temp' || tipo === 'num'){
+      var x = cmpNum(valParte), y = cmpNum(valScada);
+      if(x !== null && y !== null){
+        dif = Math.round((y - x)*10)/10;
+        var tol = (tipo==='temp') ? CMP_TOL_TEMP : CMP_TOL_MIN;
+        estado = Math.abs(dif) <= tol ? 'ok' : 'ojo';
+      }
+    } else {   // texto
+      estado = (String(valParte).trim().toUpperCase() === String(valScada).trim().toUpperCase()) ? 'ok' : 'ojo';
+    }
+  }
+  return {rotulo:rotulo, parte:valParte, scada:valScada, dif:dif, estado:estado, tipo:tipo, nota:nota||''};
+}
+
+function cmpPintarFila(f){
+  var icono = f.estado==='ok' ? '✓' : (f.estado==='ojo' ? '⚠' : '·');
+  var color = f.estado==='ok' ? 'var(--green,#2d7a2d)'
+            : (f.estado==='ojo' ? '#b06a00' : 'var(--text3,#9a8a7a)');
+  var difTxt = '';
+  if(f.dif !== null){
+    var signo = f.dif > 0 ? '+' : '';
+    difTxt = signo + f.dif + (f.tipo==='hora' ? ' min' : (f.tipo==='temp' ? ' °C' : ''));
+  }
+  return '<tr class="cmp-'+f.estado+'">'
+    + '<td class="cmp-rot">'+f.rotulo+(f.nota?'<span class="cmp-nota">'+f.nota+'</span>':'')+'</td>'
+    + '<td>'+(f.parte!==null&&f.parte!==''?f.parte:'—')+'</td>'
+    + '<td>'+(f.scada!==null&&f.scada!==''?f.scada:'—')+'</td>'
+    + '<td style="color:'+color+';font-weight:700;white-space:nowrap;">'+icono+' '+difTxt+'</td>'
+    + '</tr>';
+}
+
+function cmpAbrir(){
+  if(!CMP_FECHA) CMP_FECHA = cmpHoy();
+  var el = document.getElementById('cmp-fecha');
+  if(el) el.value = CMP_FECHA;
+  cmpCargar();
+}
+
+function cmpCambiarFecha(v){ CMP_FECHA = v; cmpCargar(); }
+
+function cmpCargar(){
+  var cont = document.getElementById('cmp-lista');
+  if(!cont) return;
+  var partesDia = PARTES.filter(function(p){
+    return String(p.fecha||'').indexOf(CMP_FECHA) >= 0;
+  });
+  if(!partesDia.length){
+    cont.innerHTML = '<div class="card" style="padding:22px;text-align:center;color:#9a7a5a;">'
+      + 'No hay partes de ese día.</div>';
+    return;
+  }
+  cont.innerHTML = '<div class="card" style="padding:22px;text-align:center;color:#9a7a5a;">Cargando…</div>';
+  var html = '';
+  var pendientes = partesDia.length;
+  partesDia.forEach(function(p){
+    // OJO: para el SCADA vale la CUBA FÍSICA, nunca la cronológica. Un día con
+    // cuatro cuajadas en tres cubas tiene partes 1,2,3,4 pero cubas físicas
+    // 1,2,3,1. Pedir por la cronológica traería datos de otra cuba.
+    var cubaFis = String(p.cuba_fisica || '').trim();
+    if(!cubaFis){
+      html += cmpTarjetaSinCuba(p);
+      if(--pendientes === 0) cont.innerHTML = html;
+      return;
+    }
+    cmpPedirCuba(CMP_FECHA, cubaFis, function(datos){
+      html += cmpTarjeta(p, datos);
+      if(--pendientes === 0) cont.innerHTML = html;
+    });
+  });
+}
+
+function cmpPedirCuba(fecha, cuba, cb){
+  var clave = fecha + '|' + cuba;
+  if(CMP_CACHE[clave]) { cb(CMP_CACHE[clave]); return; }
+  fetch(API_URL + '?tipo=cuba&fecha=' + encodeURIComponent(fecha) + '&cuba=' + encodeURIComponent(cuba))
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      var d = (j && j.ok) ? j.data : null;
+      CMP_CACHE[clave] = d;
+      cb(d);
+    })
+    .catch(function(){ cb(null); });
+}
+
+function cmpTarjetaSinCuba(p){
+  return '<div class="card" style="padding:14px 16px;margin-bottom:12px;">'
+    + '<div style="font-weight:800;">Cuba '+(p.cuba||'?')+' · '+(p.tipo||'')+'</div>'
+    + '<div style="margin-top:6px;font-size:0.86rem;color:#b06a00;">'
+    + 'Este parte no tiene anotada la <b>cuba física</b>, y sin ese dato no se puede '
+    + 'buscar en el SCADA. Ponla en Datos Generales y vuelve a entrar.</div></div>';
+}
+
+function cmpTarjeta(p, d){
+  var cab = '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+    + '<div style="font-weight:800;font-size:1rem;">Cuba '+(p.cuba||'?')
+    + ' <span style="font-weight:400;color:#7a6a5c;">(física '+(p.cuba_fisica||'?')+')</span></div>'
+    + '<div style="color:#7a6a5c;font-size:0.88rem;">'+(p.tipo||'')+(p.variedad?' · '+p.variedad:'')+'</div>'
+    + '</div>';
+
+  if(!d || d.error){
+    var msg = (d && d.error) ? d.error : 'No se pudo leer el dato del SCADA.';
+    return '<div class="card" style="padding:14px 16px;margin-bottom:12px;">'+cab
+      + '<div style="margin-top:8px;font-size:0.86rem;color:#b06a00;">'+msg+'</div>'
+      + (d && d.buscado ? '<div style="margin-top:4px;font-size:0.78rem;color:#9a8a7a;">Buscaba: '+d.buscado+'</div>' : '')
+      + '</div>';
+  }
+  var f = d.ficha;
+  if(!f){
+    return '<div class="card" style="padding:14px 16px;margin-bottom:12px;">'+cab
+      + '<div style="margin-top:8px;font-size:0.86rem;color:#b06a00;">'
+      + 'El archivo de esta cuba es de una versión antigua del conversor y no trae '
+      + 'la ficha con las normas aplicadas. Vuelve a convertir el .xps y súbelo.</div></div>';
+  }
+
+  var filas = [];
+  filas.push(cmpFila('Cuajo · hora',        p.coag_hadicion || (p.coag&&p.coag.hadicion), cmpHora(f.hora_cuajado), 'hora'));
+  filas.push(cmpFila('Cuajo · temperatura', p.coag_temp || (p.coag&&p.coag.temp),         f.temp_cuajado,          'temp'));
+  filas.push(cmpFila('Corte · hora',        p.coag_hc || (p.coag&&p.coag.hc),             cmpHora(f.hora_corte),   'hora'));
+  filas.push(cmpFila('Coagulación total',   p.coag_total || (p.coag&&p.coag.total),       f.coagulacion_min,       'num', 'minutos'));
+  filas.push(cmpFila('Recalent. · inicio',  p.rec_hi || (p.desuerado&&p.desuerado.rec_hi), cmpHora(f.hora_ini_recal), 'hora'));
+  filas.push(cmpFila('Recalent. · T inicial', p.rec_ti || (p.desuerado&&p.desuerado.rec_ti), f.temp_ini_recal,     'temp'));
+  filas.push(cmpFila('Recalent. · fin',     p.rec_hf || (p.desuerado&&p.desuerado.rec_hf), cmpHora(f.hora_fin_recal), 'hora'));
+  filas.push(cmpFila('Recalent. · T final', p.rec_tf || (p.desuerado&&p.desuerado.rec_tf), f.temp_fin_recal,       'temp',
+                     'la de abrir válvulas'));
+  filas.push(cmpFila('Agitación · inicio',  p.agit_hi || (p.desuerado&&p.desuerado.agit_hi), cmpHora(f.hora_ini_batido), 'hora'));
+  filas.push(cmpFila('Moldeo · inicio',     p.mol_hi || (p.moldeo&&p.moldeo.hi),          cmpHora(f.apertura_valvulas), 'hora',
+                     'válvulas; el quesero cuenta unos min después'));
+
+  var cuerpo = '<table class="cmptab"><thead><tr>'
+    + '<th></th><th>Parte</th><th>Máquina</th><th>Dif.</th></tr></thead><tbody>'
+    + filas.map(cmpPintarFila).join('') + '</tbody></table>';
+
+  // ── EL CHIVATO ──
+  // Aquí es donde esta pantalla se gana el sueldo. Los valores de la norma
+  // pueden cuadrar perfectamente y aun así haber sido un mal día: el 21/08 la
+  // cuajada marcó 36,9 °C al abrir válvulas —exactamente lo que apuntó el
+  // quesero— después de haber pasado por 39,3 °C con la receta cambiada.
+  var av = '';
+  var mx = cmpNum(f.max_recalentamiento), obj = cmpNum(f.objetivo_recal);
+  if(mx !== null && obj !== null){
+    var exceso = Math.round((mx - obj)*10)/10;
+    var minArriba = cmpNum(f.min_por_encima) || 0;
+    var malo = exceso > 1 || minArriba > 2;
+    av += '<div class="cmp-chivato '+(malo?'mal':'bien')+'">'
+       +  '<b>Temperatura máxima '+mx+' °C</b> · objetivo '+obj+' °C'
+       +  (exceso>0 ? ' · <b>'+exceso+' °C por encima</b>' : ' · dentro del objetivo')
+       +  (minArriba>0 ? ' · '+minArriba+' min por encima de '+(obj+1)+' °C' : '')
+       +  '</div>';
+  }
+  if(f.receta_cambios && f.receta_cambios.length > 1){
+    av += '<div class="cmp-chivato mal"><b>La receta cambió durante la cuajada:</b> '
+       +  f.receta_cambios.map(function(r){ return cmpHora(r.t)+' '+r.nombre; }).join('  →  ')
+       +  '</div>';
+  }
+  var recetaTxt = f.receta ? ('<div style="font-size:0.84rem;color:#7a6a5c;margin-top:4px;">'
+       + 'Receta de la máquina: <b>'+f.receta+'</b> · objetivo '+(f.objetivo_recal||'?')+' °C</div>') : '';
+
+  return '<div class="card" style="padding:14px 16px;margin-bottom:12px;">'
+    + cab + recetaTxt + av + cuerpo + '</div>';
+}
+
 function _aplicarPestanasAdmin(){
   try{
     var permiso = {
@@ -3543,6 +3759,7 @@ function switchTab(tab){
   // Refrescar contenido según pantalla
   if(tab==='hoy'){ try{ renderPestanasCubas(); }catch(e){} }
   if(tab==='saladero'){ try{ salAbrir(); }catch(e){} }   // (v2.6.363)
+  if(tab==='comparativa'){ try{ cmpAbrir(); }catch(e){} }   // (v2.6.373)
   if(tab==='historial'){ try{ renderPartes(); }catch(e){} try{ cargarPartesSheets(_filtroFecha); }catch(e){} try{ cargarGraficaPasteurizacion(_filtroFecha); }catch(e){} }
 }
 
