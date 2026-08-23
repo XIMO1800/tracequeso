@@ -891,7 +891,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.375</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.376</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3382,9 +3382,8 @@ function cmpCargar(){
   if(!yaEstan){
     cont.innerHTML = '<div class="card" style="padding:22px;text-align:center;color:#9a7a5a;">'
       + 'Bajando los partes del día…</div>';
-    try{ cargarPartesSheets(CMP_FECHA); }catch(e){}
-    // cargarPartesSheets no avisa al terminar, así que se espera y se reintenta.
-    setTimeout(cmpPintar, 1400);
+    try{ cargarPartesSheets(CMP_FECHA, cmpPintar); }
+    catch(e){ cmpPintar(); }
     return;
   }
   cmpPintar();
@@ -3397,8 +3396,18 @@ function cmpPintar(){
     return String(p.fecha||'').indexOf(CMP_FECHA) >= 0;
   });
   if(!partesDia.length){
-    cont.innerHTML = '<div class="card" style="padding:22px;text-align:center;color:#9a7a5a;">'
-      + 'No hay partes de ese día en Google.</div>';
+    // Decir SOLO "no hay" obliga a adivinar. Si en memoria hay partes de otros
+    // días, se enseñan las fechas: así se ve al momento si el problema es que
+    // ese día no existe o que la fecha viene escrita de otra forma.
+    var fechas = {};
+    PARTES.forEach(function(p){ var f=String(p.fecha||'').slice(0,10); if(f) fechas[f]=(fechas[f]||0)+1; });
+    var lista = Object.keys(fechas).sort().reverse().slice(0,6)
+                 .map(function(f){ return f+' ('+fechas[f]+')'; }).join(' · ');
+    cont.innerHTML = '<div class="card" style="padding:20px;text-align:center;color:#9a7a5a;">'
+      + 'No se han encontrado partes del <b>'+CMP_FECHA+'</b>.'
+      + (lista ? '<div style="margin-top:10px;font-size:0.8rem;color:#b09a86;">'
+                 + 'Partes cargados ahora mismo: '+lista+'</div>' : '')
+      + '</div>';
     return;
   }
   // Si un parte tiene versión revisada por Calidad, aquí interesa el ORIGINAL:
@@ -9999,8 +10008,13 @@ function limpiarTodoYRecargar(){
   }, 1500);
 }
 
-function cargarPartesSheets(fecha){
+// (v2.6.376) Segundo parámetro opcional: aviso de que la carga ha TERMINADO.
+// Antes, quien pedía una fecha tenía que esperar "a ojo" con un temporizador, y
+// en un ordenador lento el Apps Script tarda más de lo que se esperaba: se
+// pintaba en vacío y parecía que no había partes ese día.
+function cargarPartesSheets(fecha, alTerminar){
   var hoy=fecha||new Date().toISOString().slice(0,10);
+  function _fin(){ if(typeof alTerminar==='function'){ try{ alTerminar(); }catch(e){} } }
   fetch(API_URL+'?tipo=partes&fecha='+hoy).then(function(r){return r.json();}).then(function(d){
     if(d.ok&&d.data&&d.data.length>0){
       var hoyISO = new Date().toISOString().slice(0,10);
@@ -10059,7 +10073,8 @@ function cargarPartesSheets(fecha){
       persistir();renderPartes();
       try{ renderPestanasCubas(); }catch(e){}
     }
-  }).catch(function(){});
+    _fin();
+  }).catch(function(){ _fin(); });
 }
 
 function cargarRecetasSheets(){
