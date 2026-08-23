@@ -870,7 +870,11 @@ input[type="email"] {
 .cmptab .cmp-rot{color:#5a4632;font-weight:600;}
 .cmptab .cmp-nota{display:block;font-size:0.7rem;font-weight:400;color:#9a8a7a;}
 .cmptab tr.cmp-ojo{background:#fff8e9;}
-.cmp-chivato{margin-top:10px;padding:9px 12px;border-radius:8px;font-size:0.86rem;line-height:1.5;}
+.cmp-obs{margin-top:12px;padding:9px 12px;background:#faf8f3;border:1px solid #e8ddc9;
+  border-radius:8px;font-size:0.86rem;}
+.cmp-obs b{display:block;font-size:0.76rem;text-transform:uppercase;letter-spacing:0.04em;
+  color:#8a7a6a;margin-bottom:5px;}
+.cmp-chivato{margin-top:6px;padding:9px 12px;border-radius:8px;font-size:0.86rem;line-height:1.5;}
 .cmp-chivato.bien{background:#eaf5ea;border-left:4px solid #2d7a2d;}
 .cmp-chivato.mal{background:#fdeeea;border-left:4px solid #b03030;}
 
@@ -894,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.386</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.387</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3323,7 +3327,12 @@ function cmpNum(v){
 }
 
 // Una fila de la tabla: qué dice el parte, qué dice la máquina y cuánto se separan.
-function cmpFila(rotulo, valParte, valScada, tipo, nota){
+function cmpFila(rotulo, valParte, valScada, tipo, nota, difTexto){
+  // (v2.6.387) Normalizar antes de nada: un campo que no existe en el parte
+  // llegaba como undefined y se escribía tal cual, con lo que la casilla ponía
+  // "undefined". Donde no hay dato va una raya, como en el desuerado.
+  if(valParte===undefined || valParte==='') valParte = null;
+  if(valScada===undefined || valScada==='') valScada = null;
   var dif = null, estado = 'sin';
   if(valParte !== null && valScada !== null){
     if(tipo === 'hora'){
@@ -3343,7 +3352,8 @@ function cmpFila(rotulo, valParte, valScada, tipo, nota){
       estado = (String(valParte).trim().toUpperCase() === String(valScada).trim().toUpperCase()) ? 'ok' : 'ojo';
     }
   }
-  return {rotulo:rotulo, parte:valParte, scada:valScada, dif:dif, estado:estado, tipo:tipo, nota:nota||''};
+  return {rotulo:rotulo, parte:valParte, scada:valScada, dif:dif, estado:estado,
+          tipo:tipo, nota:nota||'', difTexto:difTexto||''};
 }
 
 function cmpPintarFila(f){
@@ -3351,7 +3361,8 @@ function cmpPintarFila(f){
   var color = f.estado==='ok' ? 'var(--green,#2d7a2d)'
             : (f.estado==='ojo' ? '#b06a00' : 'var(--text3,#9a8a7a)');
   var difTxt = '';
-  if(f.dif !== null){
+  if(f.difTexto){ difTxt = f.difTexto; icono = ''; color = '#8a6a2a'; }
+  else if(f.dif !== null){
     var signo = f.dif > 0 ? '+' : '';
     difTxt = signo + f.dif + (f.tipo==='hora' ? ' min' : (f.tipo==='temp' ? ' °C' : ''));
   }
@@ -3543,6 +3554,19 @@ function cmpTarjeta(p, d){
                      'el cloruro no para el agitador: se da el arranque del llenado'));
   filas.push(cmpFila('Fermentos',           p.ferm_hadicion || (p.ferm_meta&&p.ferm_meta.hadicion),
                      cmpHora(f.hora_ferm), 'hora', 'primera parada del agitador'));
+  // ── LAS DEMÁS PARADAS, EN SU SITIO CRONOLÓGICO (v2.6.387) ──
+  // La primera parada es el fermento y ya tiene su fila. Las siguientes no
+  // aparecen en el parte —el quesero no las apunta— pero son adiciones o, la
+  // que cae poco antes del cuajo, la muestra para medir el pH. Van aquí, entre
+  // los fermentos y el cuajo, porque el SCADA solo busca paradas en esa franja.
+  if(f.paradas && f.paradas.length > 1){
+    f.paradas.slice(1).forEach(function(q){
+      var seg = q.segs||0;
+      var dur = seg<60 ? (seg+' s') : (Math.round(seg/60*10)/10+' min');
+      filas.push(cmpFila('Parada del agitador', null, cmpHora(q.t), 'texto',
+                         'no consta en el parte', dur));
+    });
+  }
   filas.push(cmpFila('Cuajo · hora',        p.coag_hadicion || (p.coag&&p.coag.hadicion), cmpHora(f.hora_cuajado), 'hora'));
   filas.push(cmpFila('Cuajo · temperatura', p.coag_temp || (p.coag&&p.coag.temp),         f.temp_cuajado,          'temp'));
   filas.push(cmpFila('Corte · hora',        p.coag_hc || (p.coag&&p.coag.hc),             cmpHora(f.hora_corte),   'hora'));
@@ -3561,34 +3585,20 @@ function cmpTarjeta(p, d){
   // de cuba y hay 9.500 litros. Saber si un día se sacó mucho o poco suero es
   // información nueva, así que se enseña aunque no haya con qué compararla.
   if(f.desuerado_min !== null && f.desuerado_min !== undefined){
-    filas.push(cmpFila('Desuerado', null,
-                       f.desuerado_min + ' min',
-                       'texto',
-                       (f.desuerado_ini ? 'desde las '+cmpHora(f.desuerado_ini)+'; ' : '')
-                       + 'una sola válvula abierta'));
+    // (v2.6.387) Misma lógica que el resto de la tabla: en la columna del SCADA
+    // va la HORA en que empieza —cuando se abre una sola válvula— y en la de la
+    // derecha, el TIEMPO. Así esa columna es siempre de duraciones o desvíos,
+    // igual que en las paradas del agitador.
+    filas.push(cmpFila('Desuerado', null, cmpHora(f.desuerado_ini), 'texto',
+                       'una sola válvula abierta',
+                       f.desuerado_min + ' min'));
   }
   filas.push(cmpFila('Moldeo · inicio',     p.mol_hi || (p.moldeo&&p.moldeo.hi),          cmpHora(f.apertura_valvulas), 'hora',
                      'abren las dos válvulas; el quesero cuenta unos min después'));
 
-  // ── TODAS LAS PARADAS DEL AGITADOR (v2.6.386) ──
-  // El SCADA sabe CUÁNDO se paró, no QUÉ se echó. Suele haber una para el
-  // fermento y otra, poco antes del cuajo, para sacar muestra y medir el pH.
-  // Se listan todas, incluidas las que el parte no recoge: una parada que nadie
-  // ha apuntado es justo lo que interesa mirar.
-  var paradasTxt = '';
-  if(f.paradas && f.paradas.length){
-    paradasTxt = '<div class="cmp-paradas"><b>Paradas del agitador según el SCADA:</b> '
-      + f.paradas.map(function(q){
-          var seg = q.segs||0;
-          var dur = seg<60 ? (seg+' s') : (Math.round(seg/60*10)/10+' min');
-          return cmpHora(q.t)+' <span style="color:#9a8a7a;">('+dur+')</span>';
-        }).join(' · ')
-      + '<div style="color:#9a8a7a;font-size:0.76rem;margin-top:3px;">'
-      + 'El SCADA sabe cuándo se paró, no qué se echó.</div></div>';
-  }
   var cuerpo = '<table class="cmptab"><thead><tr>'
     + '<th></th><th>Parte</th><th>SCADA</th><th>Dif.</th></tr></thead><tbody>'
-    + filas.map(cmpPintarFila).join('') + '</tbody></table>' + paradasTxt;
+    + filas.map(cmpPintarFila).join('') + '</tbody></table>';
 
   // ── EL CHIVATO ──
   // Aquí es donde esta pantalla se gana el sueldo. Los valores de la norma
@@ -3628,8 +3638,14 @@ function cmpTarjeta(p, d){
             : '<div style="font-size:0.72rem;color:#b09a86;margin-top:2px;">'
               + 'Archivo sin sellar (conversor v1.6 o anterior).</div>');
 
+  // (v2.6.387) LAS OBSERVACIONES, DEBAJO DE LA TABLA.
+  // Antes el aviso iba encima. Abajo se lee mejor: primero se repasa si los
+  // hitos cuadran y después, si hay algo que contar, se cuenta. Un parte puede
+  // tener las doce horas clavadas y aun así haber pasado algo —una punta de
+  // temperatura, un cambio de receta— y eso es exactamente lo que va aquí.
+  var obs = av ? ('<div class="cmp-obs"><b>Observaciones</b>'+av+'</div>') : '';
   return '<div class="card" style="padding:14px 16px;margin-bottom:12px;">'
-    + cab + recetaTxt + av + cuerpo + '</div>';
+    + cab + recetaTxt + cuerpo + obs + '</div>';
 }
 
 function _aplicarPestanasAdmin(){
