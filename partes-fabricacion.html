@@ -891,7 +891,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.373</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.375</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3058,6 +3058,73 @@ function salCargar(){
 function salGuardar(){
   try{ localStorage.setItem(SAL_KEY, JSON.stringify(SAL_DATOS)); }catch(e){}
 }
+
+// ── ENVÍO A GOOGLE (v2.6.375) ──
+// La hoja SALADERO ya existe y su clave es la FECHA: un día = una fila, así que
+// enviar varias veces el mismo día actualiza la fila en vez de duplicarla.
+// Se guarda SIEMPRE primero en el aparato y luego se intenta subir: si falla la
+// red, el dato no se pierde y se vuelve a subir al tocar cualquier casilla.
+function salEnviar(fila){
+  if(!fila || !fila.fecha) return;
+  var payload = {
+    _SHEET:'SALADERO', _UPDATE:true,
+    FECHA: fila.fecha,
+    PH: fila.ph||'', TEMPERATURA: fila.temp||'', BE: fila.be||'',
+    FILTRADOS: fila.filtrados||'', DORNIC: fila.dornic||'',
+    'SAL CANTIDAD': fila.sal_cant||'', 'SAL LOTE': fila.sal_lote||'', 'SAL PROVEEDOR': fila.sal_prov||'',
+    'AL CANTIDAD': fila.al_cant||'', 'AL LOTE': fila.al_lote||'', 'AL PROVEEDOR': fila.al_prov||'',
+    'FILTRANTE LOTE': fila.filtrante||'',
+    OBSERVACIONES: fila.obs||'', FIRMA: fila.firma||''
+  };
+  fetch(API_URL, {method:'POST', body:JSON.stringify(payload)})
+    .then(function(r){ return r.json(); })
+    .then(function(res){ salMarcarEnvio(!!(res && res.ok)); })
+    .catch(function(){ salMarcarEnvio(false); });
+}
+
+function salMarcarEnvio(ok){
+  var av = document.getElementById('sal-aviso');
+  if(!av) return;
+  av.style.display = '';
+  if(ok){
+    av.style.background='#eaf5ea'; av.style.borderLeftColor='#2d7a2d'; av.style.color='#2d5a2d';
+    av.innerHTML = '✓ Guardado en Google Sheets.';
+  }else{
+    av.style.background='#fff8e9'; av.style.borderLeftColor='#c8780a'; av.style.color='#8a5a00';
+    av.innerHTML = '⚠️ Guardado en este aparato, pero <b>no ha subido a Google</b>. '
+                 + 'Se reintenta al tocar cualquier casilla.';
+  }
+}
+
+// Baja de Google los días guardados y los mezcla con lo local (Google manda,
+// porque la salmuera la rellena Calidad desde el ordenador y puede haberla
+// tocado alguien más).
+function salBajar(cb){
+  fetch(API_URL + '?tipo=saladero')
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(j && j.ok && j.data && j.data.length){
+        var deGoogle = j.data.map(function(r){
+          return {
+            fecha: String(r['FECHA']||'').slice(0,10),
+            ph:r['PH']||'', temp:r['TEMPERATURA']||'', be:r['BE']||'',
+            filtrados:r['FILTRADOS']||'', dornic:r['DORNIC']||'',
+            sal_cant:r['SAL CANTIDAD']||'', sal_lote:r['SAL LOTE']||'', sal_prov:r['SAL PROVEEDOR']||'',
+            al_cant:r['AL CANTIDAD']||'', al_lote:r['AL LOTE']||'', al_prov:r['AL PROVEEDOR']||'',
+            filtrante:r['FILTRANTE LOTE']||'', obs:r['OBSERVACIONES']||'', firma:r['FIRMA']||''
+          };
+        }).filter(function(x){ return x.fecha; });
+        var porFecha = {};
+        SAL_DATOS.forEach(function(x){ porFecha[x.fecha] = x; });
+        deGoogle.forEach(function(x){ porFecha[x.fecha] = x; });
+        SAL_DATOS = Object.keys(porFecha).map(function(k){ return porFecha[k]; });
+        SAL_DATOS.sort(function(a,b){ return a.fecha < b.fecha ? 1 : -1; });
+        salGuardar();
+      }
+      if(cb) cb();
+    })
+    .catch(function(){ if(cb) cb(); });
+}
 function salHoyISO(){
   var d=new Date();
   return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
@@ -3103,7 +3170,9 @@ function salNuevoDia(){
     filtrante:'', obs:'',
     firma: (typeof OPERARIO_ACTUAL!=='undefined' && OPERARIO_ACTUAL) ? OPERARIO_ACTUAL : ''
   });
-  salGuardar(); salPintar();
+  salGuardar();
+  salEnviar(SAL_DATOS[0]);        // (v2.6.375) crear el día también lo sube
+  salPintar();
   var e2=document.getElementById('sal-ph-'+hoy);
   if(e2) e2.focus();
 }
@@ -3181,6 +3250,10 @@ function salPintar(){
 // proveedor y el lote de sal heredados del último día que los tuviera.
 function salAbrir(){
   salCargar();
+  salPintar();
+  // Bajar de Google lo que haya (puede haberlo escrito Calidad en otro equipo)
+  // y repintar cuando llegue. (v2.6.375)
+  salBajar(function(){ try{ salPintar(); }catch(e){} });
   var hoy=salHoyISO(), existe=false;
   for(var i=0;i<SAL_DATOS.length;i++) if(SAL_DATOS[i].fecha===hoy) existe=true;
   if(!existe){
@@ -3193,14 +3266,9 @@ function salAbrir(){
       firma:(typeof OPERARIO_ACTUAL!=='undefined' && OPERARIO_ACTUAL)?OPERARIO_ACTUAL:''
     });
     salGuardar();
+    salEnviar(SAL_DATOS[i]);      // (v2.6.375) ahora sí sube a Google
   }
   salPintar();
-  var av=document.getElementById('sal-aviso');
-  if(av){
-    av.style.display='';
-    av.innerHTML='⚠️ Estos datos se guardan <b>solo en este aparato</b>. Falta añadir '
-               + 'la hoja SALADERO al Apps Script para que suban a Google Sheets.';
-  }
 }
 
 
@@ -3301,7 +3369,28 @@ function cmpAbrir(){
 
 function cmpCambiarFecha(v){ CMP_FECHA = v; cmpCargar(); }
 
+// PARTES en memoria solo tiene los partes del día que se pidió la última vez
+// (cargarPartesSheets baja UNA fecha). Si se elige un día pasado sin bajarlo
+// antes, la lista está vacía y parecería que no hubo partes. El historial hace
+// exactamente esto mismo al abrirse; aquí faltaba. (v2.6.374)
 function cmpCargar(){
+  var cont = document.getElementById('cmp-lista');
+  if(!cont) return;
+  var yaEstan = PARTES.some(function(p){
+    return String(p.fecha||'').indexOf(CMP_FECHA) >= 0;
+  });
+  if(!yaEstan){
+    cont.innerHTML = '<div class="card" style="padding:22px;text-align:center;color:#9a7a5a;">'
+      + 'Bajando los partes del día…</div>';
+    try{ cargarPartesSheets(CMP_FECHA); }catch(e){}
+    // cargarPartesSheets no avisa al terminar, así que se espera y se reintenta.
+    setTimeout(cmpPintar, 1400);
+    return;
+  }
+  cmpPintar();
+}
+
+function cmpPintar(){
   var cont = document.getElementById('cmp-lista');
   if(!cont) return;
   var partesDia = PARTES.filter(function(p){
@@ -3309,9 +3398,15 @@ function cmpCargar(){
   });
   if(!partesDia.length){
     cont.innerHTML = '<div class="card" style="padding:22px;text-align:center;color:#9a7a5a;">'
-      + 'No hay partes de ese día.</div>';
+      + 'No hay partes de ese día en Google.</div>';
     return;
   }
+  // Si un parte tiene versión revisada por Calidad, aquí interesa el ORIGINAL:
+  // se trata de contrastar lo que apuntó el quesero en la cuba contra lo que
+  // midió la máquina. La revisada es la versión oficial para el auditor, y
+  // compararla con el SCADA no diría nada del trabajo real.
+  // Mismo criterio que usa el historial en _esRevisadaOficial: version==='revisado'.
+  partesDia = partesDia.filter(function(p){ return !(p && p.version==='revisado'); });
   cont.innerHTML = '<div class="card" style="padding:22px;text-align:center;color:#9a7a5a;">Cargando…</div>';
   var html = '';
   var pendientes = partesDia.length;
@@ -7110,6 +7205,26 @@ function _fmtDur(min){
 }
 
 // Construye la lista de hitos {nombre,hora,ph,temp} desde un parte
+// Datos de salmuera del día que corresponda al parte. Vienen de la pantalla de
+// saladero (hoja SALADERO), que rellena Calidad. Si ese día no está apuntado,
+// devuelve null y la gráfica simplemente no lo dibuja. (v2.6.375)
+function _salmueraDelDia(fecha){
+  var f = String(fecha||'').slice(0,10);
+  if(!f) return null;
+  try{
+    var arr = SAL_DATOS;
+    if(!arr || !arr.length){ arr = JSON.parse(localStorage.getItem(SAL_KEY)||'[]')||[]; }
+    for(var i=0;i<arr.length;i++){
+      if(String(arr[i].fecha||'').slice(0,10) === f){
+        var ph=_numOr(arr[i].ph), tp=_numOr(arr[i].temp), be=_numOr(arr[i].be);
+        if(ph===null && tp===null) return null;
+        return {ph:ph, temp:tp, be:be};
+      }
+    }
+  }catch(e){}
+  return null;
+}
+
 function _hitosDeParte(p){
   var aux = p.aux_meta||{}, ferm = p.ferm_meta||{}, coag = p.coag||{}, des = p.desuerado||{}, mol = p.moldeo||{};
   // Hora de entrada: la del CO2/datos generales si existe; si no, la más temprana de las demás fases
@@ -7136,11 +7251,29 @@ function _hitosDeParte(p){
   if(p.desmoldeos && p.desmoldeos.length){
     var d = p.desmoldeos[0];
     hitos.push({nombre:'Desmoldeo', hora:d.hi||d.hf||'', ph:_numOr(d.ph), temp:_numOr(d.temp)});
-    // Fin del desmoldeo: solo tiene hora (no hay pH ni Tª al final), así la curva no llega
-    // hasta aquí pero sí aparece el tramo de duración del desmoldeo en la línea de tiempos.
     if(d.hf && d.hi && d.hf!==d.hi){
       hitos.push({nombre:'Desmoldeo fin', hora:d.hf, ph:null, temp:null});
     }
+    // ── SALMUERA (v2.6.375) ──
+    // El queso sale del molde y entra al saladero, así que el siguiente pH y
+    // temperatura que ve son los de la salmuera. Poniéndolos a continuación se
+    // ve de un vistazo el salto que pega el queso al entrar.
+    // OJO: la salmuera es UNA medida del día para toda la fábrica, no de esta
+    // cuba. Por eso se dibuja aparte (rombo hueco) y no unida a la curva: no es
+    // un punto más de la evolución de este queso, es el baño que se encuentra.
+    // Se coloca 20 min después del desmoldeo solo para que quepa a la derecha.
+    var _sal = _salmueraDelDia(p.fecha);
+    if(_sal && (_sal.ph!==null || _sal.temp!==null)){
+      var _mDes = _horaAMin(d.hf||d.hi||'');
+      if(_mDes!=null){
+        var _mSal = _mDes + 20;
+        hitos.push({nombre:'Salmuera', hora:Math.floor(_mSal/60)+':'+('0'+(_mSal%60)).slice(-2),
+                    ph:_sal.ph, temp:_sal.temp, suelto:true, be:_sal.be});
+      }
+    }
+    // Fin del desmoldeo: solo tiene hora (no hay pH ni Tª al final), así la curva no llega
+    // hasta aquí pero sí aparece el tramo de duración del desmoldeo en la línea de tiempos.
+
   }
   return hitos.filter(function(h){ return _horaAMin(h.hora)!=null; });
 }
@@ -7215,13 +7348,53 @@ function _svgGraficaEvolucion(p){
     });
   })();
   // Curvas
-  var pT=HITOS.filter(function(h){return h.temp!=null;});
+  // La salmuera queda FUERA de las curvas: no es un punto de la evolución de
+  // este queso, es el baño donde entra. Unirla con la línea daría a entender
+  // que el queso pasa de una temperatura a otra, cuando lo que hay es un salto.
+  var pT=HITOS.filter(function(h){return h.temp!=null && !h.suelto;});
   if(pT.length) s+='<path d="'+pT.map(function(h,i){return (i?'L':'M')+x(_horaAMin(h.hora))+' '+yTp(h.temp);}).join(' ')+'" fill="none" stroke="#c0392b" stroke-width="2.5"/>';
-  var pP=HITOS.filter(function(h){return h.ph!=null;});
+  var pP=HITOS.filter(function(h){return h.ph!=null && !h.suelto;});
   if(pP.length) s+='<path d="'+pP.map(function(h,i){return (i?'L':'M')+x(_horaAMin(h.hora))+' '+yPh(h.ph);}).join(' ')+'" fill="none" stroke="#7B3FA0" stroke-width="2.5"/>';
   // Puntos + valores: temperatura SIEMPRE encima (con fondo), pH SIEMPRE debajo (con fondo)
   HITOS.forEach(function(h){
     var xx=x(_horaAMin(h.hora));
+    // (v2.6.375) La salmuera se dibuja en rombo hueco y con línea de puntos
+    // hasta el desmoldeo: se ve el salto sin confundirlo con la curva.
+    if(h.suelto){
+      // Buscar hacia atrás el último hito real CON VALOR de cada magnitud: el
+      // "Desmoldeo fin" solo lleva hora, así que engancharse a él dejaría la
+      // línea de puntos sin dibujar.
+      var _prevT=null, _prevP=null;
+      for(var _k=HITOS.length-1;_k>=0;_k--){
+        if(HITOS[_k].suelto) continue;
+        if(!_prevT && HITOS[_k].temp!=null) _prevT=HITOS[_k];
+        if(!_prevP && HITOS[_k].ph!=null)   _prevP=HITOS[_k];
+      }
+      function _rombo(cy, col){
+        return '<path d="M'+xx+' '+(cy-5)+' L'+(xx+5)+' '+cy+' L'+xx+' '+(cy+5)+' L'+(xx-5)+' '+cy+' Z" '
+             + 'fill="#fff" stroke="'+col+'" stroke-width="2"/>';
+      }
+      if(h.temp!=null){
+        if(_prevT){
+          s+='<line x1="'+x(_horaAMin(_prevT.hora))+'" y1="'+yTp(_prevT.temp)+'" x2="'+xx+'" y2="'+yTp(h.temp)
+           +'" stroke="#c0392b" stroke-width="1.6" stroke-dasharray="4,3" opacity="0.75"/>';
+        }
+        s+=_rombo(yTp(h.temp), '#c0392b');
+        s+='<text x="'+xx+'" y="'+(yTp(h.temp)-12)+'" text-anchor="middle" font-size="10.5" fill="#c0392b" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+h.temp+'°</text>';
+      }
+      if(h.ph!=null){
+        if(_prevP){
+          s+='<line x1="'+x(_horaAMin(_prevP.hora))+'" y1="'+yPh(_prevP.ph)+'" x2="'+xx+'" y2="'+yPh(h.ph)
+           +'" stroke="#7B3FA0" stroke-width="1.6" stroke-dasharray="4,3" opacity="0.75"/>';
+        }
+        s+=_rombo(yPh(h.ph), '#7B3FA0');
+        s+='<text x="'+xx+'" y="'+(yPh(h.ph)+20)+'" text-anchor="middle" font-size="10.5" fill="#7B3FA0" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+Number(h.ph).toFixed(2)+'</text>';
+      }
+      if(h.be!=null){
+        s+='<text x="'+xx+'" y="'+(mt+alto+34)+'" text-anchor="middle" font-size="10" fill="#8a6a2a" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+h.be+' °Bé</text>';
+      }
+      return;
+    }
     if(h.temp!=null){
       s+='<circle cx="'+xx+'" cy="'+yTp(h.temp)+'" r="3.5" fill="#c0392b"/>';
       var yt=yTp(h.temp)-10;
