@@ -891,7 +891,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.376</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.379</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1403,7 +1403,7 @@ input[type="email"] {
        ficha con las normas aplicadas y esta pantalla solo resta y pinta. -->
   <div class="card" style="padding:12px 16px;margin-bottom:12px;">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <div style="font-weight:800;font-size:1.05rem;">⚖️ Parte contra máquina</div>
+      <div style="font-weight:800;font-size:1.05rem;">⚖️ Parte contra SCADA</div>
       <input type="date" id="cmp-fecha" class="finput" style="width:auto;"
              onchange="cmpCambiarFecha(this.value)">
       <button class="btn" onclick="cmpCargar()">Actualizar</button>
@@ -3416,6 +3416,13 @@ function cmpPintar(){
   // compararla con el SCADA no diría nada del trabajo real.
   // Mismo criterio que usa el historial en _esRevisadaOficial: version==='revisado'.
   partesDia = partesDia.filter(function(p){ return !(p && p.version==='revisado'); });
+  // Orden: cuba 1, 2, 3… el mismo del parte, que es el cronológico de la jornada.
+  // Llegaban en el orden que devuelve Google, que no tiene por qué ser ese. (v2.6.377)
+  partesDia.sort(function(a,b){
+    var na=parseInt(a.cuba,10), nb=parseInt(b.cuba,10);
+    if(isNaN(na)) na=999; if(isNaN(nb)) nb=999;
+    return na-nb;
+  });
   cont.innerHTML = '<div class="card" style="padding:22px;text-align:center;color:#9a7a5a;">Cargando…</div>';
   var html = '';
   var pendientes = partesDia.length;
@@ -3471,7 +3478,42 @@ function cmpTarjeta(p, d){
       + (d && d.buscado ? '<div style="margin-top:4px;font-size:0.78rem;color:#9a8a7a;">Buscaba: '+d.buscado+'</div>' : '')
       + '</div>';
   }
-  var f = d.ficha;
+  // ── ELEGIR LA CUAJADA (v2.6.379) ──
+  // Un archivo del SCADA es el día entero de UNA cuba física, y esa cuba puede
+  // haber hecho dos o tres cuajadas. Con quedarse con la primera no basta: el
+  // día 21 la física 1 hizo oveja por la mañana y cabra a media mañana, y el
+  // parte de la cabra se comparaba contra la oveja. De ahí que no cuadrara ni
+  // la receta.
+  //
+  // El emparejamiento va por HORA DEL CUAJO: dos cuajadas de la misma cuba están
+  // separadas por horas, así que la más cercana es siempre la buena. Si el parte
+  // no tiene hora de cuajo, se cae a la primera y se avisa.
+  var f = d.ficha, _avisoCuajada = '';
+  if(d.fichas && d.fichas.length){
+    var hCuajoParte = cmpMin(p.coag_hadicion || (p.coag && p.coag.hadicion));
+    if(hCuajoParte !== null){
+      var mejor=null, mejorDif=null;
+      d.fichas.forEach(function(x){
+        var t = x.hora_cuajado;
+        if(t===null || t===undefined) return;
+        var dif = Math.abs(Math.floor(t/60) - hCuajoParte);
+        if(mejorDif===null || dif<mejorDif){ mejorDif=dif; mejor=x; }
+      });
+      if(mejor){
+        f = mejor;
+        if(d.fichas.length>1){
+          _avisoCuajada = '<div style="font-size:0.78rem;color:#7a6a5c;margin-top:2px;">'
+            + 'Esta cuba hizo '+d.fichas.length+' cuajadas ese día; se compara la de las '
+            + cmpHora(mejor.hora_cuajado)+'.</div>';
+        }
+      }
+    } else if(d.fichas.length>1){
+      f = d.fichas[0];
+      _avisoCuajada = '<div style="font-size:0.78rem;color:#b06a00;margin-top:2px;">'
+        + 'Esta cuba hizo '+d.fichas.length+' cuajadas ese día y el parte no tiene hora '
+        + 'de cuajo: se compara la primera, que puede no ser la suya.</div>';
+    }
+  }
   if(!f){
     return '<div class="card" style="padding:14px 16px;margin-bottom:12px;">'+cab
       + '<div style="margin-top:8px;font-size:0.86rem;color:#b06a00;">'
@@ -3494,7 +3536,7 @@ function cmpTarjeta(p, d){
                      'válvulas; el quesero cuenta unos min después'));
 
   var cuerpo = '<table class="cmptab"><thead><tr>'
-    + '<th></th><th>Parte</th><th>Máquina</th><th>Dif.</th></tr></thead><tbody>'
+    + '<th></th><th>Parte</th><th>SCADA</th><th>Dif.</th></tr></thead><tbody>'
     + filas.map(cmpPintarFila).join('') + '</tbody></table>';
 
   // ── EL CHIVATO ──
@@ -3503,24 +3545,30 @@ function cmpTarjeta(p, d){
   // cuajada marcó 36,9 °C al abrir válvulas —exactamente lo que apuntó el
   // quesero— después de haber pasado por 39,3 °C con la receta cambiada.
   var av = '';
+  // (v2.6.377) El aviso de temperatura máxima solo sale CUANDO HAY ALGO QUE MIRAR.
+  // Antes salía siempre, también para decir "dentro del objetivo", y eso es ruido:
+  // el objetivo ya se sabe por la receta. Un aviso que aparece todos los días deja
+  // de leerse, y entonces no sirve el día que de verdad importa.
   var mx = cmpNum(f.max_recalentamiento), obj = cmpNum(f.objetivo_recal);
   if(mx !== null && obj !== null){
     var exceso = Math.round((mx - obj)*10)/10;
     var minArriba = cmpNum(f.min_por_encima) || 0;
-    var malo = exceso > 1 || minArriba > 2;
-    av += '<div class="cmp-chivato '+(malo?'mal':'bien')+'">'
-       +  '<b>Temperatura máxima '+mx+' °C</b> · objetivo '+obj+' °C'
-       +  (exceso>0 ? ' · <b>'+exceso+' °C por encima</b>' : ' · dentro del objetivo')
-       +  (minArriba>0 ? ' · '+minArriba+' min por encima de '+(obj+1)+' °C' : '')
-       +  '</div>';
+    if(exceso > 0.5 || minArriba > 0){
+      av += '<div class="cmp-chivato mal">'
+         +  '<b>Temperatura máxima '+mx+' °C</b> · objetivo '+obj+' °C'
+         +  ' · <b>'+exceso+' °C por encima</b>'
+         +  (minArriba>0 ? ' · '+minArriba+' min por encima de '+(obj+1)+' °C' : '')
+         +  '</div>';
+    }
   }
   if(f.receta_cambios && f.receta_cambios.length > 1){
     av += '<div class="cmp-chivato mal"><b>La receta cambió durante la cuajada:</b> '
        +  f.receta_cambios.map(function(r){ return cmpHora(r.t)+' '+r.nombre; }).join('  →  ')
        +  '</div>';
   }
-  var recetaTxt = f.receta ? ('<div style="font-size:0.84rem;color:#7a6a5c;margin-top:4px;">'
-       + 'Receta de la máquina: <b>'+f.receta+'</b> · objetivo '+(f.objetivo_recal||'?')+' °C</div>') : '';
+  var recetaTxt = (f.receta ? ('<div style="font-size:0.84rem;color:#7a6a5c;margin-top:4px;">'
+       + 'Receta del SCADA: <b>'+f.receta+'</b> · objetivo '+(f.objetivo_recal||'?')+' °C</div>') : '')
+       + _avisoCuajada;
 
   return '<div class="card" style="padding:14px 16px;margin-bottom:12px;">'
     + cab + recetaTxt + av + cuerpo + '</div>';
@@ -7335,9 +7383,16 @@ function _svgGraficaEvolucion(p){
     s+='<line x1="'+xx+'" y1="'+mt+'" x2="'+xx+'" y2="'+(mt+alto)+'" stroke="#e8e4d8" stroke-width="1" stroke-dasharray="3 3"/>';
     var yNombre = mt+alto+18 + niveles[i]*22; // nivel 0,1,2 → escalonado
     s+='<text x="'+xx+'" y="'+yNombre+'" text-anchor="middle" font-size="10.5" font-family="Arial,Helvetica,sans-serif" fill="#5a4d3f" font-weight="700">'+h.nombre+'</text>';
-    s+='<text x="'+xx+'" y="'+(yNombre+11)+'" text-anchor="middle" font-size="9" font-family="Arial,Helvetica,sans-serif" fill="#1a3a5c" font-weight="700">'+h.hora+'</text>';
+    // (v2.6.377) La salmuera NO lleva hora: se coloca a la derecha del desmoldeo
+    // solo para que quepa, pero la hora que se le da es artificial. Escribirla
+    // haría creer que la muestra se tomó a esa hora exacta, que es falso: es la
+    // medida del día de la balsa. Se pone "del día" en su lugar.
+    var _txtHora = h.suelto ? 'del día' : h.hora;
+    s+='<text x="'+xx+'" y="'+(yNombre+11)+'" text-anchor="middle" font-size="9" font-family="Arial,Helvetica,sans-serif" fill="'+(h.suelto?'#8a6a2a':'#1a3a5c')+'" font-weight="700">'+_txtHora+'</text>';
     // número del tiempo: alterna encima/debajo de la línea continua (la línea se dibuja aparte, abajo)
-    if(i>0){
+    // Tampoco tiene sentido el tramo de duración hasta la salmuera: serían
+    // minutos inventados. (v2.6.377)
+    if(i>0 && !h.suelto && !HITOS[i-1].suelto){
       var mPrev=_horaAMin(HITOS[i-1].hora);
       var xPrev=x(mPrev);
       var xMid=(xPrev+xx)/2;
@@ -7349,7 +7404,8 @@ function _svgGraficaEvolucion(p){
   // Línea continua de duraciones (de lado a lado) con una marca transversal en cada hito
   (function(){
     var yLinea = mt+alto+96;
-    var xs = HITOS.map(function(h){ return x(_horaAMin(h.hora)); });
+    var xs = HITOS.filter(function(h){ return !h.suelto; })
+                  .map(function(h){ return x(_horaAMin(h.hora)); });
     var x0 = Math.min.apply(null,xs), x1 = Math.max.apply(null,xs);
     s+='<line x1="'+x0+'" y1="'+yLinea+'" x2="'+x1+'" y2="'+yLinea+'" stroke="#c9a0a0" stroke-width="1"/>';
     xs.forEach(function(xx){
@@ -7370,9 +7426,12 @@ function _svgGraficaEvolucion(p){
     // (v2.6.375) La salmuera se dibuja en rombo hueco y con línea de puntos
     // hasta el desmoldeo: se ve el salto sin confundirlo con la curva.
     if(h.suelto){
-      // Buscar hacia atrás el último hito real CON VALOR de cada magnitud: el
-      // "Desmoldeo fin" solo lleva hora, así que engancharse a él dejaría la
-      // línea de puntos sin dibujar.
+      // ── SALMUERA (v2.6.378) ──
+      // Los tres valores caen casi a la misma altura y se pisaban: con los
+      // rangos reales de la balsa (pH 5,0-5,5 · 10-14 °C · 17,5-18,5 °Bé) los
+      // dos rombos quedan a 25-48 px, y cada rótulo necesita unos 30. Así que
+      // aquí no se colocan a ojo: se mide la separación y, si no caben, se
+      // apartan hacia arriba y hacia abajo lo justo.
       var _prevT=null, _prevP=null;
       for(var _k=HITOS.length-1;_k>=0;_k--){
         if(HITOS[_k].suelto) continue;
@@ -7383,24 +7442,35 @@ function _svgGraficaEvolucion(p){
         return '<path d="M'+xx+' '+(cy-5)+' L'+(xx+5)+' '+cy+' L'+xx+' '+(cy+5)+' L'+(xx-5)+' '+cy+' Z" '
              + 'fill="#fff" stroke="'+col+'" stroke-width="2"/>';
       }
-      if(h.temp!=null){
+      var _yT = (h.temp!=null) ? yTp(h.temp) : null;
+      var _yP = (h.ph!=null)   ? yPh(h.ph)   : null;
+      // Posición de partida: temperatura encima de su rombo, pH debajo del suyo.
+      var _lT = (_yT!=null) ? _yT-12 : null;
+      var _lP = (_yP!=null) ? _yP+20 : null;
+      // El °Bé cuelga del pH; si no hay pH, del rombo de temperatura.
+      var _lB = (_lP!=null) ? _lP+14 : ((_lT!=null) ? _lT+28 : null);
+      if(_lT!=null && _lP!=null && (_lP-_lT) < 30){
+        var _falta = 30-(_lP-_lT);
+        _lT -= _falta/2;  _lP += _falta/2;  _lB = _lP+14;
+      }
+      if(_yT!=null){
         if(_prevT){
-          s+='<line x1="'+x(_horaAMin(_prevT.hora))+'" y1="'+yTp(_prevT.temp)+'" x2="'+xx+'" y2="'+yTp(h.temp)
+          s+='<line x1="'+x(_horaAMin(_prevT.hora))+'" y1="'+yTp(_prevT.temp)+'" x2="'+xx+'" y2="'+_yT
            +'" stroke="#c0392b" stroke-width="1.6" stroke-dasharray="4,3" opacity="0.75"/>';
         }
-        s+=_rombo(yTp(h.temp), '#c0392b');
-        s+='<text x="'+xx+'" y="'+(yTp(h.temp)-12)+'" text-anchor="middle" font-size="10.5" fill="#c0392b" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+h.temp+'°</text>';
+        s+=_rombo(_yT, '#c0392b');
+        s+='<text x="'+(xx+9)+'" y="'+_lT+'" text-anchor="start" font-size="10.5" fill="#c0392b" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+h.temp+'°</text>';
       }
-      if(h.ph!=null){
+      if(_yP!=null){
         if(_prevP){
-          s+='<line x1="'+x(_horaAMin(_prevP.hora))+'" y1="'+yPh(_prevP.ph)+'" x2="'+xx+'" y2="'+yPh(h.ph)
+          s+='<line x1="'+x(_horaAMin(_prevP.hora))+'" y1="'+yPh(_prevP.ph)+'" x2="'+xx+'" y2="'+_yP
            +'" stroke="#7B3FA0" stroke-width="1.6" stroke-dasharray="4,3" opacity="0.75"/>';
         }
-        s+=_rombo(yPh(h.ph), '#7B3FA0');
-        s+='<text x="'+xx+'" y="'+(yPh(h.ph)+20)+'" text-anchor="middle" font-size="10.5" fill="#7B3FA0" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+Number(h.ph).toFixed(2)+'</text>';
+        s+=_rombo(_yP, '#7B3FA0');
+        s+='<text x="'+(xx+9)+'" y="'+_lP+'" text-anchor="start" font-size="10.5" fill="#7B3FA0" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+Number(h.ph).toFixed(2)+'</text>';
       }
-      if(h.be!=null){
-        s+='<text x="'+xx+'" y="'+(mt+alto+34)+'" text-anchor="middle" font-size="10" fill="#8a6a2a" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+h.be+' °Bé</text>';
+      if(h.be!=null && _lB!=null){
+        s+='<text x="'+(xx+9)+'" y="'+_lB+'" text-anchor="start" font-size="10" fill="#8a6a2a" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+h.be+' °Bé</text>';
       }
       return;
     }
