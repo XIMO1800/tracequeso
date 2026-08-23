@@ -873,6 +873,9 @@ input[type="email"] {
 .cmp-chivato{margin-top:10px;padding:9px 12px;border-radius:8px;font-size:0.86rem;line-height:1.5;}
 .cmp-chivato.bien{background:#eaf5ea;border-left:4px solid #2d7a2d;}
 .cmp-chivato.mal{background:#fdeeea;border-left:4px solid #b03030;}
+
+.cmp-paradas{margin-top:10px;padding:8px 11px;background:#faf6ee;border-left:3px solid #c9a86a;
+  border-radius:6px;font-size:0.83rem;line-height:1.6;}
 </style>
 </head>
 <body>
@@ -891,7 +894,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.383</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.386</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3433,23 +3436,23 @@ function cmpPintar(){
     if(isNaN(na)) na=999; if(isNaN(nb)) nb=999;
     return na-nb;
   });
-  cont.innerHTML = '<div class="card" style="padding:22px;text-align:center;color:#9a7a5a;">Cargando…</div>';
-  var html = '';
-  var pendientes = partesDia.length;
-  partesDia.forEach(function(p){
-    // OJO: para el SCADA vale la CUBA FÍSICA, nunca la cronológica. Un día con
-    // cuatro cuajadas en tres cubas tiene partes 1,2,3,4 pero cubas físicas
-    // 1,2,3,1. Pedir por la cronológica traería datos de otra cuba.
-    var cubaFis = String(p.cuba_fisica || '').trim();
-    if(!cubaFis){
-      html += cmpTarjetaSinCuba(p);
-      if(--pendientes === 0) cont.innerHTML = html;
-      return;
+  // (v2.6.386) UN HUECO POR CUBA, EN ORDEN, Y CADA UNO SE RELLENA EN SU SITIO.
+  // Antes se ordenaba la lista pero las tarjetas se iban pegando una detrás de
+  // otra según llegaba la respuesta de Google: la cuba que contestara antes
+  // salía primero. Por eso unas veces salía bien y otras al revés. Ordenar la
+  // lista no basta si luego se pinta por orden de llegada.
+  cont.innerHTML = partesDia.map(function(p, i){
+    return '<div class="card" id="cmp-hueco-'+i+'" style="padding:14px 16px;margin-bottom:12px;'
+         + 'color:#9a7a5a;">Cuba '+(p.cuba||'?')+' · cargando…</div>';
+  }).join('');
+  partesDia.forEach(function(p, i){
+    function _poner(html){
+      var hueco = document.getElementById('cmp-hueco-'+i);
+      if(hueco) hueco.outerHTML = html;
     }
-    cmpPedirCuba(CMP_FECHA, cubaFis, function(datos){
-      html += cmpTarjeta(p, datos);
-      if(--pendientes === 0) cont.innerHTML = html;
-    });
+    var cubaFis = String(p.cuba_fisica || '').trim();
+    if(!cubaFis){ _poner(cmpTarjetaSinCuba(p)); return; }
+    cmpPedirCuba(CMP_FECHA, cubaFis, function(datos){ _poner(cmpTarjeta(p, datos)); });
   });
 }
 
@@ -3532,6 +3535,14 @@ function cmpTarjeta(p, d){
   }
 
   var filas = [];
+  // ── LLENADO Y ADICIONES (v2.6.386) ──
+  filas.push(cmpFila('Llenado · inicio',    p.hllenado || p.h_llenado || (p.co2&&p.co2.hadicion),
+                     cmpHora(f.hora_llenado), 'hora'));
+  filas.push(cmpFila('Auxiliares (cloruro)', p.aux_hadicion || (p.aux_meta&&p.aux_meta.hadicion),
+                     cmpHora(f.hora_aux), 'hora',
+                     'el cloruro no para el agitador: se da el arranque del llenado'));
+  filas.push(cmpFila('Fermentos',           p.ferm_hadicion || (p.ferm_meta&&p.ferm_meta.hadicion),
+                     cmpHora(f.hora_ferm), 'hora', 'primera parada del agitador'));
   filas.push(cmpFila('Cuajo · hora',        p.coag_hadicion || (p.coag&&p.coag.hadicion), cmpHora(f.hora_cuajado), 'hora'));
   filas.push(cmpFila('Cuajo · temperatura', p.coag_temp || (p.coag&&p.coag.temp),         f.temp_cuajado,          'temp'));
   filas.push(cmpFila('Corte · hora',        p.coag_hc || (p.coag&&p.coag.hc),             cmpHora(f.hora_corte),   'hora'));
@@ -3542,12 +3553,42 @@ function cmpTarjeta(p, d){
   filas.push(cmpFila('Recalent. · T final', p.rec_tf || (p.desuerado&&p.desuerado.rec_tf), f.temp_fin_recal,       'temp',
                      'la de abrir válvulas'));
   filas.push(cmpFila('Agitación · inicio',  p.agit_hi || (p.desuerado&&p.desuerado.agit_hi), cmpHora(f.hora_ini_batido), 'hora'));
+  // ── DESUERADO: dato que solo tiene el SCADA (v2.6.384) ──
+  // Mientras se saca suero hay UNA sola válvula abierta; cuando abren las dos,
+  // empieza el vaciado hacia la llenadora. Ese intervalo es el tiempo de
+  // desuerado, y el parte no lo recoge: Jorge no lo apunta. En oveja es de
+  // segundos; en mezcla son varios minutos, porque se saca cerca de un tercio
+  // de cuba y hay 9.500 litros. Saber si un día se sacó mucho o poco suero es
+  // información nueva, así que se enseña aunque no haya con qué compararla.
+  if(f.desuerado_min !== null && f.desuerado_min !== undefined){
+    filas.push(cmpFila('Desuerado', null,
+                       f.desuerado_min + ' min',
+                       'texto',
+                       (f.desuerado_ini ? 'desde las '+cmpHora(f.desuerado_ini)+'; ' : '')
+                       + 'una sola válvula abierta'));
+  }
   filas.push(cmpFila('Moldeo · inicio',     p.mol_hi || (p.moldeo&&p.moldeo.hi),          cmpHora(f.apertura_valvulas), 'hora',
-                     'válvulas; el quesero cuenta unos min después'));
+                     'abren las dos válvulas; el quesero cuenta unos min después'));
 
+  // ── TODAS LAS PARADAS DEL AGITADOR (v2.6.386) ──
+  // El SCADA sabe CUÁNDO se paró, no QUÉ se echó. Suele haber una para el
+  // fermento y otra, poco antes del cuajo, para sacar muestra y medir el pH.
+  // Se listan todas, incluidas las que el parte no recoge: una parada que nadie
+  // ha apuntado es justo lo que interesa mirar.
+  var paradasTxt = '';
+  if(f.paradas && f.paradas.length){
+    paradasTxt = '<div class="cmp-paradas"><b>Paradas del agitador según el SCADA:</b> '
+      + f.paradas.map(function(q){
+          var seg = q.segs||0;
+          var dur = seg<60 ? (seg+' s') : (Math.round(seg/60*10)/10+' min');
+          return cmpHora(q.t)+' <span style="color:#9a8a7a;">('+dur+')</span>';
+        }).join(' · ')
+      + '<div style="color:#9a8a7a;font-size:0.76rem;margin-top:3px;">'
+      + 'El SCADA sabe cuándo se paró, no qué se echó.</div></div>';
+  }
   var cuerpo = '<table class="cmptab"><thead><tr>'
     + '<th></th><th>Parte</th><th>SCADA</th><th>Dif.</th></tr></thead><tbody>'
-    + filas.map(cmpPintarFila).join('') + '</tbody></table>';
+    + filas.map(cmpPintarFila).join('') + '</tbody></table>' + paradasTxt;
 
   // ── EL CHIVATO ──
   // Aquí es donde esta pantalla se gana el sueldo. Los valores de la norma
@@ -7357,7 +7398,11 @@ function _svgGraficaEvolucion(p){
   if(HITOS.length < 2){
     return '<div style="padding:16px;text-align:center;color:var(--text3);font-size:0.85rem">Aún no hay suficientes datos con hora para dibujar la evolución. Rellena las horas de las fases (cloruro, fermento, cuajo, recalentamiento, moldeo…).</div>';
   }
-  var W=1000, H=590, ml=50, mr=50, mt=40, mb=150;
+  // (v2.6.385) Si hay salmuera, el margen derecho se ensancha: su rombo cae en
+  // el extremo del dibujo y los rótulos que van a su derecha (12°, 5.25, 18 °Bé)
+  // se salían del cuadro. El nombre de abajo también se cortaba a media palabra.
+  var _haySal = HITOS.some(function(h){ return h.suelto; });
+  var W=1000, H=590, ml=50, mr=(_haySal?105:50), mt=40, mb=150;
   var ancho=W-ml-mr, alto=H-mt-mb;
   var tiempos=HITOS.map(function(h){return _horaAMin(h.hora);});
   var tMin=Math.min.apply(null,tiempos), tMax=Math.max.apply(null,tiempos);
@@ -7394,11 +7439,25 @@ function _svgGraficaEvolucion(p){
     niveles[i] = nivel;
     ultimoXporNivel[nivel] = xx;
   });
+  // (v2.6.386) La salmuera manda en la fila de arriba. El reparto automático la
+  // mandaba a la segunda fila por chocar con "Desmoldeo fin", y quedaba la de
+  // dentro del proceso arriba y la de después abajo, al revés de como se lee.
+  // Quien choque con ella baja un escalón.
+  (function(){
+    var iSal = -1;
+    HITOS.forEach(function(h,i){ if(h.suelto) iSal=i; });
+    if(iSal<0) return;
+    niveles[iSal] = 0;
+    var xSal = x(_horaAMin(HITOS[iSal].hora));
+    HITOS.forEach(function(h,i){
+      if(i===iSal || niveles[i]!==0) return;
+      if(Math.abs(x(_horaAMin(h.hora)) - xSal) < ANCHO_ETIQ) niveles[i] = 1;
+    });
+  })();
   // Líneas de hito + nombre (escalonado por nivel) + hora + duración
   HITOS.forEach(function(h,i){
     var m=_horaAMin(h.hora); var xx=x(m);
     s+='<line x1="'+xx+'" y1="'+mt+'" x2="'+xx+'" y2="'+(mt+alto)+'" stroke="#e8e4d8" stroke-width="1" stroke-dasharray="3 3"/>';
-    if(h.suelto) return;   // (v2.6.382) la salmuera lleva su rótulo arriba, junto a los rombos
     var yNombre = mt+alto+18 + niveles[i]*22; // nivel 0,1,2 → escalonado
     s+='<text x="'+xx+'" y="'+yNombre+'" text-anchor="middle" font-size="10.5" font-family="Arial,Helvetica,sans-serif" fill="#5a4d3f" font-weight="700">'+h.nombre+'</text>';
     // (v2.6.377) La salmuera NO lleva hora: se coloca a la derecha del desmoldeo
@@ -7514,11 +7573,8 @@ function _svgGraficaEvolucion(p){
         if(_yT!=null && Math.abs(_yB-_yT) < 16) _yB = _yT - 16;   // por si acaso
         s+='<text x="'+(xx+9)+'" y="'+_yB+'" text-anchor="start" font-size="10" fill="#8a6a2a" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+h.be+' °Bé</text>';
       }
-      // El nombre, arriba junto a los datos y no abajo con los hitos del reloj:
-      // la salmuera no está en la línea de tiempos.
-      if(_lArr!=null){
-        s+='<text x="'+(xx+9)+'" y="'+(_lArr-13)+'" text-anchor="start" font-size="10" fill="#5a4d3f" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">Salmuera</text>';
-      }
+      // El nombre va ABAJO, en la fila de rótulos como los demás hitos: arriba
+      // tapaba los grados Baumé. (v2.6.385)
       return;
     }
     if(h.temp!=null){
