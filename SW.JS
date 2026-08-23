@@ -1,5 +1,5 @@
 // Service Worker para TraceQueso
-// Versión: v345
+// Versión: v347
 //
 // ═══════════════════════════════════════════════════════════════════════════
 // POR QUÉ EL NOMBRE DE LA CACHÉ YA NO LLEVA VERSIÓN  (v325)
@@ -24,7 +24,7 @@
 // anterior. Nunca hay un momento sin app.
 // ═══════════════════════════════════════════════════════════════════════════
 const CACHE = 'tracequeso-app';   // FIJO. No poner la versión aquí nunca más.
-const VERSION = 'v345';           // solo informativo
+const VERSION = 'v347';           // solo informativo
 const ASSETS = ['/tracequeso/', '/tracequeso/index.html'];
 
 // INSTALACIÓN: cachear archivos esenciales
@@ -32,11 +32,25 @@ self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(CACHE).then(function(cache) {
       return cache.addAll(ASSETS).catch(function(){});
-    }).then(function() {
-      // Activar nueva versión inmediatamente sin esperar
-      return self.skipWaiting();
     })
+    // (v347) YA NO SE LLAMA A skipWaiting() AQUÍ.
+    //
+    // Antes, al subir una versión, el service worker nuevo tomaba el mando al
+    // instante mientras el operario seguía con la pantalla vieja cargada. Código
+    // viejo y service worker nuevo conviviendo. En móviles anclados en modo
+    // kiosco eso deja la app pillada y hay que meter el código de desanclaje,
+    // cerrar y volver a abrir: cinco minutos y una llamada a Joaquín.
+    //
+    // Ahora el nuevo se queda ESPERANDO. La app avisa con un botón y es el
+    // operario quien decide cuándo recargar, al terminar lo que esté haciendo.
+    // En la primera instalación no hay ninguno anterior, así que activa directo
+    // y esto no le afecta.
   );
+});
+
+// (v347) La app pide el relevo cuando el operario pulsa "Actualizar ahora".
+self.addEventListener('message', function(e) {
+  if (e.data === 'RELEVO') self.skipWaiting();
 });
 
 // ACTIVACIÓN: borrar cachés viejos
