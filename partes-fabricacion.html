@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.391</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.392</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3492,9 +3492,16 @@ function cmpPedirCuba(fecha, cuba, cb){
     .catch(function(){ cb(null); });
 }
 
+// (v2.6.392) "1ª cuba" en vez de "Cuba 1": el número es el orden de la jornada,
+// no un nombre. Decir "Cuba 1 (física 3)" invitaba a leer dos cubas distintas.
+function _ordinalCuba(n){
+  var x = parseInt(n,10);
+  return isNaN(x) ? 'Cuba ?' : (x+'ª cuba');
+}
+
 function cmpTarjetaSinCuba(p){
   return '<div class="card" style="padding:14px 16px;margin-bottom:12px;">'
-    + '<div style="font-weight:800;">Cuba '+(p.cuba||'?')+' · '+(p.tipo||'')+'</div>'
+    + '<div style="font-weight:800;">'+_ordinalCuba(p.cuba)+' · '+(p.tipo||'')+'</div>'
     + '<div style="margin-top:6px;font-size:0.86rem;color:#b06a00;">'
     + 'Este parte no tiene anotada la <b>cuba física</b>, y sin ese dato no se puede '
     + 'buscar en el SCADA. Ponla en Datos Generales y vuelve a entrar.</div></div>';
@@ -3511,7 +3518,7 @@ function cmpTarjeta(p, d){
   var _parteVacio = !(p.coag || p.desuerado || p.moldeo || p.coag_hadicion ||
                       (p.desmoldeos && p.desmoldeos.length));
   var cab = '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
-    + '<div style="font-weight:800;font-size:1rem;">Cuba '+(p.cuba||'?')
+    + '<div style="font-weight:800;font-size:1rem;">'+_ordinalCuba(p.cuba)
     + ' <span style="font-weight:400;color:#7a6a5c;">(física '+(p.cuba_fisica||'?')+')</span></div>'
     + '<div style="color:#7a6a5c;font-size:0.88rem;">'+(p.tipo||'')+(p.variedad?' · '+p.variedad:'')+'</div>'
     + '</div>';
@@ -3546,7 +3553,22 @@ function cmpTarjeta(p, d){
       });
       if(mejor){
         f = mejor;
-        if(d.fichas.length>1){
+        // (v2.6.392) SI NINGUNA CUAJADA CUADRA, DECIRLO.
+        //
+        // EL FALLO QUE ARREGLA: se cogía la cuajada más cercana en hora aunque
+        // estuviera a horas de distancia. Si el .xps se exportó por la mañana y
+        // esa cuba volvió a cuajar por la tarde, la segunda cuajada NO está en
+        // el archivo: el parte de la tarde se comparaba contra la de la mañana
+        // y salía todo desviado, sin que nada avisara de que faltaba el dato.
+        // Dos cuajadas de la misma cuba nunca están a menos de hora y media.
+        if(mejorDif > 90){
+          _avisoCuajada = '<div style="font-size:0.78rem;color:#b03030;margin-top:2px;">'
+            + '<b>Ninguna cuajada del archivo cuadra con este parte.</b> El parte cuajó a las '
+            + (p.coag_hadicion || (p.coag && p.coag.hadicion))
+            + ' y lo más cercano en el SCADA son las '+cmpHora(mejor.hora_cuajado)+'. '
+            + 'Lo normal es que el .xps se exportara antes de esta cuajada: vuelve a '
+            + 'sacarlo al final del día y conviértelo otra vez.</div>';
+        } else if(d.fichas.length>1){
           _avisoCuajada = '<div style="font-size:0.78rem;color:#7a6a5c;margin-top:2px;">'
             + 'Esta cuba hizo '+d.fichas.length+' cuajadas ese día; se compara la de las '
             + cmpHora(mejor.hora_cuajado)+'.</div>';
