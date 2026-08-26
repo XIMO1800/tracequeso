@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.389</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.390</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3489,6 +3489,15 @@ function cmpTarjetaSinCuba(p){
 }
 
 function cmpTarjeta(p, d){
+  // (v2.6.390) ¿VIENE EL PARTE COMPLETO?
+  // Al bajar de Google, cada parte se reconstruye desde su columna JSON. Si esa
+  // columna está vacía o no se puede leer, se arma un parte mínimo con lo que
+  // hay en las columnas sueltas —fecha, cuba, tipo, litros— y SIN coagulación,
+  // recalentamiento ni moldeo. En la comparativa eso salía como una tabla de
+  // rayas, igual que si el quesero no hubiera apuntado nada, cuando lo que pasa
+  // es que el dato no ha llegado. Son dos cosas muy distintas y hay que decirlo.
+  var _parteVacio = !(p.coag || p.desuerado || p.moldeo || p.coag_hadicion ||
+                      (p.desmoldeos && p.desmoldeos.length));
   var cab = '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
     + '<div style="font-weight:800;font-size:1rem;">Cuba '+(p.cuba||'?')
     + ' <span style="font-weight:400;color:#7a6a5c;">(física '+(p.cuba_fisica||'?')+')</span></div>'
@@ -3531,11 +3540,17 @@ function cmpTarjeta(p, d){
             + cmpHora(mejor.hora_cuajado)+'.</div>';
         }
       }
-    } else if(d.fichas.length>1){
+    } else {
+      // (v2.6.390) Sin hora de cuajo en el parte se coge la primera cuajada
+      // SIEMPRE. Antes esto solo se hacía cuando había varias; con una sola, la
+      // ficha se quedaba sin asignar y la tarjeta acababa diciendo que el
+      // archivo era de un conversor antiguo, que no tenía nada que ver.
       f = d.fichas[0];
-      _avisoCuajada = '<div style="font-size:0.78rem;color:#b06a00;margin-top:2px;">'
-        + 'Esta cuba hizo '+d.fichas.length+' cuajadas ese día y el parte no tiene hora '
-        + 'de cuajo: se compara la primera, que puede no ser la suya.</div>';
+      if(d.fichas.length>1){
+        _avisoCuajada = '<div style="font-size:0.78rem;color:#b06a00;margin-top:2px;">'
+          + 'Esta cuba hizo '+d.fichas.length+' cuajadas ese día y el parte no tiene hora '
+          + 'de cuajo: se compara la primera, que puede no ser la suya.</div>';
+      }
     }
   }
   if(!f){
@@ -3643,6 +3658,12 @@ function cmpTarjeta(p, d){
   // hitos cuadran y después, si hay algo que contar, se cuenta. Un parte puede
   // tener las doce horas clavadas y aun así haber pasado algo —una punta de
   // temperatura, un cambio de receta— y eso es exactamente lo que va aquí.
+  if(_parteVacio){
+    av = '<div class="cmp-chivato mal">El parte de esta cuba <b>no trae los datos de '
+       + 'fabricación</b>: en Google solo están la cabecera y los litros, sin horas ni '
+       + 'temperaturas. Ábrelo en el historial y vuelve a guardarlo para que suba entero. '
+       + 'Mientras tanto no hay nada que comparar.</div>' + av;
+  }
   var obs = av ? ('<div class="cmp-obs"><b>Observaciones</b>'+av+'</div>') : '';
   return '<div class="card" style="padding:14px 16px;margin-bottom:12px;">'
     + cab + recetaTxt + cuerpo + obs + '</div>';
