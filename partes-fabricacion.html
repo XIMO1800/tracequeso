@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.392</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.393</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -7667,8 +7667,18 @@ function _svgGraficaEvolucion(p){
   });
   var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block">'+s+'</svg>';
 
+  // (v2.6.393) Buscar por el PRINCIPIO del nombre, no por el nombre exacto.
+  // Al renombrar el hito "Desmoldeo" a "Desmoldeo inicio" (v2.6.387) estas dos
+  // tarjetas —moldeo→desmoldeo y fermento→desmoldeo— dejaron de encontrarlo y
+  // desaparecieron sin decir nada. Emparejar por texto exacto es frágil: basta
+  // retocar un rótulo para romper un cálculo que está en otra parte del código.
   function dur(n1,n2){
-    var a=HITOS.find(function(h){return h.nombre===n1;}), b=HITOS.find(function(h){return h.nombre===n2;});
+    function _busca(n){
+      var e=HITOS.find(function(h){return h.nombre===n;});
+      if(e) return e;
+      return HITOS.find(function(h){ return String(h.nombre||'').indexOf(n)===0 && !h.suelto; });
+    }
+    var a=_busca(n1), b=_busca(n2);
     if(!a||!b) return null;
     var ma=_horaAMin(a.hora), mb=_horaAMin(b.hora);
     if(ma==null||mb==null) return null;
