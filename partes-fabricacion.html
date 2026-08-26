@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.390</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.391</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2663,6 +2663,18 @@ function _avisoStockInsuficiente(p){
     }
   }catch(e){}
   if(!faltas.length) return '';
+  // (v2.6.391) NO AVISAR CON EL STOCK EN DUDA.
+  //
+  // EL FALLO QUE ARREGLA: al reactivar, el backend devuelve al stock lo que el
+  // parte había consumido, pero esa devolución tarda en volver. Si se cierra
+  // antes de que llegue, este aviso se calcula contra la foto ANTERIOR a la
+  // devolución y saltan cinco o seis referencias en rojo que en realidad están
+  // bien. El quesero acepta —porque sabe que hay de sobra— y el stock se va a
+  // negativo por partida doble.
+  //
+  // Con los datos a medias, callar es más seguro que avisar en falso: un aviso
+  // que se equivoca enseña a ignorarlo, y entonces no sirve el día que acierta.
+  if(typeof STOCK_EN_DUDA!=='undefined' && STOCK_EN_DUDA) return '';
   return '⚠️ STOCK INSUFICIENTE\n\n'+faltas.join('\n')+'\n\n¿Cerrar el parte de todos modos?\n(Se registrará igualmente y el stock quedará en negativo. Revisa si falta dar de alta alguna entrada.)';
 }
 
@@ -10088,8 +10100,13 @@ function enviarParteSheets(parte){
 // Manda _REACTIVAR:true para que el backend DEVUELVA al stock lo que consumió este
 // parte (retira sus salidas) y reabra la fila. Cuando se cierre de nuevo, se volverá
 // a descontar con los datos que tenga en ese momento.
+// (v2.6.391) Mientras el stock devuelto por una reactivación no haya vuelto de
+// Google, la copia que hay en memoria es la de ANTES de la devolución.
+var STOCK_EN_DUDA = false;
+
 function enviarReactivacionSheets(parte){
   var payload=Object.assign({},parte,{_SHEET:'PARTES', _UPDATE:true, _REACTIVAR:true, ID: parte.id});
+  STOCK_EN_DUDA = true;
   // (v2.6.366) RECARGAR EL STOCK DESPUÉS DE REACTIVAR.
   //
   // EL FALLO QUE ARREGLA: el backend devuelve al stock todo lo que el parte había
@@ -10101,8 +10118,10 @@ function enviarReactivacionSheets(parte){
   // Se recarga cuando Google confirma. Si falla la red, la reactivación queda en la
   // libreta y el stock se pondrá al día en la siguiente carga.
   fetch(API_URL,{method:'POST',body:JSON.stringify(payload)})
-    .then(function(){ try{ cargarStockMaterial(); }catch(e){} })
-    .catch(function(){SYNC_PENDIENTE.push({tipo:'parte',data:payload});persistir();});
+    .then(function(){ try{ cargarStockMaterial(function(){ STOCK_EN_DUDA = false; }); }
+                      catch(e){ STOCK_EN_DUDA = false; } })
+    .catch(function(){SYNC_PENDIENTE.push({tipo:'parte',data:payload});persistir();
+                      STOCK_EN_DUDA = false;});
 }
 
 function enviarRecetaSheets(receta,eliminar){
@@ -10360,7 +10379,8 @@ function cargarCacheStock(){
   }catch(e){ return false; }
 }
 
-function cargarStockMaterial(){
+function cargarStockMaterial(alTerminar){
+  function _fin(){ if(typeof alTerminar==='function'){ try{ alTerminar(); }catch(e){} } }
   // Primero, lo que haya guardado en la tablet: así los lotes están disponibles
   // desde el segundo cero, con o sin cobertura.
   try{ cargarCacheStock(); }catch(e){}
@@ -10381,7 +10401,8 @@ function cargarStockMaterial(){
         }
       }catch(e){ console.error('refrescar parte:',e); }
     }
-  }).catch(function(e){ console.error('cargarStockMaterial:',e); });
+    _fin();
+  }).catch(function(e){ console.error('cargarStockMaterial:',e); _fin(); });
 }
 
 function sincronizarPendientes(){
