@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.388</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.389</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4987,14 +4987,30 @@ function obtenerLoteActivo(producto){
   // 2) Buscar en el stock real de Sheets (STOCK_REMOTO)
   if(STOCK_REMOTO && STOCK_REMOTO.stock && STOCK_REMOTO.stock.length){
     var nombreUp = String(producto).trim().toUpperCase();
-    // El CO2 se controla por caudal/tiempo, no por unidades en stock: su cantidad
-    // puede venir vacía. Para CO2 no exigimos stock>0; para el resto, sí.
+    // (v2.6.389) EL CO2 YA NO SE SALTA EL FILTRO DE STOCK.
+    //
+    // EL FALLO QUE ARREGLA: al CO2 se le perdonaba la condición "que quede algo"
+    // porque se controla por caudal y tiempo y su cantidad puede venir vacía.
+    // Pero la lista se ordena por caducidad, así que el lote MÁS ANTIGUO gana
+    // siempre... y el más antiguo era precisamente el agotado el 13 de agosto.
+    // Resultado: la botella vacía salía como lote activo por delante de la que
+    // sí tiene 11.889, el consumo se le cargaba a ella y la dejaba en negativo.
+    //
+    // Un lote sin gas no se está gastando. La excepción solo debe cubrir el caso
+    // que la motivó —una ficha sin cantidad apuntada—, no el de una cantidad
+    // apuntada y a cero: si el stock viene VACÍO, se acepta; si viene con un
+    // número y ese número es cero, se descarta como en cualquier otro material.
     var esCO2 = (nombreUp === 'CO2' || nombreUp === 'CO₂');
     var candidatos = STOCK_REMOTO.stock
       .map(normRowStock)
       .filter(function(r){
         var coincide = String(r.articulo||'').trim().toUpperCase() === nombreUp;
-        return coincide && (esCO2 || r.stockActual > STOCK_MINIMO_VIVO);
+        if(!coincide) return false;
+        if(r.stockActual > STOCK_MINIMO_VIVO) return true;
+        // Sin cantidad apuntada (null/undefined/''), solo se admite en CO2.
+        var sinCantidad = (r.stockActual === null || r.stockActual === undefined ||
+                           r.stockActual === '' || isNaN(r.stockActual));
+        return esCO2 && sinCantidad;
       });
     if(candidatos.length){
       // Ordenar por caducidad ascendente (FIFO: el más antiguo primero)
