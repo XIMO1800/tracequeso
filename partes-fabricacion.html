@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.397</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.398</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3098,6 +3098,10 @@ function _salTexto(v){
 function salEnviar(fila){
   if(!fila || !fila.fecha) return;
   fila._pendiente = true;               // (v2.6.395) hasta que Google confirme
+  // (v2.6.398) Se apunta QUÉ versión de la fila se está enviando. Si mientras
+  // Google responde se teclea algo más, la revisión ya no coincidirá y la fila
+  // seguirá pendiente hasta que suba el envío con lo nuevo.
+  var _revEnviada = fila._rev || 0;
   try{ salGuardar(); }catch(e){}
   var payload = {
     _SHEET:'SALADERO', _UPDATE:true,
@@ -3114,11 +3118,16 @@ function salEnviar(fila){
     .then(function(r){ return r.json(); })
     .then(function(res){
       var ok = !!(res && res.ok);
-      if(ok){ delete fila._pendiente; try{ salGuardar(); }catch(e){} }
+      if(ok && (fila._rev||0) === _revEnviada){
+        delete fila._pendiente; try{ salGuardar(); }catch(e){}
+      }
       salMarcarEnvio(ok);
-      try{ salPintar(); }catch(e){}
+      // (v2.6.398) Antes aquí se llamaba a salPintar(), que reconstruye la
+      // tabla entera y le quita el foco al que esté tecleando en ese momento.
+      // Ahora solo se actualizan las marcas ✓/●, sin tocar las casillas.
+      try{ salRefrescarMarcas(); }catch(e){}
     })
-    .catch(function(){ salMarcarEnvio(false); try{ salPintar(); }catch(e){} });
+    .catch(function(){ salMarcarEnvio(false); try{ salRefrescarMarcas(); }catch(e){} });
 }
 
 function salMarcarEnvio(ok){
@@ -3318,6 +3327,15 @@ function salNuevoDia(fecha){
 }
 // Un cambio en cualquier casilla: se apunta en memoria, se guarda y se
 // revisa el °Bé. La firma se pone sola con quien esté dentro de la app.
+// (v2.6.398) Y AHORA, ADEMÁS, SE ENVÍA A GOOGLE. Aquí estaba el agujero gordo
+// del saladero: esta función guardaba en el aparato y NADA MÁS. Lo único que
+// subía a Google era la creación del día (con las casillas aún vacías). Todo
+// lo tecleado después se quedaba en este ordenador para siempre, con el check
+// verde puesto, porque nunca se marcaba como pendiente. Por eso en la hoja los
+// días aparecían solo con el proveedor y la firma, y "se perdían" los números.
+// Ahora cada cambio marca el día como pendiente (● naranja al instante) y
+// programa un envío a los 2,5 segundos de dejar de teclear, para mandar la
+// fila una vez entera y no una petición por cada letra.
 function salEditar(fecha, campo, valor){
   for(var i=0;i<SAL_DATOS.length;i++){
     if(SAL_DATOS[i].fecha===fecha){
@@ -3325,12 +3343,53 @@ function salEditar(fecha, campo, valor){
       if(!SAL_DATOS[i].firma && typeof OPERARIO_ACTUAL!=='undefined' && OPERARIO_ACTUAL){
         SAL_DATOS[i].firma=OPERARIO_ACTUAL;
       }
+      SAL_DATOS[i]._pendiente = true;
+      // Número de cambio: cada edición lo sube. Sirve para que una respuesta
+      // vieja de Google no dé por enviado lo que se tecleó DESPUÉS de mandarla.
+      SAL_DATOS[i]._rev = (SAL_DATOS[i]._rev||0) + 1;
       salGuardar();
+      salRefrescarMarcas();
+      salProgramarEnvio(fecha);
       if(campo==='be') salRevisarBe(fecha);
       if(campo==='filtrante') salCabecera();
       return;
     }
   }
+}
+
+// (v2.6.398) Envío con espera: cada tecla reinicia el contador de 2,5 s de su
+// día. Al pararse de teclear, se envía la fila completa UNA vez. Se busca la
+// fila por FECHA en el momento de disparar (no se guarda el objeto) porque
+// salBajar() puede haber sustituido los objetos entre medias.
+var _salTimers = {};
+function salProgramarEnvio(fecha){
+  try{ if(_salTimers[fecha]) clearTimeout(_salTimers[fecha]); }catch(e){}
+  _salTimers[fecha] = setTimeout(function(){
+    delete _salTimers[fecha];
+    for(var i=0;i<SAL_DATOS.length;i++){
+      if(SAL_DATOS[i].fecha===fecha){ salEnviar(SAL_DATOS[i]); return; }
+    }
+  }, 2500);
+}
+
+// (v2.6.398) Actualiza los ✓/● de cada fila y el botón de pendientes SIN
+// repintar la tabla entera. Repintar (salPintar) reconstruye las casillas y le
+// quita el foco al que está tecleando: aquí se toca solo la marca.
+function salRefrescarMarcas(){
+  try{
+    var _bp=document.getElementById('sal-btn-enviar');
+    if(_bp){
+      var _n=SAL_DATOS.filter(function(x){ return x._pendiente; }).length;
+      _bp.style.display = _n ? '' : 'none';
+      _bp.textContent = '⬆️ Enviar '+_n+' pendiente'+(_n>1?'s':'');
+    }
+    SAL_DATOS.forEach(function(f){
+      var m=document.getElementById('sal-mark-'+f.fecha);
+      if(!m) return;
+      if(f._pendiente){ m.style.color='#c8780a'; m.textContent='●'; m.title='Aún no ha subido a Google'; }
+      else{ m.style.color='#2d7a2d'; m.textContent='✓'; m.title='Guardado en Google Sheets'; }
+    });
+  }catch(e){}
 }
 function salRevisarBe(fecha){
   var el=document.getElementById('sal-be-'+fecha);
@@ -3383,8 +3442,8 @@ function salPintar(){
       // escrito hace rato llegó o se quedó en el aparato.
       + '<td class="fecha">'+salBonita(f.fecha)
         + (f._pendiente
-            ? '<span title="Aún no ha subido a Google" style="margin-left:5px;color:#c8780a;">●</span>'
-            : '<span title="Guardado en Google Sheets" style="margin-left:5px;color:#2d7a2d;">✓</span>')
+            ? '<span id="sal-mark-'+f.fecha+'" title="Aún no ha subido a Google" style="margin-left:5px;color:#c8780a;">●</span>'
+            : '<span id="sal-mark-'+f.fecha+'" title="Guardado en Google Sheets" style="margin-left:5px;color:#2d7a2d;">✓</span>')
         + '</td>'
       + '<td>'+salCelda(f,'ph')+'</td>'
       + '<td>'+salCelda(f,'temp')+'</td>'
