@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.396</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.397</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3089,6 +3089,12 @@ function salGuardar(){
 // enviar varias veces el mismo día actualiza la fila en vez de duplicarla.
 // Se guarda SIEMPRE primero en el aparato y luego se intenta subir: si falla la
 // red, el dato no se pierde y se vuelve a subir al tocar cualquier casilla.
+function _salTexto(v){
+  var t = String(v==null ? '' : v).trim();
+  if(!t) return '';
+  return (t.charAt(0)==="'") ? t : ("'" + t);
+}
+
 function salEnviar(fila){
   if(!fila || !fila.fecha) return;
   fila._pendiente = true;               // (v2.6.395) hasta que Google confirme
@@ -3096,8 +3102,9 @@ function salEnviar(fila){
   var payload = {
     _SHEET:'SALADERO', _UPDATE:true,
     FECHA: fila.fecha,
-    PH: fila.ph||'', TEMPERATURA: fila.temp||'', BE: fila.be||'',
-    FILTRADOS: fila.filtrados||'', DORNIC: fila.dornic||'',
+    // El apóstrofo obliga a Sheets a guardarlo como texto tal cual.
+    PH: _salTexto(fila.ph), TEMPERATURA: _salTexto(fila.temp), BE: _salTexto(fila.be),
+    FILTRADOS: _salTexto(fila.filtrados), DORNIC: _salTexto(fila.dornic),
     'SAL CANTIDAD': fila.sal_cant||'', 'SAL LOTE': fila.sal_lote||'', 'SAL PROVEEDOR': fila.sal_prov||'',
     'AL CANTIDAD': fila.al_cant||'', 'AL LOTE': fila.al_lote||'', 'AL PROVEEDOR': fila.al_prov||'',
     'FILTRANTE LOTE': fila.filtrante||'',
@@ -3131,6 +3138,30 @@ function salMarcarEnvio(ok){
 // Baja de Google los días guardados y los mezcla con lo local (Google manda,
 // porque la salmuera la rellena Calidad desde el ordenador y puede haberla
 // tocado alguien más).
+// (v2.6.397) DESHACER LAS FECHAS QUE INVENTA GOOGLE SHEETS.
+//
+// EL FALLO: la hoja tiene formato automático, así que un "10.7" lo entiende
+// como 10 de julio y lo guarda como fecha. Al bajarlo vuelve convertido en
+// "2026-07-09T22:00:00" y la casilla queda destrozada. Pasa con todo lo que
+// tenga forma de día.mes: 10.7, 17.5, 10.2... Los enteros (12, 18) y los que
+// no cuadran como fecha (5.23) se salvan, que es justo lo que se veía.
+//
+// Se arregla por los dos lados: al subir se manda con un apóstrofo delante
+// para que Sheets lo trate como texto, y al bajar se deshace lo que ya está
+// corrompido, recuperando el número a partir del día y el mes.
+function _salDesfechar(v){
+  var t = String(v==null ? '' : v).trim();
+  if(!t) return '';
+  var m = t.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+  if(!m) return t.replace(/^'/, '');
+  // 2026-07-09T22:00 → la hora 22:00 delata el desfase de zona horaria: el día
+  // real es el siguiente. Sheets guardó "10 de julio" y vuelve como el 9 a las
+  // 22:00 UTC. Así que el número era dia.mes con el día ya corregido.
+  var dia = parseInt(m[3],10), mes = parseInt(m[2],10);
+  if(t.indexOf('T22:00')>=0 || t.indexOf('T23:00')>=0) dia = dia + 1;
+  return dia + '.' + mes;
+}
+
 function salBajar(cb){
   fetch(API_URL + '?tipo=saladero')
     .then(function(r){ return r.json(); })
@@ -3139,8 +3170,9 @@ function salBajar(cb){
         var deGoogle = j.data.map(function(r){
           return {
             fecha: String(r['FECHA']||'').slice(0,10),
-            ph:r['PH']||'', temp:r['TEMPERATURA']||'', be:r['BE']||'',
-            filtrados:r['FILTRADOS']||'', dornic:r['DORNIC']||'',
+            ph:_salDesfechar(r['PH']), temp:_salDesfechar(r['TEMPERATURA']),
+            be:_salDesfechar(r['BE']),
+            filtrados:_salDesfechar(r['FILTRADOS']), dornic:_salDesfechar(r['DORNIC']),
             sal_cant:r['SAL CANTIDAD']||'', sal_lote:r['SAL LOTE']||'', sal_prov:r['SAL PROVEEDOR']||'',
             al_cant:r['AL CANTIDAD']||'', al_lote:r['AL LOTE']||'', al_prov:r['AL PROVEEDOR']||'',
             filtrante:r['FILTRANTE LOTE']||'', obs:r['OBSERVACIONES']||'', firma:r['FIRMA']||''
@@ -3317,7 +3349,9 @@ function salCabecera(){
                  : 'Último cambio de material filtrante: hace '+d+(d===1?' día.':' días.');
 }
 function salCelda(f, campo, ancho, ph){
-  var val = f[campo]===undefined||f[campo]===null ? '' : String(f[campo]);
+  // (v2.6.397) Quitar el apóstrofo con que se fuerza el texto en Sheets: es un
+  // truco del guardado, no algo que deba ver quien rellena la casilla.
+  var val = f[campo]===undefined||f[campo]===null ? '' : String(f[campo]).replace(/^'/, '');
   return '<input id="sal-'+campo+'-'+f.fecha+'" value="'+val.replace(/"/g,'&quot;')+'"'
        + (ph?' placeholder="'+ph+'"':'')
        + ' oninput="salEditar(\''+f.fecha+'\',\''+campo+'\',this.value)">';
