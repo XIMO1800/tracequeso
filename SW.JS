@@ -1,5 +1,5 @@
 // Service Worker para TraceQueso
-// Versión: v350
+// Versión: v351
 //
 // ═══════════════════════════════════════════════════════════════════════════
 // POR QUÉ EL NOMBRE DE LA CACHÉ YA NO LLEVA VERSIÓN  (v325)
@@ -24,7 +24,7 @@
 // anterior. Nunca hay un momento sin app.
 // ═══════════════════════════════════════════════════════════════════════════
 const CACHE = 'tracequeso-app';   // FIJO. No poner la versión aquí nunca más.
-const VERSION = 'v350';           // solo informativo
+const VERSION = 'v351';           // solo informativo
 const ASSETS = ['/tracequeso/', '/tracequeso/index.html'];
 
 // INSTALACIÓN: cachear archivos esenciales
@@ -130,10 +130,28 @@ self.addEventListener('fetch', function(e) {
           // Solo se guarda si la respuesta es BUENA. Un error de GitHub o una
           // respuesta a medias no deben machacar la copia que ya funciona.
           if (resp && resp.ok && resp.status === 200) {
+            // (v351) COMPROBAR QUE EL ARCHIVO ESTÁ ENTERO ANTES DE GUARDARLO.
+            //
+            // EL FALLO QUE ARREGLA: un móvil apareció en blanco con la v350 ya
+            // instalada, sin llegar a mostrar siquiera el aviso de rescate. Eso
+            // solo encaja si lo guardado estaba cortado: con mala cobertura la
+            // descarga se interrumpe, pero la respuesta sigue siendo un 200 y
+            // se daba por buena. Luego el móvil arranca desde esa copia rota y
+            // no hay manera de salir sin borrar los datos a mano.
+            //
+            // Un HTML completo termina en </html>. Si no está, no se guarda: es
+            // preferible seguir con la copia anterior, que al menos funciona.
             var copy = resp.clone();
-            caches.open(CACHE).then(function(cache) {
-              cache.put(e.request, copy).catch(function(){});
-            });
+            copy.text().then(function(txt){
+              if (txt && txt.indexOf('</html>') >= 0) {
+                caches.open(CACHE).then(function(cache) {
+                  cache.put(e.request, new Response(txt, {
+                    status: 200,
+                    headers: { 'Content-Type': 'text/html; charset=utf-8' }
+                  })).catch(function(){});
+                });
+              }
+            }).catch(function(){});
           }
           return resp;
         }).catch(function() { return null; });
