@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.395</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.396</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1362,6 +1362,12 @@ input[type="email"] {
       <div id="sal-filtrante-info" style="font-size:0.82rem;color:#7a5a3a;background:#fff8e1;border-radius:6px;padding:4px 10px;"></div>
       <div style="margin-left:auto;display:flex;gap:8px;">
         <button class="btn" id="sal-btn-hoy" onclick="salNuevoDiaPreguntando()">+ Anotar día</button>
+        <button class="btn" id="sal-btn-enviar" onclick="salEnviarPendientes()"
+                style="display:none;">⬆️ Enviar pendientes</button>
+        <span id="sal-selfecha" style="display:none;margin-left:8px;">
+          <input type="date" id="sal-selfecha-inp" class="finput" style="width:auto;">
+          <button class="btn" onclick="salCrearDesdeSelector()">Crear</button>
+        </span>
       </div>
     </div>
   </div>
@@ -3199,21 +3205,56 @@ function salDiasFiltrante(){
 // quedado sin apuntar —el 24, el 25, el 26— no había forma de meterlo: el
 // hueco se quedaba para siempre. Ahora se puede elegir la fecha; por defecto
 // sale hoy, que es el caso normal.
+// (v2.6.396) Calendario en vez de teclear la fecha. Escribirla a mano en
+// formato AAAA-MM-DD es pedir un error: se usa el mismo selector de días que
+// el resto de la app, y el navegador ya lo enseña en día/mes/año.
 function salNuevoDiaPreguntando(){
-  var hoy=salHoyISO();
-  var f=prompt('¿De qué día son los datos?\n\nEscribe la fecha en formato '
-             + 'AAAA-MM-DD.\nPara hoy, deja lo que aparece.', hoy);
-  if(f===null) return;                       // canceló
-  f=String(f).trim();
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(f)){
-    alert('Esa fecha no vale.\n\nTiene que ser así: '+hoy);
-    return;
+  var cont=document.getElementById('sal-selfecha');
+  if(!cont) return;
+  var inp=document.getElementById('sal-selfecha-inp');
+  cont.style.display = (cont.style.display==='none' || !cont.style.display) ? '' : 'none';
+  if(cont.style.display==='' && inp){
+    inp.max = salHoyISO();
+    if(!inp.value) inp.value = salHoyISO();
+    try{ inp.showPicker ? inp.showPicker() : inp.focus(); }catch(e){ inp.focus(); }
   }
-  if(f > hoy){
+}
+
+function salCrearDesdeSelector(){
+  var inp=document.getElementById('sal-selfecha-inp');
+  if(!inp || !inp.value) return;
+  var f=inp.value;
+  if(f > salHoyISO()){
     alert('Esa fecha es futura. Solo se pueden anotar días pasados o el de hoy.');
     return;
   }
+  document.getElementById('sal-selfecha').style.display='none';
   salNuevoDia(f);
+}
+
+// (v2.6.396) Enviar a Google todo lo que quedó pendiente.
+// (v2.6.396) Avisar antes de cerrar si queda algo sin subir. No lo impide —los
+// datos siguen en el aparato y se reintentan al volver— pero es mejor enterarse
+// ahora que descubrir el hueco dentro de una semana.
+window.addEventListener('beforeunload', function(ev){
+  try{
+    if(typeof SAL_DATOS==='undefined' || !SAL_DATOS) return;
+    if(SAL_DATOS.some(function(x){ return x._pendiente; })){
+      ev.preventDefault();
+      ev.returnValue = '';
+      return '';
+    }
+  }catch(e){}
+});
+
+function salEnviarPendientes(){
+  var pend = SAL_DATOS.filter(function(x){ return x._pendiente; });
+  if(!pend.length){ alert('No hay nada pendiente: todo está en Google Sheets.'); return; }
+  var av=document.getElementById('sal-aviso');
+  if(av){ av.style.display=''; av.style.background='#eef4fb'; av.style.borderLeftColor='#3a6b9a';
+          av.style.color='#2a4a6a';
+          av.innerHTML='Enviando '+pend.length+' día'+(pend.length>1?'s':'')+' a Google…'; }
+  pend.forEach(function(x){ salEnviar(x); });
 }
 
 function salNuevoDia(fecha){
@@ -3282,6 +3323,16 @@ function salCelda(f, campo, ancho, ph){
        + ' oninput="salEditar(\''+f.fecha+'\',\''+campo+'\',this.value)">';
 }
 function salPintar(){
+  // (v2.6.396) El botón de enviar solo se enseña si hay algo pendiente: si no,
+  // sería un botón que no hace nada y que invita a dudar de si hace falta.
+  try{
+    var _bp=document.getElementById('sal-btn-enviar');
+    if(_bp){
+      var _n=SAL_DATOS.filter(function(x){ return x._pendiente; }).length;
+      _bp.style.display = _n ? '' : 'none';
+      _bp.textContent = '⬆️ Enviar '+_n+' pendiente'+(_n>1?'s':'');
+    }
+  }catch(e){}
   var tb=document.getElementById('sal-tbody');
   if(!tb) return;
   if(!SAL_DATOS.length){
