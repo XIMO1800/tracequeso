@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.393</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.395</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1361,7 +1361,7 @@ input[type="email"] {
       <div style="font-weight:800;font-size:1.05rem;">🧂 Control de salmuera</div>
       <div id="sal-filtrante-info" style="font-size:0.82rem;color:#7a5a3a;background:#fff8e1;border-radius:6px;padding:4px 10px;"></div>
       <div style="margin-left:auto;display:flex;gap:8px;">
-        <button class="btn" id="sal-btn-hoy" onclick="salNuevoDia()">+ Anotar hoy</button>
+        <button class="btn" id="sal-btn-hoy" onclick="salNuevoDiaPreguntando()">+ Anotar día</button>
       </div>
     </div>
   </div>
@@ -3085,6 +3085,8 @@ function salGuardar(){
 // red, el dato no se pierde y se vuelve a subir al tocar cualquier casilla.
 function salEnviar(fila){
   if(!fila || !fila.fecha) return;
+  fila._pendiente = true;               // (v2.6.395) hasta que Google confirme
+  try{ salGuardar(); }catch(e){}
   var payload = {
     _SHEET:'SALADERO', _UPDATE:true,
     FECHA: fila.fecha,
@@ -3097,8 +3099,13 @@ function salEnviar(fila){
   };
   fetch(API_URL, {method:'POST', body:JSON.stringify(payload)})
     .then(function(r){ return r.json(); })
-    .then(function(res){ salMarcarEnvio(!!(res && res.ok)); })
-    .catch(function(){ salMarcarEnvio(false); });
+    .then(function(res){
+      var ok = !!(res && res.ok);
+      if(ok){ delete fila._pendiente; try{ salGuardar(); }catch(e){} }
+      salMarcarEnvio(ok);
+      try{ salPintar(); }catch(e){}
+    })
+    .catch(function(){ salMarcarEnvio(false); try{ salPintar(); }catch(e){} });
 }
 
 function salMarcarEnvio(ok){
@@ -3134,8 +3141,22 @@ function salBajar(cb){
           };
         }).filter(function(x){ return x.fecha; });
         var porFecha = {};
-        SAL_DATOS.forEach(function(x){ porFecha[x.fecha] = x; });
-        deGoogle.forEach(function(x){ porFecha[x.fecha] = x; });
+        // (v2.6.395) LO QUE ESTÁ SIN SUBIR NO SE PISA.
+        //
+        // EL FALLO QUE ARREGLA: al volver a la pestaña se bajaba lo de Google y
+        // se machacaba lo local sin mirar. Si un día recién escrito todavía no
+        // había subido —sin cobertura, o porque se salió de la pantalla antes de
+        // que terminara— desaparecía de golpe y había que volver a teclearlo.
+        // Escribir un dato y verlo esfumarse es lo peor que puede hacer esto.
+        var pendientes = {};
+        SAL_DATOS.forEach(function(x){
+          porFecha[x.fecha] = x;
+          if(x._pendiente) pendientes[x.fecha] = true;
+        });
+        deGoogle.forEach(function(x){
+          if(pendientes[x.fecha]) return;   // gana lo del aparato
+          porFecha[x.fecha] = x;
+        });
         SAL_DATOS = Object.keys(porFecha).map(function(k){ return porFecha[k]; });
         SAL_DATOS.sort(function(a,b){ return a.fecha < b.fecha ? 1 : -1; });
         salGuardar();
@@ -3173,8 +3194,30 @@ function salDiasFiltrante(){
   }
   return null;
 }
-function salNuevoDia(){
+// (v2.6.394) ANOTAR CUALQUIER DÍA, NO SOLO HOY.
+// La pantalla solo sabía crear la fila de hoy, así que un día que se hubiera
+// quedado sin apuntar —el 24, el 25, el 26— no había forma de meterlo: el
+// hueco se quedaba para siempre. Ahora se puede elegir la fecha; por defecto
+// sale hoy, que es el caso normal.
+function salNuevoDiaPreguntando(){
   var hoy=salHoyISO();
+  var f=prompt('¿De qué día son los datos?\n\nEscribe la fecha en formato '
+             + 'AAAA-MM-DD.\nPara hoy, deja lo que aparece.', hoy);
+  if(f===null) return;                       // canceló
+  f=String(f).trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(f)){
+    alert('Esa fecha no vale.\n\nTiene que ser así: '+hoy);
+    return;
+  }
+  if(f > hoy){
+    alert('Esa fecha es futura. Solo se pueden anotar días pasados o el de hoy.');
+    return;
+  }
+  salNuevoDia(f);
+}
+
+function salNuevoDia(fecha){
+  var hoy=fecha || salHoyISO();
   for(var i=0;i<SAL_DATOS.length;i++){
     if(SAL_DATOS[i].fecha===hoy){
       var el=document.getElementById('sal-ph-'+hoy);
@@ -3189,8 +3232,13 @@ function salNuevoDia(){
     filtrante:'', obs:'',
     firma: (typeof OPERARIO_ACTUAL!=='undefined' && OPERARIO_ACTUAL) ? OPERARIO_ACTUAL : ''
   });
+  // Mantener el orden por fecha: si se mete un día atrasado, no debe quedarse
+  // arriba del todo como si fuera el más reciente. (v2.6.394)
+  SAL_DATOS.sort(function(a,b){ return a.fecha < b.fecha ? 1 : (a.fecha > b.fecha ? -1 : 0); });
+  var _nuevo=null;
+  for(var k=0;k<SAL_DATOS.length;k++) if(SAL_DATOS[k].fecha===hoy) _nuevo=SAL_DATOS[k];
   salGuardar();
-  salEnviar(SAL_DATOS[0]);        // (v2.6.375) crear el día también lo sube
+  if(_nuevo) salEnviar(_nuevo);   // (v2.6.375) crear el día también lo sube
   salPintar();
   var e2=document.getElementById('sal-ph-'+hoy);
   if(e2) e2.focus();
@@ -3238,14 +3286,21 @@ function salPintar(){
   if(!tb) return;
   if(!SAL_DATOS.length){
     tb.innerHTML='<tr><td colspan="15" style="padding:22px;text-align:center;color:#9a7a5a;">'
-      + 'Todavía no hay ningún día anotado. Pulsa <b>+ Anotar hoy</b>.</td></tr>';
+      + 'Todavía no hay ningún día anotado. Pulsa <b>+ Anotar día</b>.</td></tr>';
     salCabecera(); return;
   }
   var hoy=salHoyISO();
   tb.innerHTML = SAL_DATOS.map(function(f){
     var cl = (f.fecha===hoy?' class="hoy"':'');
     return '<tr'+cl+'>'
-      + '<td class="fecha">'+salBonita(f.fecha)+'</td>'
+      // (v2.6.395) Marca de si ese día está ya en Google. Antes solo había un
+      // aviso momentáneo que desaparecía, y no quedaba forma de saber si un dato
+      // escrito hace rato llegó o se quedó en el aparato.
+      + '<td class="fecha">'+salBonita(f.fecha)
+        + (f._pendiente
+            ? '<span title="Aún no ha subido a Google" style="margin-left:5px;color:#c8780a;">●</span>'
+            : '<span title="Guardado en Google Sheets" style="margin-left:5px;color:#2d7a2d;">✓</span>')
+        + '</td>'
       + '<td>'+salCelda(f,'ph')+'</td>'
       + '<td>'+salCelda(f,'temp')+'</td>'
       + '<td>'+salCelda(f,'be')+'</td>'
@@ -3272,7 +3327,13 @@ function salAbrir(){
   salPintar();
   // Bajar de Google lo que haya (puede haberlo escrito Calidad en otro equipo)
   // y repintar cuando llegue. (v2.6.375)
-  salBajar(function(){ try{ salPintar(); }catch(e){} });
+  salBajar(function(){
+    // Reintentar lo que se quedó sin subir. (v2.6.395)
+    try{
+      SAL_DATOS.forEach(function(x){ if(x._pendiente) salEnviar(x); });
+    }catch(e){}
+    try{ salPintar(); }catch(e){}
+  });
   var hoy=salHoyISO(), existe=false;
   for(var i=0;i<SAL_DATOS.length;i++) if(SAL_DATOS[i].fecha===hoy) existe=true;
   if(!existe){
