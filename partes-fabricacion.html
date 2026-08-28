@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.398</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.399</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -7790,6 +7790,7 @@ function _svgGraficaEvolucion(p){
   var pP=HITOS.filter(function(h){return h.ph!=null && !h.suelto;});
   if(pP.length) s+='<path d="'+pP.map(function(h,i){return (i?'L':'M')+x(_horaAMin(h.hora))+' '+yPh(h.ph);}).join(' ')+'" fill="none" stroke="#7B3FA0" stroke-width="2.5"/>';
   // Puntos + valores: temperatura SIEMPRE encima (con fondo), pH SIEMPRE debajo (con fondo)
+  var _etiq = [];   // (v2.6.399) rótulos de valor: se colocan al final, esquivando choques
   HITOS.forEach(function(h){
     var xx=x(_horaAMin(h.hora));
     // (v2.6.375) La salmuera se dibuja en rombo hueco y con línea de puntos
@@ -7857,18 +7858,41 @@ function _svgGraficaEvolucion(p){
     }
     if(h.temp!=null){
       s+='<circle cx="'+xx+'" cy="'+yTp(h.temp)+'" r="3.5" fill="#c0392b"/>';
-      var yt=yTp(h.temp)-10;
-      s+='<text x="'+xx+'" y="'+yt+'" text-anchor="middle" font-size="10.5" fill="#c0392b" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+h.temp+'°</text>';
+      _etiq.push({x:xx, y:yTp(h.temp)-10, txt:h.temp+'°', col:'#c0392b', dir:-1});
     }
     if(h.ph!=null){
       s+='<circle cx="'+xx+'" cy="'+yPh(h.ph)+'" r="3.5" fill="#7B3FA0"/>';
-      var yp=yPh(h.ph)+18;
       // (v2.6.356) EL pH, SIEMPRE CON DOS DECIMALES.
       // Se escribía el número tal cual y JavaScript se come el cero final: un
       // pH de 6,50 salía como "6.5" y parecía que faltaba un dígito, sobre todo
       // al lado de 6.79 · 6.64 · 6.57. Con toFixed(2) queda 6.50 y no hay duda.
-      s+='<text x="'+xx+'" y="'+yp+'" text-anchor="middle" font-size="10.5" fill="#7B3FA0" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+Number(h.ph).toFixed(2)+'</text>';
+      _etiq.push({x:xx, y:yPh(h.ph)+18, txt:Number(h.ph).toFixed(2), col:'#7B3FA0', dir:1});
     }
+  });
+  // (v2.6.399) QUE LOS NÚMEROS NO SE MONTEN UNOS SOBRE OTROS.
+  //
+  // EL FALLO: cada rótulo iba a posición fija (temperatura 10 px encima de su
+  // punto, pH 18 px debajo) y con eso basta cuando los hitos están separados.
+  // Pero el cloruro y el fermento van SIEMPRE a 2-5 minutos, que en el dibujo
+  // son 5-15 píxeles: los cuatro números (dos temperaturas y dos pH) caían en
+  // el mismo sitio y no se leía ninguno. Pasaba en todas las cubas, sistemático.
+  //
+  // EL ARREGLO: los rótulos se colocan de uno en uno mirando dónde están los ya
+  // puestos. Si uno choca con otro (menos de 38 px de lado y 12 de alto), se
+  // aparta en escalones de 13 px: la temperatura siempre hacia ARRIBA y el pH
+  // siempre hacia ABAJO, que es el lado de cada uno, hasta encontrar hueco.
+  _etiq.forEach(function(e, i){
+    var vueltas = 0, choca = true;
+    while(choca && vueltas < 12){
+      choca = false; vueltas++;
+      for(var j=0; j<i; j++){
+        var o=_etiq[j];
+        if(Math.abs(e.x-o.x) < 38 && Math.abs(e.y-o.y) < 12){ e.y += 13*e.dir; choca = true; }
+      }
+    }
+  });
+  _etiq.forEach(function(e){
+    s+='<text x="'+e.x+'" y="'+e.y+'" text-anchor="middle" font-size="10.5" fill="'+e.col+'" font-weight="700" stroke="#fff" stroke-width="3" paint-order="stroke">'+e.txt+'</text>';
   });
   var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block">'+s+'</svg>';
 
