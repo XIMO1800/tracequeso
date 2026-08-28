@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.399</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.400</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -7869,26 +7869,39 @@ function _svgGraficaEvolucion(p){
       _etiq.push({x:xx, y:yPh(h.ph)+18, txt:Number(h.ph).toFixed(2), col:'#7B3FA0', dir:1});
     }
   });
-  // (v2.6.399) QUE LOS NÚMEROS NO SE MONTEN UNOS SOBRE OTROS.
+  // (v2.6.400) CADA NÚMERO, PEGADO A SU PUNTO Y A SU LÍNEA.
   //
-  // EL FALLO: cada rótulo iba a posición fija (temperatura 10 px encima de su
-  // punto, pH 18 px debajo) y con eso basta cuando los hitos están separados.
-  // Pero el cloruro y el fermento van SIEMPRE a 2-5 minutos, que en el dibujo
-  // son 5-15 píxeles: los cuatro números (dos temperaturas y dos pH) caían en
-  // el mismo sitio y no se leía ninguno. Pasaba en todas las cubas, sistemático.
+  // La v2.6.399 esquivaba los choques empujando solo en vertical y sin freno:
+  // el 29.7° del fermento subió tanto que acabó pegado a la línea morada y
+  // parecía un pH. Un rótulo lejos de su punto confunde más que dos montados.
   //
-  // EL ARREGLO: los rótulos se colocan de uno en uno mirando dónde están los ya
-  // puestos. Si uno choca con otro (menos de 38 px de lado y 12 de alto), se
-  // aparta en escalones de 13 px: la temperatura siempre hacia ARRIBA y el pH
-  // siempre hacia ABAJO, que es el lado de cada uno, hasta encontrar hueco.
+  // AHORA: cada rótulo prueba posiciones en orden de preferencia —primero su
+  // sitio de siempre (temperatura justo encima de su punto, pH justo debajo),
+  // luego un poco a la IZQUIERDA, luego un poco a la DERECHA, y solo si nada
+  // de eso cabe, UN escalón pequeño en vertical (nunca más de uno, para no
+  // acercarse a la otra línea)— y se queda con la primera que no choca. Así
+  // en cloruro-fermento, que van a 2 minutos, un número cae a la izquierda de
+  // su punto y el otro a la derecha, cada uno junto a su línea.
   _etiq.forEach(function(e, i){
-    var vueltas = 0, choca = true;
-    while(choca && vueltas < 12){
-      choca = false; vueltas++;
+    var candidatos = [
+      {dx:0,   dy:0},
+      {dx:-26, dy:0},
+      {dx:26,  dy:0},
+      {dx:0,   dy:13*e.dir},
+      {dx:-26, dy:13*e.dir},
+      {dx:26,  dy:13*e.dir},
+      {dx:-40, dy:0},
+      {dx:40,  dy:0}
+    ];
+    var x0=e.x, y0=e.y;
+    for(var c=0; c<candidatos.length; c++){
+      var px=x0+candidatos[c].dx, py=y0+candidatos[c].dy, libre=true;
       for(var j=0; j<i; j++){
         var o=_etiq[j];
-        if(Math.abs(e.x-o.x) < 38 && Math.abs(e.y-o.y) < 12){ e.y += 13*e.dir; choca = true; }
+        if(Math.abs(px-o.x) < 38 && Math.abs(py-o.y) < 12){ libre=false; break; }
       }
+      if(libre){ e.x=px; e.y=py; break; }
+      if(c===candidatos.length-1){ e.x=px; e.y=py; }  // sin hueco: la última opción
     }
   });
   _etiq.forEach(function(e){
