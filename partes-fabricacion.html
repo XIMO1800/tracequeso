@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.400</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.401</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -7858,7 +7858,7 @@ function _svgGraficaEvolucion(p){
     }
     if(h.temp!=null){
       s+='<circle cx="'+xx+'" cy="'+yTp(h.temp)+'" r="3.5" fill="#c0392b"/>';
-      _etiq.push({x:xx, y:yTp(h.temp)-10, txt:h.temp+'°', col:'#c0392b', dir:-1});
+      _etiq.push({x:xx, ypt:yTp(h.temp), y:yTp(h.temp)-10, txt:h.temp+'°', col:'#c0392b', dir:-1, serie:'t'});
     }
     if(h.ph!=null){
       s+='<circle cx="'+xx+'" cy="'+yPh(h.ph)+'" r="3.5" fill="#7B3FA0"/>';
@@ -7866,42 +7866,53 @@ function _svgGraficaEvolucion(p){
       // Se escribía el número tal cual y JavaScript se come el cero final: un
       // pH de 6,50 salía como "6.5" y parecía que faltaba un dígito, sobre todo
       // al lado de 6.79 · 6.64 · 6.57. Con toFixed(2) queda 6.50 y no hay duda.
-      _etiq.push({x:xx, y:yPh(h.ph)+18, txt:Number(h.ph).toFixed(2), col:'#7B3FA0', dir:1});
+      _etiq.push({x:xx, ypt:yPh(h.ph), y:yPh(h.ph)+18, txt:Number(h.ph).toFixed(2), col:'#7B3FA0', dir:1, serie:'p'});
     }
   });
-  // (v2.6.400) CADA NÚMERO, PEGADO A SU PUNTO Y A SU LÍNEA.
+  // (v2.6.401) LOS PUNTOS GEMELOS, FLANQUEADOS: UNO A LA IZQUIERDA Y OTRO A
+  // LA DERECHA, A LA ALTURA DE SU LÍNEA.
   //
-  // La v2.6.399 esquivaba los choques empujando solo en vertical y sin freno:
-  // el 29.7° del fermento subió tanto que acabó pegado a la línea morada y
-  // parecía un pH. Un rótulo lejos de su punto confunde más que dos montados.
-  //
-  // AHORA: cada rótulo prueba posiciones en orden de preferencia —primero su
-  // sitio de siempre (temperatura justo encima de su punto, pH justo debajo),
-  // luego un poco a la IZQUIERDA, luego un poco a la DERECHA, y solo si nada
-  // de eso cabe, UN escalón pequeño en vertical (nunca más de uno, para no
-  // acercarse a la otra línea)— y se queda con la primera que no choca. Así
-  // en cloruro-fermento, que van a 2 minutos, un número cae a la izquierda de
-  // su punto y el otro a la derecha, cada uno junto a su línea.
+  // El cloruro y el fermento van siempre a 2-5 minutos: dos puntos casi en la
+  // misma vertical en cada línea. Ponerles el número arriba o abajo los
+  // amontona (v399) o los manda a la otra línea (el 29.7° que acabó pegado a
+  // la morada). Lo que se hace ahora, pedido por Joaquín: cuando dos puntos de
+  // la MISMA línea caen a menos de 20 px, su pareja de números se pone A LOS
+  // LADOS, a la altura del punto —el primero a la izquierda, el segundo a la
+  // derecha—, de modo que cada número queda tocando su línea y se lee en orden.
+  ['t','p'].forEach(function(sr){
+    var idx=[];
+    _etiq.forEach(function(e,i){ if(e.serie===sr) idx.push(i); });
+    for(var k=0; k+1<idx.length; k++){
+      var a=_etiq[idx[k]], b=_etiq[idx[k+1]];
+      if(Math.abs(b.x-a.x) < 20 && !a.par && !b.par){ a.par='izq'; b.par='der'; }
+    }
+  });
+  // Cada rótulo prueba posiciones en orden de preferencia y se queda con la
+  // primera libre. Los de pareja prefieren su lado a la altura del punto; los
+  // demás, su sitio de siempre (temperatura encima, pH debajo), luego un poco
+  // a la izquierda o a la derecha, y como último recurso UN escalón pequeño en
+  // vertical (nunca más, para no acercarse a la otra línea).
   _etiq.forEach(function(e, i){
-    var candidatos = [
-      {dx:0,   dy:0},
-      {dx:-26, dy:0},
-      {dx:26,  dy:0},
-      {dx:0,   dy:13*e.dir},
-      {dx:-26, dy:13*e.dir},
-      {dx:26,  dy:13*e.dir},
-      {dx:-40, dy:0},
-      {dx:40,  dy:0}
-    ];
-    var x0=e.x, y0=e.y;
-    for(var c=0; c<candidatos.length; c++){
-      var px=x0+candidatos[c].dx, py=y0+candidatos[c].dy, libre=true;
+    var cands=[];
+    if(e.par==='izq'){ cands.push({x:e.x-26, y:e.ypt+4}, {x:e.x-40, y:e.ypt+4}); }
+    if(e.par==='der'){ cands.push({x:e.x+26, y:e.ypt+4}, {x:e.x+40, y:e.ypt+4}); }
+    cands.push(
+      {x:e.x,    y:e.y},
+      {x:e.x-26, y:e.y},
+      {x:e.x+26, y:e.y},
+      {x:e.x,    y:e.y+13*e.dir},
+      {x:e.x-26, y:e.y+13*e.dir},
+      {x:e.x+26, y:e.y+13*e.dir},
+      {x:e.x-40, y:e.y},
+      {x:e.x+40, y:e.y}
+    );
+    for(var c=0; c<cands.length; c++){
+      var libre=true;
       for(var j=0; j<i; j++){
         var o=_etiq[j];
-        if(Math.abs(px-o.x) < 38 && Math.abs(py-o.y) < 12){ libre=false; break; }
+        if(Math.abs(cands[c].x-o.x) < 38 && Math.abs(cands[c].y-o.y) < 12){ libre=false; break; }
       }
-      if(libre){ e.x=px; e.y=py; break; }
-      if(c===candidatos.length-1){ e.x=px; e.y=py; }  // sin hueco: la última opción
+      if(libre || c===cands.length-1){ e.x=cands[c].x; e.y=cands[c].y; break; }
     }
   });
   _etiq.forEach(function(e){
