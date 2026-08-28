@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.401</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.403</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3803,24 +3803,113 @@ function cmpTarjeta(p, d){
   // ── LLENADO Y ADICIONES (v2.6.386) ──
   filas.push(cmpFila('Llenado · inicio',    p.hllenado || p.h_llenado || (p.co2&&p.co2.hadicion),
                      cmpHora(f.hora_llenado), 'hora'));
-  filas.push(cmpFila('Auxiliares (cloruro)', p.aux_hadicion || (p.aux_meta&&p.aux_meta.hadicion),
-                     cmpHora(f.hora_aux), 'hora',
-                     'el cloruro no para el agitador: se da el arranque del llenado'));
-  filas.push(cmpFila('Fermentos',           p.ferm_hadicion || (p.ferm_meta&&p.ferm_meta.hadicion),
-                     cmpHora(f.hora_ferm), 'hora', 'primera parada del agitador'));
-  // ── LAS DEMÁS PARADAS, EN SU SITIO CRONOLÓGICO (v2.6.387) ──
-  // La primera parada es el fermento y ya tiene su fila. Las siguientes no
-  // aparecen en el parte —el quesero no las apunta— pero son adiciones o, la
-  // que cae poco antes del cuajo, la muestra para medir el pH. Van aquí, entre
-  // los fermentos y el cuajo, porque el SCADA solo busca paradas en esa franja.
-  if(f.paradas && f.paradas.length > 1){
-    f.paradas.slice(1).forEach(function(q){
-      var seg = q.segs||0;
-      var dur = seg<60 ? (seg+' s') : (Math.round(seg/60*10)/10+' min');
-      filas.push(cmpFila('Parada del agitador', null, cmpHora(q.t), 'texto',
-                         'no consta en el parte', dur));
+  // ── CASAR LAS PARADAS DEL AGITADOR CON EL PARTE (v2.6.402) ──
+  //
+  // Reglas sacadas del análisis de cubas reales con Joaquín (28/08/26):
+  //  · La parada que cae a 10 minutos o menos ANTES del cuajo no es una
+  //    adición: es la muestra del pH (levantar la tapa, meter el pHmetro).
+  //    Nunca puede ser el fermento. En la 4ª cuba de ese día la comparativa
+  //    se agarró a esa parada (10:14, cuajo 10:15) y cantó "+40 min" de error
+  //    en los fermentos, cuando el error real era otro: no había parada de
+  //    fermento que encontrar.
+  //  · El cloruro a veces SÍ deja parada, aunque la norma diga que se da con
+  //    el arranque del llenado: en la 2ª cuba, parte 06:18 y parada 06:19.
+  //    Si hay una parada que casa con la hora del parte, esa manda; si no,
+  //    se compara con el arranque del llenado como siempre.
+  //  · El fermento se casa con la parada más cercana a la hora del parte.
+  //    Sin hora en el parte, vale la primera parada dentro de su ventana de
+  //    proceso: mínimo 5 min después de arrancar el llenado (hay que cubrir
+  //    el fondo de la cuba) y mínimo 20 min antes del cuajo (menos de media
+  //    hora "no procede", en palabras del maestro quesero).
+  //  · Si nada cuadra, se dice "sin parada que cuadre" — que ESA es la
+  //    anomalía que interesa cazar, no un falso +40.
+  var _cuajoSeg = (f.hora_cuajado!==null && f.hora_cuajado!==undefined) ? parseInt(f.hora_cuajado,10) : null;
+  var _llenSeg  = (f.hora_llenado!==null && f.hora_llenado!==undefined) ? parseInt(f.hora_llenado,10) : null;
+  // Archivos de conversor antiguo: traen hora_ferm pero no la lista de
+  // paradas. Se usa esa hora como única parada para no quedarse a ciegas.
+  var _paradasSrc = (f.paradas && f.paradas.length) ? f.paradas
+    : ((f.hora_ferm!==null && f.hora_ferm!==undefined) ? [{t:f.hora_ferm, segs:0}] : []);
+  var _stops = _paradasSrc.map(function(q){
+    var t = parseInt(q.t,10);
+    var esPH = (_cuajoSeg!==null) && (t < _cuajoSeg) && ((_cuajoSeg - t) <= 10*60);
+    return {t:t, segs:q.segs||0, esPH:esPH, usada:false};
+  });
+  // La parada libre más cercana a una hora del parte, dentro de un tope.
+  function _stopMasCercana(minParte, topeMin){
+    if(minParte===null) return null;
+    var mejor=null, mejorDif=null;
+    _stops.forEach(function(q){
+      if(q.usada || q.esPH) return;
+      var dif = Math.abs(Math.floor(q.t/60) - minParte);
+      if(dif<=topeMin && (mejorDif===null || dif<mejorDif)){ mejorDif=dif; mejor=q; }
     });
+    return mejor;
   }
+  // Duración en cristiano: "25 s", "2 min", "2 min 24 s" (nada de "2.4 min").
+  function _durTexto(seg){
+    seg = Math.round(seg||0);
+    if(seg < 60) return seg+' s';
+    var m = Math.floor(seg/60), s = seg%60;
+    return s ? (m+' min '+s+' s') : (m+' min');
+  }
+
+  // CLORURO: si hay una parada que casa con la hora del parte (a 6 min o
+  // menos, y más cerca que el arranque del llenado), esa es la suya.
+  var _clorParte = p.aux_hadicion || (p.aux_meta&&p.aux_meta.hadicion);
+  var _clorMin   = cmpMin(_clorParte);
+  var _clorScada = cmpHora(f.hora_aux);
+  var _clorNota  = 'sin parada propia: se compara con el arranque del llenado';
+  if(_clorMin !== null){
+    var _pc = _stopMasCercana(_clorMin, 6);
+    var _difLlen = (_llenSeg!==null) ? Math.abs(Math.floor(_llenSeg/60)-_clorMin) : null;
+    if(_pc && (_difLlen===null || Math.abs(Math.floor(_pc.t/60)-_clorMin) <= _difLlen)){
+      _pc.usada = true;
+      _clorScada = cmpHora(_pc.t);
+      // (v2.6.403) Con sus segundos: la duración de la parada es información
+      // (una toma de muestra no dura lo que una adición). Petición de Joaquín:
+      // todas las paradas a la vista y todas con su duración.
+      _clorNota  = 'parada del agitador que casa con la hora del parte'
+                 + (_pc.segs ? ' · '+_durTexto(_pc.segs) : '');
+    }
+  }
+  filas.push(cmpFila('Auxiliares (cloruro)', _clorParte, _clorScada, 'hora', _clorNota));
+
+  // FERMENTOS: la parada más cercana a la hora del parte (tope 20 min). Sin
+  // hora en el parte, la primera parada dentro de la ventana del proceso.
+  var _fermParte = p.ferm_hadicion || (p.ferm_meta&&p.ferm_meta.hadicion);
+  var _fermMin   = cmpMin(_fermParte);
+  var _fermScada = null, _fermNota = '';
+  if(_fermMin !== null){
+    var _pf = _stopMasCercana(_fermMin, 20);
+    if(_pf){ _pf.usada = true; _fermScada = cmpHora(_pf.t);
+             _fermNota = 'parada del agitador que casa con la hora del parte'
+                       + (_pf.segs ? ' · '+_durTexto(_pf.segs) : ''); }
+    else   { _fermNota = 'SIN PARADA que cuadre con la hora del parte: o se echó sin parar el agitador, o entre dos muestras del SCADA, o hay un olvido'; }
+  } else {
+    var _pf2 = null;
+    _stops.forEach(function(q){
+      if(q.usada || q.esPH || _pf2) return;
+      var okIni = (_llenSeg===null)  || (q.t - _llenSeg  >= 5*60);
+      var okFin = (_cuajoSeg===null) || (_cuajoSeg - q.t >= 20*60);
+      if(okIni && okFin) _pf2 = q;
+    });
+    if(_pf2){ _pf2.usada = true; _fermScada = cmpHora(_pf2.t);
+              _fermNota = 'primera parada dentro de la ventana del fermento (+5 min del llenado, −20 min del cuajo)'
+                        + (_pf2.segs ? ' · '+_durTexto(_pf2.segs) : ''); }
+    else    { _fermNota = 'sin parada detectada en la ventana del fermento'; }
+  }
+  filas.push(cmpFila('Fermentos', _fermParte, _fermScada, 'hora', _fermNota));
+
+  // ── LAS DEMÁS PARADAS, EN SU SITIO CRONOLÓGICO ──
+  // Las que no se han casado con nada. La de justo antes del cuajo se nombra
+  // por lo que es: la muestra del pH.
+  _stops.forEach(function(q){
+    if(q.usada) return;
+    var nota = q.esPH
+      ? ('muestra de pH ('+Math.round((_cuajoSeg-q.t)/60)+' min antes del cuajo)')
+      : 'no consta en el parte';
+    filas.push(cmpFila('Parada del agitador', null, cmpHora(q.t), 'texto', nota, _durTexto(q.segs)));
+  });
   filas.push(cmpFila('Cuajo · hora',        p.coag_hadicion || (p.coag&&p.coag.hadicion), cmpHora(f.hora_cuajado), 'hora'));
   filas.push(cmpFila('Cuajo · temperatura', p.coag_temp || (p.coag&&p.coag.temp),         f.temp_cuajado,          'temp'));
   filas.push(cmpFila('Corte · hora',        p.coag_hc || (p.coag&&p.coag.hc),             cmpHora(f.hora_corte),   'hora'));
