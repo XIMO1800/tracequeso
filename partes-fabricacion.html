@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.409</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.410</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3591,7 +3591,7 @@ function cmpPintarFila(f){
     + '<td class="cmp-rot">'+f.rotulo+(f.nota?'<span class="cmp-nota">'+f.nota+'</span>':'')+'</td>'
     + '<td>'+(f.parte!==null&&f.parte!==''?f.parte:'—')+'</td>'
     + '<td>'+(f.scada!==null&&f.scada!==''?f.scada:'—')+'</td>'
-    + '<td style="color:'+color+';font-weight:700;white-space:nowrap;">'+icono+' '+difTxt+'</td>'
+    + '<td style="color:'+color+';font-weight:700;white-space:nowrap;width:1%;">'+icono+' '+difTxt+'</td>'
     + '<td style="color:#2d7a2d;font-weight:600;font-family:\'Inconsolata\',monospace;font-size:.82rem;white-space:nowrap;text-align:left;width:1%;">'+(f.dur||'')+'</td>'
     + '</tr>';
 }
@@ -6887,7 +6887,26 @@ function _htmlGraficaPasteur(D){
     var _yFinCuaj = MT+40;
     function _anchoTxt(t,fs,neg){ return String(t).length*fs*(neg?0.60:0.55); }
 
-    var etiq = cuaj.map(function(c){
+    // (v2.6.410) EL AGUA ENTRA EN EL REPARTO DE ETIQUETAS COMO UNA MÁS.
+    // Ponerle el rótulo al hueco por su cuenta (v409) hacía que se montara con
+    // la etiqueta de la cuba vecina, porque el colocador no sabía que existía.
+    // Ahora el hueco largo (≥4 min) es una entrada más de la lista: el
+    // colocador la separa, la empuja y le pone conector igual que a las cubas.
+    // En verde, como las mangueras: el verde aquí significa agua.
+    var _items=[];
+    cuaj.forEach(function(c,i){
+      _items.push(c);
+      var sig=cuaj[i+1];
+      if(sig && sig.x1 - c.x2 >= 4*60) _items.push({esAgua:true, x1:c.x2, x2:sig.x1});
+    });
+    var etiq = _items.map(function(c){
+      if(c.esAgua){
+        return {c:c, esAgua:true, col:'#2e8b2e',
+                arriba:[{t:'agua', fs:12, w:800, op:0.95}],
+                abajo:[{t:Math.round((c.x2-c.x1)/60)+' min', fs:11, w:700, op:0.9}],
+                w:Math.max(_anchoTxt('agua',12,true), _anchoTxt(Math.round((c.x2-c.x1)/60)+' min',11,true)),
+                cx:(X(c.x1)+X(c.x2))/2, ideal:(X(c.x1)+X(c.x2))/2};
+      }
       var vr=String(c.variedad||'').trim(); if(vr==='—') vr='';
       var fm=String(c.formato||'').trim();
       // Si el formato repite lo que ya dice la variedad (BARRA / BARRA), sobra
@@ -6933,13 +6952,13 @@ function _htmlGraficaPasteur(D){
     etiq.forEach(function(e, k){
       // Si la etiqueta ha tenido que desplazarse, se marca de dónde es
       if(Math.abs(e.cx-e.ideal)>5){
-        sv.push('<path d="M'+e.cx.toFixed(1)+' '+(MT-46)+' L'+e.ideal.toFixed(1)+' '+(MT-14)+'" fill="none" stroke="#1f5fbf" stroke-width="1" stroke-dasharray="2,3" opacity=".5"/>');
+        sv.push('<path d="M'+e.cx.toFixed(1)+' '+(MT-46)+' L'+e.ideal.toFixed(1)+' '+(MT-14)+'" fill="none" stroke="'+(e.col||'#1f5fbf')+'" stroke-width="1" stroke-dasharray="2,3" opacity=".5"/>');
       }
       function pinta(lista, y0){
         var y=y0;
         lista.forEach(function(L){
           var f=Math.round(L.fs*esc*10)/10;
-          sv.push('<text x="'+e.cx.toFixed(1)+'" y="'+y.toFixed(1)+'" font-size="'+f+'" font-weight="'+L.w+'" fill="#1f5fbf" text-anchor="middle" opacity="'+L.op+'" stroke="#fff" stroke-width="3.4" stroke-linejoin="round" style="paint-order:stroke">'+L.t+'</text>');
+          sv.push('<text x="'+e.cx.toFixed(1)+'" y="'+y.toFixed(1)+'" font-size="'+f+'" font-weight="'+L.w+'" fill="'+(e.col||'#1f5fbf')+'" text-anchor="middle" opacity="'+L.op+'" stroke="#fff" stroke-width="3.4" stroke-linejoin="round" style="paint-order:stroke">'+L.t+'</text>');
           y+=f+3;
         });
         return y;
@@ -6949,16 +6968,11 @@ function _htmlGraficaPasteur(D){
       // ABAJO: formato y litros, ya dentro
       var yb=pinta(e.abajo, MT+16);
       if(yb>_yFinCuaj) _yFinCuaj=yb;
-      if(k>0) sv.push('<line x1="'+X(e.c.x1).toFixed(1)+'" y1="'+(MT-44)+'" x2="'+X(e.c.x1).toFixed(1)+'" y2="'+(MT+34)+'" stroke="#1f5fbf" stroke-width="1.4" opacity=".55"/>');
-      // (v2.6.409) LA CUBA SE CIERRA SI DESPUÉS VIENE UN HUECO.
-      // Las rayas azules solo marcaban INICIOS de cuba: si tras una cuba había
-      // un hueco de agua, su segmento quedaba abierto hasta la cuba siguiente
-      // y parecía que había durado todo el hueco (el 29/08 el D.O. de 3.000 L
-      // parecía tan largo como la oveja de 6.000). Ahora, si la siguiente cuba
-      // no empieza donde esta acaba, se dibuja la raya de CIERRE en su final:
-      // cuatro segmentos donde hay cuatro cosas (cuba, cuba, agua, cuba).
-      if(cuaj[k+1] && cuaj[k+1].x1 - e.c.x2 > 60){
-        sv.push('<line x1="'+X(e.c.x2).toFixed(1)+'" y1="'+(MT-44)+'" x2="'+X(e.c.x2).toFixed(1)+'" y2="'+(MT+34)+'" stroke="#1f5fbf" stroke-width="1.4" opacity=".55"/>');
+      // (v2.6.410) Las rayas de borde: azules entre cubas, VERDES discontinuas
+      // en los dos bordes del agua, para que el bloque de agua rompa el azul.
+      if(k>0){
+        var _verde = e.esAgua || etiq[k-1].esAgua;
+        sv.push('<line x1="'+X(e.c.x1).toFixed(1)+'" y1="'+(MT-44)+'" x2="'+X(e.c.x1).toFixed(1)+'" y2="'+(MT+34)+'" stroke="'+(_verde?'#2e8b2e':'#1f5fbf')+'" stroke-width="1.4"'+(_verde?' stroke-dasharray="4,3"':'')+' opacity=".55"/>');
       }
     });
 
@@ -6980,13 +6994,8 @@ function _htmlGraficaPasteur(D){
       // de 4 min) siguen con la lógica del cambio de depósito.
       var _g1=h.bloques[bi].t2, _g2=h.bloques[bi+1].t1;
       if(_g2-_g1 >= 4*60){
-        // (v2.6.409) El rótulo del agua vive donde los nombres de cuba, como
-        // si fuera un bloque más: "agua" arriba y los minutos dentro, en gris,
-        // en dos líneas porque el hueco es estrecho. La raya azul de cierre de
-        // la cuba anterior y la de inicio de la siguiente lo enmarcan solas.
-        var _xgm=(X(_g1)+X(_g2))/2;
-        sv.push('<text x="'+_xgm.toFixed(1)+'" y="'+(MT-16)+'" font-size="11.5" font-weight="800" fill="#6a7a8a" text-anchor="middle" opacity=".95" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">agua</text>');
-        sv.push('<text x="'+_xgm.toFixed(1)+'" y="'+(MT+16)+'" font-size="11" font-weight="700" fill="#6a7a8a" text-anchor="middle" opacity=".9" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">'+Math.round((_g2-_g1)/60)+' min</text>');
+        // (v2.6.410) El hueco largo ya tiene su bloque verde en la fila de
+        // cubas (entra en el reparto de etiquetas). Aquí no se añade nada.
         continue;
       }
       var tCorte=(h.bloques[bi].t2 + h.bloques[bi+1].t1)/2;
