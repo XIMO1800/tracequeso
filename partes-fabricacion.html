@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.403</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.405</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3544,10 +3544,14 @@ function cmpNum(v){
 }
 
 // Una fila de la tabla: qué dice el parte, qué dice la máquina y cuánto se separan.
-function cmpFila(rotulo, valParte, valScada, tipo, nota, difTexto){
+function cmpFila(rotulo, valParte, valScada, tipo, nota, difTexto, dur){
   // (v2.6.387) Normalizar antes de nada: un campo que no existe en el parte
   // llegaba como undefined y se escribía tal cual, con lo que la casilla ponía
   // "undefined". Donde no hay dato va una raya, como en el desuerado.
+  // (v2.6.404) 'dur' es la DURACIÓN según el SCADA (parada del agitador,
+  // desuerado...), que ahora tiene columna propia: la duración cuenta qué
+  // acción hacía el quesero (una toma de muestra no dura lo que una adición)
+  // y antes iba mezclada con la columna de diferencias o en la letra pequeña.
   if(valParte===undefined || valParte==='') valParte = null;
   if(valScada===undefined || valScada==='') valScada = null;
   var dif = null, estado = 'sin';
@@ -3570,7 +3574,7 @@ function cmpFila(rotulo, valParte, valScada, tipo, nota, difTexto){
     }
   }
   return {rotulo:rotulo, parte:valParte, scada:valScada, dif:dif, estado:estado,
-          tipo:tipo, nota:nota||'', difTexto:difTexto||''};
+          tipo:tipo, nota:nota||'', difTexto:difTexto||'', dur:dur||''};
 }
 
 function cmpPintarFila(f){
@@ -3588,6 +3592,7 @@ function cmpPintarFila(f){
     + '<td>'+(f.parte!==null&&f.parte!==''?f.parte:'—')+'</td>'
     + '<td>'+(f.scada!==null&&f.scada!==''?f.scada:'—')+'</td>'
     + '<td style="color:'+color+';font-weight:700;white-space:nowrap;">'+icono+' '+difTxt+'</td>'
+    + '<td style="color:#8a6a2a;font-family:\'Inconsolata\',monospace;font-size:.82rem;white-space:nowrap;text-align:right;">'+(f.dur||'')+'</td>'
     + '</tr>';
 }
 
@@ -3859,6 +3864,7 @@ function cmpTarjeta(p, d){
   var _clorMin   = cmpMin(_clorParte);
   var _clorScada = cmpHora(f.hora_aux);
   var _clorNota  = 'sin parada propia: se compara con el arranque del llenado';
+  var _clorDur   = '';
   if(_clorMin !== null){
     var _pc = _stopMasCercana(_clorMin, 6);
     var _difLlen = (_llenSeg!==null) ? Math.abs(Math.floor(_llenSeg/60)-_clorMin) : null;
@@ -3868,22 +3874,22 @@ function cmpTarjeta(p, d){
       // (v2.6.403) Con sus segundos: la duración de la parada es información
       // (una toma de muestra no dura lo que una adición). Petición de Joaquín:
       // todas las paradas a la vista y todas con su duración.
-      _clorNota  = 'parada del agitador que casa con la hora del parte'
-                 + (_pc.segs ? ' · '+_durTexto(_pc.segs) : '');
+      _clorNota  = 'parada del agitador que casa con la hora del parte';
+      _clorDur   = _pc.segs ? _durTexto(_pc.segs) : '';
     }
   }
-  filas.push(cmpFila('Auxiliares (cloruro)', _clorParte, _clorScada, 'hora', _clorNota));
+  filas.push(cmpFila('Auxiliares (cloruro)', _clorParte, _clorScada, 'hora', _clorNota, '', _clorDur));
 
   // FERMENTOS: la parada más cercana a la hora del parte (tope 20 min). Sin
   // hora en el parte, la primera parada dentro de la ventana del proceso.
   var _fermParte = p.ferm_hadicion || (p.ferm_meta&&p.ferm_meta.hadicion);
   var _fermMin   = cmpMin(_fermParte);
-  var _fermScada = null, _fermNota = '';
+  var _fermScada = null, _fermNota = '', _fermDur = '';
   if(_fermMin !== null){
     var _pf = _stopMasCercana(_fermMin, 20);
     if(_pf){ _pf.usada = true; _fermScada = cmpHora(_pf.t);
-             _fermNota = 'parada del agitador que casa con la hora del parte'
-                       + (_pf.segs ? ' · '+_durTexto(_pf.segs) : ''); }
+             _fermNota = 'parada del agitador que casa con la hora del parte';
+             _fermDur  = _pf.segs ? _durTexto(_pf.segs) : ''; }
     else   { _fermNota = 'SIN PARADA que cuadre con la hora del parte: o se echó sin parar el agitador, o entre dos muestras del SCADA, o hay un olvido'; }
   } else {
     var _pf2 = null;
@@ -3894,11 +3900,11 @@ function cmpTarjeta(p, d){
       if(okIni && okFin) _pf2 = q;
     });
     if(_pf2){ _pf2.usada = true; _fermScada = cmpHora(_pf2.t);
-              _fermNota = 'primera parada dentro de la ventana del fermento (+5 min del llenado, −20 min del cuajo)'
-                        + (_pf2.segs ? ' · '+_durTexto(_pf2.segs) : ''); }
+              _fermNota = 'primera parada dentro de la ventana del fermento (+5 min del llenado, −20 min del cuajo)';
+              _fermDur  = _pf2.segs ? _durTexto(_pf2.segs) : ''; }
     else    { _fermNota = 'sin parada detectada en la ventana del fermento'; }
   }
-  filas.push(cmpFila('Fermentos', _fermParte, _fermScada, 'hora', _fermNota));
+  filas.push(cmpFila('Fermentos', _fermParte, _fermScada, 'hora', _fermNota, '', _fermDur));
 
   // ── LAS DEMÁS PARADAS, EN SU SITIO CRONOLÓGICO ──
   // Las que no se han casado con nada. La de justo antes del cuajo se nombra
@@ -3908,7 +3914,7 @@ function cmpTarjeta(p, d){
     var nota = q.esPH
       ? ('muestra de pH ('+Math.round((_cuajoSeg-q.t)/60)+' min antes del cuajo)')
       : 'no consta en el parte';
-    filas.push(cmpFila('Parada del agitador', null, cmpHora(q.t), 'texto', nota, _durTexto(q.segs)));
+    filas.push(cmpFila('Parada del agitador', null, cmpHora(q.t), 'texto', nota, '', _durTexto(q.segs)));
   });
   filas.push(cmpFila('Cuajo · hora',        p.coag_hadicion || (p.coag&&p.coag.hadicion), cmpHora(f.hora_cuajado), 'hora'));
   filas.push(cmpFila('Cuajo · temperatura', p.coag_temp || (p.coag&&p.coag.temp),         f.temp_cuajado,          'temp'));
@@ -3919,7 +3925,24 @@ function cmpTarjeta(p, d){
   filas.push(cmpFila('Recalent. · fin',     p.rec_hf || (p.desuerado&&p.desuerado.rec_hf), cmpHora(f.hora_fin_recal), 'hora'));
   filas.push(cmpFila('Recalent. · T final', p.rec_tf || (p.desuerado&&p.desuerado.rec_tf), f.temp_fin_recal,       'temp',
                      'la de abrir válvulas'));
-  filas.push(cmpFila('Agitación · inicio',  p.agit_hi || (p.desuerado&&p.desuerado.agit_hi), cmpHora(f.hora_ini_batido), 'hora'));
+  // (v2.6.404) AGITACIÓN: LA DURACIÓN, NO EL INICIO.
+  // El inicio de la agitación ES el final del recalentamiento (misma hora,
+  // dato repetido que no aporta) y su final es el inicio del moldeo. Lo que
+  // sí informa es CUÁNTO se agitó: del fin del recalentamiento al arranque
+  // del moldeo, según el parte y según el SCADA (ahí, hasta abrir válvulas).
+  (function(){
+    var _pIni = cmpMin(p.rec_hf || (p.desuerado&&p.desuerado.rec_hf));
+    var _pFin = cmpMin(p.mol_hi || (p.moldeo&&p.moldeo.hi));
+    var _sIni = (f.hora_fin_recal!==null && f.hora_fin_recal!==undefined) ? Math.round(parseInt(f.hora_fin_recal,10)/60) : null;
+    var _sFin = (f.apertura_valvulas!==null && f.apertura_valvulas!==undefined) ? Math.round(parseInt(f.apertura_valvulas,10)/60) : null;
+    var _pDur = (_pIni!==null && _pFin!==null && _pFin>=_pIni) ? (_pFin-_pIni) : null;
+    var _sDur = (_sIni!==null && _sFin!==null && _sFin>=_sIni) ? (_sFin-_sIni) : null;
+    filas.push(cmpFila('Agitación · duración',
+                       _pDur!==null ? _pDur+' min' : null,
+                       _sDur!==null ? _sDur+' min' : null,
+                       'num',
+                       'del fin del recalentamiento al inicio del moldeo'));
+  })();
   // ── DESUERADO: dato que solo tiene el SCADA (v2.6.384) ──
   // Mientras se saca suero hay UNA sola válvula abierta; cuando abren las dos,
   // empieza el vaciado hacia la llenadora. Ese intervalo es el tiempo de
@@ -3934,13 +3957,13 @@ function cmpTarjeta(p, d){
     // igual que en las paradas del agitador.
     filas.push(cmpFila('Desuerado', null, cmpHora(f.desuerado_ini), 'texto',
                        'una sola válvula abierta',
-                       f.desuerado_min + ' min'));
+                       '', f.desuerado_min + ' min'));
   }
   filas.push(cmpFila('Moldeo · inicio',     p.mol_hi || (p.moldeo&&p.moldeo.hi),          cmpHora(f.apertura_valvulas), 'hora',
                      'abren las dos válvulas; el quesero cuenta unos min después'));
 
   var cuerpo = '<table class="cmptab"><thead><tr>'
-    + '<th></th><th>Parte</th><th>SCADA</th><th>Dif.</th></tr></thead><tbody>'
+    + '<th></th><th>Parte</th><th>SCADA</th><th>Dif.</th><th style="text-align:right;">Duración</th></tr></thead><tbody>'
     + filas.map(cmpPintarFila).join('') + '</tbody></table>';
 
   // ── EL CHIVATO ──
