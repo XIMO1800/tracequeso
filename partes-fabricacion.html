@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.405</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.407</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3592,7 +3592,7 @@ function cmpPintarFila(f){
     + '<td>'+(f.parte!==null&&f.parte!==''?f.parte:'—')+'</td>'
     + '<td>'+(f.scada!==null&&f.scada!==''?f.scada:'—')+'</td>'
     + '<td style="color:'+color+';font-weight:700;white-space:nowrap;">'+icono+' '+difTxt+'</td>'
-    + '<td style="color:#8a6a2a;font-family:\'Inconsolata\',monospace;font-size:.82rem;white-space:nowrap;text-align:right;">'+(f.dur||'')+'</td>'
+    + '<td style="color:#8a6a2a;font-family:\'Inconsolata\',monospace;font-size:.82rem;white-space:nowrap;text-align:left;width:1%;padding-left:14px;">'+(f.dur||'')+'</td>'
     + '</tr>';
 }
 
@@ -3963,7 +3963,7 @@ function cmpTarjeta(p, d){
                      'abren las dos válvulas; el quesero cuenta unos min después'));
 
   var cuerpo = '<table class="cmptab"><thead><tr>'
-    + '<th></th><th>Parte</th><th>SCADA</th><th>Dif.</th><th style="text-align:right;">Duración</th></tr></thead><tbody>'
+    + '<th></th><th>Parte</th><th>SCADA</th><th>Dif.</th><th style="text-align:left;width:1%;white-space:nowrap;padding-left:14px;">Duración</th></tr></thead><tbody>'
     + filas.map(cmpPintarFila).join('') + '</tbody></table>';
 
   // ── EL CHIVATO ──
@@ -6831,8 +6831,25 @@ function _htmlGraficaPasteur(D){
       var d1=acum, d2=acum+frac*Dtot; acum=d2;
       return {n:pt.cuba, tipo:pt.tipo, variedad:pt.variedad||'',
               formato:pt.formato||'', litros:pt.litros||0,
-              x1:_tiempoEnSegs(segs,d1), x2:_tiempoEnSegs(segs,d2)};
+              x1:_ajustarCostura(segs,_tiempoEnSegs(segs,d1),true),
+              x2:_ajustarCostura(segs,_tiempoEnSegs(segs,d2),false)};
     });
+  }
+  // (v2.6.406) PEGAR LOS EXTREMOS A LAS COSTURAS ENTRE BLOQUES.
+  // El reparto por litros es tan exacto que a veces deja el corte entre dos
+  // cubas a SEGUNDOS del final de un bloque (el 29/08: mezcla a 8 segundos de
+  // la costura). Ese pelo hacía que la banda de la cuba siguiente arrancara en
+  // el bloque viejo y cruzara por encima del hueco de agua como si fuera
+  // pasteurización continua. Ahora, si un INICIO cae en los últimos 2,5 min de
+  // un bloque, se pasa al arranque del bloque siguiente; y si un FINAL cae en
+  // los primeros 2,5 min de un bloque, se retrae al cierre del anterior.
+  function _ajustarCostura(segs, x, esInicio){
+    var TOL=150;
+    for(var i=0;i<segs.length;i++){
+      if(esInicio && i+1<segs.length && x>segs[i].t2-TOL && x<=segs[i].t2) return segs[i+1].t1;
+      if(!esInicio && i>0 && x>=segs[i].t1 && x<segs[i].t1+TOL) return segs[i-1].t2;
+    }
+    return x;
   }
   // Convierte "minuto N de pasteurización efectiva" en la hora real, saltándose
   // los huecos de aclarado entre bloques.
@@ -6943,6 +6960,22 @@ function _htmlGraficaPasteur(D){
     // (±4 min), es cambio de cuba. Si cae EN MITAD de una cuajada, esa cuba se
     // llenó con leche de dos depósitos, y eso se marca aparte.
     for(var bi=0; bi+1<h.bloques.length; bi++){
+      // (v2.6.406) EL HUECO LARGO ENTRE BLOQUES ES AGUA, Y SE DICE.
+      // El 29/08 se acabó el depósito, el quesero no estaba para arrancar la
+      // mezcla y arrastró agua 14 minutos con el pasteurizador en marcha: las
+      // temperaturas no delatan nada (el agua circula a temperatura de
+      // pasteurización) pero ahí no pasó leche. El conversor ya deja ese hueco
+      // entre bloques; ahora el visor lo rotula "agua · N min" en vez de
+      // llamarlo cambio de depósito. Los aclarados cortos de siempre (menos
+      // de 4 min) siguen con la lógica del cambio de depósito.
+      var _g1=h.bloques[bi].t2, _g2=h.bloques[bi+1].t1;
+      if(_g2-_g1 >= 4*60){
+        var _xg1=X(_g1), _xg2=X(_g2), _xgm=(_xg1+_xg2)/2;
+        sv.push('<line x1="'+_xg1.toFixed(1)+'" y1="'+(_yFinCuaj+4)+'" x2="'+_xg1.toFixed(1)+'" y2="'+(_yFinCuaj+20)+'" stroke="#6a7a8a" stroke-width="1.4" stroke-dasharray="4,3"/>');
+        sv.push('<line x1="'+_xg2.toFixed(1)+'" y1="'+(_yFinCuaj+4)+'" x2="'+_xg2.toFixed(1)+'" y2="'+(_yFinCuaj+20)+'" stroke="#6a7a8a" stroke-width="1.4" stroke-dasharray="4,3"/>');
+        sv.push('<text x="'+_xgm.toFixed(1)+'" y="'+(_yFinCuaj+32)+'" font-size="11.5" font-weight="700" fill="#6a7a8a" text-anchor="middle" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">agua · '+Math.round((_g2-_g1)/60)+' min</text>');
+        continue;
+      }
       var tCorte=(h.bloques[bi].t2 + h.bloques[bi+1].t1)/2;
       var esCambioCuba=false, dentroDe=null;
       cuaj.forEach(function(c, k){
