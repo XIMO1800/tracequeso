@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.410</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.413</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3592,7 +3592,7 @@ function cmpPintarFila(f){
     + '<td>'+(f.parte!==null&&f.parte!==''?f.parte:'—')+'</td>'
     + '<td>'+(f.scada!==null&&f.scada!==''?f.scada:'—')+'</td>'
     + '<td style="color:'+color+';font-weight:700;white-space:nowrap;width:1%;">'+icono+' '+difTxt+'</td>'
-    + '<td style="color:#2d7a2d;font-weight:600;font-family:\'Inconsolata\',monospace;font-size:.82rem;white-space:nowrap;text-align:left;width:1%;">'+(f.dur||'')+'</td>'
+    + '<td style="color:#2d7a2d;font-weight:600;font-family:\'Inconsolata\',monospace;font-size:.82rem;white-space:nowrap;text-align:left;width:1%;padding-left:12px;">'+(f.dur||'')+'</td>'
     + '</tr>';
 }
 
@@ -3963,7 +3963,7 @@ function cmpTarjeta(p, d){
                      'abren las dos válvulas; el quesero cuenta unos min después'));
 
   var cuerpo = '<table class="cmptab"><thead><tr>'
-    + '<th></th><th>Parte</th><th>SCADA</th><th>Dif.</th><th style="text-align:left;width:1%;white-space:nowrap;">Duración</th></tr></thead><tbody>'
+    + '<th></th><th>Parte</th><th>SCADA</th><th>Dif.</th><th style="text-align:left;width:1%;white-space:nowrap;padding-left:12px;">Duración</th></tr></thead><tbody>'
     + filas.map(cmpPintarFila).join('') + '</tbody></table>';
 
   // ── EL CHIVATO ──
@@ -6887,26 +6887,7 @@ function _htmlGraficaPasteur(D){
     var _yFinCuaj = MT+40;
     function _anchoTxt(t,fs,neg){ return String(t).length*fs*(neg?0.60:0.55); }
 
-    // (v2.6.410) EL AGUA ENTRA EN EL REPARTO DE ETIQUETAS COMO UNA MÁS.
-    // Ponerle el rótulo al hueco por su cuenta (v409) hacía que se montara con
-    // la etiqueta de la cuba vecina, porque el colocador no sabía que existía.
-    // Ahora el hueco largo (≥4 min) es una entrada más de la lista: el
-    // colocador la separa, la empuja y le pone conector igual que a las cubas.
-    // En verde, como las mangueras: el verde aquí significa agua.
-    var _items=[];
-    cuaj.forEach(function(c,i){
-      _items.push(c);
-      var sig=cuaj[i+1];
-      if(sig && sig.x1 - c.x2 >= 4*60) _items.push({esAgua:true, x1:c.x2, x2:sig.x1});
-    });
-    var etiq = _items.map(function(c){
-      if(c.esAgua){
-        return {c:c, esAgua:true, col:'#2e8b2e',
-                arriba:[{t:'agua', fs:12, w:800, op:0.95}],
-                abajo:[{t:Math.round((c.x2-c.x1)/60)+' min', fs:11, w:700, op:0.9}],
-                w:Math.max(_anchoTxt('agua',12,true), _anchoTxt(Math.round((c.x2-c.x1)/60)+' min',11,true)),
-                cx:(X(c.x1)+X(c.x2))/2, ideal:(X(c.x1)+X(c.x2))/2};
-      }
+    var etiq = cuaj.map(function(c){
       var vr=String(c.variedad||'').trim(); if(vr==='—') vr='';
       var fm=String(c.formato||'').trim();
       // Si el formato repite lo que ya dice la variedad (BARRA / BARRA), sobra
@@ -6919,40 +6900,36 @@ function _htmlGraficaPasteur(D){
       var B=[];
       if(lit) B.push({t:lit, fs:11, w:700, op:0.88});
       if(fm)  B.push({t:fm,  fs:11, w:800, op:0.88});
-      var an=0;
+      var an=0, anA=0;
       A.concat(B).forEach(function(x){ var a=_anchoTxt(x.t,x.fs,x.w>=700); if(a>an) an=a; });
-      return {c:c, arriba:A, abajo:B, w:an, cx:(X(c.x1)+X(c.x2))/2, ideal:(X(c.x1)+X(c.x2))/2};
+      A.forEach(function(x){ var a=_anchoTxt(x.t,x.fs,x.w>=700); if(a>anA) anA=a; });
+      return {c:c, arriba:A, abajo:B, w:an, wA:anA, cx:(X(c.x1)+X(c.x2))/2, ideal:(X(c.x1)+X(c.x2))/2};
     });
 
-    // ¿Caben todas seguidas dentro de la hornada? Si no, se encogen un poco (nunca
-    // por debajo del 82 %) y el conjunto se centra sobre ella.
+    // (v2.6.413) EL QUE NO CABE A LO ANCHO, SUBE UN PISO. Idea de Joaquín.
+    // Antes la etiqueta estrecha se desplazaba de lado y acababa invadiendo al
+    // vecino (el 29/08, al D.O. de 3.000 L se le echó encima el bloque de
+    // agua). Ahora TODAS las etiquetas van centradas en su propio bloque,
+    // siempre. Si el nombre de la cuba es más ancho que su bloque, no se mueve
+    // de lado: SUBE un piso, al aire libre que hay entre la fila de nombres y
+    // el recuadro de la hornada, con un hilo de puntos bajando a su sitio. Si
+    // dos elevadas se pisaran arriba, la segunda sube otro piso más.
     var GAP=9, esc=1;
-    if(etiq.length){
-      var falta=etiq.reduce(function(s,e){ return s+e.w; },0)+GAP*(etiq.length-1);
-      var hueco=X(cuaj[cuaj.length-1].x2)-X(cuaj[0].x1)+56;
-      if(falta>hueco) esc=Math.max(0.82, hueco/falta);
-      etiq.forEach(function(e){ e.w*=esc; });
-      // Colocación: cada una en su sitio y, si se pisan, se empujan hacia la derecha
-      for(var i2=1;i2<etiq.length;i2++){
-        var minX=etiq[i2-1].cx+etiq[i2-1].w/2+GAP+etiq[i2].w/2;
-        if(etiq[i2].cx<minX) etiq[i2].cx=minX;
-      }
-      // Y si el empuje ha sacado la última por la derecha, se recoloca todo hacia atrás
-      var sobra=(etiq[etiq.length-1].cx+etiq[etiq.length-1].w/2)-(X(cuaj[cuaj.length-1].x2)+28);
-      if(sobra>0) for(var i3=etiq.length-1;i3>=0;i3--){
-        etiq[i3].cx-=sobra;
-        if(i3>0){
-          var maxX=etiq[i3].cx-etiq[i3].w/2-GAP-etiq[i3-1].w/2;
-          if(etiq[i3-1].cx<=maxX) break;
-          sobra=etiq[i3-1].cx-maxX;
-        }
+    etiq.forEach(function(e){
+      e.piso = (e.wA > (X(e.c.x2)-X(e.c.x1))-2) ? 1 : 0;
+    });
+    for(var i2=1;i2<etiq.length;i2++){
+      if(!etiq[i2].piso) continue;
+      for(var j2=0;j2<i2;j2++){
+        if(etiq[j2].piso===etiq[i2].piso &&
+           Math.abs(etiq[i2].cx-etiq[j2].cx) < (etiq[i2].wA+etiq[j2].wA)/2+GAP) etiq[i2].piso++;
       }
     }
 
     etiq.forEach(function(e, k){
-      // Si la etiqueta ha tenido que desplazarse, se marca de dónde es
-      if(Math.abs(e.cx-e.ideal)>5){
-        sv.push('<path d="M'+e.cx.toFixed(1)+' '+(MT-46)+' L'+e.ideal.toFixed(1)+' '+(MT-14)+'" fill="none" stroke="'+(e.col||'#1f5fbf')+'" stroke-width="1" stroke-dasharray="2,3" opacity=".5"/>');
+      // La elevada baja un hilo de puntos hasta su bloque, para que se sepa suya
+      if(e.piso){
+        sv.push('<line x1="'+e.cx.toFixed(1)+'" y1="'+(MT-14-e.piso*30)+'" x2="'+e.cx.toFixed(1)+'" y2="'+(MT-14)+'" stroke="'+(e.col||'#1f5fbf')+'" stroke-width="1" stroke-dasharray="2,3" opacity=".5"/>');
       }
       function pinta(lista, y0){
         var y=y0;
@@ -6964,16 +6941,44 @@ function _htmlGraficaPasteur(D){
         return y;
       }
       // ARRIBA: tipo y variedad, pegados al borde superior de la gráfica
-      pinta(e.arriba, MT - 16 - (e.arriba.length-1)*14);
+      pinta(e.arriba, MT - 16 - (e.arriba.length-1)*14 - (e.piso||0)*30);
       // ABAJO: formato y litros, ya dentro
       var yb=pinta(e.abajo, MT+16);
       if(yb>_yFinCuaj) _yFinCuaj=yb;
-      // (v2.6.410) Las rayas de borde: azules entre cubas, VERDES discontinuas
-      // en los dos bordes del agua, para que el bloque de agua rompa el azul.
+      // (v2.6.412) Rayas de borde: entre cubas seguidas, la azul de siempre.
+      // Si entre esta cuba y la anterior hay un hueco (agua), los DOS bordes
+      // del hueco llevan raya verde discontinua: el bloque queda enmarcado y
+      // vacío, que ya cuenta lo que es sin invadir a nadie.
       if(k>0){
-        var _verde = e.esAgua || etiq[k-1].esAgua;
-        sv.push('<line x1="'+X(e.c.x1).toFixed(1)+'" y1="'+(MT-44)+'" x2="'+X(e.c.x1).toFixed(1)+'" y2="'+(MT+34)+'" stroke="'+(_verde?'#2e8b2e':'#1f5fbf')+'" stroke-width="1.4"'+(_verde?' stroke-dasharray="4,3"':'')+' opacity=".55"/>');
+        var _prevC = etiq[k-1].c;
+        if(e.c.x1 - _prevC.x2 > 60){
+          sv.push('<line x1="'+X(_prevC.x2).toFixed(1)+'" y1="'+(MT-44)+'" x2="'+X(_prevC.x2).toFixed(1)+'" y2="'+(MT+34)+'" stroke="#2e8b2e" stroke-width="1.4" stroke-dasharray="4,3" opacity=".7"/>');
+          sv.push('<line x1="'+X(e.c.x1).toFixed(1)+'" y1="'+(MT-44)+'" x2="'+X(e.c.x1).toFixed(1)+'" y2="'+(MT+34)+'" stroke="#2e8b2e" stroke-width="1.4" stroke-dasharray="4,3" opacity=".7"/>');
+        } else {
+          sv.push('<line x1="'+X(e.c.x1).toFixed(1)+'" y1="'+(MT-44)+'" x2="'+X(e.c.x1).toFixed(1)+'" y2="'+(MT+34)+'" stroke="#1f5fbf" stroke-width="1.4" opacity=".55"/>');
+        }
       }
+    });
+    // (v2.6.412) EL RÓTULO DEL AGUA, SOLO SI CABE Y SIN TOCAR A NADIE.
+    // Centrado en su hueco, en verde, y únicamente cuando el texto entra en el
+    // ancho del hueco Y ninguna etiqueta de cuba (que pueden desplazarse) pisa
+    // esa zona. Si no cabe, el hueco se queda vacío entre sus rayas verdes:
+    // mandato de Joaquín, mejor vacío que etiquetas montadas unas sobre otras.
+    cuaj.forEach(function(c,i){
+      var sig=cuaj[i+1];
+      if(!sig || sig.x1 - c.x2 < 4*60) return;
+      var gx1=X(c.x2), gx2=X(sig.x1), gxm=(gx1+gx2)/2;
+      var tMin=Math.round((sig.x1-c.x2)/60)+' min';
+      var w=Math.max(_anchoTxt('agua',10.5,true), _anchoTxt(tMin,10,true));
+      if(w+10 > gx2-gx1) return;                          // no cabe en el hueco
+      var libre=true;
+      etiq.forEach(function(e){
+        if(e.piso) return;   // las elevadas viven en otro piso: no chocan
+        if(gxm-w/2-6 < e.cx+e.wA/2 && gxm+w/2+6 > e.cx-e.wA/2) libre=false;
+      });
+      if(!libre) return;                                   // una cuba pisa la zona
+      sv.push('<text x="'+gxm.toFixed(1)+'" y="'+(MT-16)+'" font-size="10.5" font-weight="800" fill="#2e8b2e" text-anchor="middle" opacity=".95" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">agua</text>');
+      sv.push('<text x="'+gxm.toFixed(1)+'" y="'+(MT+16)+'" font-size="10" font-weight="700" fill="#2e8b2e" text-anchor="middle" opacity=".9" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">'+tMin+'</text>');
     });
 
     // ══ (v2.6.346) SALTO DE CUBA O CAMBIO DE DEPÓSITO ══
