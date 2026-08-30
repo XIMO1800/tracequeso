@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.414</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.416</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -6956,33 +6956,11 @@ function _htmlGraficaPasteur(D){
         sv.push('<line x1="'+X(e.c.x1).toFixed(1)+'" y1="'+(MT-44)+'" x2="'+X(e.c.x1).toFixed(1)+'" y2="'+(MT+34)+'" stroke="#1f5fbf" stroke-width="1.4" opacity=".55"/>');
       }
     });
-    // (v2.6.414) EL BLOQUE DEL AGUA, VESTIDO COMO PIDIÓ JOAQUÍN:
-    //  · las dos rayas verticales del hueco, azules como todas (arriba)
-    //  · un corchete VERDE pequeño y horizontal dentro del hueco, con sus dos
-    //    tetoncitos, al estilo de los corchetes rojos de la sosa y el ácido,
-    //    sin llegar a tocar las rayas azules (4 px de margen a cada lado)
-    //  · "AGUA" en mayúsculas, verde, en la línea de los nombres de cuba
-    //  · los minutos abajo, en la línea de los litros y el formato
-    // Todo solo si cabe y sin pisar a ninguna etiqueta de cuba; si no, el
-    // hueco queda enmarcado y vacío, que también informa.
-    cuaj.forEach(function(c,i){
-      var sig=cuaj[i+1];
-      if(!sig || sig.x1 - c.x2 < 4*60) return;
-      var gx1=X(c.x2), gx2=X(sig.x1), gxm=(gx1+gx2)/2;
-      // El corchete verde va siempre: cabe en cualquier hueco de ≥4 min
-      sv.push('<path d="M'+(gx1+4).toFixed(1)+' '+(MT-10)+' L'+(gx1+4).toFixed(1)+' '+(MT-3)+' L'+(gx2-4).toFixed(1)+' '+(MT-3)+' L'+(gx2-4).toFixed(1)+' '+(MT-10)+'" fill="none" stroke="#2e8b2e" stroke-width="1.6"/>');
-      var tMin=Math.round((sig.x1-c.x2)/60)+' min';
-      var w=Math.max(_anchoTxt('AGUA',12.5,true), _anchoTxt(tMin,11,true));
-      if(w+8 > gx2-gx1) return;                            // los textos no caben
-      var libre=true;
-      etiq.forEach(function(e){
-        if(e.piso) return;   // las elevadas viven en otro piso: no chocan
-        if(gxm-w/2-6 < e.cx+e.wA/2 && gxm+w/2+6 > e.cx-e.wA/2) libre=false;
-      });
-      if(!libre) return;                                   // una cuba pisa la zona
-      sv.push('<text x="'+gxm.toFixed(1)+'" y="'+(MT-16)+'" font-size="12.5" font-weight="800" fill="#2e8b2e" text-anchor="middle" opacity=".95" stroke="#fff" stroke-width="3.4" stroke-linejoin="round" style="paint-order:stroke">AGUA</text>');
-      sv.push('<text x="'+gxm.toFixed(1)+'" y="'+(MT+16)+'" font-size="11" font-weight="700" fill="#2e8b2e" text-anchor="middle" opacity=".9" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">'+tMin+'</text>');
-    });
+    // (v2.6.416) En la fila de cubas, el hueco del agua queda solo con sus
+    // rayas azules de delimitación: el rótulo del arrastre vive ahora abajo,
+    // en la línea de las mangueras, junto con todas las aguas (ver el bloque
+    // general de arrastres más adelante). Decisión de Joaquín 30/08: todo lo
+    // que es agua, en verde y en esa línea; arriba, solo cubas.
 
     // ══ (v2.6.346) SALTO DE CUBA O CAMBIO DE DEPÓSITO ══
     // Un salto térmico dentro de la hornada puede ser dos cosas muy distintas:
@@ -7021,6 +6999,30 @@ function _htmlGraficaPasteur(D){
   (D.anotaciones||[]).forEach(function(a){
     if(a.tipo==='limpieza') boca(a.t1,a.t2,a.nombre,a.mins+' min · '+a.temp+' °C','#8b1a1a');
   });
+  // ── ARRASTRES DE AGUA, TODOS Y EN SU LÍNEA (v2.6.416) ──
+  // Regla general de Joaquín (30/08): todo lo que es agua se cuenta en verde
+  // en la línea de las mangueras. Un arrastre es un hueco de 4 a 45 minutos
+  // entre el final de un bloque de pasteurización y el siguiente evento (otro
+  // bloque o una limpieza) durante el cual hay un envío de agua a cuba: el
+  // quesero no para las máquinas y arrastra agua hasta estar listo — entre
+  // cubas (el del 29/08 de 13 min) o tras la última cuba hasta enganchar con
+  // la limpieza (18 min ese mismo día). Si el pasteurizador se paró de verdad
+  // no hay envío, y no se rotula nada.
+  (function(){
+    var evs=(D.anotaciones||[]).filter(function(x){return x.tipo==='pasteurizacion'||x.tipo==='limpieza';})
+                               .sort(function(a,b){return a.t1-b.t1;});
+    evs.forEach(function(b,i){
+      if(b.tipo!=='pasteurizacion' || !evs[i+1]) return;
+      var g1=b.t2, g2=evs[i+1].t1, gap=g2-g1;
+      if(gap < 4*60 || gap > 45*60) return;
+      var hayAgua=(D.envios||[]).some(function(e){ return e.t1 < g2 && e.t2 > g1; });
+      if(!hayAgua) return;
+      var gxm=(X(g1)+X(g2))/2, ya=Y(46)-44;
+      ['arrastre','agua',Math.round(gap/60)+' min'].forEach(function(t,j){
+        sv.push('<text x="'+gxm.toFixed(1)+'" y="'+(ya+j*14).toFixed(1)+'" font-size="11" font-weight="700" fill="#1f8a3c" text-anchor="middle" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">'+t+'</text>');
+      });
+    });
+  })();
   // ── LAVADOS DE CUAJADA: EL CÍRCULO CON EL NÚMERO DE CUBA ──
   // Cada lavado anotado en un parte se empareja con el envío de agua más cercano
   // (±25 min). Ese lleva círculo. Los envíos que no casan con ningún parte son
