@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.413</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.414</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -6945,40 +6945,43 @@ function _htmlGraficaPasteur(D){
       // ABAJO: formato y litros, ya dentro
       var yb=pinta(e.abajo, MT+16);
       if(yb>_yFinCuaj) _yFinCuaj=yb;
-      // (v2.6.412) Rayas de borde: entre cubas seguidas, la azul de siempre.
-      // Si entre esta cuba y la anterior hay un hueco (agua), los DOS bordes
-      // del hueco llevan raya verde discontinua: el bloque queda enmarcado y
-      // vacío, que ya cuenta lo que es sin invadir a nadie.
+      // (v2.6.414) TODAS las rayas de borde en azul macizo, también las dos
+      // del hueco del agua: son inicios y finales de cuba, y así se leen igual
+      // en toda la gráfica (decisión de Joaquín 29/08, tras verlo en pantalla).
       if(k>0){
         var _prevC = etiq[k-1].c;
         if(e.c.x1 - _prevC.x2 > 60){
-          sv.push('<line x1="'+X(_prevC.x2).toFixed(1)+'" y1="'+(MT-44)+'" x2="'+X(_prevC.x2).toFixed(1)+'" y2="'+(MT+34)+'" stroke="#2e8b2e" stroke-width="1.4" stroke-dasharray="4,3" opacity=".7"/>');
-          sv.push('<line x1="'+X(e.c.x1).toFixed(1)+'" y1="'+(MT-44)+'" x2="'+X(e.c.x1).toFixed(1)+'" y2="'+(MT+34)+'" stroke="#2e8b2e" stroke-width="1.4" stroke-dasharray="4,3" opacity=".7"/>');
-        } else {
-          sv.push('<line x1="'+X(e.c.x1).toFixed(1)+'" y1="'+(MT-44)+'" x2="'+X(e.c.x1).toFixed(1)+'" y2="'+(MT+34)+'" stroke="#1f5fbf" stroke-width="1.4" opacity=".55"/>');
+          sv.push('<line x1="'+X(_prevC.x2).toFixed(1)+'" y1="'+(MT-44)+'" x2="'+X(_prevC.x2).toFixed(1)+'" y2="'+(MT+34)+'" stroke="#1f5fbf" stroke-width="1.4" opacity=".55"/>');
         }
+        sv.push('<line x1="'+X(e.c.x1).toFixed(1)+'" y1="'+(MT-44)+'" x2="'+X(e.c.x1).toFixed(1)+'" y2="'+(MT+34)+'" stroke="#1f5fbf" stroke-width="1.4" opacity=".55"/>');
       }
     });
-    // (v2.6.412) EL RÓTULO DEL AGUA, SOLO SI CABE Y SIN TOCAR A NADIE.
-    // Centrado en su hueco, en verde, y únicamente cuando el texto entra en el
-    // ancho del hueco Y ninguna etiqueta de cuba (que pueden desplazarse) pisa
-    // esa zona. Si no cabe, el hueco se queda vacío entre sus rayas verdes:
-    // mandato de Joaquín, mejor vacío que etiquetas montadas unas sobre otras.
+    // (v2.6.414) EL BLOQUE DEL AGUA, VESTIDO COMO PIDIÓ JOAQUÍN:
+    //  · las dos rayas verticales del hueco, azules como todas (arriba)
+    //  · un corchete VERDE pequeño y horizontal dentro del hueco, con sus dos
+    //    tetoncitos, al estilo de los corchetes rojos de la sosa y el ácido,
+    //    sin llegar a tocar las rayas azules (4 px de margen a cada lado)
+    //  · "AGUA" en mayúsculas, verde, en la línea de los nombres de cuba
+    //  · los minutos abajo, en la línea de los litros y el formato
+    // Todo solo si cabe y sin pisar a ninguna etiqueta de cuba; si no, el
+    // hueco queda enmarcado y vacío, que también informa.
     cuaj.forEach(function(c,i){
       var sig=cuaj[i+1];
       if(!sig || sig.x1 - c.x2 < 4*60) return;
       var gx1=X(c.x2), gx2=X(sig.x1), gxm=(gx1+gx2)/2;
+      // El corchete verde va siempre: cabe en cualquier hueco de ≥4 min
+      sv.push('<path d="M'+(gx1+4).toFixed(1)+' '+(MT-10)+' L'+(gx1+4).toFixed(1)+' '+(MT-3)+' L'+(gx2-4).toFixed(1)+' '+(MT-3)+' L'+(gx2-4).toFixed(1)+' '+(MT-10)+'" fill="none" stroke="#2e8b2e" stroke-width="1.6"/>');
       var tMin=Math.round((sig.x1-c.x2)/60)+' min';
-      var w=Math.max(_anchoTxt('agua',10.5,true), _anchoTxt(tMin,10,true));
-      if(w+10 > gx2-gx1) return;                          // no cabe en el hueco
+      var w=Math.max(_anchoTxt('AGUA',12.5,true), _anchoTxt(tMin,11,true));
+      if(w+8 > gx2-gx1) return;                            // los textos no caben
       var libre=true;
       etiq.forEach(function(e){
         if(e.piso) return;   // las elevadas viven en otro piso: no chocan
         if(gxm-w/2-6 < e.cx+e.wA/2 && gxm+w/2+6 > e.cx-e.wA/2) libre=false;
       });
       if(!libre) return;                                   // una cuba pisa la zona
-      sv.push('<text x="'+gxm.toFixed(1)+'" y="'+(MT-16)+'" font-size="10.5" font-weight="800" fill="#2e8b2e" text-anchor="middle" opacity=".95" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">agua</text>');
-      sv.push('<text x="'+gxm.toFixed(1)+'" y="'+(MT+16)+'" font-size="10" font-weight="700" fill="#2e8b2e" text-anchor="middle" opacity=".9" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">'+tMin+'</text>');
+      sv.push('<text x="'+gxm.toFixed(1)+'" y="'+(MT-16)+'" font-size="12.5" font-weight="800" fill="#2e8b2e" text-anchor="middle" opacity=".95" stroke="#fff" stroke-width="3.4" stroke-linejoin="round" style="paint-order:stroke">AGUA</text>');
+      sv.push('<text x="'+gxm.toFixed(1)+'" y="'+(MT+16)+'" font-size="11" font-weight="700" fill="#2e8b2e" text-anchor="middle" opacity=".9" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">'+tMin+'</text>');
     });
 
     // ══ (v2.6.346) SALTO DE CUBA O CAMBIO DE DEPÓSITO ══
