@@ -78,11 +78,11 @@
     var _lat = JSON.parse(localStorage.getItem('tq_latido')||'null');
     if(_lat && _lat.t){
       var _d = new Date(_lat.t);
-      _negra('ARRANQUE v364 · último latido previo: '+_d.getDate()+'/'+(_d.getMonth()+1)+' '
+      _negra('ARRANQUE v366 · último latido previo: '+_d.getDate()+'/'+(_d.getMonth()+1)+' '
         +('0'+_d.getHours()).slice(-2)+':'+('0'+_d.getMinutes()).slice(-2)
         +' en '+(_lat.p||'?')+(_lat.pend?(' con '+_lat.pend+' pendientes'):''));
     }else{
-      _negra('ARRANQUE v364 · sin latido previo');
+      _negra('ARRANQUE v366 · sin latido previo');
     }
   }catch(e){}
 
@@ -824,7 +824,7 @@ textarea.finput{resize:vertical;min-height:60px;}
   <div class="lcard">
     <div style="text-align:center;margin-bottom:6px;"><img src="data:image/jpeg;base64,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" style="height:54px;object-fit:contain;"></div>
     <div class="lsub">Trazabilidad · Lácteos Cuquerella</div>
-    <div id="ver-login" style="font-size:0.65rem;color:var(--text3);margin-top:4px;font-family:'Inconsolata',monospace;opacity:0.6;">v364</div>
+    <div id="ver-login" style="font-size:0.65rem;color:var(--text3);margin-top:4px;font-family:'Inconsolata',monospace;opacity:0.6;">v366</div>
     <select class="lsel" id="l-nombre" onchange="resetPin()">
       <option value="">— ¿Quién eres? —</option>
     </select>
@@ -850,7 +850,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div id="ver-home" style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v364</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div id="ver-home" style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v366</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -1253,6 +1253,7 @@ textarea.finput{resize:vertical;min-height:60px;}
           <div style="display:flex;gap:8px;align-items:center;">
             <div style="flex:1;background:rgba(212,135,10,0.08);border:1.5px solid var(--accent);border-radius:8px;padding:10px 12px;font-family:'Inconsolata',monospace;font-size:0.95rem;color:var(--accent);font-weight:600;" id="pint-lote-activo">—</div>
             <button onclick="toggleNuevoLotePint()" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,94,200,0.25);border-radius:8px;padding:10px 12px;font-size:0.75rem;cursor:pointer;white-space:nowrap;">Cambiar lote</button>
+            <button onclick="abrirGarrafaPint()" style="background:#fdf3e3;color:#8a5a10;border:1px solid rgba(180,120,20,0.3);border-radius:8px;padding:10px 12px;font-size:0.75rem;cursor:pointer;white-space:nowrap;">🛢️ Nueva garrafa</button>
           </div>
         </div>
         <div class="fg full" id="pint-nuevo-lote-wrap" style="display:none;">
@@ -2466,7 +2467,44 @@ var SECCIONES=[
   {id:'ENVASADO',nombre:'Envasado',icon:'🧀',cls:'s6',perm:'envasado'},
   {id:'PARTES',nombre:'Partes de fabricación',icon:'🧀',cls:'spartes',perm:'partes'},
 ];
-var PRODUCTOS_PINTURA=['BEIG CUBRICION CEPI','BEIG USAE BOLSA','BIO CLARO BIO C 6M BOLSA','BIO OSCURO 12 M C','MARON CHOCOLATE MAN 10','MARON OSCURO SPANI CEPI','MARRON BEIGE','MARRON CLAR0 USAE CEP','MARRON INTERMEDIO','NEGRO','ROJO CABRA','URSOPLAST 4M CEP MIEL'];
+var PRODUCTOS_PINTURA=[];   // (v366) se llena del stock de Calidad, ver clasificarRecubrimiento()
+// ══════════════════════════════════════════════════════════════════════════
+// LOS RECUBRIMIENTOS, REPARTIDOS POR PROCESO  (v366)
+// ──────────────────────────────────────────────────────────────────────────
+// Calidad da de alta TODO —antifúngico, 2ª capa y pinturas— en la misma
+// categoría de stock: RECUBRIMIENTOS PLASTICOS. Y con sus nombres de albarán
+// ("URSOPLAST BEIG CUBRICION CEP"), que no coincidían con los que las pintoras
+// habían ido tecleando en el móvil ("BEIG CUBRICION CEPI"): por eso el
+// desplegable de lotes decía "sin lotes dados de alta". Ahora la lista de
+// productos sale del propio stock, así que los nombres son los mismos para
+// todos y no se pueden volver a desalinear.
+//
+// CÓMO SE SEPARAN LOS TRES PROCESOS (reglas de Joaquín, 01/09):
+//   · lleva INMERSION y 2º MANO  →  2ª CAPA (se da con cepilladora)
+//   · lleva INMERSION a secas    →  1ª CAPA (antifúngico, por baño)
+//   · el resto (los colores)     →  PINTURA
+// Lo de "CEPILLADORA" en un color (URSOPLAST NEGRO CEPILLADORA) solo dice cómo
+// se aplica: sigue siendo pintura.
+// ══════════════════════════════════════════════════════════════════════════
+function clasificarRecubrimiento(articulo){
+  var a=String(articulo||'').toUpperCase();
+  if(a.indexOf('INMERSION')<0 && a.indexOf('INMERSIÓN')<0) return 'PINTURA';
+  return (/2\s*[ºO°]?\s*MANO/.test(a)) ? 'CAPA2' : 'CAPA1';
+}
+// Artículos de recubrimiento del stock que corresponden a un proceso.
+// Devuelve nombres únicos, ordenados, solo de fichas con stock a la vista.
+function recubrimientosDe(proceso){
+  var vistos={}, res=[];
+  (matStockRemote||[]).forEach(function(r){
+    var cat=String(r['CATEGORIA']||'').toUpperCase();
+    if(cat.indexOf('RECUBRIMIENTO')<0) return;
+    var art=String(r['ARTICULO']||'').trim();
+    if(!art || clasificarRecubrimiento(art)!==proceso) return;
+    if(vistos[art]) return;
+    vistos[art]=1; res.push(art);
+  });
+  return res.sort();
+}
 var USUARIOS=[
   {n:'JOAQUIN',   pin:'2205',rol:'ADMIN',    stock:true, plan:true, scan:true,  partes:true, p:{capa1:1,volteo:1,movimiento:1,capa2:1,pintura:1,envasado:1}},
   {n:'CALIDAD',   pin:'2306',rol:'CALIDAD',  stock:false,plan:false,scan:false, partes:true, p:{capa1:1,volteo:1,movimiento:1,capa2:1,pintura:1,envasado:1}},
@@ -4649,9 +4687,23 @@ function renderLogMov(){
 // ═══════ PINTURA ═══════
 function initPintura(){
   var sel=document.getElementById('pint-prod');
-  sel.innerHTML=PRODUCTOS_PINTURA.map(function(p){return '<option value="'+p+'">'+p+'</option>';}).join('')+'<option value="NUEVO">+ Nuevo producto...</option>';
-  pintProdActual=PRODUCTOS_PINTURA[0];
-  onPintProd(pintProdActual);
+  // (v366) La lista sale del stock de Calidad (recubrimientos que NO son de
+  // inmersión). Si el stock aún no ha llegado, se pide y se repinta al vuelo.
+  function _pintar(){
+    PRODUCTOS_PINTURA=recubrimientosDe('PINTURA');
+    if(!PRODUCTOS_PINTURA.length){
+      sel.innerHTML='<option value="">⚠️ Sin pinturas dadas de alta en material auxiliar</option><option value="NUEVO">+ Nuevo producto...</option>';
+      pintProdActual=''; document.getElementById('pint-lote-activo').textContent='—';
+      return;
+    }
+    var prev=pintProdActual;
+    sel.innerHTML=PRODUCTOS_PINTURA.map(function(p){return '<option value="'+p+'">'+p+'</option>';}).join('')+'<option value="NUEVO">+ Nuevo producto...</option>';
+    pintProdActual=(prev&&PRODUCTOS_PINTURA.indexOf(prev)>=0)?prev:PRODUCTOS_PINTURA[0];
+    sel.value=pintProdActual;
+    onPintProd(pintProdActual);
+  }
+  _pintar();
+  if(typeof cargarMaterialAuxiliar==='function') cargarMaterialAuxiliar(_pintar);
   document.getElementById('pint-qr').value='';
   document.getElementById('pint-err').style.display='none';
   renderLogPint();
@@ -4671,6 +4723,84 @@ function onPintProd(prod){
   var loteActual=_loteVigente(lotePinturaPorProducto[prod])||'—';
   document.getElementById('pint-lote-activo').textContent=loteActual;
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// CONSUMO DE PINTURA POR GARRAFAS  (v365)
+// ──────────────────────────────────────────────────────────────────────────
+// Calidad daba de alta las pinturas en material auxiliar, pero NADIE las
+// descontaba nunca: el stock solo crecía. Se descarta estimar el consumo por
+// palé (depende del queso, del formato y de la mano) y se cuenta lo que es un
+// hecho físico: LA GARRAFA QUE SE ABRE.
+//
+// CUÁNDO SE DESCUENTA: al ABRIR, no al terminar — igual que la bobina de
+// envasado, que se cuenta cuando entra en la máquina. Así el stock significa
+// siempre "lo que hay cerrado en el almacén"; lo que está a medias en pintura
+// ya no está disponible. Regla de Joaquín (01/09), la misma que se aplicará al
+// antifúngico de 1ª capa y a las bobinas.
+//
+// DOS DISPARADORES:
+//   · Botón "🛢️ Nueva garrafa": misma pintura, garrafa siguiente (de 6 garrafas
+//     de un mismo lote, este es el único que las caza).
+//   · Automático al ELEGIR un lote nuevo en "Cambiar lote": empezar lote nuevo
+//     es abrir garrafa nueva.
+//
+// LOS KILOS DE LA GARRAFA se preguntan UNA VEZ por producto y quedan
+// memorizados en el aparato (tq_kg_garrafa). Las siguientes, un toque.
+//
+// La salida se manda por el endpoint SALIDAS_ENVASADO del backend (el mismo que
+// usan las bobinas), con motivo 'APERTURA GARRAFA PINTURA': queda en SALIDAS
+// MATERIAL AUXILIAR con fecha, operaria, producto, lote y kilos, y el backend
+// descuenta el stock con su conversión de unidades. Sin tocar el Apps Script.
+// ══════════════════════════════════════════════════════════════════════════
+function _kgGarrafaDe(prod){
+  try{ var m=JSON.parse(localStorage.getItem('tq_kg_garrafa')||'{}'); return parseFloat(m[prod])||0; }catch(e){ return 0; }
+}
+function _guardarKgGarrafa(prod, kg){
+  try{ var m=JSON.parse(localStorage.getItem('tq_kg_garrafa')||'{}'); m[prod]=kg; localStorage.setItem('tq_kg_garrafa', JSON.stringify(m)); }catch(e){}
+}
+function _descontarGarrafa(prod, lote, silencioso){
+  if(!prod || !lote) return false;
+  var kg=_kgGarrafaDe(prod);
+  if(!kg){
+    var r=prompt('¿De cuántos KG es una garrafa de\n'+prod+'?\n\n(se pregunta solo la primera vez)','25');
+    if(r===null) return false;
+    kg=parseFloat(String(r).replace(',','.'));
+    if(!kg || kg<=0){ toast('Kilos no válidos','err'); return false; }
+    _guardarKgGarrafa(prod, kg);
+  }
+  var info=_buscarItemStockAux(prod, lote);
+  var fecha=fechaHoraEspana();
+  var idG='G-'+Date.now();
+  try{
+    fetch(API_URL, { method:'POST', body: JSON.stringify({
+      '_SHEET':'SALIDAS_ENVASADO',
+      idEnvasado: idG,
+      operario: CU.n,
+      fecha: fecha,
+      motivo: 'APERTURA GARRAFA PINTURA',
+      materiales: [{
+        categoria: info ? info.categoria : 'PINTURA',
+        articulo:  prod,
+        proveedor: info ? info.proveedor : '',
+        lote:      lote,
+        cantidad:  kg,
+        unidad:    'kg'
+      }]
+    })}).catch(function(){});
+  }catch(_){}
+  try{ window._negra && window._negra('garrafa abierta: '+prod+' lote '+lote+' ('+kg+' kg)'); }catch(e){}
+  if(!silencioso) toast('🛢️ Garrafa abierta: '+kg+' kg de '+prod+' descontados del lote '+lote);
+  return true;
+}
+function abrirGarrafaPint(){
+  var prod=pintProdActual;
+  var lote=_loteVigente(lotePinturaPorProducto[prod]||'');
+  if(!prod){ toast('Elige primero el producto','err'); return; }
+  if(!lote){ toast('Este producto no tiene lote activo. Usa "Cambiar lote" primero.','err'); return; }
+  if(!confirm('¿Abres una garrafa nueva de\n'+prod+'\nlote '+lote+'?\n\nSe descontará una garrafa del stock.')) return;
+  _descontarGarrafa(prod, lote, false);
+}
+
 function toggleNuevoLotePint(){
   var w=document.getElementById('pint-nuevo-lote-wrap');
   w.style.display=w.style.display==='none'?'':'none';
@@ -4688,16 +4818,16 @@ function poblarSelectLotePint(){
   var sel=document.getElementById('pint-nuevo-lote-sel');
   if(!sel) return;
   function _render(){
+    // (v366) Ahora el producto ES un artículo del stock: los lotes son los suyos,
+    // sin adivinar por parecido de nombre. Si ese artículo no tuviera lotes con
+    // stock, se ofrecen los demás del mismo proceso (pintura) para no bloquear.
     var prodN=_normNombre(pintProdActual);
     var todos=(matStockRemote||[]).filter(function(r){ return (parseFloat(r['STOCK ACTUAL'])||0)>0; });
-    var lotes=todos.filter(function(r){
-      var artN=_normNombre(r['ARTICULO']);
-      return artN && prodN && (artN===prodN || artN.indexOf(prodN)>=0 || prodN.indexOf(artN)>=0);
-    });
+    var lotes=todos.filter(function(r){ return _normNombre(r['ARTICULO'])===prodN; });
     if(!lotes.length){
       lotes=todos.filter(function(r){
-        var cat=_normNombre(r['CATEGORIA']);
-        return cat.indexOf('PINTUR')>=0 || cat.indexOf('CERA')>=0 || cat.indexOf('ENCER')>=0;
+        var cat=String(r['CATEGORIA']||'').toUpperCase();
+        return cat.indexOf('RECUBRIMIENTO')>=0 && clasificarRecubrimiento(r['ARTICULO'])==='PINTURA';
       });
     }
     var html='';
@@ -4732,6 +4862,8 @@ function onSelLotePint(v){
   if(inp) inp.value=v;
   onNuevoLotePint(v);   // arranca la transición de 2 palets, como siempre
   toast('Nuevo lote elegido: '+v+' · transición de 2 palets');
+  // (v365) Empezar lote nuevo = garrafa nueva abierta: se descuenta ya.
+  _descontarGarrafa(pintProdActual, v, false);
 }
 function onNuevoLotePint(v){nuevoLotePint=v.trim();transPint=v.trim()?2:0;}
 function onPintKey(e){if(e.key==='Enter'){var v=document.getElementById('pint-qr').value.trim();if(v){registrarPint(v);document.getElementById('pint-qr').value='';}}}
