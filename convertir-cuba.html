@@ -39,7 +39,7 @@
 <body>
 
 <h1>Convertir datos de la cuba</h1>
-<div class="sub">Lácteos Cuquerella · El Hidalgo · v1.1</div>
+<div class="sub">Lácteos Cuquerella · El Hidalgo · v2.0</div>
 
 <div class="caja">
   <div class="paso"><b>1</b><span>Arrastra aquí el <strong>.xps</strong> de una cuba (el de <em>Control Cuba</em>). El número de cuba lo lee del propio archivo.</span></div>
@@ -55,7 +55,7 @@
 
   <div class="estado" id="estado"></div>
 
-  <!-- (v1.1) El export de la ventana "Tabla Control" no lleva dentro el número
+  <!-- (v1.6) El export de la ventana "Tabla Control" no lleva dentro el número
        de cuba: su cabecera es la ruta del proyecto de WinCC, no "Control Cuba 3".
        Si no se puede leer del archivo, hay que decirlo a mano, porque el nombre
        del JSON y la comparativa dependen de saber de qué cuba se trata. -->
@@ -79,7 +79,7 @@
 </div>
 
 <div class="caja" id="resumen2" style="display:none">
-  <div class="cab">Paradas del agitador durante el llenado</div>
+  <div class="cab">Paradas del agitador</div>
   <div class="nota" style="margin-top:2px">Cuando el quesero echa el cloruro o el fermento, para el agitador. Aquí están
   esas paradas, pero <strong>el dato no dice qué se echó</strong>: solo que se paró.</div>
   <table><thead><tr><th>Hora</th><th class="n">Duración</th><th class="n">Tª</th></tr></thead>
@@ -121,6 +121,28 @@ document.getElementById('fichero').addEventListener('change', function(){
 });
 
 function hhmm(s){ var h=Math.floor(s/3600), m=Math.floor((s%3600)/60); return (h<10?'0':'')+h+':'+(m<10?'0':'')+m; }
+// (v1.6) El nombre del JSON, en un solo sitio: cubaN-DD.MM.AAAA.json
+// Mismo criterio de fecha que las gráficas de pasteurización, para que el
+// backend pueda buscarlos con la misma regla.
+// (v1.6) Ahora recibe la FECHA ENTERA, no troceada, y la entiende venga como
+// venga. El fallo anterior: la fecha llega por dos caminos distintos —del
+// informe automático como 21/08/26, y de la Tabla Control como 2026-08-21— y
+// esta función daba por hecho el primero. Con el segundo tomaba el año por día
+// y le pegaba "20" delante, saliendo cuba3-2026.08.2021.json. Unifiqué el
+// nombre pero no la fecha, que era la mitad del problema.
+function _nombreJson(cuba, fecha){
+  var d, m, a, t = String(fecha||'').trim();
+  var mm;
+  if((mm = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))){        // 2026-08-21
+    a = mm[1]; m = mm[2]; d = mm[3];
+  } else if((mm = t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/))){  // 21/08/26 ó 21/08/2026
+    d = mm[1]; m = mm[2]; a = mm[3].length===2 ? ('20'+mm[3]) : mm[3];
+  } else {
+    return 'cuba' + (cuba||'') + '-fecha-desconocida.json';
+  }
+  d = ('0'+d).slice(-2);  m = ('0'+m).slice(-2);
+  return 'cuba' + (cuba||'') + '-' + d + '.' + m + '.' + a + '.json';
+}
 function num(v){ var x=parseFloat(String(v).replace(',','.')); return isNaN(x)?0:x; }
 
 function procesar(file){
@@ -158,7 +180,7 @@ function leer(file){
     return siguiente(paginas, 0, []);
   }).then(function(filas){
     if(!filas.length) throw new Error('No se han encontrado medidas dentro del archivo.');
-    // (v1.1) UN SOLO DÍA POR ARCHIVO.
+    // (v1.6) UN SOLO DÍA POR ARCHIVO.
     // El export de la ventana de tabla arranca con las últimas filas del día
     // anterior, porque el archivo de WinCC es continuo. Si se dejan, la fecha
     // del JSON sale del día equivocado y los hitos se descolocan: el orden se
@@ -280,28 +302,113 @@ function construir(filas){
     if(h.clave==='vaciado' && tLlen!==null && h.t2 <= tLlen){ h.clave='aclarado'; h.nombre='Aclarado inicial'; }
   });
 
-  // ── PARADAS DEL AGITADOR DURANTE EL LLENADO ──
-  // La columna FRE es la frecuencia del agitador. Cuando el quesero echa el
-  // cloruro o el fermento, lo para. OJO: el dato dice que se paró, no qué se
-  // echó. Sirve para contrastar, no para afirmar.
+  // ══════════════════════════════════════════════════════════════════════
+  // PARADAS DEL AGITADOR DURANTE EL LLENADO  (v2.0)
+  // ──────────────────────────────────────────────────────────────────────
+  // La columna FRE es la frecuencia del agitador. El dato dice que se paró,
+  // no QUÉ se echó: sirve para contrastar, no para afirmar.
+  //
+  // LO QUE FALLABA HASTA LA v1.9: solo se contaban las paradas que llegaban a
+  // CERO y duraban 20 SEGUNDOS O MÁS. Con eso se perdía justo la más
+  // interesante — la del cloruro. Echar el cubo es levantar la tapa, volcar y
+  // cerrar: cinco o seis segundos. En la cuba 1 del 01/09 esa parada existe a
+  // las 05:41 (12 hercios y un cero, 10 segundos) y no se veía; la comparativa
+  // daba por bueno el arranque del llenado como hora del cloruro, y el quesero
+  // había apuntado 05:36, imposible porque el llenado empezó a las 05:39.
+  //
+  // LA REGLA NUEVA, con la lógica del proceso detrás (Joaquín, 01/09):
+  //   · DEL LLENADO AL CUAJO la lira gira SIEMPRE en el mismo sentido, así que
+  //     CUALQUIER bajada de frecuencia es una parada real, aunque dure una sola
+  //     muestra (5 s) y aunque no llegue a cero. Se cuentan todas.
+  //   · DESPUÉS DEL CUAJO no: el autómata invierte el giro cada pocos minutos
+  //     para deshacer las bolas de la cuajada, y eso baja los hercios sin que
+  //     nadie pare nada. Ahí solo se cuentan las paradas de 20 s o más, que sí
+  //     pueden significar algo.
+  //
+  // Qué es "bajada": por debajo del nivel de crucero del tramo, que se calcula
+  // del propio archivo (el valor de frecuencia más repetido). El 01/09 era 16.
+  // Así no hay que dar por supuesto ningún número: si mañana se trabaja a otra
+  // frecuencia, el detector se adapta solo.
+  // ══════════════════════════════════════════════════════════════════════
   var tCuaj = null;
   hitos.forEach(function(h){ if(h.clave==='cuajado' && tCuaj===null) tCuaj=h.t1; });
-  var paradas=[], ini2=null, prev2=null;
-  if(tLlen!==null && tCuaj!==null){
-    for(var k2=0;k2<filas.length;k2++){
-      var t=seg(filas[k2][0]);
-      if(t<tLlen || t>tCuaj) continue;
-      var f2=num(filas[k2][14]);
-      if(f2===0 && ini2===null) ini2=k2;
-      if(f2>0 && ini2!==null){
-        var dur=seg(filas[prev2][0])-seg(filas[ini2][0])+5;
-        if(dur>=20) paradas.push({t1:seg(filas[ini2][0]), t2:seg(filas[prev2][0]),
-                                  segs:dur, temp:num(filas[ini2][2])});
-        ini2=null;
-      }
-      if(f2===0) prev2=k2;
+
+  function _crucero(desde, hasta){
+    var cuenta={}, mejor=0, mejorN=0;
+    for(var i=0;i<filas.length;i++){
+      var t=seg(filas[i][0]);
+      if(t<desde || t>hasta) continue;
+      var v=num(filas[i][14]);
+      if(v<=0) continue;
+      cuenta[v]=(cuenta[v]||0)+1;
+      if(cuenta[v]>mejorN){ mejorN=cuenta[v]; mejor=v; }
     }
+    return mejor;
   }
+  // Recorre un tramo y devuelve sus bajadas por debajo del crucero.
+  function _bajadas(desde, hasta, minSegs){
+    var res=[], cru=_crucero(desde, hasta);
+    if(!cru) return res;
+    var ini=null, prev=null;
+    for(var i=0;i<filas.length;i++){
+      var t=seg(filas[i][0]);
+      if(t<desde || t>hasta) continue;
+      var f=num(filas[i][14]);
+      if(f<cru){
+        if(ini===null) ini=i;
+        prev=i;
+      } else if(ini!==null){
+        var dur=seg(filas[prev][0])-seg(filas[ini][0])+5;
+        if(dur>=minSegs){
+          var hz=[];
+          for(var k=ini;k<=prev;k++) hz.push(num(filas[k][14]));
+          res.push({t1:seg(filas[ini][0]), t2:seg(filas[prev][0]), segs:dur,
+                    temp:num(filas[ini][2]), hz:hz, zona:'llenado'});
+        }
+        ini=null;
+      }
+    }
+    if(ini!==null && prev!==null){
+      var dur2=seg(filas[prev][0])-seg(filas[ini][0])+5;
+      if(dur2>=minSegs){
+        var hz2=[];
+        for(var k2=ini;k2<=prev;k2++) hz2.push(num(filas[k2][14]));
+        res.push({t1:seg(filas[ini][0]), t2:seg(filas[prev][0]), segs:dur2,
+                  temp:num(filas[ini][2]), hz:hz2, zona:'llenado'});
+      }
+    }
+    return res;
+  }
+
+  // (v2.0) POR CUAJADA, NO SOLO LA PRIMERA. Una cuba hace dos o tres cuajadas
+  // al día; mirando solo el primer llenado y el primer cuajo, las siguientes se
+  // quedaban sin ninguna parada (el 01/09, la segunda cuajada salía con cero).
+  var paradas=[];
+  var _llens=[], _cuajs=[], _vacs=[];
+  hitos.forEach(function(h){
+    if(h.clave==='llenado') _llens.push(h.t1);
+    if(h.clave==='cuajado') _cuajs.push(h.t1);
+    if(h.clave==='vaciado' || h.clave==='moldeo') _vacs.push(h.t1);
+  });
+  _cuajs.forEach(function(tc){
+    // El llenado que precede a este cuajo
+    var tl=null;
+    _llens.forEach(function(x){ if(x<tc && (tl===null || x>tl)) tl=x; });
+    if(tl===null) return;
+    // Del llenado al cuajo: TODAS, aunque duren una sola muestra.
+    _bajadas(tl, tc, 1).forEach(function(p){ paradas.push(p); });
+    // Tras el cuajo y hasta el vaciado: solo las de 20 s o más (las cortas son
+    // el cambio de giro del autómata) y nunca de más de 15 minutos, que a esas
+    // alturas ya no es una parada sino la cuba terminada.
+    var tv=null;
+    _vacs.forEach(function(x){ if(x>tc && (tv===null || x<tv)) tv=x; });
+    var tope = tv || seg(filas[filas.length-1][0]);
+    _bajadas(tc+1, tope, 20).forEach(function(p){
+      if(p.segs > 15*60) return;
+      p.zona='post-cuajo'; paradas.push(p);
+    });
+  });
+  paradas.sort(function(a,b){ return a.t1-b.t1; });
 
   // Una medida cada 20 segundos para poder dibujar la curva de temperatura
   var puntos=[];
@@ -309,19 +416,271 @@ function construir(filas){
     puntos.push({t:seg(filas[i][0]), temp:num(filas[i][2]), fre:num(filas[i][14])});
   }
 
+
+  // ══════════════════════════════════════════════════════════════════════
+  // LA RECETA Y SUS CAMBIOS  (v1.6)
+  // ──────────────────────────────────────────────────────────────────────
+  // La columna Q (o REC) es el número de receta. Interesa por dos motivos: para
+  // saber a qué temperatura DEBERÍA recalentar, y para cazar el caso del 21 de
+  // agosto, cuando se arrancó en receta 1 y alguien la cambió a la 4 a media
+  // cuajada sin devolverla. Sin este dato, aquel día parecía normal.
+  // ══════════════════════════════════════════════════════════════════════
+  var RECETAS = {1:'OVEJA', 2:'CABRA', 3:'MEZCLA NEGRO', 4:'PRUEBA', 5:'MESNERA', 6:'MEZCLA TOSTADO'};
+  // Temperatura objetivo del recalentamiento, en °C, por receta. (v1.6)
+  // Dadas por Ximo el 23/08/2026. Sirven para el chivato de "minutos por encima":
+  // sin ellas no se puede saber si una punta de temperatura es normal o no, y el
+  // mismo número significa cosas opuestas según la receta (39,3 °C es un problema
+  // grave en oveja y un día corriente en mezcla tostado).
+  var OBJETIVO_RECAL = {1:36, 2:37, 3:37, 4:38, 5:38, 6:40};
+
+  var recetas=[], prevQ=null;
+  for(var r1=0;r1<filas.length;r1++){
+    var q = String(filas[r1][1]||'').trim();
+    if(q !== prevQ && q !== ''){
+      recetas.push({t:seg(filas[r1][0]), q:parseInt(q,10)||null, nombre:RECETAS[parseInt(q,10)]||('receta '+q)});
+      prevQ = q;
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // LAS DOS VÁLVULAS DE VACIADO  (v1.6)
+  // ──────────────────────────────────────────────────────────────────────
+  // V1 y V2 son las válvulas de salida. Las DOS abiertas = se está llenando la
+  // llenadora. Ese instante es la referencia de dos normas de casa:
+  //   · la temperatura final del recalentamiento que apunta el quesero;
+  //   · el inicio del moldeo, unos 4-5 min después en oveja (más en mezcla).
+  // Una sola abierta, antes de eso, es el desuerado: se saca ~1/3 de cuba.
+  // ══════════════════════════════════════════════════════════════════════
+  var valvulas=[], pv1=0, pv2=0;
+  for(var r2=0;r2<filas.length;r2++){
+    var v1=num(filas[r2][16]), v2=num(filas[r2][17]), tt=seg(filas[r2][0]);
+    if((v1>0)!==(pv1>0) || (v2>0)!==(pv2>0)){
+      valvulas.push({t:tt, v1:v1>0?1:0, v2:v2>0?1:0, temp:num(filas[r2][2])});
+    }
+    pv1=v1; pv2=v2;
+  }
+  // (v1.6) El barrido de válvulas, ahora POR CUAJADA. Antes se hacía una sola vez
+  // para todo el archivo, lo que valía mientras se diera por hecho que un día era
+  // una cuajada. Un .xps trae el día entero de una cuba, y una cuba puede hacer
+  // dos o tres, así que hay que acotar la búsqueda a la ventana de cada una.
+  //
+  // SOLO A PARTIR DEL CUAJO: a primera hora se aclaran las tres cubas y eso abre
+  // las dos válvulas; si se coge esa, la "apertura" sale antes que el llenado.
+  function valvulasDe(tCuajo, wFin){
+    var ap=null, des=null, q1=0, q2=0;
+    for(var r=0;r<filas.length;r++){
+      var a=num(filas[r][16]), b=num(filas[r][17]), t=seg(filas[r][0]);
+      if(t<=tCuajo || t>=wFin){ q1=a; q2=b; continue; }
+      if(a>0 && b>0 && ap===null) ap={t:t, temp:num(filas[r][2])};
+      if(((a>0)!==(b>0)) && ap===null && des===null) des={t1:t};
+      if(des && !des.t2 && a>0 && b>0) des.t2=t;
+      q1=a; q2=b;
+    }
+    return {apertura:ap, desuerado:des};
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // LA FICHA: LAS NORMAS YA APLICADAS  (v1.6)
+  // ──────────────────────────────────────────────────────────────────────
+  // Aquí se traduce el SCADA al lenguaje del parte de fabricación, siguiendo las
+  // normas de casa recogidas en NORMAS-SCADA.md. La idea es que las reglas vivan
+  // en UN SOLO SITIO —este— y que ni el backend ni la app tengan que volver a
+  // deducirlas. Ellos solo comparan números ya calculados.
+  //
+  // OJO CON DOS COSAS, que son las que hacen falsos rojos si se olvidan:
+  //   1) La temperatura final del recalentamiento NO es la del fin del contador
+  //      CAL: el autómata corta el vapor antes contando con la inercia. Es la del
+  //      instante en que abren las dos válvulas.
+  //   2) El fin del batido del parte NO es el fin del contador BAT: el quesero
+  //      cuenta hasta el primer corte de la llenadora, unos minutos después de
+  //      abrir las válvulas. Aquí se da la apertura como referencia y se deja el
+  //      cálculo del moldeo al que compare, que sí sabe la receta y el formato.
+  // ══════════════════════════════════════════════════════════════════════
+  function hito(clave){ var h=null; hitos.forEach(function(x){ if(x.clave===clave && !h) h=x; }); return h; }
+  function tempEn(t){
+    var mejor=null;
+    for(var z=0;z<filas.length;z++){
+      var d=Math.abs(seg(filas[z][0])-t);
+      if(mejor===null || d<mejor.d) mejor={d:d, v:num(filas[z][2])};
+      if(d>600 && mejor.d<10) break;
+    }
+    return mejor ? mejor.v : null;
+  }
+  // Máximo de temperatura entre dos instantes, y cuánto tiempo pasó por encima
+  // de un umbral. El máximo es el chivato de verdad: el 21 de agosto la punta
+  // fueron 39,3 °C y el parte, cumpliendo la norma, marcaba 36,9.
+  function tramoTemp(t1, t2, umbral){
+    var mx=null, hmx=null, segsArriba=0;
+    for(var z=0;z<filas.length;z++){
+      var t=seg(filas[z][0]);
+      if(t<t1 || t>t2) continue;
+      var v=num(filas[z][2]);
+      if(mx===null || v>mx){ mx=v; hmx=t; }
+      if(umbral!==undefined && v>=umbral) segsArriba+=5;
+    }
+    return {max:mx, hora_max:hmx, segs_por_encima:segsArriba};
+  }
+
+  // ── LAS CUAJADAS DEL DÍA (v1.6) ──
+  // Un .xps es el día entero de UNA cuba física, y esa cuba puede hacer varias
+  // cuajadas. Antes se cogía la primera de cada contador y se tiraba el resto:
+  // el día 21 la cuba física 1 hizo oveja por la mañana y cabra más tarde, y la
+  // cabra sencillamente no existía en el JSON. De ahí que ningún parte cuadrara.
+  //
+  // Cada arranque del contador CUAJA es una cuajada. La ventana de cada una va
+  // desde su llenado hasta el llenado de la siguiente.
+  var arrCuaj = hitos.filter(function(h){ return h.clave==='cuajado'; })
+                     .sort(function(a,b){ return a.t1-b.t1; });
+  var arrLlen = hitos.filter(function(h){ return h.clave==='llenado'; })
+                     .sort(function(a,b){ return a.t1-b.t1; });
+  var ventanas = arrCuaj.map(function(c, i){
+    var lle = null;
+    arrLlen.forEach(function(l){ if(l.t1 < c.t1) lle = l; });   // el último antes del cuajo
+    var ini = lle ? lle.t1 : Math.max(0, c.t1 - 5400);
+    return {cuaj:c, llen:lle, ini:ini, fin:Infinity};
+  });
+  ventanas.forEach(function(v, i){
+    if(i+1 < ventanas.length) v.fin = ventanas[i+1].ini;
+  });
+  if(!ventanas.length) ventanas = [{cuaj:null, llen:null, ini:0, fin:Infinity}];
+
+  function fichaDeVentana(w){
+  // Dentro de la ventana, "el primero de cada contador" vuelve a ser correcto.
+  function hito(clave){
+    var h=null;
+    hitos.forEach(function(x){
+      if(x.clave===clave && !h && x.t1>=w.ini && x.t1<w.fin) h=x;
+    });
+    return h;
+  }
+  var hLlen=hito('llenado'), hCuaj=hito('cuajado'), hCoag=hito('coagulacion');
+  var hCo1=hito('corte1'), hCal=hito('recalentamiento'), hBat=hito('batido');
+  var _v = hCuaj ? valvulasDe(hCuaj.t1, w.fin) : {apertura:null, desuerado:null};
+  var aperturaDos = _v.apertura, desuerado = _v.desuerado;
+
+  // Receta con la que se cuajó: la vigente en el momento del cuajo, no la de
+  // arranque. Es la que manda para saber a qué temperatura debía recalentar.
+  var recetaCuajo = null;
+  recetas.forEach(function(rr){ if(hCuaj && rr.t <= hCuaj.t1) recetaCuajo = rr; });
+  // Los cambios de receta que avisar son los de ESTA cuajada, no los del día:
+  // pasar de oveja a cabra entre una hornada y la siguiente es lo normal.
+  var cambiosVentana = recetas.filter(function(rr){ return rr.t>=w.ini && rr.t<w.fin; });
+  var objetivo = recetaCuajo && OBJETIVO_RECAL[recetaCuajo.q] !== undefined
+               ? OBJETIVO_RECAL[recetaCuajo.q] : null;
+
+  // Las adiciones que dejan parada de agitador: fermentos y cuajo sí, cloruro no.
+  var pFerm = null;
+  paradas.forEach(function(pp){ if(!pFerm && pp.t1>=w.ini && pp.t1<w.fin) pFerm=pp; });
+
+  // El aclarado inicial que precede a esta cuajada (solo lo tiene la primera)
+  var _hAcl = null;
+  hitos.forEach(function(h){
+    if(h.clave==='aclarado' && h.t1 < (w.llen ? w.llen.t1 : w.ini) && h.t1 >= (w.ini - 3600)) _hAcl = h;
+  });
+
+  var recalMax = (hCal && aperturaDos)
+    ? tramoTemp(hCal.t1, aperturaDos.t, objetivo !== null ? objetivo + 1 : undefined)
+    : null;
+
+  var ficha = {
+    receta:          recetaCuajo ? recetaCuajo.nombre : null,
+    receta_num:      recetaCuajo ? recetaCuajo.q : null,
+    receta_cambios:  cambiosVentana.length > 1 ? cambiosVentana : null,   // si cambió a media cuajada
+    objetivo_recal:  objetivo,
+
+    // Auxiliares: el cloruro entra al arrancar el llenado y NO deja parada.
+    hora_aux:        hLlen ? hLlen.t1 : null,
+    temp_aux:        hLlen ? hLlen.ti : null,
+
+    // Fermentos: primera parada larga del agitador tras el inicio del llenado.
+    hora_ferm:       pFerm ? pFerm.t1 : null,
+    temp_ferm:       pFerm ? pFerm.temp : null,
+
+    hora_cuajado:    hCuaj ? hCuaj.t1 : null,
+    temp_cuajado:    hCuaj ? hCuaj.ti : null,
+    // COAGULACIÓN TOTAL = contador CUAJA, no COAG.  (v1.6, norma dada por Ximo)
+    // En la cuba, al pulsar cuajado el autómata agita 3 minutos repartiendo el
+    // cuajo y se para solo; después la cuajada reposa con las liras quietas.
+    // COAG solo cuenta el reposo (de ahí que COAG = CUAJA − 3 siempre), pero en
+    // casa la coagulación total se cuenta DESDE QUE SE ECHA EL CUAJO, así que
+    // incluye esos 3 minutos de reparto. El parte ponía 20 y COAG daba 17.
+    coagulacion_min: hCuaj ? hCuaj.mins : (hCoag ? hCoag.mins + 3 : null),
+    coagulacion_reposo_min: hCoag ? hCoag.mins : null,   // informativo
+    hora_corte:      hCo1 ? hCo1.t1 : null,
+
+    hora_ini_recal:  hCal ? hCal.t1 : null,
+    temp_ini_recal:  hCal ? hCal.ti : null,
+    // NORMA: la final es la de la apertura de las dos válvulas, no la del contador.
+    hora_fin_recal:  hCal ? hCal.t2 : null,
+    temp_fin_recal:  aperturaDos ? aperturaDos.temp : null,
+    temp_fin_contador: hCal ? hCal.tf : null,   // solo informativo, para ver la inercia
+
+    hora_ini_batido: hCal ? hCal.t2 : null,
+    batido_min:      hBat ? hBat.mins : null,
+
+    desuerado_ini:   desuerado ? desuerado.t1 : null,
+    desuerado_min:   (desuerado && desuerado.t2) ? Math.round((desuerado.t2-desuerado.t1)/60*10)/10 : null,
+
+    // Referencia del moldeo: el quesero cuenta desde el primer corte de la
+    // llenadora, unos minutos DESPUÉS de esta apertura.
+    apertura_valvulas: aperturaDos ? aperturaDos.t : null,
+    temp_apertura:     aperturaDos ? aperturaDos.temp : null,
+
+    // EL CHIVATO. Máximo alcanzado entre el inicio del recalentamiento y el
+    // vaciado, y cuánto tiempo estuvo más de un grado por encima del objetivo.
+    max_recalentamiento:  recalMax ? recalMax.max : null,
+    hora_max:             recalMax ? recalMax.hora_max : null,
+    min_por_encima:       recalMax ? Math.round(recalMax.segs_por_encima/60*10)/10 : null,
+
+    // (v2.0) LA HORA DEL LLENADO Y LAS PARADAS, DENTRO DE LA FICHA.
+    // Estaban solo en la raíz del JSON, y la comparativa las busca aquí: por eso
+    // la app no enseñaba ni el arranque del llenado ni las paradas del agitador
+    // por mucho que estuvieran en el archivo. Cada cuajada se queda con LAS
+    // SUYAS, las que caen dentro de su ventana.
+    hora_llenado:    hLlen ? hLlen.t1 : null,
+    paradas:         paradas.filter(function(pp){ return pp.t1>=w.ini && pp.t1<=w.fin; }),
+
+    // (v2.0) EL ACLARADO INICIAL. Antes de la primera cuajada del día se aclara
+    // la cuba con las válvulas abiertas; el SCADA lo registra como vaciado y el
+    // conversor ya lo distingue. Dato pedido por Joaquín: saber a qué hora
+    // empezó y a qué temperatura, y cuánto duró hasta arrancar el llenado.
+    hora_aclarado:      _hAcl ? _hAcl.t1 : null,
+    hora_aclarado_fin:  _hAcl ? _hAcl.t2 : null,
+    temp_aclarado:      _hAcl ? _hAcl.ti : null,
+    min_aclarado:       _hAcl ? Math.round((_hAcl.t2-_hAcl.t1)/60*10)/10 : null
+  };
+  return ficha;
+  }   // ← fin de fichaDeVentana
+
+  // Una ficha por cuajada, en orden de reloj.
+  var FICHAS = ventanas.map(fichaDeVentana);
+  var ficha  = FICHAS[0] || null;   // compatibilidad con lo anterior
+
   var mc = String(CABECERA||'').match(/Cuba\s*(\d+)/i);
-  var f0 = filas[0][0].split(' ')[0].split('/');
+  var f0 = filas[0][0].split(' ')[0];   // (v1.6) fecha entera, sin trocear
+  var _p = f0.split('/');               // el informe la trae como DD/MM/AA
   RESULTADO = {
-    fecha: '20'+f0[2]+'-'+f0[1]+'-'+f0[0],
+    // (v2.0) SELLO DE VERSIÓN. La app lo enseña bajo el título de cada cuba
+    // para saber con qué conversor se hizo el archivo: sin él, no había forma
+    // de distinguir un JSON viejo de uno nuevo y se perdía media tarde.
+    conversor: '2.0',
+    fecha: '20'+_p[2]+'-'+_p[1]+'-'+_p[0],
     cuba: mc ? parseInt(mc[1]) : null,
     medidas: filas.length,
-    hitos: hitos, paradas: paradas, puntos: puntos
+    hitos: hitos, paradas: paradas, puntos: puntos,
+    recetas: recetas, valvulas: valvulas,
+    ficha: ficha,           // la primera cuajada (se mantiene por compatibilidad)
+    fichas: FICHAS          // (v1.6) TODAS las cuajadas del día en esta cuba
   };
 
-  NOMBRE = 'cuba'+(RESULTADO.cuba||'')+'-'+f0[0]+'.'+f0[1]+'.20'+f0[2]+'.json';
+  // (v1.6) NOMBRE ÚNICO. Antes se construía de dos maneras distintas según el
+  // archivo dijera la cuba o hubiera que preguntarla: salía 'cuba1-22.08.2026'
+  // en un caso y 'cuba1-26.08.22' en el otro. Con dos formatos, el backend no
+  // los encontraría. Ahora lo hace una sola función, para los dos caminos.
+  NOMBRE = _nombreJson(RESULTADO.cuba, f0);
 
   var kb = Math.round(JSON.stringify(RESULTADO).length/1024);
-  // (v1.1) Si el archivo no dice de qué cuba es, no se inventa: se pregunta.
+  // (v1.6) Si el archivo no dice de qué cuba es, no se inventa: se pregunta.
   // El botón de descarga no aparece hasta tenerlo, porque un JSON sin cuba no
   // se puede cruzar con el parte y además todos se llamarían igual.
   if(RESULTADO.cuba){
@@ -339,12 +698,12 @@ function construir(filas){
   resumir();
 }
 
-// (v1.1) Fija la cuba elegida a mano y deja descargar.
+// (v1.6) Fija la cuba elegida a mano y deja descargar.
 function _fijarCuba(n){
   if(!RESULTADO) return;
   RESULTADO.cuba = n;
-  var f0 = RESULTADO.fecha.split('-');   // aaaa-mm-dd
-  NOMBRE = 'cuba'+n+'-'+f0[2]+'.'+f0[1]+'.'+f0[0]+'.json';
+  var f0 = RESULTADO.fecha;              // (v1.6) fecha entera, sin trocear
+  NOMBRE = _nombreJson(n, f0);
   document.getElementById('pedircuba').style.display='none';
   document.getElementById('descargar').style.display='';
   document.getElementById('rescab').textContent =
@@ -377,7 +736,7 @@ function resumir(){
     : '<tr><td colspan="3" style="color:#9a7a5a">No se ha parado el agitador durante el llenado.</td></tr>';
 }
 
-// (v1.1) Botones de cuba, para cuando el archivo no lo dice.
+// (v1.6) Botones de cuba, para cuando el archivo no lo dice.
 Array.prototype.forEach.call(document.querySelectorAll('.btncuba'), function(b){
   b.addEventListener('click', function(){ _fijarCuba(parseInt(b.getAttribute('data-c'),10)); });
 });

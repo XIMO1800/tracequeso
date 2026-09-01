@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.419</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.420</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3819,6 +3819,15 @@ function cmpTarjeta(p, d){
 
   var filas = [];
   // ── LLENADO Y ADICIONES (v2.6.386) ──
+  // (v2.6.420) EL ACLARADO INICIAL, cuando lo hay (solo la primera cuajada del
+  // día). Se aclara la cuba con las válvulas abiertas antes de meter leche:
+  // saber a qué hora empezó, a qué temperatura y cuánto duró es información de
+  // proceso que el SCADA ya tenía y no se estaba enseñando.
+  if(f.hora_aclarado!==null && f.hora_aclarado!==undefined){
+    filas.push(cmpFila('Aclarado inicial', null, cmpHora(f.hora_aclarado), 'texto',
+                       'antes del llenado'+(f.temp_aclarado?(' · '+f.temp_aclarado+' °C'):''),
+                       '', (f.min_aclarado||0)+' min'));
+  }
   filas.push(cmpFila('Llenado · inicio',    p.hllenado || p.h_llenado || (p.co2&&p.co2.hadicion),
                      cmpHora(f.hora_llenado), 'hora'));
   // ── CASAR LAS PARADAS DEL AGITADOR CON EL PARTE (v2.6.402) ──
