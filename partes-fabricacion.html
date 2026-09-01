@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.417</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.419</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3307,9 +3307,15 @@ function salNuevoDia(fecha){
       return;
     }
   }
+  // (v2.6.418) EL LOTE DE LA SAL SE ARRASTRA DEL DÍA ANTERIOR.
+  // Un lote de sal dura cinco o seis meses (viene un camión entero con el
+  // mismo), así que teclearlo cada día era trabajo tonto. El proveedor ya se
+  // arrastraba; ahora el lote también. Si un día cambia, se escribe encima y a
+  // partir de ahí se arrastra el nuevo. El día creado automáticamente al abrir
+  // la pantalla ya lo hacía: aquí, al crearlo a mano con "+ Anotar día", no.
   SAL_DATOS.unshift({
     fecha: hoy, ph:'', temp:'', be:'', filtrados:'', dornic:'',
-    sal_cant:'', sal_lote:'', sal_prov:'',
+    sal_cant:'', sal_lote:salUltimo('sal_lote'), sal_prov:salUltimo('sal_prov')||'UNIÓN SALINERA',
     al_cant:'', al_lote:'', al_prov:'',
     filtrante:'', obs:'',
     firma: (typeof OPERARIO_ACTUAL!=='undefined' && OPERARIO_ACTUAL) ? OPERARIO_ACTUAL : ''
@@ -3490,7 +3496,14 @@ function salAbrir(){
       firma:(typeof OPERARIO_ACTUAL!=='undefined' && OPERARIO_ACTUAL)?OPERARIO_ACTUAL:''
     });
     salGuardar();
-    salEnviar(SAL_DATOS[i]);      // (v2.6.375) ahora sí sube a Google
+    // (v2.6.418) ANTES SE ENVIABA EL DÍA EQUIVOCADO. Aquí se usaba SAL_DATOS[i],
+    // pero la 'i' venía del bucle de comprobar si el día existía y ya no apunta
+    // al día nuevo (que además acaba de colocarse el primero con unshift). Se
+    // enviaba, sin querer, una fila cualquiera de la lista. Ahora se busca el
+    // día por su fecha, como en el resto de la pantalla.
+    var _hoyNuevo=null;
+    for(var _k=0;_k<SAL_DATOS.length;_k++) if(SAL_DATOS[_k].fecha===hoy) _hoyNuevo=SAL_DATOS[_k];
+    if(_hoyNuevo) salEnviar(_hoyNuevo);
   }
   salPintar();
 }
@@ -3836,8 +3849,9 @@ function cmpTarjeta(p, d){
     : ((f.hora_ferm!==null && f.hora_ferm!==undefined) ? [{t:f.hora_ferm, segs:0}] : []);
   var _stops = _paradasSrc.map(function(q){
     var t = parseInt(q.t,10);
+    var _zona = q.zona || 'llenado';
     var esPH = (_cuajoSeg!==null) && (t < _cuajoSeg) && ((_cuajoSeg - t) <= 10*60);
-    return {t:t, segs:q.segs||0, esPH:esPH, usada:false};
+    return {t:t, segs:q.segs||0, esPH:esPH, usada:false, zona:_zona};
   });
   // La parada libre más cercana a una hora del parte, dentro de un tope.
   function _stopMasCercana(minParte, topeMin){
@@ -3845,6 +3859,7 @@ function cmpTarjeta(p, d){
     var mejor=null, mejorDif=null;
     _stops.forEach(function(q){
       if(q.usada || q.esPH) return;
+      if(q.zona==='post-cuajo') return;   // (v2.6.419) las adiciones son del llenado
       var dif = Math.abs(Math.floor(q.t/60) - minParte);
       if(dif<=topeMin && (mejorDif===null || dif<mejorDif)){ mejorDif=dif; mejor=q; }
     });
@@ -3909,11 +3924,15 @@ function cmpTarjeta(p, d){
   // ── LAS DEMÁS PARADAS, EN SU SITIO CRONOLÓGICO ──
   // Las que no se han casado con nada. La de justo antes del cuajo se nombra
   // por lo que es: la muestra del pH.
+  // (v2.6.419) Las del llenado y las de después del cuajo se distinguen: en el
+  // llenado la lira gira siempre igual y cualquier bajada es una parada de
+  // verdad (ahí van el cloruro y el fermento); después del cuajo solo se
+  // recogen las largas, porque las cortas son el cambio de giro del autómata.
   _stops.forEach(function(q){
     if(q.usada) return;
     var nota = q.esPH
       ? ('muestra de pH ('+Math.round((_cuajoSeg-q.t)/60)+' min antes del cuajo)')
-      : 'no consta en el parte';
+      : (q.zona==='post-cuajo' ? 'tras el cuajo · no consta en el parte' : 'no consta en el parte');
     filas.push(cmpFila('Parada del agitador', null, cmpHora(q.t), 'texto', nota, '', _durTexto(q.segs)));
   });
   filas.push(cmpFila('Cuajo · hora',        p.coag_hadicion || (p.coag&&p.coag.hadicion), cmpHora(f.hora_cuajado), 'hora'));
