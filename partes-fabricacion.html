@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.420</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.421</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3857,7 +3857,11 @@ function cmpTarjeta(p, d){
   var _paradasSrc = (f.paradas && f.paradas.length) ? f.paradas
     : ((f.hora_ferm!==null && f.hora_ferm!==undefined) ? [{t:f.hora_ferm, segs:0}] : []);
   var _stops = _paradasSrc.map(function(q){
-    var t = parseInt(q.t,10);
+    // (v2.6.421) La hora de la parada viene como 't1' en los archivos del
+    // conversor v2.0 y como 't' en los anteriores. Sin esto, las paradas salían
+    // en la lista pero con la columna SCADA vacía: se veía la duración y no la
+    // hora, que es justo lo que hace falta para ponerlas en su sitio.
+    var t = parseInt((q.t1!==undefined && q.t1!==null) ? q.t1 : q.t, 10);
     var _zona = q.zona || 'llenado';
     var esPH = (_cuajoSeg!==null) && (t < _cuajoSeg) && ((_cuajoSeg - t) <= 10*60);
     return {t:t, segs:q.segs||0, esPH:esPH, usada:false, zona:_zona};
@@ -3937,12 +3941,20 @@ function cmpTarjeta(p, d){
   // llenado la lira gira siempre igual y cualquier bajada es una parada de
   // verdad (ahí van el cloruro y el fermento); después del cuajo solo se
   // recogen las largas, porque las cortas son el cambio de giro del autómata.
-  _stops.forEach(function(q){
-    if(q.usada) return;
+  // (v2.6.421) Solo las de ANTES DEL CUAJO van aquí. Las posteriores se
+  // insertan más abajo, cada una en su sitio del reloj: una parada del
+  // recalentamiento tiene que leerse entre el recalentamiento y el moldeo, no
+  // amontonada con las del llenado.
+  function _pintarParada(q){
     var nota = q.esPH
       ? ('muestra de pH ('+Math.round((_cuajoSeg-q.t)/60)+' min antes del cuajo)')
       : (q.zona==='post-cuajo' ? 'tras el cuajo · no consta en el parte' : 'no consta en el parte');
     filas.push(cmpFila('Parada del agitador', null, cmpHora(q.t), 'texto', nota, '', _durTexto(q.segs)));
+  }
+  _stops.forEach(function(q){
+    if(q.usada) return;
+    if(_cuajoSeg!==null && q.t > _cuajoSeg) return;   // esa va después, en su hora
+    _pintarParada(q);
   });
   filas.push(cmpFila('Cuajo · hora',        p.coag_hadicion || (p.coag&&p.coag.hadicion), cmpHora(f.hora_cuajado), 'hora'));
   filas.push(cmpFila('Cuajo · temperatura', p.coag_temp || (p.coag&&p.coag.temp),         f.temp_cuajado,          'temp'));
@@ -3953,6 +3965,15 @@ function cmpTarjeta(p, d){
   filas.push(cmpFila('Recalent. · fin',     p.rec_hf || (p.desuerado&&p.desuerado.rec_hf), cmpHora(f.hora_fin_recal), 'hora'));
   filas.push(cmpFila('Recalent. · T final', p.rec_tf || (p.desuerado&&p.desuerado.rec_tf), f.temp_fin_recal,       'temp',
                      'la de abrir válvulas'));
+  // (v2.6.421) Las paradas posteriores al cuajo, en su sitio del reloj: aquí ya
+  // se han pintado el cuajo, el corte y el recalentamiento, así que se colocan
+  // antes del moldeo y en orden de hora, que es donde el ojo las busca.
+  _stops.forEach(function(q){
+    if(q.usada) return;
+    if(_cuajoSeg===null || q.t <= _cuajoSeg) return;
+    _pintarParada(q);
+  });
+
   // (v2.6.404) AGITACIÓN: LA DURACIÓN, NO EL INICIO.
   // El inicio de la agitación ES el final del recalentamiento (misma hora,
   // dato repetido que no aporta) y su final es el inicio del moldeo. Lo que
