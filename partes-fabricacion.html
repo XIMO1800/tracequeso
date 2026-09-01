@@ -898,7 +898,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.421</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.422</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3941,21 +3941,13 @@ function cmpTarjeta(p, d){
   // llenado la lira gira siempre igual y cualquier bajada es una parada de
   // verdad (ahí van el cloruro y el fermento); después del cuajo solo se
   // recogen las largas, porque las cortas son el cambio de giro del autómata.
-  // (v2.6.421) Solo las de ANTES DEL CUAJO van aquí. Las posteriores se
-  // insertan más abajo, cada una en su sitio del reloj: una parada del
-  // recalentamiento tiene que leerse entre el recalentamiento y el moldeo, no
-  // amontonada con las del llenado.
-  function _pintarParada(q){
-    var nota = q.esPH
-      ? ('muestra de pH ('+Math.round((_cuajoSeg-q.t)/60)+' min antes del cuajo)')
-      : (q.zona==='post-cuajo' ? 'tras el cuajo · no consta en el parte' : 'no consta en el parte');
-    filas.push(cmpFila('Parada del agitador', null, cmpHora(q.t), 'texto', nota, '', _durTexto(q.segs)));
-  }
-  _stops.forEach(function(q){
-    if(q.usada) return;
-    if(_cuajoSeg!==null && q.t > _cuajoSeg) return;   // esa va después, en su hora
-    _pintarParada(q);
-  });
+  // (v2.6.422) LAS PARADAS SE INSERTAN AL FINAL, CADA UNA EN SU HORA.
+  // Se guardan aquí y se colocan cuando la tabla está completa (ver más abajo):
+  // una parada de las 06:58 tiene que leerse entre el corte de las 06:52 y el
+  // recalentamiento de las 07:02, no amontonada con las del llenado ni al final
+  // de todo. Ordenar la tabla entera por reloj es la única forma de que cada
+  // parada caiga donde de verdad ocurrió.
+  var _paradasPendientes = _stops.filter(function(q){ return !q.usada; });
   filas.push(cmpFila('Cuajo · hora',        p.coag_hadicion || (p.coag&&p.coag.hadicion), cmpHora(f.hora_cuajado), 'hora'));
   filas.push(cmpFila('Cuajo · temperatura', p.coag_temp || (p.coag&&p.coag.temp),         f.temp_cuajado,          'temp'));
   filas.push(cmpFila('Corte · hora',        p.coag_hc || (p.coag&&p.coag.hc),             cmpHora(f.hora_corte),   'hora'));
@@ -3965,15 +3957,6 @@ function cmpTarjeta(p, d){
   filas.push(cmpFila('Recalent. · fin',     p.rec_hf || (p.desuerado&&p.desuerado.rec_hf), cmpHora(f.hora_fin_recal), 'hora'));
   filas.push(cmpFila('Recalent. · T final', p.rec_tf || (p.desuerado&&p.desuerado.rec_tf), f.temp_fin_recal,       'temp',
                      'la de abrir válvulas'));
-  // (v2.6.421) Las paradas posteriores al cuajo, en su sitio del reloj: aquí ya
-  // se han pintado el cuajo, el corte y el recalentamiento, así que se colocan
-  // antes del moldeo y en orden de hora, que es donde el ojo las busca.
-  _stops.forEach(function(q){
-    if(q.usada) return;
-    if(_cuajoSeg===null || q.t <= _cuajoSeg) return;
-    _pintarParada(q);
-  });
-
   // (v2.6.404) AGITACIÓN: LA DURACIÓN, NO EL INICIO.
   // El inicio de la agitación ES el final del recalentamiento (misma hora,
   // dato repetido que no aporta) y su final es el inicio del moldeo. Lo que
@@ -4010,6 +3993,35 @@ function cmpTarjeta(p, d){
   }
   filas.push(cmpFila('Moldeo · inicio',     p.mol_hi || (p.moldeo&&p.moldeo.hi),          cmpHora(f.apertura_valvulas), 'hora',
                      'abren las dos válvulas; el quesero cuenta unos min después'));
+
+  // ── (v2.6.422) CADA PARADA, EN SU HORA ──
+  // Con la tabla ya montada se sabe a qué hora ocurre cada hito, así que cada
+  // parada se puede meter justo detrás del último hito anterior a ella: la de
+  // las 06:58 cae entre el corte (06:52) y el recalentamiento (07:02), la de
+  // las 07:40 antes del fin del recalentamiento (07:41). Se recorren de la más
+  // tardía a la más temprana para que los índices no se muevan al insertar.
+  (function(){
+    if(!_paradasPendientes.length) return;
+    function _horaFila(fl){
+      if(!fl || fl.tipo!=='hora' && fl.tipo!=='texto') return null;
+      var m = cmpMin(fl.scada);
+      return (m===null) ? null : m;
+    }
+    _paradasPendientes.sort(function(a,b){ return b.t-a.t; }).forEach(function(q){
+      var nota = q.esPH
+        ? ('muestra de pH ('+Math.round((_cuajoSeg-q.t)/60)+' min antes del cuajo)')
+        : 'no consta en el parte';
+      var fila = cmpFila('Parada del agitador', null, cmpHora(q.t), 'texto', nota, '', _durTexto(q.segs));
+      var min = Math.round(q.t/60);
+      var pos = filas.length;
+      for(var i=filas.length-1;i>=0;i--){
+        var h=_horaFila(filas[i]);
+        if(h!==null && h<=min){ pos=i+1; break; }
+        if(i===0) pos=0;
+      }
+      filas.splice(pos, 0, fila);
+    });
+  })();
 
   var cuerpo = '<table class="cmptab"><thead><tr>'
     + '<th></th><th>Parte</th><th>SCADA</th><th>Dif.</th><th style="text-align:left;width:1%;white-space:nowrap;padding-left:12px;">Duración</th></tr></thead><tbody>'
