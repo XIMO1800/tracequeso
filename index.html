@@ -78,11 +78,11 @@
     var _lat = JSON.parse(localStorage.getItem('tq_latido')||'null');
     if(_lat && _lat.t){
       var _d = new Date(_lat.t);
-      _negra('ARRANQUE v378 · último latido previo: '+_d.getDate()+'/'+(_d.getMonth()+1)+' '
+      _negra('ARRANQUE v379 · último latido previo: '+_d.getDate()+'/'+(_d.getMonth()+1)+' '
         +('0'+_d.getHours()).slice(-2)+':'+('0'+_d.getMinutes()).slice(-2)
         +' en '+(_lat.p||'?')+(_lat.pend?(' con '+_lat.pend+' pendientes'):''));
     }else{
-      _negra('ARRANQUE v378 · sin latido previo');
+      _negra('ARRANQUE v379 · sin latido previo');
     }
   }catch(e){}
 
@@ -843,7 +843,7 @@ textarea.finput{resize:vertical;min-height:60px;}
   <div class="lcard">
     <div style="text-align:center;margin-bottom:6px;"><img src="data:image/jpeg;base64,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" style="height:54px;object-fit:contain;"></div>
     <div class="lsub">Trazabilidad · Lácteos Cuquerella</div>
-    <div id="ver-login" style="font-size:0.65rem;color:var(--text3);margin-top:4px;font-family:'Inconsolata',monospace;opacity:0.6;">v378</div>
+    <div id="ver-login" style="font-size:0.65rem;color:var(--text3);margin-top:4px;font-family:'Inconsolata',monospace;opacity:0.6;">v379</div>
     <select class="lsel" id="l-nombre" onchange="resetPin()">
       <option value="">— ¿Quién eres? —</option>
     </select>
@@ -869,7 +869,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div id="ver-home" style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v378</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div id="ver-home" style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v379</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -10069,30 +10069,30 @@ function verHistorialPale(paleId){
 
   // Cabecera palet
   document.getElementById('traz-hist-header').innerHTML=
-    '<div style="background:'+bgColor+';border:2px solid '+fgColor+';border-radius:12px;padding:12px 14px;margin-bottom:4px;">'
-    +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1rem;color:'+fgColor+';">'+info.tipo+(info.variedad&&info.variedad!=='—'?' · '+info.variedad:'')+(info.fmt?' · '+info.fmt:'')+'</div>'
-    +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.78rem;color:var(--text2);margin-top:3px;">'+paleId+'</div>'
-    +(info.piezas?'<div style="font-size:0.78rem;color:var(--text3);margin-top:1px;">'+info.piezas+' pzas</div>':'')
+    '<div style="background:#fff;border:2px solid '+fgColor+';border-radius:12px;padding:'+_pd(12)+' '+_pd(16)+';margin-bottom:'+_pd(6)+';">'
+    +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:'+_fs(1)+';color:'+fgColor+';">'+info.tipo+(info.variedad&&info.variedad!=='—'?' · '+info.variedad:'')+(info.fmt?' · '+info.fmt:'')+'</div>'
+    +'<div style="font-family:\'Inconsolata\',monospace;font-size:'+_fs(0.78)+';color:var(--text2);margin-top:3px;">'+paleId+'</div>'
+    +(info.piezas?'<div style="font-size:'+_fs(0.78)+';color:var(--text3);margin-top:1px;">'+info.piezas+' pzas</div>':'')
     +'</div>';
 
   var SICON={'1ª CAPA':'🫧','2ª CAPA':'🫧','PINTURA':'🎨','VOLTEO':'🔄','MOVIMIENTO':'🚚','ENVASADO':'🧀'};
   var SCOLOR={'1ª CAPA':'#6b4a4a','VOLTEO':'#4a5e4a','2ª CAPA':'#425470','MOVIMIENTO':'#7a5e3a','PINTURA':'#5a4568','ENVASADO':'#4a5a3a'};
 
-  var html='<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.82rem;color:var(--text3);margin-bottom:8px;">HISTORIAL CRONOLÓGICO — pulsa para ver detalle</div>';
+  var html='<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:'+_fs(0.82)+';color:var(--text3);margin-bottom:'+_pd(8)+';">HISTORIAL CRONOLÓGICO — pulsa para ver detalle</div>';
 
   regs.forEach(function(r,i){
     var sec=(r['SECCIÓN']||'').toUpperCase();
     var col=SCOLOR[sec]||'#5a5a5a';
     var f=parseFecha(r['FECHA']);
     var fStr=f?f.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
-    html+='<button onclick="verDetalleOp(\''+paleId.replace(/'/g,"\\'")+'\','+i+')" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;">'
+    html+='<button onclick="verDetalleOp(\''+paleId.replace(/'/g,"\\'")+'\','+i+')" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:'+_pd(12)+' '+_pd(14)+';margin-bottom:'+_pd(6)+';display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;">'
       +'<div style="width:6px;min-height:44px;background:'+col+';border-radius:3px;flex-shrink:0;"></div>'
       +'<div style="flex:1;">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-      +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:0.95rem;color:var(--text2);">'+fStr+'</span>'
-      +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.95rem;color:'+col+';">'+(SICON[sec]||'📝')+' '+sec+'</span>'
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:'+_fs(0.95)+';color:var(--text2);">'+fStr+'</span>'
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:'+_fs(0.95)+';color:'+col+';">'+(SICON[sec]||'📝')+' '+sec+'</span>'
       +'</div>'
-      +'<div style="font-size:0.72rem;color:var(--text3);margin-top:3px;">'+(function(){
+      +'<div style="font-size:'+_fs(0.72)+';color:var(--text3);margin-top:3px;">'+(function(){
         // Para MOVIMIENTO mostrar ORIGEN → DESTINO (movimiento sin origen es
         // ambiguo: 'Golpe Frío' no dice si viene del saladero, del secadero,
         // etc.). Para el resto de secciones mantenemos sólo el destino.
@@ -10661,12 +10661,16 @@ function mostrarVidaLote(lote, palesEncontrados){
   // casa: en el monitor todo se veía del mismo marrón apagado y no había dónde
   // apoyar la vista. El hueco entre el lote y los formatos es a propósito, para
   // que se lean como dos cosas distintas y no como una frase corrida.
+  // (v379) LOTE ARRIBA, FORMATOS DEBAJO. En una sola línea los dos parecían la
+  // misma frase; apilados se leen como lo que son: qué lote es, y de qué está
+  // compuesto. Todo centrado dentro de la caja, que en un monitor ancho queda
+  // más equilibrado que pegado al borde izquierdo. Idea de Joaquín (02/09).
   var h = '<div style="max-width:1700px;margin:0 auto;">'
-    + '<div style="background:#fff;border:2px solid var(--accent);border-radius:12px;padding:16px 22px;margin-bottom:6px;'
-        + 'display:flex;align-items:baseline;gap:40px;flex-wrap:wrap;">'
-      + '<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:2.5rem;color:var(--accent);letter-spacing:.5px;">Lote '+lote+'</div>'
+    + '<div style="background:#fff;border:2px solid var(--accent);border-radius:12px;padding:20px 26px;margin-bottom:6px;text-align:center;">'
+      + '<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:2.6rem;color:var(--accent);letter-spacing:.5px;line-height:1.1;">Lote '+lote+'</div>'
+      + '<div style="height:1px;background:var(--border);max-width:520px;margin:14px auto;"></div>'
       + '<div style="font-size:1.4rem;">'+desc+'</div>'
-      + '<div style="margin-left:auto;font-size:1.35rem;color:var(--text2);"><b style="color:var(--accent);">'+totalPz+'</b> piezas · <b style="color:var(--accent);">'+palesEncontrados.length+'</b> palets</div>'
+      + '<div style="font-size:1.2rem;color:var(--text3);margin-top:10px;"><b style="color:var(--accent);">'+totalPz+'</b> piezas · <b style="color:var(--accent);">'+palesEncontrados.length+'</b> palets</div>'
     + '</div>'
     // (v376) LOS PALETS DEL LOTE, EN LA CABECERA Y UNA SOLA VEZ. Antes salían
     // repetidos dentro de cada acción (y siempre los mismos). Aquí arriba se ven
@@ -10734,6 +10738,91 @@ function mostrarVidaLote(lote, palesEncontrados){
   _trazEntrar('s-traz-vida');
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// LISTADO DE UNA ACCIÓN, EN FORMATO INFORME  (v379)
+// ──────────────────────────────────────────────────────────────────────────
+// Una hoja por acción: una fila por palet, columnas fijas, subtotales por
+// formato y un total al pie. Es lo que un auditor espera encontrar cuando
+// pide "enséñame la 1ª capa de este lote". Las columnas que no aportan nada
+// en esa acción no se pintan: en un movimiento no hay producto ni lote, y en
+// una capa no hay salas que enseñar más allá del destino.
+// La fila entera sigue siendo pulsable para abrir la ficha completa del palet.
+// ══════════════════════════════════════════════════════════════════════════
+function _informeAccion(grupos, regs){
+  var TD  = 'padding:11px 14px;border-bottom:1px solid var(--border);';
+  var TH  = 'padding:9px 14px;text-align:left;font-size:0.95rem;letter-spacing:.5px;'
+          + 'text-transform:uppercase;color:#fff;background:var(--accent);font-weight:700;';
+
+  // ¿Qué columnas tienen algo que decir en esta acción?
+  var hayProd = regs.some(function(r){ return String(r['PRODUCTO']||'').trim() || String(r['LOTE PRODUCTO']||'').trim(); });
+  var haySalas= regs.some(function(r){ return String(r['SALA ORIGEN']||'').trim() || String(r['SALA DESTINO']||'').trim(); });
+
+  var h = '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;'
+        + 'padding:18px 20px 14px;margin:12px 0 14px;">'
+    + '<table style="width:100%;border-collapse:collapse;font-size:1.15rem;">'
+    + '<thead><tr>'
+      + '<th style="'+TH+'">Palet</th>'
+      + '<th style="'+TH+'">Tipo · variedad · formato</th>'
+      + (hayProd ? '<th style="'+TH+'">Producto</th><th style="'+TH+'">Lote producto</th>' : '')
+      + (haySalas? '<th style="'+TH+'">Sala</th>' : '')
+      + '<th style="'+TH+'">Operario</th>'
+      + '<th style="'+TH+'text-align:right;">Piezas</th>'
+    + '</tr></thead><tbody>';
+
+  var nCols = 3 + (hayProd?2:0) + (haySalas?1:0);
+  var totalGeneral = 0, totalPalets = 0;
+
+  Object.keys(grupos).sort(_ordenClave).forEach(function(kk){
+    var lista = grupos[kk], sub = 0;
+
+    // Rótulo del formato, solo si el lote tiene más de uno
+    if(Object.keys(grupos).length > 1){
+      h += '<tr><td colspan="'+(nCols+1)+'" style="padding:14px 14px 6px;font-family:\'Karla\',sans-serif;'
+         + 'font-weight:800;font-size:1.1rem;color:var(--accent);">'+kk+'</td></tr>';
+    }
+
+    lista.forEach(function(o){
+      var info = parsearId(o.pid);
+      var pz   = parseInt(o.r['Nº DE PIEZAS'],10) || parseInt(info.piezas,10) || 0;
+      sub += pz; totalGeneral += pz; totalPalets++;
+
+      var prod = String(o.r['PRODUCTO']||'').trim();
+      var sec  = normSeccion(o.r['SECCIÓN']||'');
+      if(!prod && (sec==='1ª CAPA' || sec==='2ª CAPA')) prod = 'INMERSIÓN';
+
+      var ori = o.r['SALA ORIGEN'] ? sl(o.r['SALA ORIGEN']) : '';
+      var dst = o.r['SALA DESTINO'] ? sl(o.r['SALA DESTINO']) : '';
+      var sala = (ori && dst && ori!==dst) ? (ori+' → '+dst) : (dst || ori || '—');
+
+      h += '<tr onclick="event.stopPropagation();mostrarDetalleOp('+o.i+')" style="cursor:pointer;">'
+        + '<td style="'+TD+'font-family:\'Inconsolata\',monospace;white-space:nowrap;">'+o.pid+'</td>'
+        + '<td style="'+TD+'color:var(--text2);">'+_clavePalet(o.pid)+'</td>'
+        + (hayProd ? '<td style="'+TD+'">'+(prod||'—')+'</td>'
+                   + '<td style="'+TD+'font-family:\'Inconsolata\',monospace;">'+(String(o.r['LOTE PRODUCTO']||'').trim()||'—')+'</td>' : '')
+        + (haySalas? '<td style="'+TD+'color:var(--text2);">'+sala+'</td>' : '')
+        + '<td style="'+TD+'">'+(String(o.r['OPERARIO']||'').trim()||'—')+'</td>'
+        + '<td style="'+TD+'text-align:right;font-weight:700;">'+(pz||'—')+'</td>'
+        + '</tr>';
+    });
+
+    if(Object.keys(grupos).length > 1){
+      h += '<tr><td colspan="'+nCols+'" style="padding:8px 14px;text-align:right;color:var(--text3);">'
+         + 'Subtotal '+kk+' — '+lista.length+' palet'+(lista.length>1?'s':'')+'</td>'
+         + '<td style="padding:8px 14px;text-align:right;font-weight:700;color:var(--text3);">'+sub+'</td></tr>';
+    }
+  });
+
+  h += '</tbody><tfoot><tr>'
+    + '<td colspan="'+nCols+'" style="padding:13px 14px;border-top:2px solid var(--accent);text-align:right;'
+      + 'font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.15rem;">TOTAL — '+totalPalets+' palets</td>'
+    + '<td style="padding:13px 14px;border-top:2px solid var(--accent);text-align:right;'
+      + 'font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.25rem;color:var(--accent);">'+totalGeneral+'</td>'
+    + '</tr></tfoot></table>'
+    + '<div style="font-size:0.95rem;color:var(--text3);margin-top:10px;">Pulsa una línea para ver la ficha completa de ese palet.</div>'
+    + '</div>';
+  return h;
+}
+
 // Abrir/cerrar el detalle de una fila
 function vidaToggle(i){
   var tr=document.getElementById('vida-det-'+i);
@@ -10742,13 +10831,28 @@ function vidaToggle(i){
   var fl=_vidaLote.filas[i];
   var td=tr.firstChild, h='';
   if(fl.tipo==='volteos'){
-    h += '<div style="font-size:1.05rem;color:var(--text3);margin:14px 0 8px;">Fechas de volteo:</div>'
-      + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">'
-      + fl.grupos.map(function(g){
-          return '<span style="background:#fff;border:1px solid var(--border);border-radius:7px;padding:7px 13px;font-family:\'Inconsolata\',monospace;font-size:1.1rem;">'
-               + g.fecha+' <span style="color:var(--text3);">('+Object.keys(g.pales).length+' palets)</span></span>';
-        }).join('')
-      + '</div>';
+    if(esEscritorio()){
+      // (v379) También en formato hoja: una línea por fecha de volteo.
+      h += '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px 20px 14px;margin:12px 0 4px;">'
+        + '<table style="width:100%;border-collapse:collapse;font-size:1.15rem;">'
+        + '<thead><tr>'
+          + '<th style="padding:9px 14px;text-align:left;font-size:0.95rem;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:var(--accent);font-weight:700;">Fecha del volteo</th>'
+          + '<th style="padding:9px 14px;text-align:right;font-size:0.95rem;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:var(--accent);font-weight:700;">Palets volteados</th>'
+        + '</tr></thead><tbody>'
+        + fl.grupos.map(function(g){
+            return '<tr><td style="padding:11px 14px;border-bottom:1px solid var(--border);font-family:\'Inconsolata\',monospace;">'+g.fecha+'</td>'
+                 + '<td style="padding:11px 14px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;">'+Object.keys(g.pales).length+'</td></tr>';
+          }).join('')
+        + '</tbody></table></div>';
+    } else {
+      h += '<div style="font-size:1.05rem;color:var(--text3);margin:14px 0 8px;">Fechas de volteo:</div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">'
+        + fl.grupos.map(function(g){
+            return '<span style="background:#fff;border:1px solid var(--border);border-radius:7px;padding:7px 13px;font-family:\'Inconsolata\',monospace;font-size:1.1rem;">'
+                 + g.fecha+' <span style="color:var(--text3);">('+Object.keys(g.pales).length+' palets)</span></span>';
+          }).join('')
+        + '</div>';
+    }
   }
   // (v376) AL ABRIR UNA ACCIÓN SE VE LA FICHA DE ESE REGISTRO, no el historial
   // del palé. El historial ya está arriba, en la cabecera: repetirlo aquí no
@@ -10770,26 +10874,43 @@ function vidaToggle(i){
     var kk=_clavePalet(pid);
     (_gr[kk]=_gr[kk]||[]).push({r:r, i:k, pid:pid});
   });
-  h += '<div style="font-size:1.05rem;color:var(--text3);margin:10px 0 8px;">Registros de esta acción ('+_regs.length+'):</div>';
-  Object.keys(_gr).sort().forEach(function(kk){
-    var lista=_gr[kk];
-    if(Object.keys(_gr).length>1){
-      h += '<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:1.02rem;color:var(--accent);margin:10px 0 6px;">'+kk+' <span style="font-weight:400;color:var(--text3);">— '+lista.length+'</span></div>';
-    }
-    h += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">'
-      + lista.map(function(o){
-          var info=parsearId(o.pid);
-          var pz=parseInt(o.r['Nº DE PIEZAS'],10)||parseInt(info.piezas,10)||0;
-          var op=String(o.r['OPERARIO']||'').trim();
-          return '<button onclick="event.stopPropagation();mostrarDetalleOp('+o.i+')" '
-               + 'style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:11px 16px;cursor:pointer;text-align:left;">'
-               + '<div style="font-family:\'Inconsolata\',monospace;font-size:1.1rem;color:var(--text);">'+o.pid+'</div>'
-               + '<div style="font-size:0.95rem;color:var(--text3);margin-top:2px;">'
-               + (pz?(pz+' pzas'):'') + (op?((pz?' · ':'')+op):'') + '</div>'
-               + '</button>';
-        }).join('')
-      + '</div>';
-  });
+  // ══════════════════════════════════════════════════════════════════════
+  // (v379) EN ESCRITORIO, LISTADO DE INFORME — NO TARJETAS
+  // ──────────────────────────────────────────────────────────────────────
+  // La tarjeta es el formato bueno para el móvil del operario: un dedo, un
+  // objeto, un toque. Pero Calidad y un auditor no piensan en tarjetas:
+  // piensan en un papel con columnas, donde se recorre una lista de arriba
+  // abajo y se suma al final. Al abrir "1ª capa antifúngico" lo que se espera
+  // es la hoja de esa operación —qué palets, qué producto, qué lote, cuántas
+  // piezas y quién lo hizo— y no siete cajas que hay que ir abriendo una a una.
+  // Así que en monitor esto se pinta como una tabla con totales; en el móvil se
+  // sigue viendo con las tarjetas de siempre. Planteamiento de Joaquín (02/09),
+  // pendiente de enseñárselo a Calidad.
+  // ══════════════════════════════════════════════════════════════════════
+  if(esEscritorio()){
+    h += _informeAccion(_gr, _regs);
+  } else {
+    h += '<div style="font-size:1.05rem;color:var(--text3);margin:10px 0 8px;">Registros de esta acción ('+_regs.length+'):</div>';
+    Object.keys(_gr).sort(_ordenClave).forEach(function(kk){
+      var lista=_gr[kk];
+      if(Object.keys(_gr).length>1){
+        h += '<div style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:1.02rem;color:var(--accent);margin:10px 0 6px;">'+kk+' <span style="font-weight:400;color:var(--text3);">— '+lista.length+'</span></div>';
+      }
+      h += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">'
+        + lista.map(function(o){
+            var info=parsearId(o.pid);
+            var pz=parseInt(o.r['Nº DE PIEZAS'],10)||parseInt(info.piezas,10)||0;
+            var op=String(o.r['OPERARIO']||'').trim();
+            return '<button onclick="event.stopPropagation();mostrarDetalleOp('+o.i+')" '
+                 + 'style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:11px 16px;cursor:pointer;text-align:left;">'
+                 + '<div style="font-family:\'Inconsolata\',monospace;font-size:1.1rem;color:var(--text);">'+o.pid+'</div>'
+                 + '<div style="font-size:0.95rem;color:var(--text3);margin-top:2px;">'
+                 + (pz?(pz+' pzas'):'') + (op?((pz?' · ':'')+op):'') + '</div>'
+                 + '</button>';
+          }).join('')
+        + '</div>';
+    });
+  }
   td.innerHTML=h;
   tr.style.display='';
 }
@@ -11085,17 +11206,21 @@ function mostrarDetalleOp(idx){
     {l:'Piezas no aptas',v:r['Nº PIEZAS NO APTAS']},
     {l:'Observaciones',v:r['OBSERVACIONES']},
   ];
-  var html='<div style="border-left:4px solid '+col+';padding-left:12px;margin-bottom:16px;">'
-    +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1rem;color:'+col+';">'+sec+'</div>'
-    +'<div style="font-size:0.78rem;color:var(--text3);">'+fStr+'</div>'
+  // (v379) Escalado para monitor. Esta pantalla la pintan DOS funciones
+  // distintas —mostrarDetalleOp y esta— y en la v378 solo se agrandó la otra:
+  // por eso Joaquín seguía viendo la ficha de 2ª capa en pequeño según por
+  // dónde hubiera entrado (foto del 02/09, 15:44).
+  var html='<div style="border-left:5px solid '+col+';padding-left:'+_pd(12)+';margin-bottom:'+_pd(16)+';">'
+    +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:'+_fs(1)+';color:'+col+';">'+sec+'</div>'
+    +'<div style="font-size:'+_fs(0.78)+';color:var(--text3);">'+fStr+'</div>'
     +'</div>';
   campos.forEach(function(c){
     if(!c.v&&c.v!==0)return;
     var val=c.v.toString().trim();
     if(!val||val==='0'&&c.l==='Piezas no aptas')return;
-    html+='<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">'
-      +'<span style="font-size:0.75rem;color:var(--text3);flex-shrink:0;">'+c.l+'</span>'
-      +'<span style="font-family:\'Karla\',sans-serif;font-weight:600;font-size:0.88rem;color:var(--text);text-align:right;">'+val+'</span>'
+    html+='<div style="padding:'+_pd(10)+' 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">'
+      +'<span style="font-size:'+_fs(0.75)+';color:var(--text3);flex-shrink:0;">'+c.l+'</span>'
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:600;font-size:'+_fs(0.88)+';color:var(--text);text-align:right;">'+val+'</span>'
       +'</div>';
   });
   document.getElementById('traz-op-content').innerHTML=html;
