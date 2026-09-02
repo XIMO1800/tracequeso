@@ -78,11 +78,11 @@
     var _lat = JSON.parse(localStorage.getItem('tq_latido')||'null');
     if(_lat && _lat.t){
       var _d = new Date(_lat.t);
-      _negra('ARRANQUE v377 · último latido previo: '+_d.getDate()+'/'+(_d.getMonth()+1)+' '
+      _negra('ARRANQUE v378 · último latido previo: '+_d.getDate()+'/'+(_d.getMonth()+1)+' '
         +('0'+_d.getHours()).slice(-2)+':'+('0'+_d.getMinutes()).slice(-2)
         +' en '+(_lat.p||'?')+(_lat.pend?(' con '+_lat.pend+' pendientes'):''));
     }else{
-      _negra('ARRANQUE v377 · sin latido previo');
+      _negra('ARRANQUE v378 · sin latido previo');
     }
   }catch(e){}
 
@@ -843,7 +843,7 @@ textarea.finput{resize:vertical;min-height:60px;}
   <div class="lcard">
     <div style="text-align:center;margin-bottom:6px;"><img src="data:image/jpeg;base64,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" style="height:54px;object-fit:contain;"></div>
     <div class="lsub">Trazabilidad · Lácteos Cuquerella</div>
-    <div id="ver-login" style="font-size:0.65rem;color:var(--text3);margin-top:4px;font-family:'Inconsolata',monospace;opacity:0.6;">v377</div>
+    <div id="ver-login" style="font-size:0.65rem;color:var(--text3);margin-top:4px;font-family:'Inconsolata',monospace;opacity:0.6;">v378</div>
     <select class="lsel" id="l-nombre" onchange="resetPin()">
       <option value="">— ¿Quién eres? —</option>
     </select>
@@ -869,7 +869,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div id="ver-home" style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v377</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div id="ver-home" style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v378</div></div>
   <div class="scrl" style="padding:0;">
   
   <div style="padding:8px 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -1720,7 +1720,7 @@ textarea.finput{resize:vertical;min-height:60px;}
 <!-- TRAZABILIDAD — NIVEL 4: DETALLE OPERACIÓN -->
 <div class="scr" id="s-traz-op">
   <div class="topbar">
-    <button class="tbback" id="traz-op-back" onclick="ir('s-traz-historial')">←</button>
+    <button class="tbback" id="traz-op-back" onclick="_trazAtras()">←</button>
     <div class="tbtitle" id="traz-op-title">Detalle operación</div>
     <div class="tbright" id="traz-op-edit-wrap" style="display:none;">
       <button onclick="abrirEditTrazOp()" style="background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;padding:5px 12px;font-size:0.78rem;font-weight:700;cursor:pointer;">✏️ Editar</button>
@@ -9671,9 +9671,11 @@ function renderRegFicha(r,editMode){
     var _fCabTxt=_fCab
       ? (_fCab.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+_fCab.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}))
       : (r['FECHA']||'');
-    var html='<div style="border-left:4px solid '+col+';padding-left:12px;margin-bottom:16px;">'
-      +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.1rem;color:'+col+';">'+sec+'</div>'
-      +'<div style="font-size:0.78rem;color:var(--text3);">'+_fCabTxt+'</div></div>';
+    // (v378) Escalado para monitor: esta es la ficha que Calidad abre al editar
+    // y era la más pequeña de todas (foto de Joaquín, 02/09).
+    var html='<div style="border-left:5px solid '+col+';padding-left:'+_pd(12)+';margin-bottom:'+_pd(16)+';">'
+      +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:'+_fs(1.1)+';color:'+col+';">'+sec+'</div>'
+      +'<div style="font-size:'+_fs(0.78)+';color:var(--text3);">'+_fCabTxt+'</div></div>';
     campos.forEach(function(c){
       var val=r[c.k];
       if(c.k==='PRODUCTO'&&(!val||!val.toString().trim())&&(sec==='1ª CAPA'||sec==='2ª CAPA'))val='INMERSIÓN';
@@ -9682,9 +9684,9 @@ function renderRegFicha(r,editMode){
       if(c.fmt==='fecha'||c.k==='FECHA'){var fd=parseFecha(val.toString());if(fd)val=fd.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+fd.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});}
       // Cuñas guardadas antes del arreglo: llegan como fecha. Se traducen aquí.
       if(c.k==='CUÑAS POR QUESO') val=_mostrarCunas(val);
-      html+='<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px;">'
-        +'<span style="font-size:0.75rem;color:var(--text3);flex-shrink:0;">'+c.l+'</span>'
-        +'<span style="font-family:\'Karla\',sans-serif;font-weight:600;font-size:0.88rem;color:var(--text);text-align:right;">'+val.toString()+'</span>'
+      html+='<div style="padding:'+_pd(10)+' 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px;">'
+        +'<span style="font-size:'+_fs(0.75)+';color:var(--text3);flex-shrink:0;">'+c.l+'</span>'
+        +'<span style="font-family:\'Karla\',sans-serif;font-weight:600;font-size:'+_fs(0.88)+';color:var(--text);text-align:right;">'+val.toString()+'</span>'
         +'</div>';
     });
     document.getElementById('reg-ficha-content').innerHTML=html;
@@ -9879,8 +9881,8 @@ function abrirEditTrazOp(){
   regFichaActual={rowId:rowId,sesionId:'',rawIdx:rawIdx,datos:r};
   regFichaEditMode=false;
   renderRegFicha(r,false);
-  document.getElementById('reg-ficha-back').setAttribute('onclick',"ir('s-traz-op')");
-  ir('s-reg-ficha');
+  document.getElementById('reg-ficha-back').setAttribute('onclick','_trazAtras()');   // (v378)
+  _trazEntrar('s-reg-ficha');
 }
 
 function activarTeclado(id){var el=document.getElementById(id);el.removeAttribute('inputmode');el.focus();el.setAttribute('inputmode','text');toast('Teclado activado — escribe y pulsa Enter');}
@@ -10111,7 +10113,7 @@ function verHistorialPale(paleId){
   });
 
   document.getElementById('traz-hist-ops').innerHTML=html;
-  ir('s-traz-historial');
+  _trazEntrar('s-traz-historial');
 }
 
 function verDetalleOp(paleId,idx){
@@ -10154,9 +10156,10 @@ function verDetalleOp(paleId,idx){
     {k:'OBSERVACIONES',l:'Observaciones'},
   ];
 
-  var html='<div style="border-left:4px solid '+col+';padding-left:12px;margin-bottom:16px;">'
-    +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:1.1rem;color:'+col+';">'+sec+'</div>'
-    +'<div style="font-size:0.78rem;color:var(--text3);">'+fStr+'</div>'
+  // (v378) Tamaños escalados en monitor — ver _fs().
+  var html='<div style="border-left:5px solid '+col+';padding-left:'+_pd(12)+';margin-bottom:'+_pd(16)+';">'
+    +'<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:'+_fs(1.1)+';color:'+col+';">'+sec+'</div>'
+    +'<div style="font-size:'+_fs(0.78)+';color:var(--text3);">'+fStr+'</div>'
     +'</div>';
 
   campos.forEach(function(c){
@@ -10164,9 +10167,9 @@ function verDetalleOp(paleId,idx){
     // Fallback INMERSIÓN para 1ª y 2ª CAPA si no hay producto guardado
     if(c.k==='PRODUCTO'&&(!val||val.toString().trim()==='')&&(sec==='1ª CAPA'||sec==='2ª CAPA'))val='INMERSIÓN';
     if(!val||val.toString().trim()==='')return;
-    html+='<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'
-      +'<span style="font-size:0.75rem;color:var(--text3);flex-shrink:0;">'+c.l+'</span>'
-      +'<span style="font-family:\'Karla\',sans-serif;font-weight:600;font-size:0.88rem;color:var(--text);text-align:right;">'+val+'</span>'
+    html+='<div style="padding:'+_pd(10)+' 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'
+      +'<span style="font-size:'+_fs(0.75)+';color:var(--text3);flex-shrink:0;">'+c.l+'</span>'
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:600;font-size:'+_fs(0.88)+';color:var(--text);text-align:right;">'+val+'</span>'
       +'</div>';
   });
 
@@ -10181,8 +10184,8 @@ function verDetalleOp(paleId,idx){
     return (x['ID PALET']||'')==paleIdR&&(x['FECHA']||'')==fechaR&&(x['SECCIÓN']||'')==(r['SECCIÓN']||'');
   });
   window._trazOpActual={r:r,sec:sec,rawIdx:rawIdx,rowId:r['ID']||''};
-  document.getElementById('traz-op-back').setAttribute('onclick',"ir('"+(window._trazVolverA||'s-traz-historial')+"')");
-  ir('s-traz-op');
+  document.getElementById('traz-op-back').setAttribute('onclick','_trazAtras()');   // (v378)
+  _trazEntrar('s-traz-op');
 }
 
 function irBuscarPale(){
@@ -10354,6 +10357,7 @@ function buscarPale(id){
 var trazPaleActual=null;
 
 function irTraz(){
+  _trazPila = [];   // (v378) se empieza de cero: no se arrastran búsquedas viejas
   document.getElementById('traz-lote-input').value='';
   document.getElementById('traz-resultado').innerHTML='';
   ir('s-traz');
@@ -10441,6 +10445,54 @@ function esEscritorio(){
   try{ return Math.min(window.innerWidth||0, screen.width||0) >= 900; }catch(e){ return false; }
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// TAMAÑO DE LETRA SEGÚN PANTALLA  (v378)
+// ──────────────────────────────────────────────────────────────────────────
+// La v377 puso reglas CSS de escritorio para estas pantallas y NO sirvieron de
+// nada: los tamaños van escritos a mano dentro de cada etiqueta (style="...")
+// y eso siempre gana a una regla de hoja de estilos. Por eso Joaquín seguía
+// viendo la ficha y el historial en letra de móvil en el monitor de 24"
+// (fotos del 02/09). La solución es escalar el número EN EL SITIO DONDE SE
+// ESCRIBE: _fs(0.9) devuelve "0.9rem" en el móvil y "1.35rem" en el monitor.
+// Solo se usa en las pantallas de Calidad; los operarios ven lo de siempre.
+function _fs(rem){
+  return (esEscritorio() ? (rem*1.5).toFixed(2) : rem) + 'rem';
+}
+// Lo mismo para los huecos: en un monitor las tarjetas necesitan más aire.
+function _pd(px){
+  return Math.round(esEscritorio() ? px*1.45 : px) + 'px';
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// PILA DE VUELTA ATRÁS DE TRAZABILIDAD  (v378)
+// ──────────────────────────────────────────────────────────────────────────
+// Hasta ahora el destino de la flecha "←" se guardaba en UNA variable global
+// (_trazVolverA) y en el onclick del botón. Cada pantalla por la que pasabas
+// lo pisaba, así que la flecha te llevaba al último sitio que hubiera escrito
+// alguien, no al sitio del que venías: desde la línea de vida acababas en el
+// historial de un palet, o en stock por salas, o en el menú (Joaquín, 02/09).
+//
+// Ahora se apila de verdad. Al ENTRAR en una pantalla se guarda cuál estaba
+// visible; al pulsar la flecha se desapila y se vuelve exactamente a esa. La
+// cadena línea de vida → historial del palet → ficha → editar se deshace
+// paso a paso, en el orden correcto, se haya entrado por donde se haya
+// entrado. Si la pila se queda vacía (recarga, entrada directa), se cae al
+// buscador de trazabilidad, que es un destino sensato.
+var _trazPila = [];
+function _pantallaActual(){
+  var el = document.querySelector('.scr.on');
+  return el ? el.id : '';
+}
+function _trazEntrar(destino){
+  var desde = _pantallaActual();
+  if(desde && desde !== destino) _trazPila.push(desde);
+  ir(destino);
+}
+function _trazAtras(){
+  var d = _trazPila.pop();
+  ir(d || 's-traz');
+}
+
 var _vidaLote = {lote:'', pales:[], filas:[]};
 
 function _fechaDe(r){
@@ -10467,13 +10519,37 @@ function _clavePalet(p){
   return [(i.tipo||'').trim(), (i.variedad||'').trim(), (i.fmt||'').trim()]
          .filter(Boolean).join(' · ') || 'Sin clasificar';
 }
+
+// (v378) ORDEN DE LOS FORMATOS EN TRAZABILIDAD: 3 KG, 2 KG, 1 KG, BARRA y por
+// último 1/2 KG, que es como los nombra Joaquín en fábrica. Se hace aquí y no
+// tocando _pedPesoFmt a propósito: esa función la usa la pantalla de pedidos,
+// donde el medio kilo va antes que la barra, y cambiarla movería el orden allí
+// sin que nadie lo haya pedido.
+function _pesoFmtTraz(f){
+  var s=String(f||'').trim().toUpperCase();
+  if(!s || s==='—') return 900;
+  if(s.indexOf('GIGANTE')>=0) return 0;
+  if(s.indexOf('BARRA')>=0) return 99.6;               // detrás del 1 kg
+  if(s.indexOf('1/2')>=0 || s.indexOf('0,5')>=0) return 99.7;   // y el último
+  var m=s.match(/(\d+([.,]\d+)?)\s*KG/);
+  if(m) return 100-parseFloat(m[1].replace(',','.'));  // 3 KG=97, 2 KG=98, 1 KG=99
+  return 900;
+}
+// Ordena rótulos del tipo "MEZCLA · ACEITE · 3 KG": primero por formato (de
+// mayor a menor) y, a igualdad, alfabéticamente para que no bailen.
+function _ordenClave(a,b){
+  var fa=String(a).split('·').pop(), fb=String(b).split('·').pop();
+  var pa=_pesoFmtTraz(fa), pb=_pesoFmtTraz(fb);
+  if(pa!==pb) return pa-pb;
+  return a<b?-1:(a>b?1:0);
+}
 function _bloquesPalets(pales){
   var g={};
   pales.slice().sort().forEach(function(p){
     var k=_clavePalet(p);
     (g[k]=g[k]||[]).push(p);
   });
-  var claves=Object.keys(g).sort();
+  var claves=Object.keys(g).sort(_ordenClave);   // (v378) mismo orden que arriba
   return claves.map(function(k){
     var lista=g[k], pz=0;
     lista.forEach(function(p){ pz += parseInt(parsearId(p).piezas,10)||0; });
@@ -10558,14 +10634,22 @@ function mostrarVidaLote(lote, palesEncontrados){
   _vidaLote.filas = filas;
 
   // ── Cabecera del lote ──
+  // (v378) EL RÓTULO DE ARRIBA DICE LO MISMO QUE EL DE ABAJO Y EN EL MISMO
+  // ORDEN. Antes arriba salía "MEZCLA · 3 KG" y abajo "MEZCLA · ACEITE · 3 KG":
+  // faltaba la variedad justo en la línea que se lee primero. Ahora los dos
+  // sitios usan _clavePalet, así que dicen lo mismo, y el orden es el de
+  // fábrica —3 KG, 2 KG, 1 KG, barra, 1/2 kg— en vez de alfabético.
   var totalPz=0, tipos={};
   palesEncontrados.forEach(function(pid){
     var info=parsearId(pid);
     totalPz += parseInt(info.piezas,10)||0;
-    var t=(info.tipo||'?')+(info.fmt?(' · '+info.fmt):'');
+    var t=_clavePalet(pid);
     tipos[t]=(tipos[t]||0)+1;
   });
-  var desc = Object.keys(tipos).map(function(t){ return t+' ('+tipos[t]+')'; }).join(' · ');
+  var desc = Object.keys(tipos).sort(_ordenClave).map(function(t){
+    return '<span style="color:var(--accent);font-weight:700;">'+t+'</span>'
+         + ' <span style="color:var(--text3);">('+tipos[t]+')</span>';
+  }).join('<span style="color:var(--text3);">&nbsp;·&nbsp;</span>');
 
   // (v375) TAMAÑO DE ESCRITORIO DE VERDAD. En un monitor de 24" la versión
   // anterior ocupaba un tercio de la pantalla con letra de móvil: Calidad tenía
@@ -10573,11 +10657,16 @@ function mostrarVidaLote(lote, palesEncontrados){
   // disponible y la letra sube a tamaño de lectura cómoda a un metro, que es
   // como se mira un monitor. Su programa viejo de MS-DOS era ilegible de feo
   // pero legible de grande: eso segundo hay que igualarlo.
+  // (v378) El lote, separado del resto y sobre fondo blanco con el rojo de la
+  // casa: en el monitor todo se veía del mismo marrón apagado y no había dónde
+  // apoyar la vista. El hueco entre el lote y los formatos es a propósito, para
+  // que se lean como dos cosas distintas y no como una frase corrida.
   var h = '<div style="max-width:1700px;margin:0 auto;">'
-    + '<div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:2px solid var(--accent);padding-bottom:10px;margin-bottom:4px;">'
-      + '<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:2.3rem;color:var(--text);">Lote '+lote+'</div>'
-      + '<div style="font-size:1.35rem;color:var(--text2);">'+desc+'</div>'
-      + '<div style="margin-left:auto;font-size:1.35rem;color:var(--text2);"><b>'+totalPz+'</b> piezas · <b>'+palesEncontrados.length+'</b> palets</div>'
+    + '<div style="background:#fff;border:2px solid var(--accent);border-radius:12px;padding:16px 22px;margin-bottom:6px;'
+        + 'display:flex;align-items:baseline;gap:40px;flex-wrap:wrap;">'
+      + '<div style="font-family:\'Karla\',sans-serif;font-weight:800;font-size:2.5rem;color:var(--accent);letter-spacing:.5px;">Lote '+lote+'</div>'
+      + '<div style="font-size:1.4rem;">'+desc+'</div>'
+      + '<div style="margin-left:auto;font-size:1.35rem;color:var(--text2);"><b style="color:var(--accent);">'+totalPz+'</b> piezas · <b style="color:var(--accent);">'+palesEncontrados.length+'</b> palets</div>'
     + '</div>'
     // (v376) LOS PALETS DEL LOTE, EN LA CABECERA Y UNA SOLA VEZ. Antes salían
     // repetidos dentro de cada acción (y siempre los mismos). Aquí arriba se ven
@@ -10604,12 +10693,21 @@ function mostrarVidaLote(lote, palesEncontrados){
       + '</tr></thead><tbody>';
     filas.forEach(function(fl, i){
       if(fl.tipo==='volteos'){
+        // (v378) EL VOLTEO ES UNA ACCIÓN MÁS. Antes iba en una franja gris,
+        // en cursiva y con las tres primeras columnas fundidas en una: al
+        // repasar la columna ACCIÓN se leía "1ª capa, movimiento, 2ª capa,
+        // movimiento" y los volteos no aparecían, como si el queso no se
+        // hubiera volteado nunca. Ahora ocupa su fila igual que las demás,
+        // con "Volteos" en negro en su columna, y el recuento y las fechas
+        // pasan a la columna de producto, que es donde se cuenta el detalle.
         var rango = (fl.desde===fl.hasta) ? fl.desde : ('del '+fl.desde+' al '+fl.hasta);
-        h += '<tr onclick="vidaToggle('+i+')" style="cursor:pointer;background:var(--bg3);color:var(--text3);">'
-          + '<td colspan="3" style="padding:11px 14px;font-size:1.15rem;font-style:italic;">🔄 '+fl.n+' volteo'+(fl.n>1?'s':'')+' · '+rango+'</td>'
-          + '<td style="padding:11px 14px;text-align:right;">—</td>'
-          + '<td style="padding:11px 14px;text-align:right;">'+fl.pales.length+'</td>'
-          + '<td style="padding:11px 8px;color:var(--text3);font-size:1.2rem;">▸</td></tr>';
+        h += '<tr onclick="vidaToggle('+i+')" style="cursor:pointer;border-bottom:1px solid var(--line,#eee);">'
+          + '<td style="padding:15px 14px;font-family:\'Inconsolata\',monospace;white-space:nowrap;">'+fl.desde+'</td>'
+          + '<td style="padding:15px 14px;font-weight:700;">Volteos</td>'
+          + '<td style="padding:15px 14px;color:var(--text2);">'+fl.n+' volteo'+(fl.n>1?'s':'')+' · '+rango+'</td>'
+          + '<td style="padding:15px 14px;text-align:right;">—</td>'
+          + '<td style="padding:15px 14px;text-align:right;">'+fl.pales.length+'</td>'
+          + '<td style="padding:15px 8px;color:var(--text3);font-size:1.2rem;">▸</td></tr>';
       } else {
         var g = fl.g;
         var nom = {'1ª CAPA':'1ª capa antifúngico','2ª CAPA':'2ª capa','PINTURA':'Pintura',
@@ -10633,7 +10731,7 @@ function mostrarVidaLote(lote, palesEncontrados){
 
   document.getElementById('traz-vida-title').textContent='Lote '+lote;
   document.getElementById('traz-vida-content').innerHTML=h;
-  ir('s-traz-vida');
+  _trazEntrar('s-traz-vida');
 }
 
 // Abrir/cerrar el detalle de una fila
@@ -10848,13 +10946,15 @@ function mostrarHistorialPale(paleId){
   var fg=tipoColor(info.tipo,'bg');
   var bg=tipoColor(info.tipo,'light');
   document.getElementById('traz-hist-title').textContent=info.tipo+(info.variedad&&info.variedad!=='—'?' · '+info.variedad:'');
-  var header='<div style="background:'+bg+';border-left:4px solid '+fg+';border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
-    +'<div style="font-family:\'Inconsolata\',monospace;font-size:0.85rem;color:'+fg+';font-weight:700;">'+paleId+'</div>'
-    +'<div style="font-size:0.8rem;color:var(--text2);margin-top:4px;">'
+  // (v378) Tamaños escalados con _fs: en el monitor de Calidad esta ficha se
+  // leía con letra de móvil (foto de Joaquín, 02/09).
+  var header='<div style="background:#fff;border:2px solid '+fg+';border-radius:12px;padding:'+_pd(12)+' '+_pd(16)+';margin-bottom:'+_pd(12)+';">'
+    +'<div style="font-family:\'Inconsolata\',monospace;font-size:'+_fs(0.85)+';color:'+fg+';font-weight:700;">'+paleId+'</div>'
+    +'<div style="font-size:'+_fs(0.8)+';color:var(--text2);margin-top:4px;">'
     +info.tipo+(info.variedad&&info.variedad!=='—'?' · '+info.variedad:'')+(info.fmt?' · '+info.fmt:'')
     +(info.piezas?' · '+info.piezas+' pzas':'')
     +'</div>'
-    +'<div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">Fab. '+fechaFabDesdeId(paleId)+'</div>'
+    +'<div style="font-size:'+_fs(0.72)+';color:var(--text3);margin-top:2px;">Fab. '+fechaFabDesdeId(paleId)+'</div>'
     +'</div>';
   document.getElementById('traz-hist-header').innerHTML=header;
   // Buscar operaciones del propio palet
@@ -10895,12 +10995,12 @@ function mostrarHistorialPale(paleId){
   var SCOLOR={'1ª CAPA':'#6b4a4a','VOLTEO':'#4a5e4a','2ª CAPA':'#425470','MOVIMIENTO':'#7a5e3a','PINTURA':'#5a4568','ENVASADO':'#4a5a3a'};
   if(!trazOpsActuales.length){
     document.getElementById('traz-hist-ops').innerHTML='<div style="color:var(--text3);text-align:center;padding:20px;">Sin operaciones registradas.</div>';
-    ir('s-traz-historial');
+    _trazEntrar('s-traz-historial');
     return;
   }
   var _nHered = trazOpsActuales.filter(function(r){return r._heredadoDelPadre;}).length;
   var _txtHered = _nHered>0 ? ' · '+_nHered+' del palet origen' : '';
-  var html='<div style="font-size:0.75rem;color:var(--text3);margin-bottom:10px;">'+trazOpsActuales.length+' operaciones registradas'+_txtHered+'</div>';
+  var html='<div style="font-size:'+_fs(0.75)+';color:var(--text3);margin-bottom:'+_pd(10)+';">'+trazOpsActuales.length+' operaciones registradas'+_txtHered+'</div>';
   trazOpsActuales.forEach(function(r,i){
     var sec=(r['SECCIÓN']||'').toUpperCase();
     var col=SCOLOR[sec]||'#5a5a5a';
@@ -10925,29 +11025,29 @@ function mostrarHistorialPale(paleId){
     var _esHeredada = !!r._heredadoDelPadre;
     var _bordeHered = _esHeredada?'border-left:3px solid #c8780a;background:var(--bg3);':'';
     var _etiqHered = _esHeredada?'<span style="display:inline-block;background:#c8780a;color:#fff;font-size:0.58rem;font-weight:800;padding:1px 6px;border-radius:5px;margin-left:6px;vertical-align:middle;">ORIGEN</span>':'';
-    html+='<div style="display:flex;gap:10px;margin-bottom:8px;">'
+    html+='<div style="display:flex;gap:10px;margin-bottom:'+_pd(8)+';">'
       +'<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">'
       +'<div style="width:12px;height:12px;background:'+col+';border-radius:50%;margin-top:4px;'+(_esHeredada?'opacity:0.6;':'')+'"></div>'
       +(i<trazOpsActuales.length-1?'<div style="width:2px;flex:1;background:var(--border);margin-top:2px;"></div>':'')
       +'</div>'
-      +'<button onclick="mostrarDetalleOp('+i+')" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:left;cursor:pointer;margin-bottom:0;'+_bordeHered+'">'
+      +'<button onclick="mostrarDetalleOp('+i+')" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:'+_pd(10)+' '+_pd(12)+';text-align:left;cursor:pointer;margin-bottom:0;'+_bordeHered+'">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
       // IZQUIERDA: fecha + operario
       +'<div style="display:flex;flex-direction:column;gap:2px;min-width:0;">'
-      +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text2);">'+fStr+_etiqHered+'</span>'
-      +(opStrH?'<span style="font-size:0.72rem;color:var(--text3);">'+opStrH+'</span>':'')
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:'+_fs(0.9)+';color:var(--text2);">'+fStr+_etiqHered+'</span>'
+      +(opStrH?'<span style="font-size:'+_fs(0.72)+';color:var(--text3);">'+opStrH+'</span>':'')
       +'</div>'
       // DERECHA: icono+SECCIÓN + sala
       +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;text-align:right;">'
-      +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:0.9rem;color:'+col+';">'+(SICON[sec]||'📝')+' '+sec+'</span>'
-      +(salaInfoH?'<span style="font-size:0.72rem;color:var(--text3);">'+salaInfoH+'</span>':'')
+      +'<span style="font-family:\'Karla\',sans-serif;font-weight:700;font-size:'+_fs(0.9)+';color:'+col+';">'+(SICON[sec]||'📝')+' '+sec+'</span>'
+      +(salaInfoH?'<span style="font-size:'+_fs(0.72)+';color:var(--text3);">'+salaInfoH+'</span>':'')
       +'</div>'
       +'</div>'
       +'</button>'
       +'</div>';
   });
   document.getElementById('traz-hist-ops').innerHTML=html;
-  ir('s-traz-historial');
+  _trazEntrar('s-traz-historial');
 }
 
 function mostrarDetalleOp(idx){
@@ -11009,10 +11109,9 @@ function mostrarDetalleOp(idx){
   var rawIdx2=rawRows.findIndex(function(x){
     return (x['ID PALET']||'')==paleIdR2&&(x['FECHA']||'')==fechaR2&&(x['SECCIÓN']||'')==(r['SECCIÓN']||'');
   });
-  trazOpBackScreen='s-historial';
-  document.getElementById('traz-op-back').setAttribute('onclick',"ir('"+trazOpBackScreen+"')");
   window._trazOpActual={r:r,sec:sec,rawIdx:rawIdx2,rowId:r['ID']||''};
-  ir('s-traz-op');
+  document.getElementById('traz-op-back').setAttribute('onclick','_trazAtras()');   // (v378)
+  _trazEntrar('s-traz-op');
 }
 
 // Normaliza un QR escaneado para preservar el formato fijo:
