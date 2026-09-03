@@ -728,6 +728,44 @@ input[type=time]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer}
   .form-cols-3 { grid-template-columns: 1fr 1fr 1fr 1fr 1fr; }
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   (v2.6.423) VERSIÓN DE ESCRITORIO.
+   Los partes se rellenan en la tablet, pero la revisión de la noche se hace en
+   el ordenador de la oficina, y ahí estas pantallas estaban pensadas para una
+   pantalla estrecha y alta: en un monitor de 24" la letra se queda diminuta y
+   las columnas se separan tanto que hay que barrer la vista de un extremo a
+   otro para juntar un rótulo con su dato (Joaquín, 03/09).
+   Se empieza por las dos que más se usan de noche: comparativa e historial,
+   que se estrechan y crecen, y saladero, que solo crece —esa sí necesita todo
+   el ancho, porque tiene quince columnas de verdad.
+   Por debajo de 900 px no cambia nada: la tablet del quesero sigue igual.
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 900px) {
+  /* ── COMPARATIVA: estrechar y agrandar ── */
+  #screen-comparativa { max-width: 1280px; margin: 0 auto; }
+  .cmptab { font-size: 1.05rem; margin-top: 14px; }
+  .cmptab th { font-size: 0.88rem; }
+  .cmptab td { padding: 8px 10px; }
+  .cmptab .cmp-nota { font-size: 0.85rem; }
+  /* La primera columna se comía el ancho y empujaba los datos al borde
+     derecho. Ahora el rótulo ocupa lo justo y las tres columnas de valores
+     van juntas, que es como se comparan: de un vistazo, sin recorrido. */
+  .cmptab td:first-child, .cmptab th:first-child { width: 42%; }
+  .cmptab td:nth-child(2), .cmptab th:nth-child(2),
+  .cmptab td:nth-child(3), .cmptab th:nth-child(3),
+  .cmptab td:nth-child(4), .cmptab th:nth-child(4) { width: 130px; }
+  .cmp-obs, .cmp-chivato { font-size: 1rem; }
+
+  /* ── HISTORIAL: mismo criterio ── */
+  #screen-historial { max-width: 1280px; margin: 0 auto; }
+
+  /* ── SALADERO: solo más grande. Quince columnas necesitan el ancho. ── */
+  .saltab { font-size: 1rem; }
+  .saltab .th2 { font-size: 0.82rem; }
+  .saltab .firma { font-size: 0.88rem; }
+  .saltab th, .saltab td { padding-top: 7px; padding-bottom: 7px; }
+}
+
 
 /* FIX scroll sobre inputs: permitir pan en ambos ejes para que el dedo
    pueda hacer scroll vertical Y swipe horizontal incluso si arranca
@@ -898,7 +936,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.422</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.423</div>
   </div>
 </div>
 <div class="nav-tabs">
