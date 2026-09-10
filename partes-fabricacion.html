@@ -950,6 +950,36 @@ input[type="email"] {
   .saltab th, .saltab td { padding-top: 9px; padding-bottom: 9px; }
   .saltab input.finput { font-size: 1.1rem; }
 }
+
+/* ══════ (v2.6.427) COMPARATIVA · TABLA DE ESCRITORIO (ver cmpTablaEscritorio) ══════
+   Solo la genera el ordenador (≥ 900 px). Estos estilos van FUERA del @media a
+   propósito: si después se estrecha la ventana, la tabla ya pintada no se queda
+   sin formato. La tablet usa .cmptab y no se ve afectada. */
+.cmpesc{border-collapse:collapse;margin:14px auto 0;font-size:1.32rem;}
+.cmpesc th{font-size:0.95rem;text-transform:uppercase;letter-spacing:0.04em;color:#8a7a6a;
+  font-weight:700;padding:4px 14px;text-align:left;white-space:nowrap;}
+.cmpesc th.cmpesc-grupo{text-align:center;border-bottom:1px solid #e0d3bd;}
+.cmpesc th.cmpesc-sub{font-size:0.8rem;font-weight:600;color:#a89886;text-transform:none;letter-spacing:0;}
+.cmpesc thead tr:last-child th, .cmpesc thead th[rowspan]{border-bottom:2px solid #e0d3bd;}
+.cmpesc td{padding:6px 14px;border-bottom:1px solid #f0e8dc;vertical-align:middle;}
+.cmpesc td.cmpesc-rot{width:400px;color:#5a4632;font-weight:700;border-left:5px solid transparent;}
+.cmpesc tr.cmpesc-parada td.cmpesc-rot{font-weight:400;color:#3f5f7f;}
+.cmpesc .cmpesc-nota{display:block;font-size:0.85rem;font-weight:400;color:#9a8a7a;line-height:1.25;margin-top:1px;}
+.cmpesc td.cmpesc-h, .cmpesc td.cmpesc-v{font-family:'Inconsolata',monospace;font-weight:700;color:#3a2a1a;white-space:nowrap;}
+.cmpesc td.cmpesc-h{min-width:78px;}
+.cmpesc td.cmpesc-v{min-width:88px;}
+/* Separación entre el bloque del parte y el del SCADA */
+.cmpesc td.cmpesc-scada, .cmpesc th.cmpesc-grupo + th.cmpesc-grupo{border-left:2px solid #eadfcd;}
+.cmpesc thead tr:last-child th:nth-child(3){border-left:2px solid #eadfcd;}
+.cmpesc td.cmpesc-dif{font-weight:700;white-space:nowrap;}
+.cmpesc .cmpesc-sep{display:inline-block;width:16px;}
+.cmpesc td.cmpesc-dur{color:#2d7a2d;font-weight:600;font-family:'Inconsolata',monospace;font-size:1.05rem;white-space:nowrap;}
+.cmpesc tbody tr:nth-child(even){background:#faf6ef;}
+.cmpesc tbody tr.cmpesc-ojo, .cmpesc tbody tr.cmpesc-ojo:nth-child(even){background:#fff1cf;}
+/* Título de cada bloque del proceso */
+.cmpesc tr.cmpesc-bloque td{background:#fff !important;font-size:0.9rem;font-weight:800;text-transform:uppercase;
+  letter-spacing:0.08em;padding:14px 14px 3px;border-bottom:2px solid;}
+.cmpesc tbody tr.cmpesc-bloque:first-child td{padding-top:6px;}
 </style>
 </head>
 <body>
@@ -968,7 +998,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.426</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.427</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3681,6 +3711,118 @@ function cmpPintarFila(f){
     + '</tr>';
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// (v2.6.427) TABLA DE ESCRITORIO DE LA COMPARATIVA
+// ──────────────────────────────────────────────────────────────────────────
+// Petición de Joaquín (10/09), revisando partes de noche en el monitor de 24":
+//  · HORA Y VALOR EN LA MISMA FILA. "A esa hora, esa temperatura": el cuajo, el
+//    inicio y el fin del recalentamiento son un momento con su temperatura, y
+//    el corte va con el total de coagulación. Parte y SCADA pasan a tener dos
+//    columnas cada uno (hora | valor) y la tabla pierde cuatro filas.
+//  · BLOQUES DEL PROCESO A LA VISTA: llenado y adiciones, cuajado,
+//    recalentamiento, agitación y moldeo. Cada uno con su color —título y raya
+//    a la izquierda de sus hitos—; las paradas del agitador siguen en azul.
+//  · El ✓ en VERDE de verdad (en esta hoja --green es el granate de la marca).
+// Solo por encima de 900 px. La tablet sigue con cmpPintarFila, sin cambios.
+// ══════════════════════════════════════════════════════════════════════════
+function _cmpEscritorio(){
+  try{ return !!(window.matchMedia && window.matchMedia('(min-width: 900px)').matches); }
+  catch(e){ return false; }
+}
+// Parejas hora + valor que se juntan en una fila
+var CMP_PARES = {
+  'Cuajo · hora':       {con:'Cuajo · temperatura',   rot:'Cuajo',                    bloque:'cuajado'},
+  'Corte · hora':       {con:'Coagulación total',     rot:'Corte · coagulación total', bloque:'cuajado'},
+  'Recalent. · inicio': {con:'Recalent. · T inicial', rot:'Recalentamiento · inicio', bloque:'recal'},
+  'Recalent. · fin':    {con:'Recalent. · T final',   rot:'Recalentamiento · fin',    bloque:'recal', prefV:'temperatura: '}
+};
+var CMP_BLOQUE_DE = {
+  'Aclarado inicial':'llenado', 'Llenado · inicio':'llenado',
+  'Auxiliares (cloruro)':'llenado', 'Fermentos':'llenado',
+  'Agitación · duración':'moldeo', 'Desuerado':'moldeo', 'Moldeo · inicio':'moldeo'
+};
+var CMP_BLOQUES = {
+  llenado: {n:0, t:'Llenado y adiciones', c:'#5f8f4e'},
+  cuajado: {n:1, t:'Cuajado',             c:'#b8861c'},
+  recal:   {n:2, t:'Recalentamiento',     c:'#b5533c'},
+  moldeo:  {n:3, t:'Agitación y moldeo',  c:'#7a5a3a'}
+};
+// Texto y color de la diferencia de UNA fila (misma regla que cmpPintarFila)
+function _cmpDifHtml(f){
+  if(!f) return '';
+  if(f.difTexto) return '<span style="color:#8a6a2a;">'+f.difTexto+'</span>';
+  if(f.dif === null || f.dif === undefined) return '';
+  var icono = f.estado==='ok' ? '✓' : (f.estado==='ojo' ? '⚠' : '');
+  var color = f.estado==='ok' ? '#2d7a2d' : (f.estado==='ojo' ? '#b06a00' : '#9a8a7a');
+  var signo = f.dif > 0 ? '+' : '';
+  // Los números que son minutos (coagulación total, duración de la agitación)
+  // también llevan su unidad: "✓ 0" o "⚠ -13" a secas no se entienden.
+  var enMin = f.tipo==='hora' || (f.tipo==='num' && (f.nota==='minutos' || /min/.test(String(f.parte||'')+String(f.scada||''))));
+  var txt = signo + f.dif + (enMin ? ' min' : (f.tipo==='temp' ? ' °C' : ''));
+  return '<span style="color:'+color+';">'+icono+' '+txt+'</span>';
+}
+// Un valor con su unidad: 31.8 → "31.8 °C"; el total de coagulación, en min
+function _cmpValor(f, v){
+  if(v===null || v===undefined || v==='') return '—';
+  var s = String(v);
+  if(f.tipo==='temp' && s.indexOf('°')<0) return s+' °C';
+  if(f.tipo==='num' && f.nota==='minutos' && /^-?\d+([.,]\d+)?$/.test(s.trim())) return s+' min';
+  return s;
+}
+function cmpTablaEscritorio(filas){
+  // 1) Juntar cada hora con su valor
+  var out = [];
+  for(var i=0;i<filas.length;i++){
+    var fl = filas[i], par = CMP_PARES[fl.rotulo];
+    if(par && filas[i+1] && filas[i+1].rotulo===par.con){
+      var v = filas[i+1], notas = [];
+      if(fl.nota) notas.push(fl.nota);
+      if(v.nota && v.nota!=='minutos') notas.push((par.prefV||'')+v.nota);
+      out.push({rot:par.rot, nota:notas.join(' · '), h:fl, v:v, bloque:par.bloque, dur:fl.dur||v.dur});
+      i++; continue;
+    }
+    if(fl.rotulo==='Parada del agitador'){
+      out.push({rot:fl.rotulo, nota:fl.nota, h:fl, v:null, parada:true, esPH:!!fl.esPH, dur:fl.dur});
+      continue;
+    }
+    var esValor = (fl.tipo==='temp' || fl.tipo==='num');
+    out.push({rot:fl.rotulo, nota:(fl.nota==='minutos'?'':fl.nota), h:esValor?null:fl, v:esValor?fl:null,
+              bloque:CMP_BLOQUE_DE[fl.rotulo]||null, dur:fl.dur});
+  }
+  // 2) Pintar, abriendo un título cada vez que empieza un bloque. Las paradas
+  //    van en el bloque en que caen; la de la muestra de pH (y la de echar el
+  //    cuajo, justo antes) ya abren el cuajado. Nunca se vuelve a un bloque
+  //    anterior.
+  var actual = null, cuerpo = '';
+  out.forEach(function(r){
+    var b = r.parada ? (r.esPH ? 'cuajado' : (actual||'llenado')) : (r.bloque || actual || 'llenado');
+    if(actual && CMP_BLOQUES[b].n < CMP_BLOQUES[actual].n) b = actual;
+    var B = CMP_BLOQUES[b];
+    if(b !== actual){
+      cuerpo += '<tr class="cmpesc-bloque"><td colspan="7" style="color:'+B.c+';border-bottom-color:'+B.c+';">'+B.t+'</td></tr>';
+      actual = b;
+    }
+    var ojo = (r.h && r.h.estado==='ojo') || (r.v && r.v.estado==='ojo');
+    var raya = r.parada ? '#9ab4cc' : B.c;
+    var difs = [_cmpDifHtml(r.h), _cmpDifHtml(r.v)].filter(function(x){ return x; });
+    cuerpo += '<tr class="'+(ojo?'cmpesc-ojo':'')+(r.parada?' cmpesc-parada':'')+'">'
+      + '<td class="cmpesc-rot" style="border-left-color:'+raya+';">'+r.rot
+      +   (r.nota?'<span class="cmpesc-nota">'+r.nota+'</span>':'')+'</td>'
+      + '<td class="cmpesc-h">'+(r.h ? (r.h.parte!==null&&r.h.parte!==''?r.h.parte:'—') : '')+'</td>'
+      + '<td class="cmpesc-v">'+(r.v ? _cmpValor(r.v, r.v.parte) : '')+'</td>'
+      + '<td class="cmpesc-h cmpesc-scada">'+(r.h ? (r.h.scada!==null&&r.h.scada!==''?r.h.scada:'—') : '')+'</td>'
+      + '<td class="cmpesc-v">'+(r.v ? _cmpValor(r.v, r.v.scada) : '')+'</td>'
+      + '<td class="cmpesc-dif">'+(difs.length ? difs.join('<span class="cmpesc-sep"></span>') : '<span style="color:#b8aa98;">·</span>')+'</td>'
+      + '<td class="cmpesc-dur">'+(r.dur||'')+'</td>'
+      + '</tr>';
+  });
+  return '<table class="cmpesc"><thead>'
+    + '<tr><th rowspan="2"></th><th colspan="2" class="cmpesc-grupo">Parte</th><th colspan="2" class="cmpesc-grupo">SCADA</th>'
+    + '<th rowspan="2">Dif.</th><th rowspan="2">Duración</th></tr>'
+    + '<tr><th class="cmpesc-sub">hora</th><th class="cmpesc-sub">valor</th><th class="cmpesc-sub">hora</th><th class="cmpesc-sub">valor</th></tr>'
+    + '</thead><tbody>' + cuerpo + '</tbody></table>';
+}
+
 function cmpAbrir(){
   if(!CMP_FECHA) CMP_FECHA = cmpHoy();
   var el = document.getElementById('cmp-fecha');
@@ -4104,6 +4246,7 @@ function cmpTarjeta(p, d){
         ? ('muestra de pH ('+Math.round((_cuajoSeg-q.t)/60)+' min antes del cuajo)')
         : 'no consta en el parte';
       var fila = _conSeg(cmpFila('Parada del agitador', null, cmpHora(q.t), 'texto', nota, '', _durTexto(q.segs)), q.t);
+      fila.esPH = !!q.esPH;   // (v2.6.427) abre el bloque "Cuajado" en escritorio
       var pos = 0;
       for(var i=filas.length-1;i>=0;i--){
         var s=_segFila(filas[i]);
@@ -4120,9 +4263,11 @@ function cmpTarjeta(p, d){
     });
   })();
 
-  var cuerpo = '<table class="cmptab"><thead><tr>'
+  // (v2.6.427) En el ordenador, tabla de escritorio (hora y valor en la misma
+  // fila, bloques del proceso con color). En la tablet, la de siempre.
+  var cuerpo = _cmpEscritorio() ? cmpTablaEscritorio(filas) : ('<table class="cmptab"><thead><tr>'
     + '<th></th><th>Parte</th><th>SCADA</th><th>Dif.</th><th style="text-align:left;width:1%;white-space:nowrap;padding-left:12px;">Duración</th></tr></thead><tbody>'
-    + filas.map(cmpPintarFila).join('') + '</tbody></table>';
+    + filas.map(cmpPintarFila).join('') + '</tbody></table>');
 
   // ── EL CHIVATO ──
   // Aquí es donde esta pantalla se gana el sueldo. Los valores de la norma
