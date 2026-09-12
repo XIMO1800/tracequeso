@@ -998,7 +998,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.427</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.428</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4078,6 +4078,26 @@ function cmpTarjeta(p, d){
   // paradas. Se usa esa hora como única parada para no quedarse a ciegas.
   var _paradasSrc = (f.paradas && f.paradas.length) ? f.paradas
     : ((f.hora_ferm!==null && f.hora_ferm!==undefined) ? [{t:f.hora_ferm, segs:0}] : []);
+  // (v2.6.428) FUERA LAS PARADAS EN QUE EL AGITADOR NO SE PARÓ.
+  // El conversor v2.0 marcaba como parada, después del cuajo, los tramos en que
+  // el contador de BATIDO del SCADA no avanza. Pero durante el recalentamiento
+  // la receta alterna calentar y batir, y mientras calienta el agitador SIGUE
+  // GIRANDO: salían paradas de 11 min 40 s, 5 min 30 s… que no existen
+  // (cuba 3 del 12/09; Joaquín: "yo no veo paradas ahí").
+  // Cada parada trae en 'hz' las lecturas de FREC (la frecuencia del agitador).
+  // Se queda solo la que tenga la mitad o más de sus lecturas a 0. Con eso, esa
+  // cuba pasa de 8 paradas después del cuajo a las 2 de verdad: la de 40 s antes
+  // del recalentamiento y la del desuerado.
+  // Se aplica SOLO a la zona post-cuajo: las del llenado se detectan de otra
+  // manera y son las que se casan con las horas de cloruro y fermentos.
+  // Los archivos sin 'hz' (conversores anteriores) no se tocan.
+  _paradasSrc = _paradasSrc.filter(function(q){
+    if(String(q.zona||'') !== 'post-cuajo') return true;
+    if(!q.hz || !q.hz.length) return true;
+    var ceros = 0;
+    for(var z=0; z<q.hz.length; z++){ if(Number(q.hz[z]) === 0) ceros++; }
+    return (ceros / q.hz.length) >= 0.5;
+  });
   var _stops = _paradasSrc.map(function(q){
     // (v2.6.421) La hora de la parada viene como 't1' en los archivos del
     // conversor v2.0 y como 't' en los anteriores. Sin esto, las paradas salían
