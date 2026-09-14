@@ -938,6 +938,44 @@ input[type="email"] {
   .cmptab tr.cmp-parada td.cmp-rot { font-weight: 400; color: #3f5f7f; border-left: 4px solid #9ab4cc; }
   .cmp-obs, .cmp-chivato { font-size: 1rem; }
 
+
+  /* ── (v2.6.430) EL PARTE DE FABRICACIÓN, PARA REVISARLO EN EL ORDENADOR ──
+     El parte se rellena en la tablet y ahí está bien. Pero la revisión de la
+     noche se hace en el monitor: cada dato se estiraba a lo ancho de la
+     pantalla, el rótulo quedaba a un palmo de su casilla y la letra se veía
+     diminuta (Joaquín, 14/09: "es difícil verlo, todo muy alargado").
+     Aquí no se cambia NADA del funcionamiento: solo se le pone freno al ancho
+     y se sube el tamaño, para poder leer un parte entero de un vistazo y ver,
+     por ejemplo, si hubo lavado de cuajada cuando el pH bajó de la cuenta. */
+  #screen-hoy { max-width: 1280px; margin: 0 auto; }
+  #screen-hoy .seccion-body { padding: 14px 18px 16px; font-size: 1.05rem; }
+  #screen-hoy .seccion-titulo { font-size: 1.05rem; }
+  #screen-hoy .campo-label, #screen-hoy .flabel { font-size: 0.85rem; }
+  #screen-hoy .finput, #screen-hoy input, #screen-hoy select, #screen-hoy textarea { font-size: 1.05rem; }
+
+  /* Las casillas de hora, pH y temperatura miden lo que ponen, no lo que sobra:
+     así el rótulo y su dato van juntos y caben varios en una línea. */
+  #screen-hoy .form-cols   { grid-template-columns: repeat(4, minmax(0, 210px)); justify-content: start; }
+  #screen-hoy .form-cols-3 { grid-template-columns: repeat(3, minmax(0, 210px)); justify-content: start; }
+  #screen-hoy .form-cols-5 { grid-template-columns: repeat(5, minmax(0, 190px)); justify-content: start; }
+
+  /* Fermentos, auxiliares y cuajo: la fila de seis columnas se queda alineada
+     a la izquierda y con anchos fijos, en vez de repartirse el monitor entero.
+     El nombre del producto, a la izquierda, que es por donde se lee. */
+  #screen-hoy .papel-prod { padding: 10px 14px 12px; }
+  #screen-hoy .papel-prod-l6 {
+    grid-template-columns: 300px 120px 130px 170px 190px 130px;
+    justify-content: start; gap: 14px;
+  }
+  #screen-hoy .papel-prod-l6 .papel-prod-label { font-size: 0.72rem; text-align: left; }
+  #screen-hoy .papel-prod-l6 .papel-prod-nombre,
+  #screen-hoy .papel-prod-l6 .papel-prod-dosis-base,
+  #screen-hoy .papel-prod-l6 .papel-prod-meta { font-size: 1rem; justify-content: flex-start; text-align: left; }
+  #screen-hoy .papel-prod-l6 .papel-prod-nombre { font-weight: 800; }
+
+  /* Rayado alterno en los productos, para no perder la línea al cruzar. */
+  #screen-hoy .papel-prod:nth-of-type(even) { background: #faf6ef; }
+
   /* ── HISTORIAL: mismo criterio ── */
   #screen-historial { max-width: 1280px; margin: 0 auto; }
 
@@ -998,7 +1036,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.428</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.430</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -8110,7 +8148,15 @@ function _horaAMin(h){
 function _numOr(v){ var n=parseFloat(String(v).replace(',','.')); return isNaN(n)?null:n; }
 function _fmtDur(min){
   if(min==null) return '';
-  if(min<0) min+=1440; // cruza medianoche
+  // (v2.6.429) SOLO SE SUMAN 24 h SI DE VERDAD SE CRUZA LA MEDIANOCHE.
+  // Antes, cualquier diferencia negativa se daba por cruce de día. Dos hitos
+  // apuntados del revés por unos minutos —fermento antes que cloruro— salían
+  // como 23 h y pico. Un cruce de medianoche de verdad deja una diferencia muy
+  // negativa (23:50 → 00:10 son −1420 min); unos minutos del revés, no. Por
+  // debajo de 12 horas se entiende que es el mismo día y se enseña el hueco
+  // real entre los dos momentos.
+  if(min < -720) min+=1440;      // cruza medianoche
+  else if(min < 0) min = -min;   // apuntados del revés: el hueco es el mismo
   if(min<60) return min+'m';
   var h=Math.floor(min/60), m=min%60;
   return h+'h'+(m?(' '+m+'m'):'');
@@ -8187,7 +8233,21 @@ function _hitosDeParte(p){
     // hasta aquí pero sí aparece el tramo de duración del desmoldeo en la línea de tiempos.
 
   }
-  return hitos.filter(function(h){ return _horaAMin(h.hora)!=null; });
+  hitos = hitos.filter(function(h){ return _horaAMin(h.hora)!=null; });
+  // (v2.6.429) LOS HITOS VAN EN EL ORDEN DEL RELOJ, NO EN EL DE COSTUMBRE.
+  // La lista de arriba está escrita en el orden habitual (cloruro y luego
+  // fermento). El 14/09, en una cuba que iba retrasada, se echó primero el
+  // fermento (06:49) y después el cloruro (06:53). Como la línea de tiempos
+  // mide el hueco entre un hito y el siguiente DE LA LISTA, ese tramo salía
+  // negativo (−4 min) y se leía como si cruzara la medianoche: 23 h 56 m.
+  // Ordenándolos por hora, el tramo vuelve a ser lo que es, 4 minutos, y de
+  // paso la curva se dibuja en el orden real en que ocurrieron las cosas.
+  // El punto de la salmuera se queda al final: no es un hito de la cuba, es el
+  // baño que el queso se encuentra al salir, y va dibujado aparte.
+  var _sueltos = hitos.filter(function(h){ return h.suelto; });
+  var _propios = hitos.filter(function(h){ return !h.suelto; });
+  _propios.sort(function(a,b){ return _horaAMin(a.hora) - _horaAMin(b.hora); });
+  return _propios.concat(_sueltos);
 }
 
 function _svgGraficaEvolucion(p){
