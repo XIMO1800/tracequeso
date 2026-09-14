@@ -991,7 +991,12 @@ input[type="email"] {
      pantalla". Si algún día se quiere más o menos grande, se cambia este número
      y ya está. Por debajo de 900 px no se aplica: la tablet sigue igual. */
   #modal.modal-overlay { align-items: center; padding: 20px; }
-  #modal .modal { border-radius: 14px; max-width: 1180px; max-height: 92vh; padding: 20px 24px; zoom: 1.28; }
+  /* (v2.6.433) La altura también hay que dividirla por el zoom. Con 92vh y zoom
+     1,28 la ventana se dibujaba a 118vh: más alta que la pantalla, así que se
+     comía la cabecera por arriba y el parte aparecía pegado al borde, sin sitio
+     (Joaquín, 14/09: "está todo muy pegado ahí arriba"). 70 × 1,28 ≈ 90vh, que
+     es lo que se pretendía. */
+  #modal .modal { border-radius: 14px; max-width: 1180px; max-height: 70vh; padding: 18px 24px 22px; zoom: 1.28; }
   #modal .modal-title { font-size: 1.15rem; }
 
   /* Dentro del parte, la fila de cada producto tampoco se estira de lado a lado. */
@@ -1064,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.432</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.433</div>
   </div>
 </div>
 <div class="nav-tabs">
