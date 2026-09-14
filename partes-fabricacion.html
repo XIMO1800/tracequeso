@@ -976,6 +976,34 @@ input[type="email"] {
   /* Rayado alterno en los productos, para no perder la línea al cruzar. */
   #screen-hoy .papel-prod:nth-of-type(even) { background: #faf6ef; }
 
+
+  /* ── (v2.6.431) EL PARTE DEL HISTORIAL, QUE ES EL QUE SE REVISA DE NOCHE ──
+     La revisión diaria se hace desde HISTORIAL, y ahí el parte no se abre en el
+     editor: se abre en una ventana emergente (#modal-content), que en la 430 se
+     quedó sin tocar. En la tablet esa ventana sube desde abajo y ocupa el ancho
+     de la pantalla; en un monitor de 24" salía igual de estrecha y con la letra
+     pensada para el móvil (Joaquín, 14/09: "lo que necesito es el historial").
+     Aquí se le da el ancho de la pantalla grande y se agranda todo el contenido.
+     El 'zoom' es a propósito: el parte se dibuja con los tamaños escritos en cada
+     línea, así que subirlos uno a uno sería tocar medio archivo y arriesgarse a
+     romper la tablet. Con el zoom crece TODO junto —letras, casillas, rejillas—
+     y guarda las proporciones, que es justo lo que pedía: "como si redujera la
+     pantalla". Si algún día se quiere más o menos grande, se cambia este número
+     y ya está. Por debajo de 900 px no se aplica: la tablet sigue igual. */
+  #modal.modal-overlay { align-items: center; padding: 20px; }
+  #modal .modal { border-radius: 14px; max-width: 1180px; max-height: 92vh; padding: 20px 24px; zoom: 1.28; }
+  #modal .modal-title { font-size: 1.15rem; }
+
+  /* Dentro del parte, la fila de cada producto tampoco se estira de lado a lado. */
+  #modal .papel-prod-l6 {
+    grid-template-columns: 280px 110px 120px 160px 180px 120px;
+    justify-content: start; gap: 12px;
+  }
+  #modal .papel-prod-l6 .papel-prod-label { text-align: left; }
+  #modal .papel-prod-l6 .papel-prod-nombre,
+  #modal .papel-prod-l6 .papel-prod-dosis-base,
+  #modal .papel-prod-l6 .papel-prod-meta { justify-content: flex-start; text-align: left; }
+
   /* ── HISTORIAL: mismo criterio ── */
   #screen-historial { max-width: 1280px; margin: 0 auto; }
 
@@ -1036,7 +1064,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.430</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.432</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4299,10 +4327,32 @@ function cmpTarjeta(p, d){
       var m = cmpMin(fl.scada);          // fila sin segundos: el inicio de su minuto
       return (m===null) ? null : m*60;
     }
+    // (v2.6.432) LAS PARADAS DEL DESUERADO SE LLAMAN POR SU NOMBRE.
+    // Al darle al botón de vaciado diciendo que SÍ se saca suero, la máquina
+    // hace siempre lo mismo: separa las liras y espera a que el grano caiga al
+    // fondo y el suero quede arriba (ahí el agitador está parado varios
+    // minutos), luego da un cuartito de vuelta a la lira y se abre una válvula
+    // para sacar suero. Al terminar, cierra, agita fuerte cambiando el giro
+    // unos segundos y abre las dos válvulas para vaciar.
+    // Todo eso salía como "parada del agitador · no consta en el parte", y la
+    // del reposo (7 min 40 s el 14/09) se leía como si algo se hubiera parado
+    // sin motivo, justo al lado de la fila del desuerado con sus 7,8 min
+    // (Joaquín: "eso forma parte del desuerado, me crea confusión").
+    // No se quita ninguna: son reales y conviene verlas. Solo se dice qué son.
+    var _desIni = (f.desuerado_ini!==null && f.desuerado_ini!==undefined) ? parseInt(f.desuerado_ini,10) : null;
+    var _valv   = (f.apertura_valvulas!==null && f.apertura_valvulas!==undefined) ? parseInt(f.apertura_valvulas,10) : null;
+    function _notaParada(q){
+      if(q.esPH) return 'muestra de pH ('+Math.round((_cuajoSeg-q.t)/60)+' min antes del cuajo)';
+      // El reposo: la parada larga que termina justo cuando empieza a salir el suero.
+      if(_desIni!==null && q.segs>=60 && q.t<=_desIni && (q.t+q.segs) >= (_desIni-120))
+        return 'reposo del desuerado: se separan las liras y el grano baja al fondo';
+      // El último apretón: cierra, agita fuerte y abre las dos válvulas.
+      if(_valv!==null && q.t<=_valv && (_valv-q.t) <= 5*60)
+        return 'antes de abrir las dos válvulas';
+      return 'no consta en el parte';
+    }
     _paradasPendientes.sort(function(a,b){ return b.t-a.t; }).forEach(function(q){
-      var nota = q.esPH
-        ? ('muestra de pH ('+Math.round((_cuajoSeg-q.t)/60)+' min antes del cuajo)')
-        : 'no consta en el parte';
+      var nota = _notaParada(q);
       var fila = _conSeg(cmpFila('Parada del agitador', null, cmpHora(q.t), 'texto', nota, '', _durTexto(q.segs)), q.t);
       fila.esPH = !!q.esPH;   // (v2.6.427) abre el bloque "Cuajado" en escritorio
       var pos = 0;
