@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.433</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.434</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -11511,6 +11511,53 @@ function _abrirParteDesdeURL(){
     setTimeout(esperarParte, 400);
   })();
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// (v2.6.434) LA PANTALLA NO SE APAGA MIENTRAS SE HACE EL PARTE
+// ──────────────────────────────────────────────────────────────────────────
+// En la sala de fabricación no hay enchufe para la tablet, así que se trabaja
+// con ella suelta y la pantalla se apagaba sola: para cada dato había que
+// encenderla primero (Joaquín, 15/09). Esto es lo mismo que TraceQueso lleva
+// desde la v362: mientras la app esté A LA VISTA, se le pide al sistema que no
+// apague la pantalla. Con el botón de la tablet se apaga igual, y al encenderla
+// se vuelve a pedir sola; al terminar los partes, se apaga a mano y por la
+// tarde la tablet se comporta como siempre.
+//
+// EL CANDADO ES IMPORTANTE (lección de la v355 de TraceQueso): esta función
+// espera la respuesta del sistema, y si la llaman otra vez mientras espera,
+// se piden DOS retenciones. La segunda se apunta y la primera queda viva sin
+// apuntar, imposible de soltar: la pantalla no se apaga ni queriendo y la
+// batería se va. Por eso el candado y por eso el release solo borra el apunte
+// si el que se suelta es el vigente.
+//
+// Gasta más batería, y es a propósito. Si algún día molesta, se quita la
+// llamada de abajo y se acabó.
+var _wakeLock = null;
+var _wakeLockPidiendo = false;
+async function activarWakeLock(){
+  if (_wakeLockPidiendo) return;
+  _wakeLockPidiendo = true;
+  try{
+    if ('wakeLock' in navigator && document.visibilityState === 'visible' && !_wakeLock) {
+      var wl = await navigator.wakeLock.request('screen');
+      _wakeLock = wl;
+      wl.addEventListener('release', function(){
+        if (_wakeLock === wl) _wakeLock = null;
+      });
+    }
+  }catch(_){ _wakeLock = null; }
+  _wakeLockPidiendo = false;
+}
+// El sistema suelta la retención al apagar la pantalla o al cambiar de app:
+// cuando la app vuelve a estar a la vista, se pide otra vez.
+document.addEventListener('visibilitychange', function(){
+  if (document.visibilityState === 'visible') { try{ activarWakeLock(); }catch(_){} }
+});
+// Y un repaso cada pocos segundos, por si se soltó sin avisar.
+setInterval(function(){
+  if (document.visibilityState === 'visible') { try{ activarWakeLock(); }catch(_){} }
+}, 15000);
+try{ activarWakeLock(); }catch(_){}
 
 init();
 try{ _abrirParteDesdeURL(); }catch(e){ console.error('_abrirParteDesdeURL:', e); }
