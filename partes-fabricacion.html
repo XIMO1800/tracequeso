@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.434</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.436</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3252,7 +3252,24 @@ function salCargar(){
   SAL_DATOS.sort(function(a,b){ return a.fecha < b.fecha ? 1 : -1; });   // reciente arriba
 }
 function salGuardar(){
-  try{ localStorage.setItem(SAL_KEY, JSON.stringify(SAL_DATOS)); }catch(e){}
+  // (v2.6.435) ANTES, SI NO SE PODÍA GUARDAR, NADIE SE ENTERABA.
+  // Esta memoria la comparten todas las páginas del mismo sitio y tiene un tope
+  // de unos 5 MB. Si se llena, este guardado fallaba en silencio: lo tecleado
+  // seguía en pantalla, pero al volver a entrar se recargaba lo viejo del
+  // aparato y los datos "desaparecían". Es la otra forma de perderlos.
+  // Ahora se avisa en la propia pantalla. El día sigue marcado como pendiente,
+  // así que se reintenta la subida a Google y el dato no se pierde.
+  try{ localStorage.setItem(SAL_KEY, JSON.stringify(SAL_DATOS)); return true; }
+  catch(e){
+    try{
+      var av=document.getElementById('sal-aviso');
+      if(av){ av.style.display=''; av.style.background='#fdecec';
+              av.style.borderLeftColor='#a33030'; av.style.color='#7a2020';
+              av.innerHTML='⚠️ <b>La memoria de este aparato está llena</b>: lo escrito no se ha podido guardar aquí. '
+                         + 'No cierres la pestaña hasta ver «Guardado en Google Sheets».'; }
+    }catch(_){}
+    return false;
+  }
 }
 
 // ── ENVÍO A GOOGLE (v2.6.375) ──
@@ -3371,8 +3388,31 @@ function salBajar(cb){
           porFecha[x.fecha] = x;
           if(x._pendiente) pendientes[x.fecha] = true;
         });
+        // (v2.6.435) UN HUECO EN GOOGLE NO BORRA UN DATO ESCRITO AQUÍ.
+        // Hasta ahora, para un día que no estuviera marcado como pendiente, la
+        // fila de Google sustituía ENTERA a la del aparato. Basta con que la
+        // subida de un campo no llegara —red floja, la pestaña cerrada antes de
+        // los 2,5 s, una respuesta antigua que se cruza con lo recién tecleado—
+        // para que al volver a abrir la pantalla apareciera la fila vieja y los
+        // números escritos se esfumaran (Joaquín, 15/09: "los he metido y luego
+        // no estaban, los he tenido que volver a meter").
+        // Ahora se mezcla campo a campo: Google manda, porque la salmuera la
+        // toca Calidad desde otro equipo, PERO si Google trae un campo vacío y
+        // aquí hay algo escrito, se conserva lo de aquí y el día se queda
+        // pendiente para que suba. Un dato escrito no desaparece nunca solo;
+        // como mucho, sube tarde.
         deGoogle.forEach(function(x){
           if(pendientes[x.fecha]) return;   // gana lo del aparato
+          var local = porFecha[x.fecha];
+          if(!local){ porFecha[x.fecha] = x; return; }
+          var rescatado = false;
+          Object.keys(local).forEach(function(k){
+            if(k.charAt(0)==='_' || k==='fecha') return;
+            var vL = String(local[k]==null?'':local[k]).trim();
+            var vG = String(x[k]==null?'':x[k]).trim();
+            if(vL !== '' && vG === ''){ x[k] = local[k]; rescatado = true; }
+          });
+          if(rescatado){ x._pendiente = true; x._rev = (local._rev||0); }
           porFecha[x.fecha] = x;
         });
         SAL_DATOS = Object.keys(porFecha).map(function(k){ return porFecha[k]; });
@@ -8238,10 +8278,33 @@ function _salmueraDelDia(fecha){
   return null;
 }
 
+// (v2.6.436) LA HORA DE ENTRADA, DEL SCADA CUANDO LA HAY.
+// El parte no tiene casilla para "empieza a entrar la leche", así que la
+// gráfica se la inventaba: 15 minutos antes del primer producto. Es un apaño y
+// se nota, porque la duración del llenado cambia con los litros y con la marcha
+// del pasteurizador. El dato REAL sí existe: es 'hora_llenado' del archivo de
+// la cuba que sube Joaquín a Drive, el mismo que usa la comparativa.
+// Aquí se usa ese, si está a mano. Si no —archivo sin subir, parte sin cuba
+// física, o se mira desde un sitio donde aún no se ha pedido—, se sigue con los
+// 15 minutos de antes, para que la gráfica no se quede coja.
+function _entradaSCADA(p){
+  try{
+    var cubaFis = String(p.cuba_fisica||'').trim();
+    var fecha = _fechaKeyLocal(p.fecha);
+    if(!cubaFis || !fecha) return null;
+    var d = CMP_CACHE[fecha+'|'+cubaFis];
+    var seg = d && d.ficha ? d.ficha.hora_llenado : null;
+    if(seg===null || seg===undefined || seg==='') return null;
+    var n = parseInt(seg,10);
+    if(isNaN(n)) return null;
+    return Math.floor(n/3600)+':'+('0'+Math.floor((n%3600)/60)).slice(-2);
+  }catch(e){ return null; }
+}
 function _hitosDeParte(p){
   var aux = p.aux_meta||{}, ferm = p.ferm_meta||{}, coag = p.coag||{}, des = p.desuerado||{}, mol = p.moldeo||{};
-  // Hora de entrada: la del CO2/datos generales si existe; si no, la más temprana de las demás fases
-  var horaEntrada = (p.co2&&p.co2.hadicion) || '';
+  // Hora de entrada: la del SCADA si la tenemos; si no, la del CO2/datos
+  // generales; y en último caso, la más temprana de las demás fases menos 15.
+  var horaEntrada = _entradaSCADA(p) || (p.co2&&p.co2.hadicion) || '';
   if(!_horaAMin(horaEntrada)){
     var candidatas = [aux.hadicion, ferm.hadicion, coag.hadicion].map(_horaAMin).filter(function(x){return x!=null;});
     if(candidatas.length){
@@ -8663,7 +8726,23 @@ function toggleGraficaEvolucion(id){
     var p = (window._parteEditando && window._parteEditando.id===id) ? window._parteEditando
             : PARTES.find(function(x){return x.id===id;});
     if(!p){ cont.innerHTML='<div style="padding:12px;color:var(--text3)">No se encontró el parte.</div>'; }
-    else { cont.innerHTML = _svgGraficaEvolucion(p); }
+    else {
+      cont.innerHTML = _svgGraficaEvolucion(p);
+      // (v2.6.436) Si el archivo del SCADA de esta cuba no está todavía a mano,
+      // se pide y se vuelve a dibujar con la hora de entrada real. Mientras
+      // llega ya se ve la gráfica con la hora aproximada, así que no se espera
+      // a nada; y si no llega, se queda la de siempre.
+      try{
+        var _cf = String(p.cuba_fisica||'').trim();
+        var _fe = _fechaKeyLocal(p.fecha);
+        if(_cf && _fe && !CMP_CACHE[_fe+'|'+_cf]){
+          cmpPedirCuba(_fe, _cf, function(){
+            var c2 = document.getElementById('ep-grafica-evolucion');
+            if(c2 && c2.style.display!=='none') c2.innerHTML = _svgGraficaEvolucion(p);
+          });
+        }
+      }catch(e){}
+    }
     cont.style.display='block';
   } else {
     cont.style.display='none';
