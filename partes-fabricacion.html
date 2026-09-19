@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.436</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.438</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4055,6 +4055,46 @@ function cmpTarjetaSinCuba(p){
     + 'buscar en el SCADA. Ponla en Datos Generales y vuelve a entrar.</div></div>';
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// QUÉ CUAJADA DEL ARCHIVO ES LA DE ESTE PARTE  (v2.6.379 · v2.6.392 · v2.6.438)
+// ──────────────────────────────────────────────────────────────────────────
+// Un archivo del SCADA es el día entero de UNA cuba física, y esa cuba puede
+// haber hecho dos o tres cuajadas: en el .xps se ve el salto de hora entre el
+// final de una y el llenado de la siguiente. Con quedarse con la primera no
+// basta: el parte de la segunda se compararía contra la primera.
+//
+// El emparejamiento va por HORA DEL CUAJO: dos cuajadas de la misma cuba están
+// separadas por horas, así que la más cercana es siempre la buena. Si el parte
+// no tiene hora de cuajo, se cae a la primera y quien llama avisa.
+//
+// (v2.6.438) ESTO ESTABA ESCRITO DENTRO DE LA TARJETA DE COMPARATIVA Y SOLO
+// SERVÍA ALLÍ. La hora de entrada de la gráfica (v2.6.436) se saltaba esta
+// elección y cogía 'd.ficha', que es SIEMPRE la primera cuajada del archivo.
+// Resultado: el 18/09 la segunda cuajada de la física 3 —llenado a las 9:56—
+// arrancaba la gráfica a las 5:30, la hora de llenado de la de la mañana.
+// Ahora la elección es una sola y la usan las dos.
+//
+// Devuelve null si el archivo no trae 'fichas' (conversor antiguo). Si no:
+//   .ficha → la cuajada elegida (null si ninguna trae hora de cuajado)
+//   .dif   → minutos entre el cuajo del parte y el de la cuajada elegida,
+//            o null si el parte no tiene hora de cuajo
+//   .total → cuántas cuajadas trae el archivo
+// ══════════════════════════════════════════════════════════════════════════
+function _cuajadaDelParte(d, p){
+  if(!d || !d.fichas || !d.fichas.length || !p) return null;
+  var hCuajoParte = cmpMin(p.coag_hadicion || (p.coag && p.coag.hadicion));
+  if(hCuajoParte === null) return { ficha: d.fichas[0], dif: null, total: d.fichas.length };
+  var mejor = null, mejorDif = null;
+  d.fichas.forEach(function(x){
+    var t = x.hora_cuajado;
+    if(t === null || t === undefined) return;
+    var dif = Math.abs(Math.floor(t/60) - hCuajoParte);
+    if(mejorDif === null || dif < mejorDif){ mejorDif = dif; mejor = x; }
+  });
+  if(!mejor) return { ficha: null, dif: null, total: d.fichas.length };
+  return { ficha: mejor, dif: mejorDif, total: d.fichas.length };
+}
+
 function cmpTarjeta(p, d){
   // (v2.6.390) ¿VIENE EL PARTE COMPLETO?
   // Al bajar de Google, cada parte se reconstruye desde su columna JSON. Si esa
@@ -4089,50 +4129,27 @@ function cmpTarjeta(p, d){
   // separadas por horas, así que la más cercana es siempre la buena. Si el parte
   // no tiene hora de cuajo, se cae a la primera y se avisa.
   var f = d.ficha, _avisoCuajada = '';
-  if(d.fichas && d.fichas.length){
-    var hCuajoParte = cmpMin(p.coag_hadicion || (p.coag && p.coag.hadicion));
-    if(hCuajoParte !== null){
-      var mejor=null, mejorDif=null;
-      d.fichas.forEach(function(x){
-        var t = x.hora_cuajado;
-        if(t===null || t===undefined) return;
-        var dif = Math.abs(Math.floor(t/60) - hCuajoParte);
-        if(mejorDif===null || dif<mejorDif){ mejorDif=dif; mejor=x; }
-      });
-      if(mejor){
-        f = mejor;
-        // (v2.6.392) SI NINGUNA CUAJADA CUADRA, DECIRLO.
-        //
-        // EL FALLO QUE ARREGLA: se cogía la cuajada más cercana en hora aunque
-        // estuviera a horas de distancia. Si el .xps se exportó por la mañana y
-        // esa cuba volvió a cuajar por la tarde, la segunda cuajada NO está en
-        // el archivo: el parte de la tarde se comparaba contra la de la mañana
-        // y salía todo desviado, sin que nada avisara de que faltaba el dato.
-        // Dos cuajadas de la misma cuba nunca están a menos de hora y media.
-        if(mejorDif > 90){
-          _avisoCuajada = '<div style="font-size:0.78rem;color:#b03030;margin-top:2px;">'
-            + '<b>Ninguna cuajada del archivo cuadra con este parte.</b> El parte cuajó a las '
-            + (p.coag_hadicion || (p.coag && p.coag.hadicion))
-            + ' y lo más cercano en el SCADA son las '+cmpHora(mejor.hora_cuajado)+'. '
-            + 'Lo normal es que el .xps se exportara antes de esta cuajada: vuelve a '
-            + 'sacarlo al final del día y conviértelo otra vez.</div>';
-        } else if(d.fichas.length>1){
-          _avisoCuajada = '<div style="font-size:0.78rem;color:#7a6a5c;margin-top:2px;">'
-            + 'Esta cuba hizo '+d.fichas.length+' cuajadas ese día; se compara la de las '
-            + cmpHora(mejor.hora_cuajado)+'.</div>';
-        }
-      }
-    } else {
-      // (v2.6.390) Sin hora de cuajo en el parte se coge la primera cuajada
-      // SIEMPRE. Antes esto solo se hacía cuando había varias; con una sola, la
-      // ficha se quedaba sin asignar y la tarjeta acababa diciendo que el
-      // archivo era de un conversor antiguo, que no tenía nada que ver.
-      f = d.fichas[0];
-      if(d.fichas.length>1){
+  var _sel = _cuajadaDelParte(d, p);
+  if(_sel && _sel.ficha){
+    f = _sel.ficha;
+    if(_sel.dif === null){
+      // Sin hora de cuajo en el parte: se ha cogido la primera cuajada.
+      if(_sel.total > 1){
         _avisoCuajada = '<div style="font-size:0.78rem;color:#b06a00;margin-top:2px;">'
-          + 'Esta cuba hizo '+d.fichas.length+' cuajadas ese día y el parte no tiene hora '
+          + 'Esta cuba hizo '+_sel.total+' cuajadas ese día y el parte no tiene hora '
           + 'de cuajo: se compara la primera, que puede no ser la suya.</div>';
       }
+    } else if(_sel.dif > 90){
+      _avisoCuajada = '<div style="font-size:0.78rem;color:#b03030;margin-top:2px;">'
+        + '<b>Ninguna cuajada del archivo cuadra con este parte.</b> El parte cuajó a las '
+        + (p.coag_hadicion || (p.coag && p.coag.hadicion))
+        + ' y lo más cercano en el SCADA son las '+cmpHora(_sel.ficha.hora_cuajado)+'. '
+        + 'Lo normal es que el .xps se exportara antes de esta cuajada: vuelve a '
+        + 'sacarlo al final del día y conviértelo otra vez.</div>';
+    } else if(_sel.total > 1){
+      _avisoCuajada = '<div style="font-size:0.78rem;color:#7a6a5c;margin-top:2px;">'
+        + 'Esta cuba hizo '+_sel.total+' cuajadas ese día; se compara la de las '
+        + cmpHora(_sel.ficha.hora_cuajado)+'.</div>';
     }
   }
   if(!f){
@@ -4573,15 +4590,23 @@ function aplicarBloqueoQuesero(p){
       // (v2.6.329) Los totales son CALCULADOS: siguen siendo de solo lectura aunque
       // el parte esté desbloqueado. Lo editable es la dosis /1000L.
       if(el.classList.contains('dosis-calc')) el.setAttribute('readonly','readonly');
-      // La dosis /1000L vuelve a cerrarse: se abre solo al tocarla a propósito
-      if(el.classList.contains('dosis1000-input')) el.setAttribute('readonly','readonly');
-      el.classList.remove('campo-candado'); el.onclick = null;
+      el.classList.remove('campo-candado');
+      // La dosis /1000L vuelve a cerrarse: se abre solo al tocarla a propósito.
+      // (v2.6.437) Y hay que DEVOLVERLE su manejador. Antes se hacía 'onclick = null'
+      // a todas las casillas, y eso dejaba la dosis /1000L muerta: se quedaba en solo
+      // lectura para siempre, porque ya nadie la abría al tocarla.
+      if(el.classList.contains('dosis1000-input')){
+        el.setAttribute('readonly','readonly');
+        el.onclick = function(ev){ _clickDosisBase(ev, this); };
+      } else {
+        el.onclick = null;
+      }
       if(el.tagName==='SELECT'||el.type==='checkbox') el.disabled=false;
     }
   }
   CAMPOS_QUESERO.forEach(function(id){ set(document.getElementById(id)); });
   // Campos dinámicos: dosis de auxiliares, fermentos y cuajo (inputs con clase dosis-input/papel-prod-dosis-input)
-  document.querySelectorAll('.dosis-input,.papel-prod-dosis-input').forEach(set);
+  document.querySelectorAll('.dosis-input,.papel-prod-dosis-input,.dosis1000-input').forEach(set);
   // Enlaces "cambiar/elegir lote": ocultarlos si está bloqueado
   document.querySelectorAll('.cambiar-lnk,.papel-prod-cambiar').forEach(function(el){
     if(el) el.style.display = bloquear ? 'none' : '';
@@ -5639,11 +5664,11 @@ function renderFermentos(receta){
       cadHTML  = _repartoCaducidades(_repF);
       provHTML = _repartoProveedores(_repF);
     } else if(lote){
-      loteHTML = '<span>'+lote.lote+'</span> <span class="cambiar-lnk" onclick="abrirSelectorLote(\''+f.nombre+'\')">cambiar</span>';
+      loteHTML = '<span>'+lote.lote+'</span> <span class="cambiar-lnk" onclick="event.stopPropagation();abrirSelectorLote(\''+f.nombre+'\')">cambiar</span>';
       cadHTML = formatearFecha(lote.caducidad);
       provHTML = lote.proveedor || '—';
     } else {
-      loteHTML = '<span class="sinlote">sin lote</span> <span class="cambiar-lnk" onclick="abrirSelectorLote(\''+f.nombre+'\')">elegir</span>';
+      loteHTML = '<span class="sinlote">sin lote</span> <span class="cambiar-lnk" onclick="event.stopPropagation();abrirSelectorLote(\''+f.nombre+'\')">elegir</span>';
       cadHTML = '—';
       provHTML = '—';
     }
@@ -5668,8 +5693,8 @@ function renderFermentos(receta){
 
     h += '<div class="ferm-tabla-fila" style="'+estiloFila+'" onclick="seleccionarFermento(\''+f.nombre.replace(/'/g,"\\'")+'\')">'
        + '<div class="nombre">'+f.nombre+marcaNombre+'</div>'
-       + '<div class="dosis-base"><input type="number" step="any" inputmode="decimal" class="dosis1000-input" id="dosisbase-'+key+'" data-prod="'+f.nombre+'" readonly onclick="_editarDosisBase(this)" title="Toca para cambiar la dosis" oninput="onDosisBase1000(this)" value="'+f.dosis_ml_1000L+'"></div>'
-       + '<div><input type="number" step="any" inputmode="decimal" class="dosis-input'+(_sobreFermento(f.nombre)?'':' dosis-calc')+'" id="dosis-'+key+'" data-prod="'+f.nombre+'" oninput="onDosisOverride(this)"'+(_sobreFermento(f.nombre)?'':' readonly')+'></div>'
+       + '<div class="dosis-base"><input type="number" step="any" inputmode="decimal" class="dosis1000-input" id="dosisbase-'+key+'" data-prod="'+f.nombre+'" readonly onclick="_clickDosisBase(event, this)" title="Toca para cambiar la dosis" oninput="onDosisBase1000(this)" value="'+f.dosis_ml_1000L+'"></div>'
+       + '<div><input type="number" step="any" inputmode="decimal" class="dosis-input'+(_sobreFermento(f.nombre)?'':' dosis-calc')+'" id="dosis-'+key+'" data-prod="'+f.nombre+'" onclick="event.stopPropagation()" oninput="onDosisOverride(this)"'+(_sobreFermento(f.nombre)?'':' readonly')+'></div>'
        + '<div class="meta">'+provHTML+'</div>'
        + '<div class="meta">'+loteHTML+'</div>'
        + '<div class="meta">'+cadHTML+'</div>'
@@ -5745,7 +5770,7 @@ function renderProductoCard(prod){
     + '<div class="papel-prod papel-prod-1fila">'
     +   '<div class="papel-prod-l6">'
     +     '<div><span class="papel-prod-label">Nombre</span><div class="papel-prod-nombre">'+prod.nombre+'</div></div>'
-    +     '<div><span class="papel-prod-label">Dosis /1000L</span><input type="number" step="any" inputmode="decimal" class="dosis1000-input papel-prod-dosis-input" id="dosisbase-'+key+'" data-prod="'+prod.nombre+'" readonly onclick="_editarDosisBase(this)" title="Toca para cambiar la dosis" oninput="onDosisBase1000(this)" value="'+prod.dosis_ml_1000L+'"></div>'
+    +     '<div><span class="papel-prod-label">Dosis /1000L</span><input type="number" step="any" inputmode="decimal" class="dosis1000-input papel-prod-dosis-input" id="dosisbase-'+key+'" data-prod="'+prod.nombre+'" readonly onclick="_clickDosisBase(event, this)" title="Toca para cambiar la dosis" oninput="onDosisBase1000(this)" value="'+prod.dosis_ml_1000L+'"></div>'
     +     '<div><span class="papel-prod-label">Dosis utilizada</span><input type="text" class="papel-prod-dosis-input dosis-calc" id="dosis-'+key+'" data-prod="'+prod.nombre+'" oninput="onDosisOverride(this)" readonly placeholder="—"></div>'
     +     '<div><span class="papel-prod-label">Proveedor</span><div class="papel-prod-meta">'+provHTML+'</div></div>'
     +     '<div><span class="papel-prod-label">Lote</span><div class="papel-prod-meta">'+loteHTML+'</div></div>'
@@ -5973,6 +5998,38 @@ function _editarDosisBase(el){
   if(!el) return;
   el.removeAttribute('readonly');
   try{ el.focus(); el.select(); }catch(e){}
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// (v2.6.437) LA DOSIS /1000L DE LOS FERMENTOS NO SE DEJABA TOCAR
+// ──────────────────────────────────────────────────────────────────────────
+// La casilla ya era editable desde la v2.6.329, pero en la tabla de fermentos
+// era imposible abrirla, por dos motivos:
+//
+//  1) La FILA ENTERA lleva onclick="seleccionarFermento(...)" —es lo que permite
+//     pinchar una línea para decir "hoy uso este"—. Al tocar la casilla de la
+//     dosis, el clic subía hasta la fila, se elegía el fermento, y eso REPINTA
+//     la tabla entera: el input recién abierto se destruía y volvía a nacer en
+//     solo lectura. El dedo llegaba a tiempo de abrirlo y no de escribir.
+//
+//  2) aplicarBloqueoQuesero() hacía 'el.onclick = null' a todas las casillas de
+//     dosis cada vez que se abre una cuba. Eso borraba también el manejador que
+//     abre la dosis /1000L de auxiliares y cuajo. O sea: ahí tampoco se podía.
+//
+// Ahora el clic de la casilla se para en la propia casilla (no elige fermento),
+// y si el parte está bloqueado pide el PIN del candado en vez de abrirse sola.
+//
+// Para qué sirve: la receta dice 45 g/1000L, pero si un día se echan 40 (o 50),
+// lo que tiene que constar en el parte es lo que se echó. Al cambiar la dosis,
+// la DOSIS UTILIZADA se recalcula sola (litros × dosis / 1000).
+// ══════════════════════════════════════════════════════════════════════════
+function _clickDosisBase(ev, el){
+  try{ if(ev && ev.stopPropagation) ev.stopPropagation(); }catch(e){}
+  try{
+    var p = PARTES.find(function(x){ return x.id === CUBA_ACTIVA_ID; });
+    if(p && p.bloqueado_quesero && !_candadoDesbloqueoActivo(p)){ abrirCandadoPin(p); return; }
+  }catch(e){}
+  _editarDosisBase(el);
 }
 
 function onDosisBase1000(el){
@@ -8287,16 +8344,43 @@ function _salmueraDelDia(fecha){
 // Aquí se usa ese, si está a mano. Si no —archivo sin subir, parte sin cuba
 // física, o se mira desde un sitio donde aún no se ha pedido—, se sigue con los
 // 15 minutos de antes, para que la gráfica no se quede coja.
+//
+// (v2.6.438) LA CUAJADA QUE TOCA, NO LA PRIMERA DEL ARCHIVO. Ver
+// _cuajadaDelParte(). Y DOS CANDADOS, porque una hora de entrada inventada es
+// peor que no tener ninguna:
+//   · Si la cuajada más parecida está a más de hora y media del cuajo del
+//     parte, no es la suya —el .xps se sacó antes de esta cuajada—: se
+//     devuelve null y la gráfica vuelve al apaño de los 15 minutos.
+//   · Si el llenado no sale ANTES del primer producto que se echa en la cuba,
+//     el dato no vale para nada. (Se contempla el cambio de día: una cuba que
+//     se llena a las 23:50 y echa el cloruro a las 00:20 es correcta.)
 function _entradaSCADA(p){
   try{
     var cubaFis = String(p.cuba_fisica||'').trim();
     var fecha = _fechaKeyLocal(p.fecha);
     if(!cubaFis || !fecha) return null;
     var d = CMP_CACHE[fecha+'|'+cubaFis];
-    var seg = d && d.ficha ? d.ficha.hora_llenado : null;
+    if(!d) return null;
+    var sel = _cuajadaDelParte(d, p);
+    if(sel && sel.dif !== null && sel.dif > 90) return null;  // no es esta cuajada
+    // Varias cuajadas y el parte sin hora de cuajo: no hay forma de saber cuál
+    // es la suya, y equivocarse son cuatro horas de diferencia. Mejor el apaño.
+    if(sel && sel.dif === null && sel.total > 1) return null;
+    var fch = (sel && sel.ficha) ? sel.ficha : d.ficha;
+    var seg = fch ? fch.hora_llenado : null;
     if(seg===null || seg===undefined || seg==='') return null;
     var n = parseInt(seg,10);
     if(isNaN(n)) return null;
+    var minE = Math.floor(n/60);
+    // El llenado tiene que ser anterior al primer producto de la cuba
+    var aux0 = p.aux_meta||{}, ferm0 = p.ferm_meta||{}, coag0 = p.coag||{};
+    var refs = [aux0.hadicion, ferm0.hadicion, coag0.hadicion].map(_horaAMin)
+                 .filter(function(x){ return x !== null && x !== undefined; });
+    if(refs.length){
+      var dif = Math.min.apply(null, refs) - minE;
+      if(dif < 0) dif += 1440;              // cambio de día
+      if(dif > 600) return null;            // más de 10 h: el dato no es de esta cuba
+    }
     return Math.floor(n/3600)+':'+('0'+Math.floor((n%3600)/60)).slice(-2);
   }catch(e){ return null; }
 }
