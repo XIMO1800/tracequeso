@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.438</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.440</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2194,6 +2194,8 @@ function rellenarCampos(p){
     v('aux-ph', _phL); v('aux-temp', _tpL);
     v('co2-caudal', p.co2.caudal_lh || 100); v('co2-tiempo', p.co2.tiempo_seg);
   }
+  // (v2.6.440) Lote del CO2: el de esta cuba si lo tiene; si no, el que toca
+  try{ iniciarCO2(); }catch(e){}
   // (v2.6.329) La marca de "tiempo de CO2 puesto a mano" se recupera SIEMPRE, aunque
   // el parte todavía no tenga bloque co2. Si solo se hiciera dentro del if, al pasar
   // de una cuba con tiempo manual a una cuba nueva la marca se quedaría pegada y la
@@ -2670,7 +2672,47 @@ function _avisoCoherenciaFormatos(p){
   return '⚠️ Revisa los formatos antes de cerrar:\n\n'+problemas.join('\n')+'\n\nLos formatos deberían estar en las 4 fases (prensado, desmoldeo, salado y piezas).\n\n¿Cerrar igualmente?';
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// (v2.6.439) SIN CUBA FÍSICA NO SE CIERRA
+// ──────────────────────────────────────────────────────────────────────────
+// El desplegable "Cuba física" de Datos Generales era opcional y arranca en
+// "—". Un parte podía cerrarse sin él y nadie se enteraba, pero sin ese dato:
+//   · la gráfica no sabe qué archivo del SCADA abrir y la hora de entrada
+//     vuelve al apaño de 15 minutos antes del cloruro (pasó el 21/09: salía
+//     5:16 cuando la cuba empezó a llenar a las 5:28:54);
+//   · la comparativa con el SCADA sale como "sin cuba física";
+//   · y en trazabilidad falta en qué cuba de la nave se hizo.
+// Es un detalle muy pequeño y muy difícil de ver, así que se para aquí: no se
+// cierra hasta que esté puesta, y se lleva al quesero al desplegable.
+// No afecta a nada más: los partes ya cerrados no se tocan, y mientras el
+// parte está abierto se puede seguir trabajando sin ella.
+// ══════════════════════════════════════════════════════════════════════════
+function _faltaCubaFisica(id){
+  var sel = document.getElementById('np-cuba-fisica');
+  var enPantalla = sel ? String(sel.value||'').trim() : '';
+  if(enPantalla) return false;
+  var p = PARTES.find(function(x){ return x.id===id; });
+  if(p && String(p.cuba_fisica||'').trim()) return false;
+  alert('⚠️ Falta la CUBA FÍSICA.\n\n'
+      + 'Elige en Datos Generales en qué cuba de la nave (1, 2 o 3) se ha hecho '
+      + 'este parte antes de cerrarlo.\n\n'
+      + 'Sin ella no se puede cruzar con el SCADA: la gráfica no saca la hora '
+      + 'real de entrada y la comparativa no funciona.');
+  if(sel){
+    try{
+      sel.scrollIntoView({behavior:'smooth', block:'center'});
+      sel.style.outline = '3px solid #c0392b';
+      sel.style.outlineOffset = '2px';
+      setTimeout(function(){ try{ sel.focus(); }catch(e){} }, 400);
+      var quitar = function(){ sel.style.outline=''; sel.style.outlineOffset=''; sel.removeEventListener('change', quitar); };
+      sel.addEventListener('change', quitar);
+    }catch(e){}
+  }
+  return true;
+}
+
 function _cerrarParteActivoConfirmar(id){
+  if(_faltaCubaFisica(id)) return;
   if(!confirm('¿Cerrar este parte? Pasará al historial.')) return;
   var p = PARTES.find(function(x){return x.id===id;});
   if(!p) return;
@@ -5790,6 +5832,49 @@ function renderProductoCard(prod){
 // Media milésima es el umbral: por debajo, el bote está gastado.
 var STOCK_MINIMO_VIVO = 0.0005;
 
+// (v2.6.440) Fila de stock de un lote de CO2 (o null)
+function _filaStockCO2(lote){
+  try{
+    if(!lote || !STOCK_REMOTO || !STOCK_REMOTO.stock || !STOCK_REMOTO.stock.length) return null;
+    var lUp = String(lote).trim().toUpperCase();
+    return STOCK_REMOTO.stock.map(normRowStock).filter(function(r){
+      var a = String(r.articulo||'').trim().toUpperCase();
+      return (a==='CO2' || a==='CO₂') && String(r.lote||'').trim().toUpperCase() === lUp;
+    })[0] || null;
+  }catch(e){ return null; }
+}
+
+// (v2.6.440) EL CO2: EL ÚLTIMO LOTE QUE SE UTILIZÓ, SI LE QUEDA GAS.
+// El CO2 es una botella que se gasta cuba tras cuba. Lo natural es que el parte
+// nuevo proponga la que se usó en el último parte, no la de caducidad más
+// próxima. Se busca en los partes guardados el más reciente con lote de CO2 y
+// se propone SOLO si ese lote sigue en el stock con algo dentro: una botella
+// vaciada no vuelve a salir nunca (lección del 13/08 y del 18/09).
+// Si no hay stock cargado todavía, no se propone nada por aquí (no se puede
+// comprobar que le quede gas) y se sigue con el criterio de siempre.
+function _ultimoLoteCO2Usado(){
+  try{
+    if(!STOCK_REMOTO || !STOCK_REMOTO.stock || !STOCK_REMOTO.stock.length) return null;
+    var conLote = PARTES.filter(function(p){
+      return p && p.co2 && p.co2.aplicado !== false && String(p.co2.lote||'').trim() &&
+             p.id !== CUBA_ACTIVA_ID;
+    });
+    if(!conLote.length) return null;
+    conLote.sort(function(a,b){
+      var fa = String(a.fecha||'').slice(0,10), fb = String(b.fecha||'').slice(0,10);
+      if(fa !== fb) return fa < fb ? 1 : -1;
+      var ta = parseInt(String(a.id||'').replace(/\D/g,''),10)||0;
+      var tb = parseInt(String(b.id||'').replace(/\D/g,''),10)||0;
+      return tb - ta;
+    });
+    var ult = conLote[0].co2.lote;
+    var fr = _filaStockCO2(ult);
+    if(!fr || !(fr.stockActual > STOCK_MINIMO_VIVO)) return null;
+    return { lote:fr.lote, caducidad:fr.caducidad, proveedor:fr.proveedor,
+             cantidad:fr.stockActual, unidad:fr.unidad };
+  }catch(e){ return null; }
+}
+
 function obtenerLoteActivo(producto){
   if(!producto) return null;
   // 1) Si el usuario seleccionó manualmente un lote para este producto, lo respetamos
@@ -5836,6 +5921,12 @@ function obtenerLoteActivo(producto){
     // (v2.6.369) Solo se devuelve la copia guardada si sigue siendo el activo.
     // Si se acaba de descartar por estar agotada, se cae al criterio por caducidad.
     if(LOTES_ACTIVOS[producto]) return _sel;
+  }
+  // 1b) (v2.6.440) CO2: el último lote que se utilizó, si le queda gas
+  var _pUp = String(producto).trim().toUpperCase();
+  if(_pUp === 'CO2' || _pUp === 'CO₂'){
+    var _ultCO2 = _ultimoLoteCO2Usado();
+    if(_ultCO2) return _ultCO2;
   }
   // 2) Buscar en el stock real de Sheets (STOCK_REMOTO)
   if(STOCK_REMOTO && STOCK_REMOTO.stock && STOCK_REMOTO.stock.length){
@@ -6343,8 +6434,40 @@ function calcCaseinas(){
   else{av.innerHTML='⚠ '+total+' caseínas · '+piezas+' piezas — diferencia: '+(total-piezas);av.style.color='var(--amber)';}
 }
 
+// (v2.6.440) EL CO2 SALÍA "SIN LOTE" AL ABRIR EL PARTE.
+// Tres fallos que se juntaban:
+//  1) iniciarCO2() solo se llamaba al arrancar la app, UN SEGUNDO ANTES de que
+//     llegara el stock. Sin stock no hay lote que proponer, así que pintaba
+//     "Sin lote". Cuando el stock llegaba se repintaban auxiliares, fermentos y
+//     cuajo... pero el CO2 no. Mientras hubo un lote de CO2 elegido a mano en el
+//     aparato (LOTES_ACTIVOS) no se notaba, porque ese sale sin mirar el stock.
+//     El 18/09 ese lote se vació, la app lo olvidó (bien hecho: estaba a cero), y
+//     desde entonces al CO2 le tocaba esperar al stock... que nunca le repintaba.
+//  2) Pintaba siempre el lote activo de HOY, no el que lleva el parte. Un parte
+//     reactivado enseñaba un lote que no era el suyo.
+//  3) "cambiar" no escribía el lote elegido dentro del parte (ver _fijarLoteEnParte).
+function _parteCO2Activo(){
+  try{ return PARTES.find(function(x){ return x.id===CUBA_ACTIVA_ID; }) || null; }catch(e){ return null; }
+}
 function iniciarCO2(){
-  var lote=obtenerLoteActivo('CO2');
+  var lote=null;
+  // Primero, el lote que ya lleva el propio parte (lo que se usó en ESTA cuba)
+  try{
+    var _pc = _parteCO2Activo();
+    if(_pc && _pc.co2 && String(_pc.co2.lote||'').trim()){
+      lote = { lote:_pc.co2.lote, caducidad:_pc.co2.caducidad||'', proveedor:_pc.co2.proveedor||'' };
+      // Si al parte le falta proveedor o caducidad, se completan del stock
+      if(!lote.proveedor || !lote.caducidad){
+        var _fs = _filaStockCO2(lote.lote);
+        if(_fs){
+          if(!lote.proveedor) lote.proveedor = _fs.proveedor || '';
+          if(!lote.caducidad) lote.caducidad = _fs.caducidad || '';
+        }
+      }
+    }
+  }catch(e){}
+  // Si el parte aún no tiene, el que toca (elegido a mano, el último usado o FIFO)
+  if(!lote) lote=obtenerLoteActivo('CO2');
   var chip=document.getElementById('co2-lote-chip');
   var valEl=document.getElementById('co2-lote-val');
   var cadEl=document.getElementById('co2-lote-cad');
@@ -6435,6 +6558,17 @@ function _fijarLoteEnParte(producto, datos){
     try{ var pA = PARTES.find(function(x){ return x.id===CUBA_ACTIVA_ID; }); if(pA) objetivos.push(pA); }catch(e){}
     if(typeof parteActual!=='undefined' && parteActual && objetivos.indexOf(parteActual)<0) objetivos.push(parteActual);
     objetivos.forEach(function(p){
+      // (v2.6.440) El CO2 no va en ninguna lista: tiene su propio bloque p.co2.
+      // Antes el lote elegido con "cambiar" no llegaba al parte, y al guardar
+      // mandaba el que ya hubiera dentro.
+      if(nUp === 'CO2' || nUp === 'CO₂'){
+        if(p === parteActual) return;   // parteActual no guarda el bloque co2
+        if(!p.co2 || typeof p.co2 !== 'object') p.co2 = {};
+        p.co2.lote      = datos.lote;
+        p.co2.caducidad = datos.caducidad || '';
+        p.co2.proveedor = datos.proveedor || '';
+        return;
+      }
       var listas = [p.fermentos, p.auxiliares, (p.cuajo ? [p.cuajo] : []), p.cuajos_extra];
       listas.forEach(function(L){
         if(!L || !L.length) return;
@@ -11443,6 +11577,7 @@ function cargarCacheStock(){
         renderCuajo(parteActual.receta);
       }
     }catch(e){}
+    try{ iniciarCO2(); }catch(e){}   // (v2.6.440) el CO2 también
     return true;
   }catch(e){ return false; }
 }
@@ -11468,6 +11603,7 @@ function cargarStockMaterial(alTerminar){
           renderCuajo(parteActual.receta);
         }
       }catch(e){ console.error('refrescar parte:',e); }
+      try{ iniciarCO2(); }catch(e){ console.error('iniciarCO2:',e); }   // (v2.6.440)
     }
     _fin();
   }).catch(function(e){ console.error('cargarStockMaterial:',e); _fin(); });
