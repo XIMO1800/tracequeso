@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.440</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.442</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3005,11 +3005,31 @@ function _capturarAuxFermCuajoEnParte(p){
   // Desde la v2.6.366, al cambiar un lote se escribe DENTRO del parte, así que esa
   // lista ya no aporta nada. Se deja de consultar y con eso la pantalla, el aviso
   // de stock y lo que se guarda leen todos del mismo sitio.
+  // (v2.6.442) LA UNIDAD NUNCA PUEDE IR EN BLANCO.
+  // Si la unidad de la ficha no se puede averiguar por el lote (porque ese lote
+  // no está en el stock, o porque la tablet todavía no tenía el stock cargado al
+  // cerrar), el consumo viajaba sin unidad y se descontaba EN BRUTO: 1200 L de
+  // cloruro en vez de 1,2 L (24/09). Todos los lotes de un mismo artículo están
+  // dados de alta en la misma unidad, así que se coge la del artículo.
+  function _uniStockArticulo(nombre){
+    try{
+      if(!STOCK_REMOTO || !STOCK_REMOTO.stock) return '';
+      var nUp = String(nombre||'').trim().toUpperCase();
+      var f = STOCK_REMOTO.stock.map(normRowStock).filter(function(r){
+        return String(r.articulo||'').trim().toUpperCase() === nUp && String(r.unidad||'').trim();
+      })[0];
+      return f ? String(f.unidad||'').trim() : '';
+    }catch(e){ return ''; }
+  }
   function lote(prod){
     try{
       var guardado = _loteYaEnParte(prod);
-      if(guardado) return guardado;
-      return obtenerLoteActivo(prod) || {};
+      var L = guardado || obtenerLoteActivo(prod) || {};
+      if(!String(L.unidad||'').trim()){
+        var u = _uniStockArticulo(prod);
+        if(u){ L = Object.assign({}, L, {unidad:u}); }
+      }
+      return L;
     }catch(e){ return {}; }
   }
   // Dosis utilizada: si hay override manual para ese producto, se respeta (incluido 0);
@@ -8488,35 +8508,60 @@ function _salmueraDelDia(fecha){
 //   · Si el llenado no sale ANTES del primer producto que se echa en la cuba,
 //     el dato no vale para nada. (Se contempla el cambio de día: una cuba que
 //     se llena a las 23:50 y echa el cloruro a las 00:20 es correcta.)
+//
+// (v2.6.441) DOS COSAS MÁS:
+//  · EL RELOJ DE LA TABLET Y EL DEL SCADA NO VAN IGUALES. El candado de "el
+//    llenado antes del primer producto" era estricto al minuto: si el quesero
+//    apuntaba el cloruro a las 5:36 y el SCADA marcaba el llenado a las 5:37,
+//    se tiraba el dato bueno y se volvía a los 15 minutos. Además, con Jorge el
+//    cloruro va casi a la vez que empieza a entrar la leche. Ahora se admiten
+//    hasta 20 minutos de desfase en ese sentido. Más que eso, no cuadra.
+//  · DECIR POR QUÉ. Cuando la entrada sale estimada, la gráfica lo dice y dice
+//    el motivo (sin cuba física, archivo sin subir, ...). Así no hay que
+//    adivinarlo. El motivo queda en _entradaSCADA.motivo; y si la cuajada
+//    trae aclarado previo (el que Jorge hace con el programa, en "vaciado"),
+//    su hora queda en _entradaSCADA.aclarado.
+function _hhmmSeg(n){ return Math.floor(n/3600)+':'+('0'+Math.floor((n%3600)/60)).slice(-2); }
 function _entradaSCADA(p){
+  _entradaSCADA.motivo = ''; _entradaSCADA.aclarado = '';
+  function no(m){ _entradaSCADA.motivo = m; return null; }
   try{
     var cubaFis = String(p.cuba_fisica||'').trim();
     var fecha = _fechaKeyLocal(p.fecha);
-    if(!cubaFis || !fecha) return null;
-    var d = CMP_CACHE[fecha+'|'+cubaFis];
-    if(!d) return null;
+    if(!cubaFis) return no('el parte no tiene cuba física');
+    if(!fecha)   return no('el parte no tiene fecha');
+    var clave = fecha+'|'+cubaFis;
+    if(!(clave in CMP_CACHE)) return no('todavía no se ha leído el archivo del SCADA de la cuba '+cubaFis);
+    var d = CMP_CACHE[clave];
+    if(!d || d.error) return no('no hay archivo del SCADA de la cuba '+cubaFis+' de ese día (¿está convertido y subido a Drive?)');
     var sel = _cuajadaDelParte(d, p);
-    if(sel && sel.dif !== null && sel.dif > 90) return null;  // no es esta cuajada
+    if(sel && sel.dif !== null && sel.dif > 90) return no('ninguna cuajada del archivo del SCADA cuadra con la hora de cuajo del parte (¿se sacó el .xps antes de esta cuajada?)');
     // Varias cuajadas y el parte sin hora de cuajo: no hay forma de saber cuál
     // es la suya, y equivocarse son cuatro horas de diferencia. Mejor el apaño.
-    if(sel && sel.dif === null && sel.total > 1) return null;
+    if(sel && sel.dif === null && sel.total > 1) return no('el archivo trae '+sel.total+' cuajadas y el parte no tiene hora de cuajo');
     var fch = (sel && sel.ficha) ? sel.ficha : d.ficha;
     var seg = fch ? fch.hora_llenado : null;
-    if(seg===null || seg===undefined || seg==='') return null;
+    if(seg===null || seg===undefined || seg==='') return no('el archivo del SCADA no trae hora de llenado');
     var n = parseInt(seg,10);
-    if(isNaN(n)) return null;
+    if(isNaN(n)) return no('el archivo del SCADA no trae hora de llenado');
     var minE = Math.floor(n/60);
     // El llenado tiene que ser anterior al primer producto de la cuba
+    // (con 20 min de margen por el desfase entre relojes)
     var aux0 = p.aux_meta||{}, ferm0 = p.ferm_meta||{}, coag0 = p.coag||{};
     var refs = [aux0.hadicion, ferm0.hadicion, coag0.hadicion].map(_horaAMin)
                  .filter(function(x){ return x !== null && x !== undefined; });
     if(refs.length){
       var dif = Math.min.apply(null, refs) - minE;
-      if(dif < 0) dif += 1440;              // cambio de día
-      if(dif > 600) return null;            // más de 10 h: el dato no es de esta cuba
+      if(dif < -720) dif += 1440;           // cambio de día (llena 23:50, cloruro 00:20)
+      if(dif < -20)  return no('el SCADA marca el llenado a las '+_hhmmSeg(n)+', después del primer producto del parte');
+      if(dif > 600)  return no('el SCADA marca el llenado a las '+_hhmmSeg(n)+', más de 10 h antes del primer producto');
     }
-    return Math.floor(n/3600)+':'+('0'+Math.floor((n%3600)/60)).slice(-2);
-  }catch(e){ return null; }
+    if(fch && fch.hora_aclarado !== null && fch.hora_aclarado !== undefined && fch.hora_aclarado !== ''){
+      var na = parseInt(fch.hora_aclarado,10);
+      if(!isNaN(na) && na < n) _entradaSCADA.aclarado = _hhmmSeg(na);
+    }
+    return _hhmmSeg(n);
+  }catch(e){ return no('error al leer el dato del SCADA'); }
 }
 function _hitosDeParte(p){
   var aux = p.aux_meta||{}, ferm = p.ferm_meta||{}, coag = p.coag||{}, des = p.desuerado||{}, mol = p.moldeo||{};
@@ -8900,8 +8945,25 @@ function _svgGraficaEvolucion(p){
     + '<div style="display:flex;gap:6px;margin-top:6px"><button type="button" onclick="zoomGrafica(1.25)" style="background:#eee;border:1px solid #ccc;border-radius:6px;padding:4px 12px;font-size:1rem;font-weight:700;cursor:pointer">＋</button>'
     + '<button type="button" onclick="zoomGrafica(0.8)" style="background:#eee;border:1px solid #ccc;border-radius:6px;padding:4px 12px;font-size:1rem;font-weight:700;cursor:pointer">－</button>'
     + '<button type="button" onclick="zoomGrafica(0)" style="background:#eee;border:1px solid #ccc;border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:700;cursor:pointer">Ajustar</button></div>'
+    + _notaEntradaGrafica(p)
     + cards + obsHtml
     + '<div style="font-size:0.68rem;color:#9a8d7d;margin-top:8px">Se genera con los datos de este parte.</div></div>';
+}
+
+// (v2.6.441) De dónde sale la hora de "Entrada" de la gráfica, dicho en claro.
+function _notaEntradaGrafica(p){
+  try{
+    var h = _entradaSCADA(p);
+    var est = 'font-size:0.74rem;margin-top:6px;padding:5px 9px;border-radius:6px;';
+    if(h){
+      var t = 'Entrada: inicio del llenado según el SCADA, a las <b>'+h+'</b>.';
+      if(_entradaSCADA.aclarado) t += ' Antes, a las '+_entradaSCADA.aclarado+', se hizo el aclarado de la cuba con agua.';
+      return '<div style="'+est+'background:#eef6ee;color:#2e5e2e">'+t+'</div>';
+    }
+    return '<div style="'+est+'background:#fff4e0;color:#8a5a00">'
+      + 'Entrada <b>estimada</b> (15 min antes del primer producto): '
+      + (_entradaSCADA.motivo || 'no hay dato del SCADA') + '.</div>';
+  }catch(e){ return ''; }
 }
 
 // Pone la caja de la gráfica (dibujo + tarjetas) a pantalla completa
