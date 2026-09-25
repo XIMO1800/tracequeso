@@ -1,5 +1,5 @@
 // Service Worker para TraceQueso
-// Versión: v416
+// Versión: v417
 //
 // ═══════════════════════════════════════════════════════════════════════════
 // POR QUÉ EL NOMBRE DE LA CACHÉ YA NO LLEVA VERSIÓN  (v325)
@@ -24,7 +24,22 @@
 // anterior. Nunca hay un momento sin app.
 // ═══════════════════════════════════════════════════════════════════════════
 const CACHE = 'tracequeso-app';   // FIJO. No poner la versión aquí nunca más.
-const VERSION = 'v416';           // solo informativo
+// ═══════════════════════════════════════════════════════════════════════════
+// ESTA LÍNEA HAY QUE SUBIRLA CADA VEZ QUE SE SUBE UN index.html NUEVO  (v417)
+// ───────────────────────────────────────────────────────────────────────────
+// Dice "solo informativo" y es mentira a medias: el navegador solo se entera de
+// que hay versión nueva si el ARCHIVO SW.JS cambia de contenido. Si no cambia,
+// no salta 'updatefound', no sale la barra de "Hay una versión nueva" y el
+// operario no tiene manera de saberlo. El index nuevo se guarda en la copia por
+// detrás y solo aparece la próxima vez que se ABRE la app de cero... que en un
+// móvil en modo kiosco puede no pasar en días.
+//
+// Pasó con la v417 (25/09): el index estaba subido y los móviles seguían en la
+// v416 sin enterarse, porque el SW.JS no se había tocado.
+//
+// Así que: index nuevo → subir TAMBIÉN este archivo con la versión cambiada.
+// ═══════════════════════════════════════════════════════════════════════════
+const VERSION = 'v417';
 const ASSETS = ['/tracequeso/', '/tracequeso/index.html'];
 
 // INSTALACIÓN: cachear archivos esenciales
