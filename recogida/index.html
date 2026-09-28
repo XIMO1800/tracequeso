@@ -354,6 +354,7 @@ function cargarDatos(d) {
 }
 
 /* 1. Viaje de hoy: rutas y camión */
+function estSel() { const seen = new Set(); let t = 0; S.sel.forEach(r => ganRuta(r).forEach(g => { if (seen.has(g.cod)) return; seen.add(g.cod); t += g.ult || 0; })); return t; }
 function rutas() {
   const c = D().conductor, keys = misRutas(), v = $('#vRutas');
   if (!T()) { v.innerHTML = `<div class="msg bad">No tienes ningún camión dado de alta. Avisa a la oficina o da de alta uno.</div><button class="btn" id="cambiarCam">Dar de alta camión</button>`; $('#cambiarCam').onclick = () => camion('inicio'); show('vRutas', 'Viaje de hoy', c.nombre); return; }
@@ -361,7 +362,7 @@ function rutas() {
   v.innerHTML = `<p class="muted" style="text-transform:capitalize">${new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
   <div class="card stack">
     <div class="route-head"><h2>${esc(c.nombre)}</h2><span class="mono muted">${esc(T().matricula)}</span></div>
-    <p class="small muted">${esc(T().desc)}</p>
+    <p class="small muted">${esc(T().desc)}${T().letraQ ? ' · Letra Q <span class="mono">' + esc(T().letraQ) + '</span>' : ''}</p>
     ${S.cam !== c.habitual ? `<div class="msg warn">Hoy no llevas tu camión habitual. El DeCA saldrá con la matrícula ${esc(T().matricula)}.${T().nuevo ? ' La oficina revisará este camión nuevo.' : ''}</div>` : ''}
     <button class="btn sec" id="cambiarCam" style="padding:10px">Cambiar camión</button>
     ${keys.length > 1 ? `<span class="lbl">Rutas de hoy</span>
@@ -371,6 +372,9 @@ function rutas() {
     <div class="dests">${S.sel.map(r => `<button class="dest" aria-pressed="${pref() === String(+r)}" data-p="${r}"><b>Ruta ${+r}</b></button>`).join('')}</div>` : ''}
     <div class="comps">${comps().map(x => `<span class="tank ${spClass(x)}" title="${compLabel(x)}">${x.id}</span>`).join('')}</div>
     <p class="small muted">${n} ganaderos en la lista.</p>
+    <div class="field"><label class="lbl" for="estL">Litros estimados de hoy (para el DeCA)</label>
+      <div class="unit"><input class="big" id="estL" inputmode="numeric" autocomplete="off" placeholder="0" value="${S.estManual || estSel() || ''}" style="font-size:34px"><span>l</span></div>
+      <span class="small muted">Sale calculado con la última recogida de cada ganadero. Corrígelo si hoy llevas más o menos.</span></div>
     ${n ? '' : `<div class="msg bad">No hay ganaderos cargados en ${S.sel.length > 1 ? 'estas rutas' : 'esta ruta'}. Avisa a la oficina.</div>`}
     <div id="iniMsg" hidden></div>
     <button class="btn" id="ini" ${n ? '' : 'disabled'}>Iniciar viaje</button>
@@ -385,6 +389,7 @@ function rutas() {
   });
   v.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { S.pref = b.dataset.p; persistir(); rutas(); });
   $('#cambiarCam').onclick = () => camion('inicio');
+  $('#estL').oninput = e => { S.estManual = e.target.value.replace(/\D/g, ''); };
   $('#ini').onclick = iniciar;
   $('#refrescar').onclick = async () => { const b = $('#refrescar'); ocupado(b, 'Actualizando…'); try { cargarDatos(await api('login', {})); toast('Datos actualizados'); rutas(); } catch (e) { libre(b); toast(esRed(e) ? 'Sin cobertura' : e.message); } };
   $('#salir').onclick = () => { if (pendientes()) { toast('Hay datos sin enviar. Espera a tener cobertura.'); return; } S = Object.assign({}, S0, { cola: { recs: {}, cierres: [] } }); persistir(); pinView(); };
@@ -396,17 +401,20 @@ const TIPOS = { D: { t: 'D.O.', l: 'D', esp: ['D'] }, O: { t: 'Oveja', l: 'O', e
 function camion(mode) {
   U.camMode = mode; const v = $('#vCamion');
   const lst = camiones().filter(k => !(mode === 'trasvase' && k.id === S.cam));
-  if (!U.nt) U.nt = { mat: '', n: 3, tipos: ['D', 'O', 'CV'] };
+  if (!U.nt) U.nt = { mat: '', lq: '', n: 3, tipos: ['D', 'O', 'CV'] };
   const nt = U.nt;
   v.innerHTML = `${mode === 'trasvase' ? `<div class="msg warn">Trasvase por avería. Elige el camión al que pasa la leche. Se cerrará el DeCA actual y se generará uno nuevo con la otra matrícula.</div>` : ''}
   ${lst.length ? `<span class="lbl">Camiones</span>
   <div class="stack">${lst.map(k => `<button class="farm${S.cam === k.id && mode !== 'trasvase' ? ' next' : ''}" data-k="${k.id}">
-    <span class="main"><span class="name mono">${esc(k.matricula)}</span><span class="sub">${esc(k.desc)}${k.id === D().conductor.habitual ? ' · habitual' : ''}</span></span>
+    <span class="main"><span class="name mono">${esc(k.matricula)}</span><span class="sub">${esc(k.desc)}${k.letraQ ? ' · Letra Q ' + esc(k.letraQ) : ''}${k.id === D().conductor.habitual ? ' · habitual' : ''}</span></span>
     <span class="comps">${k.letras.map(x => `<span class="tank ${x.esp.length > 1 ? 'sp-MX' : 'sp-' + x.esp[0]}">${x.l}</span>`).join('')}</span></button>`).join('')}</div>` : ''}
   <div class="card stack">
     <span class="lbl">Otro camión</span>
     <div class="field"><label class="lbl" for="ntMat">Matrícula</label>
       <input class="big" id="ntMat" autocomplete="off" autocapitalize="characters" placeholder="0000-XXX" value="${esc(nt.mat)}" style="font-size:28px;font-family:var(--mono)"></div>
+    <div class="field"><label class="lbl" for="ntLq">Código Letra Q de la cisterna</label>
+      <div class="scan"><input id="ntLq" inputmode="numeric" autocomplete="off" placeholder="Etiqueta de la cisterna" value="${esc(nt.lq)}"><button id="ntLqScan">Escanear</button></div>
+      <span class="small muted">Está en la etiqueta con código de barras pegada en la cisterna. Si no la encuentras, déjalo vacío.</span></div>
     <span class="lbl">Compartimentos</span>
     <div class="row">${[1, 2, 3, 4, 5].map(n => `<button class="btn ${nt.n === n ? '' : 'sec'}" data-n="${n}" style="padding:10px;min-height:48px">${n}</button>`).join('')}</div>
     <div class="stack">${Array.from({ length: nt.n }, (_, i) => `<div class="field"><span class="small muted">Compartimento ${i + 1}</span>
@@ -416,6 +424,8 @@ function camion(mode) {
   </div>`;
   v.querySelectorAll('[data-k]').forEach(b => b.onclick = () => elegido(b.dataset.k));
   $('#ntMat').oninput = e => { nt.mat = e.target.value.toUpperCase().replace(/\s/g, ''); e.target.value = nt.mat; };
+  $('#ntLq').oninput = e => { nt.lq = e.target.value.trim(); };
+  $('#ntLqScan').onclick = () => escanear(code => { nt.lq = code; $('#ntLq').value = code; });
   v.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { nt.n = +b.dataset.n; while (nt.tipos.length < nt.n) nt.tipos.push('D'); nt.tipos.length = nt.n; camion(mode); });
   v.querySelectorAll('[data-ci]').forEach(b => b.onclick = () => { nt.tipos[+b.dataset.ci] = b.dataset.t; camion(mode); });
   $('#ntOk').onclick = () => {
@@ -429,7 +439,7 @@ function camion(mode) {
       usadas[l] = 1; letras.push({ l, esp: t.esp, mezcla: [] });
     }
     const id = 'NUEVO-' + nt.mat;
-    S.nuevosCam = S.nuevosCam.filter(k => k.id !== id).concat([{ id, matricula: nt.mat, desc: `Cisterna ${nt.n} comp. · alta del conductor`, letras, nuevo: true }]);
+    S.nuevosCam = S.nuevosCam.filter(k => k.id !== id).concat([{ id, matricula: nt.mat, desc: `Cisterna ${nt.n} comp. · alta del conductor`, letraQ: nt.lq, letras, nuevo: true }]);
     U.nt = null; persistir(); elegido(id);
   };
   show('vCamion', mode === 'trasvase' ? 'Trasvase' : 'Camión de hoy', D().conductor.nombre);
@@ -438,7 +448,7 @@ function elegido(id) {
   if (U.camMode === 'trasvase') { U.camNuevo = id; U.map = null; trasvase(); }
   else { S.cam = id; persistir(); rutas(); }
 }
-const camionPayload = k => k.nuevo ? { matricula: k.matricula, letras: k.letras } : k.id;
+const camionPayload = k => k.nuevo ? { matricula: k.matricula, letraQ: k.letraQ || '', letras: k.letras } : k.id;
 function adoptarCamion(resp, localId) {
   if (resp.camion && !CAM(resp.camion.id)) D().camiones.push(resp.camion);
   if (resp.camion) { S.nuevosCam = S.nuevosCam.filter(k => k.id !== localId); return resp.camion.id; }
@@ -451,14 +461,15 @@ async function iniciar() {
   const b = $('#ini'), m = $('#iniMsg');
   const seen = new Set(), list = [];
   S.sel.forEach(r => ganRuta(r).forEach(g => { if (seen.has(g.cod)) return; seen.add(g.cod); list.push({ cod: g.cod, ruta: r, ord: g.ord }); }));
-  const est = list.reduce((a, x) => a + (gan(x.cod).ult || 0), 0);
+  const est = Math.round(num($('#estL').value) || 0);
+  if (!(est > 0)) { m.hidden = false; m.className = 'msg bad'; m.textContent = 'Escribe los litros estimados de hoy. El DeCA no puede salir con 0 kg.'; $('#estL').focus(); return; }
   const id = 'V' + Date.now().toString(36).toUpperCase() + '-' + D().conductor.id;
   ocupado(b, 'Generando DeCA…');
   try {
     const r = await api('iniciarViaje', { viaje: { id, rutas: S.sel, pref: pref(), camion: camionPayload(T()), estLitros: est } });
     S.cam = adoptarCamion(r, S.cam);
     S.viaje = Object.assign({}, r.viaje, { rutas: S.sel.slice(), prefijo: pref(), est, empezado: false });
-    S.cadena = [r.viaje.id]; S.decas = []; S.list = list; S.rec = {}; S.lastI = null;
+    S.cadena = [r.viaje.id]; S.decas = []; S.list = list; S.rec = {}; S.lastI = null; S.estManual = '';
     persistir(); U.vistaPrev = null; deca();
   } catch (e) {
     libre(b); m.hidden = false; m.className = 'msg bad';
@@ -477,6 +488,7 @@ function deca() {
       <dt>Cargador</dt><dd>${esc(cfg.cargador)}</dd>
       <dt>Transportista</dt><dd>${esc(c.transportista)}</dd>
       <dt>Matrícula</dt><dd class="mono">${esc(V.matricula)}</dd>
+      ${V.letraQ ? `<dt>Cisterna Letra Q</dt><dd class="mono">${esc(V.letraQ)}</dd>` : ''}
       <dt>Rutas</dt><dd>${V.rutas.map(x => +x).join(' y ')}</dd>
       <dt>Mercancía</dt><dd>${esc(cfg.mercancia || 'Leche cruda')}</dd>
       <dt>Peso estimado</dt><dd class="num">${fmt(V.est * (cfg.factorKg || 1.03))} kg</dd>
@@ -657,7 +669,7 @@ async function escanear(onCode) {
   try {
     await lector.start({ facingMode: 'environment' },
       { fps: 12, qrbox: (w, h) => ({ width: Math.floor(Math.min(w * 0.9, 360)), height: Math.floor(Math.min(h * 0.35, 150)) }) },
-      txt => { if (navigator.vibrate) navigator.vibrate(80); cerrar(); onCode((txt.match(/\d{6,}/) || [txt])[0]); });
+      txt => { if (navigator.vibrate) navigator.vibrate(80); cerrar(); onCode(((txt.match(/\d{6,}/) || [txt])[0]).trim()); });
   } catch (e) { cerrar(); toast('No se pudo abrir la cámara. Da permiso a la cámara o escribe el número.'); }
 }
 
