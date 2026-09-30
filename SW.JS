@@ -1,5 +1,5 @@
 // Service Worker para TraceQueso
-// Versión: v421
+// Versión: v422
 //
 // ═══════════════════════════════════════════════════════════════════════════
 // POR QUÉ EL NOMBRE DE LA CACHÉ YA NO LLEVA VERSIÓN  (v325)
@@ -39,7 +39,7 @@ const CACHE = 'tracequeso-app';   // FIJO. No poner la versión aquí nunca más
 //
 // Así que: index nuevo → subir TAMBIÉN este archivo con la versión cambiada.
 // ═══════════════════════════════════════════════════════════════════════════
-const VERSION = 'v421';
+const VERSION = 'v422';
 const ASSETS = ['/tracequeso/', '/tracequeso/index.html'];
 
 // INSTALACIÓN: cachear archivos esenciales
