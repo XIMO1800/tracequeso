@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.442</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.443</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -7664,7 +7664,15 @@ function _htmlGraficaPasteur(D){
     }
   });
   (D.anotaciones||[]).forEach(function(a){
-    if(a.tipo==='limpieza') boca(a.t1,a.t2,a.nombre,a.mins+' min · '+a.temp+' °C','#8b1a1a');
+    // (v2.6.443) Si el aclarado de antes de este lavado se hizo sin cerrar el
+    // vapor, el agua no se enfría y no hay forma de comprobar por el tacto de la
+    // tubería si quedaba sosa dentro. El convertidor lo marca (v1.5) y aquí se
+    // ve en el recuadro del lavado: "⚠ aclarado en caliente (79 °C)".
+    if(a.tipo==='limpieza'){
+      var sub = a.mins+' min · '+a.temp+' °C';
+      if(a.aclaradoCaliente) sub += ' · ⚠ aclarado en caliente ('+a.aclaradoTemp+' °C)';
+      boca(a.t1,a.t2,a.nombre,sub,'#8b1a1a');
+    }
   });
   // ── ARRASTRES DE AGUA, TODOS Y EN SU LÍNEA (v2.6.416) ──
   // Regla general de Joaquín (30/08): todo lo que es agua se cuenta en verde
