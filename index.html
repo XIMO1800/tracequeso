@@ -78,11 +78,11 @@
     var _lat = JSON.parse(localStorage.getItem('tq_latido')||'null');
     if(_lat && _lat.t){
       var _d = new Date(_lat.t);
-      _negra('ARRANQUE v432 · último latido previo: '+_d.getDate()+'/'+(_d.getMonth()+1)+' '
+      _negra('ARRANQUE v435 · último latido previo: '+_d.getDate()+'/'+(_d.getMonth()+1)+' '
         +('0'+_d.getHours()).slice(-2)+':'+('0'+_d.getMinutes()).slice(-2)
         +' en '+(_lat.p||'?')+(_lat.pend?(' con '+_lat.pend+' pendientes'):''));
     }else{
-      _negra('ARRANQUE v432 · sin latido previo');
+      _negra('ARRANQUE v435 · sin latido previo');
     }
   }catch(e){}
 
@@ -991,7 +991,7 @@ textarea.finput{resize:vertical;min-height:60px;}
   <div class="lcard">
     <div style="text-align:center;margin-bottom:6px;"><img src="data:image/jpeg;base64,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" style="height:54px;object-fit:contain;"></div>
     <div class="lsub">Trazabilidad · Lácteos Cuquerella</div>
-    <div id="ver-login" style="font-size:0.65rem;color:var(--text3);margin-top:4px;font-family:'Inconsolata',monospace;opacity:0.6;">v432</div>
+    <div id="ver-login" style="font-size:0.65rem;color:var(--text3);margin-top:4px;font-family:'Inconsolata',monospace;opacity:0.6;">v435</div>
     <select class="lsel" id="l-nombre" onchange="resetPin()">
       <option value="">— ¿Quién eres? —</option>
     </select>
@@ -1017,7 +1017,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div id="ver-home" style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v432</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div id="ver-home" style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v435</div></div>
   <div class="scrl" style="padding:0;">
 
   <!-- (v424) COBERTURA. En las naves se corta y nadie sabía si el problema era
@@ -9984,14 +9984,31 @@ function cargarDatos(forzar){
   //
   // Ahora los botones llaman a cargarDatos(TRUE): si lo pulsa una persona, se
   // descarga, y punto. El atajo queda solo para lo automático.
-  if(!forzar&&ahora-cachedTime<300000&&rawRows.length>0){
+  //
+  // (v433) ...SALVO QUE LA COPIA ESTÉ RECORTADA. Si al abrir la aplicación se
+  // ha cargado una copia incompleta —porque los 90 días no caben en la taquilla
+  // del navegador— este atajo la daba por buena y no descargaba: el móvil se
+  // quedaba con el último mes aunque hubiera cobertura de sobra. Con datos
+  // recortados SIEMPRE se baja lo que falta.
+  if(!forzar&&!window._DATOS_PARCIALES&&ahora-cachedTime<300000&&rawRows.length>0){
     setSB('ok','✅ '+rawRows.length);
     try{ _pintarEstadoDatos(Math.round((ahora-cachedTime)/60000)); }catch(e){}
     return;
   }
-  // Descargar en segundo plano. NUNCA bloquea: si ya hay datos en memoria,
-  // el usuario sigue trabajando con ellos mientras llega la actualización.
-  _fetchDatosBackground(forzar);
+  // ══════════════════════════════════════════════════════════════════════════
+  // (v435) ¿COMPLETA O SOLO LO NUEVO?
+  // La completa son 8 MB y solo hace falta una al día. El resto del tiempo se
+  // pide lo de los últimos 2 días, que son unos kilobytes y entran con mala
+  // cobertura. Se baja la completa si:
+  //   · no hay datos todavía (primera entrada del día, en el vestuario),
+  //   · hoy no se ha hecho ninguna,
+  //   · o la copia guardada está recortada y hay que rehacerla entera.
+  // Nunca bloquea: si ya hay datos, se sigue trabajando mientras llega.
+  if(!rawRows.length || _tocaCompleta() || window._DATOS_PARCIALES){
+    _fetchDatosBackground(forzar);
+  } else {
+    _fetchIncremental(forzar);
+  }
 }
 // ══════════════════════════════════════════════════════════════════════════
 // (v418) UNA DESCARGA VACÍA NO BORRA LO QUE YA HAY EN EL MÓVIL
@@ -10212,6 +10229,137 @@ function _guardarCacheDatos(rows){
   return false;
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// (v435) ACTUALIZACIÓN INCREMENTAL: SOLO LO NUEVO
+// ──────────────────────────────────────────────────────────────────────────
+// Hasta aquí, CADA actualización se bajaba los 90 días: 39.000 registros, 8 MB.
+// Por el pasillo de una cámara con una raya de cobertura eso no entra, y de ahí
+// venían casi todos los líos del 01/10: descargas a medias, el botón atascado,
+// la copia recortada.
+//
+// Joaquín lo planteó así, y es exactamente lo correcto:
+//   «Yo arranco en el vestuario con cobertura y me bajo los 90 días. A partir
+//    de ahí lo único que me falta es lo de hoy. Si no cabe todo, es que tampoco
+//    me hace falta todo: mantén lo que tengo y cógeme solo lo último.»
+//
+// Así queda:
+//   · Una descarga COMPLETA al día (la primera vez que se entra, o si la copia
+//     guardada está recortada, o si se queda sin datos).
+//   · El resto del día, INCREMENTAL: los registros de los últimos 2 días. Son
+//     unos kilobytes y entran con mala señal.
+//   · Lo que llega se MEZCLA con lo que hay: el registro que ya existe se
+//     actualiza, el nuevo se añade. NUNCA se borra nada.
+var DIAS_INCREMENTAL = 2;
+function _horaUltimaCompleta(){
+  try{ return parseInt(localStorage.getItem('tq_ult_completa')||'0',10)||0; }catch(e){ return 0; }
+}
+function _marcarCompleta(){
+  try{ localStorage.setItem('tq_ult_completa', String(Date.now())); }catch(e){}
+}
+// Una descarga completa al día. No por horas: si a media tarde se forzara otra
+// completa estando en una cámara, se pasaría el rato intentándola y fallando.
+function _tocaCompleta(){
+  var t=_horaUltimaCompleta();
+  if(!t) return true;
+  try{ if(new Date(t).toDateString() !== new Date().toDateString()) return true; }catch(e){ return true; }
+  return false;
+}
+// Mezcla sin perder nada. Se empareja por ID, que es único y lo llevan todos
+// los registros. Si alguno viniera sin ID (registros antiguos de AppSheet), se
+// empareja por palé + fecha + sección + operario, que no se repite.
+function _mezclarRegistros(nuevos){
+  var res={nuevos:0, actualizados:0};
+  if(!nuevos || !nuevos.length) return res;
+  function clave(r){
+    return String(r['ID PALET']||'')+'|'+String(r['FECHA']||'')+'|'
+          +String(r['SECCIÓN']||'')+'|'+String(r['OPERARIO']||'');
+  }
+  var porId={}, porClave={}, i, id;
+  for(i=0;i<rawRows.length;i++){
+    id=String(rawRows[i]['ID']||'').trim();
+    if(id) porId[id]=i; else porClave[clave(rawRows[i])]=i;
+  }
+  for(i=0;i<nuevos.length;i++){
+    var r=nuevos[i];
+    id=String(r['ID']||'').trim();
+    var pos = -1;
+    if(id){ if(Object.prototype.hasOwnProperty.call(porId,id)) pos=porId[id]; }
+    else  { var k=clave(r); if(Object.prototype.hasOwnProperty.call(porClave,k)) pos=porClave[k]; }
+    if(pos>=0){ rawRows[pos]=r; res.actualizados++; }
+    else{
+      rawRows.push(r);
+      if(id) porId[id]=rawRows.length-1; else porClave[clave(r)]=rawRows.length-1;
+      res.nuevos++;
+    }
+  }
+  return res;
+}
+function _fetchIncremental(forzado){
+  // Sin red, ni intentarlo (igual que la completa).
+  try{ if(!forzado && navigator && navigator.onLine === false) return; }catch(e){}
+  var ahoraI=Date.now();
+  if(window.__tqFetching){
+    var lleva = ahoraI - (window.__tqFetchInicio||0);
+    if(!forzado && lleva < 60000) return;
+    try{ if(window.__jpt) clearTimeout(window.__jpt); }catch(_){}
+    try{ var vj0=document.getElementById('jps'); if(vj0) vj0.remove(); }catch(_){}
+    window.__tqFetching=false;
+  }
+  window.__tqFetching=true;
+  window.__tqFetchInicio=ahoraI;
+  var ic=document.getElementById('sync-icon'); if(ic) ic.className='sync-spin';
+  if(forzado){ try{ toast('Buscando lo nuevo…'); }catch(_){} }
+
+  var viejo=document.getElementById('jps'); if(viejo) viejo.remove();
+  if(window.__jpt) clearTimeout(window.__jpt);
+
+  window.__tqinc=function(json){
+    window.__tqFetching=false;
+    if(window.__jpt) clearTimeout(window.__jpt);
+    try{
+      if(!json || !json.ok || !json.data) throw new Error('respuesta mala');
+      var r=_mezclarRegistros(json.data);
+      procesarDatos(rawRows);
+      actualizarStats();
+      _lastSync=Date.now();
+      _syncInicialOK=true;
+      if(typeof _onSyncInicialListo==='function'){ try{_onSyncInicialListo();}catch(_){} }
+      // La caché se vuelve a guardar: si antes cabía, sigue cabiendo.
+      _guardarCacheDatos(rawRows);
+      setSB('ok','✅ '+rawRows.length);
+      try{ _pintarEstadoDatos(0); }catch(_){}
+      try{ window._negra && window._negra('INCREMENTAL: '+json.data.length+' registros de '+json.dias+' días · '+r.nuevos+' nuevos, '+r.actualizados+' actualizados'); }catch(_){}
+      if(forzado){
+        try{ toast(r.nuevos ? ('Añadidos '+r.nuevos+' registros nuevos') : 'No hay nada nuevo'); }catch(_){}
+      }
+      // Repintar lo que se esté mirando
+      try{
+        var scr=document.querySelector('.scr.on');
+        if(scr && scr.id==='s-regs' && typeof renderRegs==='function') renderRegs();
+        else if(scr && scr.id==='s-plan' && typeof renderPlanMenu==='function') renderPlanMenu();
+      }catch(_){}
+    }catch(e){
+      setSB('ok','✅ '+rawRows.length);
+      if(forzado){ try{ toast('No se ha podido traer lo nuevo. Sigues con tus datos.','warn'); }catch(_){} }
+    }
+  };
+  window.__jpt=setTimeout(function(){
+    window.__tqFetching=false;
+    setSB('ok','✅ '+rawRows.length);
+    if(forzado){ try{ toast('Sin respuesta. Sigues con tus datos.','warn'); }catch(_){} }
+  }, 30000);
+
+  var sc=document.createElement('script'); sc.id='jps';
+  sc.src=API_URL+'?tipo=nuevos&dias='+DIAS_INCREMENTAL+'&callback=__tqinc&t='+Date.now();
+  sc.onerror=function(){
+    window.__tqFetching=false;
+    if(window.__jpt) clearTimeout(window.__jpt);
+    setSB('ok','✅ '+rawRows.length);
+    if(forzado){ try{ toast('No se ha podido conectar. Sigues con tus datos.','warn'); }catch(_){} }
+  };
+  document.head.appendChild(sc);
+}
+
 function _fetchDatosBackground(forzado){
   // ══════════════════════════════════════════════════════════════════════════
   // (v421) EL BOTÓN ACTUALIZAR NO HACÍA NADA TRAS CARGAR EL HISTÓRICO COMPLETO
@@ -10250,6 +10398,19 @@ function _fetchDatosBackground(forzado){
   //
   // Ahora: si la descarga anterior lleva más de un minuto, está muerta y se
   // descarta. Y si lo pulsa una persona, manda ella siempre.
+  // (v434) SIN COBERTURA, LA AUTOMÁTICA NI LO INTENTA.
+  // Antes lanzaba la petición igualmente, se comía los 45 segundos y acababa en
+  // nada. No rompía nada —los datos se mantienen— pero gasta batería y deja la
+  // bandera ocupada un rato largo. Si el móvil dice que no hay red, no se toca
+  // nada y se espera a la siguiente. Si lo pulsa una persona SÍ se intenta:
+  // puede que la red haya vuelto y el navegador aún no se haya enterado.
+  try{
+    if(!forzado && navigator && navigator.onLine === false){
+      try{ window._negra && window._negra('ACTUALIZACIÓN AUTOMÁTICA saltada: sin red. Se conservan los datos.'); }catch(_){}
+      return;
+    }
+  }catch(e){}
+
   var _ahoraF=Date.now();
   if(window.__tqFetching){
     var _lleva = _ahoraF - (window.__tqFetchInicio||0);
@@ -10287,7 +10448,14 @@ function _fetchDatosBackground(forzado){
         // sin registros, es una respuesta rota. Una descarga simplemente CORTA se
         // acepta si viene dos veces seguidas con el mismo número: entonces sí
         // parece que de verdad hay menos registros.
-        var _repetida = (_nNuevos > 0 && window.__tqMenosPrev === _nNuevos);
+        // (v434) UNA ACTUALIZACIÓN AUTOMÁTICA NUNCA PUEDE QUITARTE DATOS.
+        // Joaquín, 01/10: "lo que yo no quiero es que una actualización me
+        // reduzca lo que tengo. Si pierdo cuatro registros de los últimos cinco
+        // minutos, prefiero eso a quedarme sin todo."
+        // Antes, una descarga más corta se aceptaba si venía dos veces seguidas
+        // con el mismo número, aunque fuera automática. Ahora eso solo pasa si
+        // el botón lo ha pulsado una persona: sola, la aplicación solo suma.
+        var _repetida = (_nNuevos > 0 && window.__tqMenosPrev === _nNuevos && forzado);
         if(!_repetida){
           window.__tqMenosPrev = _nNuevos;
           try{ window._negra && window._negra('DESCARGA RECHAZADA: '+_sosp+'. Se mantienen los datos de antes.'); }catch(_){}
@@ -10302,6 +10470,7 @@ function _fetchDatosBackground(forzado){
       rawRows=json.data;procesarDatos(rawRows);
       setSB('ok','✅ '+rawRows.length);actualizarStats();
       _lastSync=Date.now();
+      _marcarCompleta();              // (v435) ya hay descarga completa de hoy
       _syncInicialOK=true;            // primera sync de la sesión completada
       if(typeof _onSyncInicialListo==='function'){ try{_onSyncInicialListo();}catch(_){} }
       _guardarCacheDatos(rawRows);
@@ -10588,10 +10757,19 @@ function _pintarEstadoDatos(haceMin){
   // El número de registros es el que dice de verdad cuántos datos hay.
   var nr=0;
   try{ nr = (typeof rawRows!=='undefined' && rawRows) ? rawRows.length : 0; }catch(e){}
-  st.innerHTML = txt + n + (n===1?' palet':' palets') + (nr?(' · '+nr+' reg.'):'') +
-    (window._DATOS_PARCIALES
-      ? ' <span style="color:#c0392b;font-weight:800;">⚠️ incompletos</span>' : '')
-    + linea2;
+  // (v435) LA LÍNEA QUE PEDÍA JOAQUÍN: "que me aparezca en pantalla, estás con
+  // todos los datos". Verde solo si hoy se ha hecho la descarga completa Y lo
+  // guardado no está recortado. Con eso se sale del vestuario tranquilo.
+  var completoHoy=false;
+  try{ completoHoy = !window._DATOS_PARCIALES && !_tocaCompleta(); }catch(e){}
+  var linea1b = window._DATOS_PARCIALES
+    ? '<br><span style="color:#c0392b;font-weight:800;">⚠️ datos incompletos</span>'
+    : (completoHoy
+        ? '<br><span style="color:#1f5f1f;font-weight:800;">✅ 90 días completos</span>'
+        : '<br><span style="color:#c8780a;font-weight:800;">⏳ falta la descarga del día</span>');
+
+  st.innerHTML = txt + n + (n===1?' palet':' palets') + (nr?(' · '+nr+' reg.'):'')
+    + linea1b + linea2;
 }
 // ══════════════════════════════════════════════════════════════════════════
 // (v424) ¿HAY COBERTURA O NO?
