@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.443</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.444</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -5337,6 +5337,45 @@ function anadirVariedad(){
     if(sel){ sel.value = nueva; onVarSelChange(); }
   }, 50);
   toast('✅ Variedad añadida');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// (v2.6.444) LAS VARIEDADES SE SACAN DE LAS RECETAS, NO SOLO DEL APARATO
+// ──────────────────────────────────────────────────────────────────────────
+// EL FALLO (02/10): Joaquín creó en el ordenador la receta MEZCLA · AFRUTADO.
+// Se guardó bien en la hoja RECETAS —8 líneas, comprobado—, pero al ir Jorge a
+// hacer el parte en la tablet, AFRUTADO no salía en el desplegable de variedad.
+// Sin poder elegir la variedad, la receta era inalcanzable.
+//
+// El motivo: al guardar una receta, su variedad se apuntaba en
+// 'tq_partes_variedades', que es el almacén LOCAL del navegador. Eso solo existe
+// en el aparato donde se creó. A Sheets no viajaba nunca.
+//
+// Arreglo: las variedades se deducen de las propias recetas. Como las recetas sí
+// vienen de Sheets con su tipo y su variedad, cada aparato se las monta solo en
+// cuanto las descarga. Sin tocar el backend y sin nada que sincronizar a mano.
+function _variedadesDesdeRecetas(){
+  try{
+    var cambio=false;
+    (RECETAS_DEMO||[]).forEach(function(r){
+      var t=String(r&&r.tipo||'').trim().toUpperCase();
+      var v=String(r&&r.variedad||'').trim().toUpperCase();
+      if(!t || !v) return;
+      if(!TIPOS_VARIEDADES[t]) { TIPOS_VARIEDADES[t]=[]; cambio=true; }
+      if(TIPOS_VARIEDADES[t].indexOf(v)===-1){ TIPOS_VARIEDADES[t].push(v); cambio=true; }
+    });
+    if(cambio){
+      try{ localStorage.setItem('tq_partes_variedades', JSON.stringify(TIPOS_VARIEDADES)); }catch(_){}
+      try{ poblarSelectTipos(); }catch(_){}
+      try{ poblarFiltroTipos(); }catch(_){}
+      // Si hay un parte abierto con el tipo ya elegido, repintar su desplegable
+      // de variedad para que la nueva aparezca sin tener que salir y entrar.
+      try{
+        var selT=document.getElementById('np-tipo-sel');
+        if(selT && selT.value) onTipoSelChange();
+      }catch(_){}
+    }
+  }catch(e){}
 }
 
 function cargarVariedadesCustom(){
@@ -11587,6 +11626,7 @@ function cargarRecetasSheets(){
       var idsSheets=d.data.map(function(r){return r.id;});
       RECETAS_DEMO=RECETAS_DEMO.filter(function(r){return idsSheets.indexOf(r.id)<0&&r.id.indexOf('r')===0;});
       RECETAS_DEMO=d.data.concat(RECETAS_DEMO);persistir();renderRecetas();poblarSelectTipos();
+      try{ _variedadesDesdeRecetas(); }catch(_){}   // (v2.6.444)
     }
   }).catch(function(){});
 }
@@ -11689,7 +11729,7 @@ function sincronizarPendientes(){
 
 function init(){
   // 1. Cargar datos del localStorage
-  try{ cargarOperarios(); cargarVariedadesCustom(); cargarPrensadoConfig(); }catch(e){}
+  try{ cargarOperarios(); cargarVariedadesCustom(); _variedadesDesdeRecetas(); cargarPrensadoConfig(); }catch(e){}
 
   // MIGRACIÓN v2.6.32: limpiar datos demo (R-704, NATUREN ficticio, etc.)
   // Solo se ejecuta una vez por dispositivo
