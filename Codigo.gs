@@ -749,6 +749,9 @@ function doPost(e) {
 
   if (payload['_SHEET'] === 'AVISO_PEDIDO')      return gestionarAvisoPedido(payload);
   if (payload['_SHEET'] === 'AVISO_CAMBIO_LOTE') return gestionarAvisoCambioLote(payload);
+  // (2026-10-07) .xps que manda el PC del SCADA. Solo los guarda en Drive (no toca
+  // la hoja, por eso va fuera del candado). Todo lo demas, en ConversorSCADA.gs.
+  if (payload['_SHEET'] === 'SCADA_XPS')         return recibirXpsScada(payload);
 
   return _conCandado(function() { return _doPostEscritura(payload); });
 }
