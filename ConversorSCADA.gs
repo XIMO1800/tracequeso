@@ -954,6 +954,12 @@ function scadaConvertirXps(blobXps, carpetaOrigen){
   // Lo que viene de PASTO GRAFICO es el gráfico aunque un día tuviera más
   // de una página: no se intenta leer como datos.
   if(/GRAF/i.test(String(carpetaOrigen||''))) tipo = 'pasto_grafico';
+  // (07/10) El export de la ventana "Tabla Control" no lleva "Control Cuba N"
+  // en la cabecera (lleva la ruta del proyecto de WinCC). El conversor del
+  // navegador pregunta entonces la cuba con unos botones; aquí la dice la
+  // carpeta de donde viene (CUBA1, CUBA2, CUBA3). Si no trae medidas de cuba,
+  // la lectura falla igual y el archivo va a ERRORES: no se inventa nada.
+  if(tipo === 'desconocido' && /^CUBA\s*\d$/i.test(String(carpetaOrigen||'').trim())) tipo = 'cuba';
   if(tipo === 'cuba'){
     var c = SCADA_CUBA.convertir(x.recorrer);
     return { tipo: 'cuba', nombre: c.nombre, resultado: c.resultado };
