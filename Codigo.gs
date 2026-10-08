@@ -1,8 +1,28 @@
 // ══════════════════════════════════════════════════════════════════════════
 // TraceQueso — Codigo.gs  (backend Apps Script)
 //
-// VERSIÓN: 2026-10-07
-// CAMBIO DE ESTA VERSIÓN: CONTROL DE CARGA DE AUTOVENTAS (?tipo=controlesCarga)
+// VERSIÓN: 2026-10-08
+// CAMBIO DE ESTA VERSIÓN: REGISTRO DE CAMBIOS (?tipo=cambios&desde=MARCA)
+//
+//   Para que un móvil pueda tener TODO el histórico guardado y ponerse al día
+//   trayendo solo lo que ha cambiado. Cada alta, corrección y borrado de
+//   REGISTRO TOTAL que pasa por la app se apunta en la pestaña CAMBIOS con su
+//   hora (MARCA, en milisegundos) y el ID del registro. El móvil guarda la
+//   MARCA de su última puesta al día y pide "lo cambiado desde ahí": lo nuevo,
+//   lo corregido —aunque sea de hace un año— y la lista de borrados.
+//   La descarga completa devuelve ahora también la MARCA del momento en que se
+//   hizo. Si la pestaña CAMBIOS no llega tan atrás, se le dice al móvil que
+//   haga una descarga completa. Ver _anotarCambio() y _cambiosDesde().
+//   Apuntar el cambio NUNCA hace fallar una escritura: si falla, se sigue.
+//
+//   Y SIRVE DE AUDITORÍA (idea de Joaquín, 08/10): cada línea dice también
+//   QUIÉN (el usuario conectado en la app) y, en correcciones y borrados, cómo
+//   estaba el registro ANTES, la fila entera en JSON. Si alguien borra un
+//   registro por error, ahí queda quién, cuándo y el registro para recuperarlo.
+//   REGISTRO TOTAL sigue funcionando exactamente igual que antes.
+//
+// ──────────────────────────────────────────────────────────────────────────
+// VERSIÓN ANTERIOR: 2026-10-07 — CONTROL DE CARGA DE AUTOVENTAS (?tipo=controlesCarga)
 //
 //   Calidad consulta e imprime desde TraceQueso el registro FOR PR 08-10(1),
 //   que Joaquín rellena en la app de pedidos. SOLO LECTURA: no escribe nada en
@@ -161,10 +181,11 @@
 // PARA VOLVER ATRÁS: en el editor de Apps Script, arriba a la derecha, el icono
 // del reloj ("Historial de cambios") guarda todas las versiones anteriores.
 // ══════════════════════════════════════════════════════════════════════════
-const CODIGO_GS_VERSION = '2026-10-07';
+const CODIGO_GS_VERSION = '2026-10-08';
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
+const SHEET_CAMBIOS = 'CAMBIOS';   // (2026-10-08) registro de altas, correcciones y borrados
 
 // ══════════════════════════════════════════════
 // CORREO DE AVISO DE PEDIDOS DE EXPEDICIONES
@@ -511,6 +532,13 @@ function doGet(e) {
     return ContentService.createTextOutput(_ccJson).setMimeType(ContentService.MimeType.JSON);
   }
 
+  // (2026-10-08) Lo cambiado en REGISTRO TOTAL desde una MARCA. Ver _cambiosDesde().
+  if (tipo === 'cambios') {
+    var _cJson = JSON.stringify(_cambiosDesde(e.parameter.desde));
+    if (callback) return ContentService.createTextOutput(callback + '(' + _cJson + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
+    return ContentService.createTextOutput(_cJson).setMimeType(ContentService.MimeType.JSON);
+  }
+
   // Datos del SCADA para pre-rellenar un parte (Excel en Drive, SOLO LECTURA)
   if (tipo === 'scada') {
     var json = JSON.stringify({ok: true, data: buscarDatosSCADA(e.parameter.fecha || '', e.parameter.cuba || '')});
@@ -518,6 +546,13 @@ function doGet(e) {
     return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
   }
 
+  // (2026-10-08) La MARCA se toma ANTES de leer: lo que se escriba mientras se
+  // lee queda por detrás de ella y el móvil lo pedirá en su próxima puesta al día.
+  // Antes se asegura que existe la pestaña CAMBIOS: si se crease después, su
+  // punto de partida quedaría por delante de esta marca y el móvil tendría que
+  // volver a bajarse todo en su primera puesta al día.
+  if (tipo === 'completo') { try { _hojaCambios(SpreadsheetApp.openById(SHEET_ID)); } catch (eC) {} }
+  var _marcaLectura = Date.now();
   var sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
   var data = sheet.getDataRange().getValues();
   var headers = data[0];
@@ -528,12 +563,21 @@ function doGet(e) {
   limite.setHours(0, 0, 0, 0);
   var idxFecha = headers.indexOf('FECHA');
   var rows = [];
+  // (2026-10-08) FORMATO COMPACTO: los nombres de columna UNA vez y cada
+  // registro como una lista de valores. Es lo mismo, pero ocupa una fracción:
+  // con todo el histórico, repetir 45 nombres de columna en cada registro
+  // multiplicaba el tamaño de la descarga. Solo lo pide el modo base-en-el-móvil.
+  var compacto = (e.parameter.formato === 'compacto');
   for (var i = 1; i < data.length; i++) {
     var fila = data[i];
     if (!modoCompleto) {
       var fechaTxt = idxFecha >= 0 ? fila[idxFecha] : '';
       var fecha = parseFechaSheets(fechaTxt.toString());
       if (fecha && fecha < limite) continue;
+    }
+    if (compacto) {
+      rows.push(idx.map(function(k){ return k >= 0 ? fila[k] : ''; }));
+      continue;
     }
     var obj = {};
     // (2026-08-15) Si una columna de COLS no existe en la hoja, indexOf devuelve
@@ -542,9 +586,151 @@ function doGet(e) {
     COLS.forEach(function(c, j){ obj[c] = (idx[j] >= 0) ? fila[idx[j]] : ''; });
     rows.push(obj);
   }
-  var json = JSON.stringify({ok: true, data: rows});
+  var json = compacto
+    ? JSON.stringify({ok: true, marca: _marcaLectura, cols: COLS, filas: rows})
+    : JSON.stringify({ok: true, marca: _marcaLectura, data: rows});
   if (callback) return ContentService.createTextOutput(callback + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
   return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// REGISTRO DE CAMBIOS DE REGISTRO TOTAL  (2026-10-08)
+// ──────────────────────────────────────────────────────────────────────────
+// Pestaña CAMBIOS: MARCA (milisegundos) · TIPO (A alta, M corrección, B borrado)
+// · ID. Se escribe dentro del candado de las escrituras, así que las MARCAS
+// salen en orden. Si algo falla al apuntar, NO se toca la escritura de verdad:
+// el móvil lo arreglará en su comprobación semanal (descarga completa).
+// ══════════════════════════════════════════════════════════════════════════
+function _hojaCambios(ss) {
+  var sh = ss.getSheetByName(SHEET_CAMBIOS);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_CAMBIOS);
+    sh.getRange(1, 1, 1, 6).setValues([['MARCA', 'TIPO', 'ID', 'QUIÉN', 'CUÁNDO', 'ANTES']]);
+    sh.getRange('A:A').setNumberFormat('0');
+    sh.getRange('C:F').setNumberFormat('@');
+    sh.setFrozenRows(1);
+    // Primera fila: el punto de partida. Un móvil que se puso al día antes de
+    // esta marca no puede fiarse del registro y hará una descarga completa.
+    sh.appendRow([Date.now(), 'INICIO', '', '', _cuandoTxt(), '']);
+  }
+  return sh;
+}
+
+function _cuandoTxt() {
+  try { return Utilities.formatDate(new Date(), 'Europe/Madrid', 'dd/MM/yyyy HH:mm:ss'); }
+  catch (e) { return ''; }
+}
+
+// tipo: 'A' alta · 'M' corrección · 'B' borrado.
+// quien: el usuario conectado en la app (_QUIEN del envío).
+// antes: en M y B, la fila tal como estaba ANTES del cambio (headers + valores).
+function _anotarCambio(sheetRegistro, tipo, id, quien, headers, filaAntes) {
+  try {
+    id = String(id || '').trim();
+    if (!id) return;
+    var antes = '';
+    if (filaAntes && headers) {
+      var o = {};
+      headers.forEach(function(h, i){
+        var v = filaAntes[i];
+        if (v === '' || v === null || v === undefined) return;
+        if (Object.prototype.toString.call(v) === '[object Date]') v = _cuandoDe(v);
+        o[h] = v;
+      });
+      antes = JSON.stringify(o);
+      if (antes.length > 45000) antes = antes.substring(0, 45000);   // tope de una celda
+    }
+    _hojaCambios(sheetRegistro.getParent())
+      .appendRow([Date.now(), tipo, id, String(quien || '').trim(), _cuandoTxt(), antes]);
+  } catch (e) {}
+}
+function _cuandoDe(d) {
+  try { return Utilities.formatDate(d, 'Europe/Madrid', 'dd/MM/yyyy HH:mm:ss'); }
+  catch (e) { return String(d); }
+}
+
+// Lo cambiado desde 'desde'. Devuelve:
+//   { ok, marca, filas:[registros nuevos o corregidos], bajas:[IDs borrados] }
+// o { ok, completa:true, marca } si el móvil tiene que bajarse todo de nuevo.
+// Además se añaden los registros de los 2 últimos días por su FECHA, como hacía
+// la actualización de antes: así entra también lo que llegue a la hoja por
+// otros caminos (AppSheet, una fila pegada a mano) y no pase por el registro.
+function _cambiosDesde(desdeTxt) {
+  var marca = Date.now();
+  try {
+    var desde = Number(desdeTxt);
+    if (!desde || isNaN(desde)) return { ok: true, completa: true, marca: marca, motivo: 'sin marca' };
+
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var shC = _hojaCambios(ss);
+    var ultC = shC.getLastRow();
+    var primera = ultC >= 2 ? Number(shC.getRange(2, 1).getValue()) : marca;
+    if (desde < primera) return { ok: true, completa: true, marca: marca, motivo: 'registro más reciente que la marca' };
+
+    // Se lee de abajo arriba, en bloques, hasta pasar la marca. 60 s de
+    // solape por si una escritura se apuntó justo en el momento de la lectura
+    // anterior: lo repetido no hace daño, el móvil lo empareja por ID.
+    var tope = desde - 60000;
+    var ultimo = {};               // ID → último tipo de cambio
+    var n = 0, fin = ultC, acabado = false;
+    while (fin >= 2 && !acabado) {
+      var ini = Math.max(2, fin - 1999);
+      var vals = shC.getRange(ini, 1, fin - ini + 1, 3).getValues();
+      for (var k = vals.length - 1; k >= 0; k--) {
+        var m = Number(vals[k][0]);
+        if (m <= tope) { acabado = true; break; }
+        var t = String(vals[k][1] || ''), id = String(vals[k][2] || '').trim();
+        if (!id || t === 'INICIO') continue;
+        if (!Object.prototype.hasOwnProperty.call(ultimo, id)) { ultimo[id] = t; n++; }
+      }
+      fin = ini - 1;
+    }
+    if (n > 5000) return { ok: true, completa: true, marca: marca, motivo: 'demasiados cambios' };
+
+    var bajas = [], buscar = {};
+    Object.keys(ultimo).forEach(function(id){
+      if (ultimo[id] === 'B') bajas.push(id); else buscar[id] = true;
+    });
+
+    var sh = ss.getSheetByName(SHEET_NAME);
+    var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+    var idx = COLS.map(function(c){ return headers.indexOf(c); });
+    var idxID = headers.indexOf('ID');
+    var filas = [], vistos = {};
+    function aObj(fila){
+      var obj = {};
+      COLS.forEach(function(c, j){ obj[c] = (idx[j] >= 0) ? fila[idx[j]] : ''; });
+      return obj;
+    }
+    var nBuscar = Object.keys(buscar).length;
+    if (nBuscar && idxID >= 0) {
+      var ult = sh.getLastRow();
+      var ids = sh.getRange(2, idxID + 1, Math.max(1, ult - 1), 1).getValues();
+      var posiciones = [];
+      for (var r = 0; r < ids.length; r++) {
+        var v = String(ids[r][0]).trim();
+        if (v && buscar[v]) posiciones.push(r + 2);
+      }
+      if (posiciones.length) {
+        var pMin = posiciones[0], pMax = posiciones[posiciones.length - 1];
+        var bloque = sh.getRange(pMin, 1, pMax - pMin + 1, headers.length).getValues();
+        posiciones.forEach(function(p){
+          var o = aObj(bloque[p - pMin]);
+          filas.push(o);
+          vistos[String(o['ID'] || '').trim()] = true;
+        });
+      }
+    }
+    _filasUltimosDias(2).forEach(function(o){
+      var id = String(o['ID'] || '').trim();
+      if (id && vistos[id]) return;
+      if (id) vistos[id] = true;
+      filas.push(o);
+    });
+    return { ok: true, marca: marca, filas: filas, bajas: bajas, cambios: n };
+  } catch (err) {
+    return { ok: false, error: String(err), marca: marca };
+  }
 }
 
 // (2026-10-01) Los registros de los últimos N días, y solo esos.
@@ -778,6 +964,8 @@ function _doPostEscritura(payload) {
   }
   if (payload['_DELETE']) {
     if (filaEncontrada > -1) sheet.deleteRow(filaEncontrada);
+    // (2026-10-08) Solo si había fila: un borrado de algo que no existe no es un cambio.
+    if (filaEncontrada > -1) _anotarCambio(sheet, 'B', valorIDBuscado, payload['_QUIEN'], headers, data[filaEncontrada - 1]);
     // (2026-07-28) Devolver al stock el material que consumió este registro
     // (un envasado con aceite/trufa, o un cambio de bobina). Por defecto SÍ se
     // devuelve; la app puede mandar devolverStock:false si algún día se quiere
@@ -797,6 +985,7 @@ function _doPostEscritura(payload) {
       headers.forEach(function(h, col) {
         if (payload[h] !== undefined && !h.startsWith('_')) sheet.getRange(filaEncontrada, col+1).setValue(payload[h]);
       });
+      _anotarCambio(sheet, 'M', valorIDBuscado, payload['_QUIEN'], headers, data[filaEncontrada - 1]);   // (2026-10-08)
     }
     return ContentService.createTextOutput(JSON.stringify({ok: filaEncontrada > -1})).setMimeType(ContentService.MimeType.JSON);
   }
@@ -846,6 +1035,7 @@ function _doPostEscritura(payload) {
       error: 'La fila no se pudo verificar en la hoja. El registro sigue pendiente y se reintentará.'
     })).setMimeType(ContentService.MimeType.JSON);
   }
+  _anotarCambio(sheet, 'A', valorIDBuscado, payload['_QUIEN'] || payload['OPERARIO']);   // (2026-10-08)
   return ContentService.createTextOutput(JSON.stringify({ok:true, fila:filaNueva})).setMimeType(ContentService.MimeType.JSON);
 }
 

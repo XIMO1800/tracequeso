@@ -1025,6 +1025,12 @@ function probarConversorSCADA(){
 //      Si algo no se puede convertir va a ERRORES con el motivo escrito en la
 //      descripción del archivo. Nunca se borra un .xps.
 //
+// (2026-10-08) Y EL PDF DE LA GRÁFICA. Joaquín sigue generando a mano el PDF de
+// PASTO GRAFICO (lo que enseña la app y se imprime para Calidad). El PC lo manda
+// igual que los .xps y aquí se coloca tal cual en Gráficas Pasteurización, en la
+// carpeta de su mes, con su nombre (08.10.2026.pdf). Si ya hay uno con ese nombre
+// —porque se subió a mano— no se duplica.
+//
 // La clave: el PC manda una contraseña que solo conocen él y este proyecto.
 // NO está escrita en el código (el repositorio es público): la genera
 // instalarSCADA() y queda guardada en las propiedades del proyecto.
@@ -1072,13 +1078,15 @@ function recibirXpsScada(p){
     if(!clave || String(p.clave||'') !== clave) return _scadaJson({ ok:false, error:'Clave no válida' });
     var carpeta = String(p.carpeta||'').replace(/[^A-Za-z0-9 ]/g,'').trim().toUpperCase();
     var nombre  = String(p.nombre||'').replace(/[\\\/:*?"<>|]/g,'').trim();
-    if(!carpeta || !/\.xps$/i.test(nombre)) return _scadaJson({ ok:false, error:'Faltan carpeta o nombre' });
+    var esPdf = /\.pdf$/i.test(nombre);
+    if(!carpeta || !(/\.xps$/i.test(nombre) || (esPdf && /GRAF/.test(carpeta))))
+      return _scadaJson({ ok:false, error:'Faltan carpeta o nombre' });
     var bytes = Utilities.base64Decode(String(p.datos||''));
     if(!bytes.length) return _scadaJson({ ok:false, error:'Archivo vacío' });
     var final = carpeta + '__' + nombre;               // CUBA1__07.10.2026.xps
     var entrada = _scadaCarpetaEntrada();
     if(_scadaYaRecibido(entrada, final, bytes.length)) return _scadaJson({ ok:true, repetido:true, archivo:final });
-    var f = entrada.createFile(Utilities.newBlob(bytes, 'application/vnd.ms-xpsdocument', final));
+    var f = entrada.createFile(Utilities.newBlob(bytes, esPdf ? 'application/pdf' : 'application/vnd.ms-xpsdocument', final));
     f.setDescription('Recibido del PC del SCADA el ' +
       Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm'));
     return _scadaJson({ ok:true, archivo:final, bytes:bytes.length });
@@ -1107,10 +1115,39 @@ function procesarEntradaSCADA(){
       if(Date.now() - t00 > 4.5*60*1000) break;       // margen: el resto, en la próxima vuelta
       var f = files.next();
       var nom = f.getName();
-      if(!/\.xps$/i.test(nom)) continue;
       var partes = nom.split('__');
       var origen = partes.length > 1 ? partes[0] : '';
       var original = partes.length > 1 ? partes.slice(1).join('__') : nom;
+      // (2026-10-08) El PDF de la gráfica: a Gráficas Pasteurización, a su mes.
+      if(/\.pdf$/i.test(nom)){
+        try{
+          var mes = _mesDeNombre(original);
+          if(!mes) throw new Error('El nombre del PDF no lleva una fecha reconocible.');
+          var graf = DriveApp.getFolderById(CARPETA_GRAFICAS_ID);
+          var base = _limpiaNombreDescarga(original.replace(/\.pdf$/i, ''));
+          var yaEsta = false;
+          _recorrerArchivos(graf, function(g){
+            var n = String(g.getName());
+            if(!/\.pdf$/i.test(n)) return false;
+            if(_limpiaNombreDescarga(n.replace(/\.pdf$/i, '')) === base){ yaEsta = true; return true; }
+            return false;
+          });
+          if(yaEsta){
+            f.moveTo(proc);
+            Logger.log(nom+' → ya estaba en Gráficas Pasteurización, no se duplica');
+          } else {
+            f.setName(original);
+            f.moveTo(_scadaSub(graf, mes));
+            Logger.log(nom+' → Gráficas Pasteurización/'+mes+'/'+original);
+          }
+        }catch(eP){
+          try{ f.setDescription('ERROR con el PDF: '+eP); }catch(_){}
+          f.moveTo(errs);
+          Logger.log(nom+' → ERROR: '+eP);
+        }
+        continue;
+      }
+      if(!/\.xps$/i.test(nom)) continue;
       var t0 = Date.now();
       try{
         var r = scadaConvertirXps(f.getBlob(), origen);
