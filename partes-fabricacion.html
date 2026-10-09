@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.444</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.445</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1482,9 +1482,17 @@ input[type="email"] {
   </div>
   <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
     <button onclick="cambiarDiaFiltro(-1)" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:1rem;cursor:pointer;flex-shrink:0">‹</button>
-    <div id="filtro-fecha-display" style="flex:1;text-align:center;font-weight:700;font-size:0.95rem;background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:9px"></div>
+    <!-- (v2.6.445) Tocar la fecha abre el CALENDARIO para ir directo a un día
+         (Joaquín, 09/10: buscar un parte de julio a base de flechas era eterno).
+         El selector de fecha va encima, transparente: así se abre el calendario
+         propio del móvil o del ordenador, que todo el mundo sabe usar. -->
+    <div style="flex:1;position:relative">
+      <div id="filtro-fecha-display" style="text-align:center;font-weight:700;font-size:0.95rem;background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:9px;cursor:pointer"></div>
+      <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:0.95rem;pointer-events:none">📅</span>
+      <input type="date" id="filtro-fecha" onchange="irAFechaFiltro(this.value)" onclick="try{this.showPicker&&this.showPicker();}catch(e){}" title="Elegir fecha"
+             style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;margin:0">
+    </div>
     <button onclick="cambiarDiaFiltro(1)" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:1rem;cursor:pointer;flex-shrink:0">›</button>
-    <input type="hidden" id="filtro-fecha">
   </div>
   <div class="card" id="lista-partes"></div>
   <div id="grafica-pasteur-cont" style="margin-top:14px"></div>
@@ -7279,6 +7287,18 @@ function renderCarrusel(){
   }
 }
 
+// (v2.6.445) Ir directo a un día elegido en el calendario. Hace lo mismo que
+// las flechas al cambiar de día: pinta la fecha, los partes y la gráfica.
+function irAFechaFiltro(v){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v||'')) return;
+  _filtroFecha=v;
+  document.getElementById('filtro-fecha').value=_filtroFecha;
+  var p=_filtroFecha.split('-');
+  document.getElementById('filtro-fecha-display').textContent=p[2]+'/'+p[1]+'/'+p[0].slice(2);
+  renderPartes();
+  try{ cargarPartesSheets(_filtroFecha); }catch(e){}
+  try{ cargarGraficaPasteurizacion(_filtroFecha); }catch(e){}
+}
 function cambiarDiaFiltro(delta){
   var d=new Date(_filtroFecha+'T12:00:00');
   d.setDate(d.getDate()+delta);
