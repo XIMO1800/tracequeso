@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.445</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.446</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1486,12 +1486,11 @@ input[type="email"] {
          (Joaquín, 09/10: buscar un parte de julio a base de flechas era eterno).
          El selector de fecha va encima, transparente: así se abre el calendario
          propio del móvil o del ordenador, que todo el mundo sabe usar. -->
-    <div style="flex:1;position:relative">
+    <div style="flex:1;position:relative" onclick="abrirCalendarioFiltro()" title="Elegir fecha">
       <div id="filtro-fecha-display" style="text-align:center;font-weight:700;font-size:0.95rem;background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:9px;cursor:pointer"></div>
       <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:0.95rem;pointer-events:none">📅</span>
-      <input type="date" id="filtro-fecha" onchange="irAFechaFiltro(this.value)" onclick="try{this.showPicker&&this.showPicker();}catch(e){}" title="Elegir fecha"
-             style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;margin:0">
     </div>
+    <input type="hidden" id="filtro-fecha">
     <button onclick="cambiarDiaFiltro(1)" style="background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:1rem;cursor:pointer;flex-shrink:0">›</button>
   </div>
   <div class="card" id="lista-partes"></div>
@@ -7298,6 +7297,67 @@ function irAFechaFiltro(v){
   renderPartes();
   try{ cargarPartesSheets(_filtroFecha); }catch(e){}
   try{ cargarGraficaPasteurizacion(_filtroFecha); }catch(e){}
+}
+// (v2.6.446) CALENDARIO PROPIO, GRANDE. El de Chrome en Windows 7 sale
+// diminuto y gris y no se distinguía (Joaquín, 09/10). Este se ve igual en el
+// ordenador y en el móvil, con los colores de la casa.
+var _calMes=null; // 'aaaa-mm' que se está viendo
+function abrirCalendarioFiltro(){
+  _calMes=(_filtroFecha||new Date().toISOString().slice(0,10)).slice(0,7);
+  var ov=document.getElementById('cal-filtro-ov');
+  if(!ov){
+    ov=document.createElement('div');
+    ov.id='cal-filtro-ov';
+    ov.style.cssText='position:fixed;inset:0;z-index:99990;background:rgba(40,20,10,0.45);display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.onclick=function(e){ if(e.target===ov) cerrarCalendarioFiltro(); };
+    document.body.appendChild(ov);
+  }
+  ov.style.display='flex';
+  _pintarCalendarioFiltro();
+}
+function cerrarCalendarioFiltro(){
+  var ov=document.getElementById('cal-filtro-ov'); if(ov) ov.style.display='none';
+}
+function _calMover(n){
+  var a=parseInt(_calMes.slice(0,4),10), m=parseInt(_calMes.slice(5,7),10)-1+n;
+  var d=new Date(a,m,1);
+  _calMes=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2);
+  _pintarCalendarioFiltro();
+}
+function _calElegir(iso){ cerrarCalendarioFiltro(); irAFechaFiltro(iso); }
+function _pintarCalendarioFiltro(){
+  var ov=document.getElementById('cal-filtro-ov'); if(!ov) return;
+  var MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var a=parseInt(_calMes.slice(0,4),10), m=parseInt(_calMes.slice(5,7),10)-1;
+  var hoy=new Date(); var hoyIso=hoy.getFullYear()+'-'+('0'+(hoy.getMonth()+1)).slice(-2)+'-'+('0'+hoy.getDate()).slice(-2);
+  var primero=new Date(a,m,1), dias=new Date(a,m+1,0).getDate();
+  var hueco=(primero.getDay()+6)%7; // lunes primero
+  var btn='border:none;background:var(--bg2);color:var(--text);border-radius:10px;font-size:1.3rem;font-weight:800;width:48px;height:44px;cursor:pointer';
+  var h='<div style="background:var(--card);border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,0.3);width:100%;max-width:420px;overflow:hidden;font-family:inherit">'
+    + '<div style="background:var(--brand);color:#fff;padding:12px 14px;display:flex;align-items:center;gap:10px">'
+    +   '<button type="button" onclick="_calMover(-1)" style="'+btn+';background:rgba(255,255,255,0.18);color:#fff">‹</button>'
+    +   '<div style="flex:1;text-align:center;font-weight:800;font-size:1.2rem">'+MESES[m]+' '+a+'</div>'
+    +   '<button type="button" onclick="_calMover(1)" style="'+btn+';background:rgba(255,255,255,0.18);color:#fff">›</button>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:12px 12px 4px">';
+  ['L','M','X','J','V','S','D'].forEach(function(d){
+    h+='<div style="text-align:center;font-size:0.8rem;font-weight:800;color:var(--text3);padding:4px 0">'+d+'</div>';
+  });
+  for(var i=0;i<hueco;i++) h+='<div></div>';
+  for(var d=1; d<=dias; d++){
+    var iso=a+'-'+('0'+(m+1)).slice(-2)+'-'+('0'+d).slice(-2);
+    var sel=(iso===_filtroFecha), esHoy=(iso===hoyIso), fut=(iso>hoyIso);
+    var st='height:46px;border-radius:10px;font-size:1.05rem;font-weight:700;cursor:pointer;border:2px solid '
+      + (esHoy?'var(--brand)':'transparent') + ';'
+      + (sel?'background:var(--brand);color:#fff;':'background:var(--bg);color:'+(fut?'var(--text3)':'var(--text)')+';');
+    h+='<button type="button" onclick="_calElegir(\''+iso+'\')" style="'+st+'">'+d+'</button>';
+  }
+  h+='</div>'
+    + '<div style="display:flex;gap:10px;padding:10px 12px 14px">'
+    +   '<button type="button" onclick="_calElegir(\''+hoyIso+'\')" style="flex:1;padding:12px;border:none;border-radius:10px;background:var(--bg2);color:var(--brand);font-weight:800;font-size:1rem;cursor:pointer">Hoy</button>'
+    +   '<button type="button" onclick="cerrarCalendarioFiltro()" style="flex:1;padding:12px;border:none;border-radius:10px;background:var(--brand);color:#fff;font-weight:800;font-size:1rem;cursor:pointer">Cerrar</button>'
+    + '</div></div>';
+  ov.innerHTML=h;
 }
 function cambiarDiaFiltro(delta){
   var d=new Date(_filtroFecha+'T12:00:00');
