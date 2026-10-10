@@ -181,7 +181,9 @@
 // PARA VOLVER ATRÁS: en el editor de Apps Script, arriba a la derecha, el icono
 // del reloj ("Historial de cambios") guarda todas las versiones anteriores.
 // ══════════════════════════════════════════════════════════════════════════
-const CODIGO_GS_VERSION = '2026-10-08';
+const CODIGO_GS_VERSION = '2026-10-10';
+/** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
+const API_VERSION = 1;
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -534,7 +536,9 @@ function doGet(e) {
 
   // (2026-10-08) Lo cambiado en REGISTRO TOTAL desde una MARCA. Ver _cambiosDesde().
   if (tipo === 'cambios') {
-    var _cJson = JSON.stringify(_cambiosDesde(e.parameter.desde));
+    var _cRes = _cambiosDesde(e.parameter.desde);
+    if (_cRes && typeof _cRes === 'object') _cRes.apiVer = API_VERSION;
+    var _cJson = JSON.stringify(_cRes);
     if (callback) return ContentService.createTextOutput(callback + '(' + _cJson + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
     return ContentService.createTextOutput(_cJson).setMimeType(ContentService.MimeType.JSON);
   }
@@ -587,8 +591,8 @@ function doGet(e) {
     rows.push(obj);
   }
   var json = compacto
-    ? JSON.stringify({ok: true, marca: _marcaLectura, cols: COLS, filas: rows})
-    : JSON.stringify({ok: true, marca: _marcaLectura, data: rows});
+    ? JSON.stringify({ok: true, apiVer: API_VERSION, marca: _marcaLectura, cols: COLS, filas: rows})
+    : JSON.stringify({ok: true, apiVer: API_VERSION, marca: _marcaLectura, data: rows});
   if (callback) return ContentService.createTextOutput(callback + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
   return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
 }
