@@ -123,10 +123,13 @@ public static System.Collections.Generic.List<IntPtr> Ventanas() {
     elseif ($todo -match 'Temp\. ?Dep|Dep.sito') { $tipo = 'DEPOSITOS' }
     elseif ($todo -match '^Avisos') { $tipo = 'AVISOS' }
     $fecha = $null
-    $m = [regex]::Match($todo, '(\d{2})/(\d{2})/(\d{4}) \d{1,2}:\d{2}')
+    $m = [regex]::Match($todo, '(\d{2})/(\d{2})/(\d{4}) (\d{1,2}):\d{2}')
     if ($m.Success) { $fecha = New-Object DateTime ([int]$m.Groups[3].Value), ([int]$m.Groups[2].Value), ([int]$m.Groups[1].Value) }
-    # Avisos y Depositos salen de madrugada (7:40) y son del DIA ANTERIOR (asi los nombra Joaquin)
-    if ($fecha -and ($tipo -eq 'AVISOS' -or $tipo -eq 'DEPOSITOS')) { $fecha = $fecha.AddDays(-1) }
+    # La fecha de dentro del XPS es la de cuando SE GUARDA. Avisos y Depositos
+    # salen hacia las 23:40 y son de ESE dia; si se guardan por la manana
+    # siguiente (como hacia Joaquin a mano) son del dia anterior. Regla:
+    # antes de las 12:00 -> dia anterior; despues -> ese mismo dia (11/10/2026).
+    if ($fecha -and $m.Success -and ($tipo -eq 'AVISOS' -or $tipo -eq 'DEPOSITOS') -and ([int]$m.Groups[4].Value -lt 12)) { $fecha = $fecha.AddDays(-1) }
     $muestra = (@($t | Select-Object -First 3) -join ' | ')
     return @($tipo, $fecha, $muestra)
   }
