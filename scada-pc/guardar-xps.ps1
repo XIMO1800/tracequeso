@@ -231,9 +231,11 @@ public static System.Collections.Generic.List<IntPtr> Ventanas() {
       foreach ($f in @(Get-ChildItem $anio -Recurse -Filter *.xps | Where-Object { $_.LastWriteTime -gt $desde })) {
         $clave = 'M|' + $f.FullName
         if (-not $VER -and ($vistos -contains $clave)) { continue }
-        $vistos += $clave
+        # Si el archivo aun esta abierto (recien guardado, o subiendose a Drive),
+        # NO se da por visto: se vuelve a intentar al minuto siguiente (11/10/2026).
         try { $r = Clasificar $f.FullName }
-        catch { Log ('MANUAL  no puedo leer ' + $f.FullName + ': ' + $_.Exception.Message); continue }
+        catch { Log ('MANUAL  aun no puedo leer ' + $f.Name + ' (esta en uso); lo reintento en un minuto.'); continue }
+        $vistos += $clave
         $dest = DestinoPara $r[0] $r[1] $f.FullName
         $ok = 'NO COINCIDE'
         if ($dest -eq $f.FullName) { $ok = 'COINCIDE' }
