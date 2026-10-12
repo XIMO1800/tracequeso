@@ -229,7 +229,9 @@ public static System.Collections.Generic.List<IntPtr> Ventanas() {
     $anio = Join-Path $BASE ((Get-Date).ToString('yyyy'))
     if (Test-Path $anio) {
       foreach ($f in @(Get-ChildItem $anio -Recurse -Filter *.xps | Where-Object { $_.LastWriteTime -gt $desde })) {
-        $clave = 'M|' + $f.FullName
+        # La clave lleva fecha y tamano: si en la misma ruta se guarda OTRO archivo
+        # (se corrigio un guardado equivocado), se vuelve a comparar (12/10/2026).
+        $clave = 'M|' + $f.FullName + '|' + $f.LastWriteTime.Ticks + '|' + $f.Length
         if (-not $VER -and ($vistos -contains $clave)) { continue }
         # Si el archivo aun esta abierto (recien guardado, o subiendose a Drive),
         # NO se da por visto: se vuelve a intentar al minuto siguiente (11/10/2026).
