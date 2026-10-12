@@ -181,9 +181,9 @@
 // PARA VOLVER ATRÁS: en el editor de Apps Script, arriba a la derecha, el icono
 // del reloj ("Historial de cambios") guarda todas las versiones anteriores.
 // ══════════════════════════════════════════════════════════════════════════
-const CODIGO_GS_VERSION = '2026-10-10';
+const CODIGO_GS_VERSION = '2026-10-12';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 1;
+const API_VERSION = 2;
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -467,7 +467,7 @@ function doGet(e) {
   // Datos de pasteurización del día: el .json que deja el conversor en la misma
   // carpeta de Drive donde están los PDF. Con eso la app dibuja su propia gráfica.
   if (tipo === 'pasteurizacion') {
-    var json = JSON.stringify({ok: true, data: leerPasteurizacion(e.parameter.fecha || '')});
+    var json = JSON.stringify({ok: true, data: leerPasteurizacion(e.parameter.fecha || '', e.parameter.sufijo)});
     if (callback) return ContentService.createTextOutput(callback + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
     return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
   }
@@ -2746,23 +2746,39 @@ function _nombreCoincideDia(nombre, fp) {
 //   2) Si hay VARIOS .json del mismo día (el bueno y el viejo), antes ganaba
 //      el primero que devolviera Drive, que es un orden cualquiera. Ahora se
 //      recorren todos y se queda el MÁS RECIENTE. La última conversión manda.
-function leerPasteurizacion(fechaTxt) {
+//
+//   3) (2026-10-12) LOS LUNES HAY DOS INFORMES: 12.10.2026 y 12B.10.2026. Desde
+//      que se convierten solos, el B se convertía unos minutos después y, por
+//      ser «el más reciente», ganaba él, y la app enseñaba el segundo. El bueno
+//      es el PRIMERO (sin letra): abarca las dos tandas del día; el B solo hacía
+//      falta cuando se fabricaba tanto que había una tercera (Joaquín, 12/10).
+//      Ahora gana el de MENOR LETRA (sin letra antes que B, B antes que C...) y,
+//      dentro de la misma letra, el más reciente, como antes.
+//      Con &sufijo=B se puede pedir uno concreto.
+function leerPasteurizacion(fechaTxt, sufijoPedido) {
   try {
     var fp = _fechaPartes(fechaTxt);
     if (!fp) return null;
+    var pedido = (sufijoPedido === undefined || sufijoPedido === null) ? null
+               : String(sufijoPedido).trim().toUpperCase();
     var carpeta = DriveApp.getFolderById(CARPETA_GRAFICAS_ID);
-    var mejor = null, mejorFecha = 0;
+    var mejor = null, mejorFecha = 0, mejorSuf = null;
     // (2026-10-02) Recursivo: las gráficas pueden estar en subcarpetas por mes.
     _recorrerArchivos(carpeta, function(f){
       var nom = String(f.getName());
       if (!/\.json$/i.test(nom)) return false;
       var base = _limpiaNombreDescarga(nom.replace(/\.json$/i, ''));
       // Mismo criterio de nombre que los PDF: tolerante con puntos y espacios
-      if (_nombreCoincideDia(base + '.pdf', fp) === null) return false;
+      var suf = _nombreCoincideDia(base + '.pdf', fp);
+      if (suf === null) return false;
+      if (pedido !== null && suf !== pedido) return false;
       var t = 0;
       try { t = f.getLastUpdated().getTime(); } catch (e2) { t = 0; }
-      if (!mejor || t > mejorFecha) { mejor = f; mejorFecha = t; }
-      return false;   // se miran todas para quedarse con la más reciente
+      var gana = !mejor
+              || suf < mejorSuf                          // '' < 'B' < 'C'
+              || (suf === mejorSuf && t > mejorFecha);
+      if (gana) { mejor = f; mejorFecha = t; mejorSuf = suf; }
+      return false;   // se miran todas
     });
     if (mejor) {
       var txt = mejor.getBlob().getDataAsString('UTF-8');
