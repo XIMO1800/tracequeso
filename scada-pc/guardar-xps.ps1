@@ -142,7 +142,8 @@ public static System.Collections.Generic.List<IntPtr> Ventanas() {
       return Join-Path $BASE ($fecha.ToString('yyyy') + '\SIN CLASIFICAR\' + (Get-Date).ToString('dd.MM.yyyy_HHmmss') + '.xps')
     }
     $carp = Join-Path $BASE ($fecha.ToString('yyyy') + '\' + $tipo + '\' + $fecha.ToString('MM-yyyy'))
-    foreach ($suf in @('', 'b', 'c', 'd', 'e', 'f', 'g', 'h')) {
+    # Letra en MAYUSCULA (12B), como las guarda Joaquin a mano (12/10/2026).
+    foreach ($suf in @('', 'B', 'C', 'D', 'E', 'F', 'G', 'H')) {
       $r = Join-Path $carp ($fecha.ToString('dd') + $suf + $fecha.ToString('.MM.yyyy') + '.xps')
       if ($r -eq $excluir) { return $r }
       if (-not (Test-Path $r)) { return $r }
