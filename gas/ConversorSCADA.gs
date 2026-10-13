@@ -1175,7 +1175,20 @@ function procesarEntradaSCADA(){
                             nombreP, JSON.stringify(r.resultado));
           Logger.log(nom+' → '+nombreP+' ('+((Date.now()-t0)/1000).toFixed(1)+' s)');
         } else if(r.tipo === 'pasto_grafico'){
-          Logger.log(nom+' → gráfico, se archiva (todavía no se convierte)');
+          // (2026-10-13) La gráfica del SCADA se guarda tal cual en Gráficas
+          // Pasteurización, en su mes, como «12.10.2026.xps». La app la dibuja
+          // desde ahí y Calidad la imprime: ya no hace falta hacer el PDF a mano.
+          var nomG = _scadaNombreGrafica(original);
+          var mesG = nomG ? _mesDeNombre(nomG) : null;
+          if(nomG && mesG){
+            var carpG = _scadaSub(DriveApp.getFolderById(CARPETA_GRAFICAS_ID), mesG);
+            var viejos = carpG.getFilesByName(nomG);
+            while(viejos.hasNext()){ try{ viejos.next().setTrashed(true); }catch(_){ } }
+            f.makeCopy(nomG, carpG);
+            Logger.log(nom+' → gráfico, copiado a Gráficas Pasteurización/'+mesG+'/'+nomG);
+          } else {
+            Logger.log(nom+' → gráfico sin fecha reconocible en el nombre, solo se archiva');
+          }
         } else {
           throw new Error('No reconozco qué informe es.');
         }
@@ -1215,4 +1228,87 @@ function instalarSCADA(){
                '(procesarEntradaSCADA · basado en tiempo · cada 10 minutos).');
   }
   Logger.log('CLAVE PARA EL PC DEL SCADA: ' + clave);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// (2026-10-13) LA GRÁFICA DEL SCADA, PARA VERLA E IMPRIMIRLA DESDE LA APP
+// ─────────────────────────────────────────────────────────────────────────────
+// Hasta ahora Joaquín imprimía cada día la gráfica de pasteurización, la pasaba
+// a PDF y la subía, para que Calidad la tuviera. El .xps de esa gráfica ya llega
+// solo: por dentro es una página con el logo, el título, la fecha y la gráfica
+// como IMAGEN (más los dos ejes, también imágenes). No hay que redibujar nada:
+// se devuelven la descripción de la página y sus imágenes, y la app las coloca
+// donde dice la página. Sale idéntica al papel de siempre.
+//
+// Se busca primero en Gráficas Pasteurización (donde la deja el conversor) y,
+// para los días anteriores al 13/10, en SCADA ENTRADA/PROCESADOS, donde se
+// archivaron con el prefijo «PASTO GRAFICO__».
+// ═════════════════════════════════════════════════════════════════════════════
+
+// «12.10.2026.xps», «12B.10.2026.xps»… a partir del nombre con que llegó.
+function _scadaNombreGrafica(original){
+  var b = _limpiaNombreDescarga(String(original||'').replace(/\.xps$/i,''));
+  var m = b.match(/^(\d{2})([A-Za-z]?)[\.\s]+(\d{2})[\.\s]+(\d{4})$/);
+  if(!m) return null;
+  return m[1] + m[2].toUpperCase() + '.' + m[3] + '.' + m[4] + '.xps';
+}
+
+// Todas las gráficas .xps de un día: [{sufijo, archivo}]
+function _graficasXpsDelDia(fp){
+  var res = {}, orden = [];
+  function mirar(f, quitarPrefijo){
+    var n = String(f.getName());
+    if(!/\.xps$/i.test(n)) return;
+    if(quitarPrefijo){
+      if(n.indexOf('PASTO GRAFICO__') !== 0) return;
+      n = n.substring('PASTO GRAFICO__'.length);
+    }
+    var base = _limpiaNombreDescarga(n.replace(/\.xps$/i,''));
+    var suf = _nombreCoincideDia(base + '.pdf', fp);
+    if(suf === null) return;
+    if(res[suf]) return;                 // el de Gráficas manda sobre el archivado
+    res[suf] = f; orden.push(suf);
+  }
+  try{
+    _recorrerArchivos(DriveApp.getFolderById(CARPETA_GRAFICAS_ID), function(f){ mirar(f,false); return false; });
+  }catch(e){}
+  try{
+    var proc = _scadaSub(_scadaCarpetaEntrada(), 'PROCESADOS');
+    var it = proc.getFiles();
+    while(it.hasNext()) mirar(it.next(), true);
+  }catch(e){}
+  orden.sort();
+  return orden.map(function(s){ return {sufijo:s, archivo:res[s]}; });
+}
+
+// ?tipo=graficaxps&fecha=2026-10-12&sufijo=B
+// Devuelve {fecha, sufijo, paginas:[xml…], imgs:{ruta: 'data:image/png;base64,…'}}
+function leerGraficaXps(fechaTxt, sufijo){
+  var fp = _fechaPartes(fechaTxt);
+  if(!fp) return null;
+  var suf = String(sufijo||'').trim().toUpperCase();
+  var lista = _graficasXpsDelDia(fp);
+  var elegido = null;
+  lista.forEach(function(x){ if(x.sufijo === suf) elegido = x; });
+  if(!elegido) return null;
+  var zip = elegido.archivo.getBlob().setContentType('application/zip');
+  var partes = Utilities.unzip(zip);
+  var paginas = [], imgs = {};
+  partes.forEach(function(b){
+    var n = String(b.getName()).replace(/^\/+/, '');
+    if(/Pages\/\d+\.fpage$/i.test(n)){
+      paginas.push({n: parseInt(n.match(/(\d+)\.fpage$/i)[1],10), xml: b.getDataAsString('UTF-8')});
+    } else if(/Resources\/Images\/[^\/]+\.(png|jpe?g)$/i.test(n)){
+      var tipo = /\.png$/i.test(n) ? 'image/png' : 'image/jpeg';
+      imgs['/' + n] = 'data:' + tipo + ';base64,' + Utilities.base64Encode(b.getBytes());
+    }
+  });
+  paginas.sort(function(a,b){ return a.n - b.n; });
+  return {
+    fecha: fp.a + '-' + fp.m + '-' + fp.d,
+    sufijo: suf,
+    archivo: elegido.archivo.getName(),
+    paginas: paginas.map(function(p){ return p.xml; }),
+    imgs: imgs
+  };
 }

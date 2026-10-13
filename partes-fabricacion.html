@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.446</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.460</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -8080,7 +8080,8 @@ function _botonGraficaPDF(cont, fecha){
       // Evitar pintar resultados de una fecha anterior si el usuario ya cambió de día
       if(fecha!==_filtroFecha) return;
       var lista=(d && d.data) ? d.data : [];
-      lista=lista.filter(function(x){ return x && x.url; });
+      // (v2.6.460) También las gráficas .xps del SCADA (sin url: las dibuja la app).
+      lista=lista.filter(function(x){ return x && (x.url || x.xps); });
       if(!lista.length){ cont.innerHTML=''; return; }
       var html='';
       lista.forEach(function(g){
@@ -8094,6 +8095,16 @@ function _botonGraficaPDF(cont, fecha){
             + 'stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'
             + '<polygon points="24,2 24,7 19,2" fill="#c0392b"/>'
             + '</svg></span>';
+        if(g.xps){
+          html+='<div onclick="abrirGraficaXps(\''+fecha+'\',\''+(g.sufijo||'')+'\')" '
+              + 'style="display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;'
+              + 'background:var(--brand);color:#fff;font-weight:800;font-size:0.88rem;'
+              + 'border-radius:9px;padding:7px 12px;margin-bottom:7px;'
+              + 'box-shadow:0 1px 4px rgba(0,0,0,0.18)">'
+              + _icono
+              + '<span>'+etiqueta+'</span></div>';
+          return;
+        }
         html+='<a href="'+g.url+'" target="_blank" rel="noopener" '
             + 'style="display:flex;align-items:center;justify-content:center;gap:10px;'
             + 'text-decoration:none;'
@@ -8106,6 +8117,145 @@ function _botonGraficaPDF(cont, fecha){
       cont.innerHTML=html;
     })
     .catch(function(){ cont.innerHTML=''; });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// (v2.6.460) LA GRÁFICA DEL SCADA, TAL CUAL, SIN PDF
+// ──────────────────────────────────────────────────────────────────────────
+// Joaquín imprimía cada día la gráfica de pasteurización del SCADA, la pasaba
+// a PDF y la subía para Calidad. Ahora el .xps de esa gráfica llega solo a Drive
+// y aquí se dibuja igual que el papel: el .xps es una página con el logo, el
+// título, la fecha y la gráfica como IMAGEN (y los ejes, también imágenes), cada
+// cosa con su posición. Se colocan en un SVG del tamaño de la página y se
+// imprime en A4 apaisado. Calidad la abre, la imprime y la firma ella (13/10).
+// ══════════════════════════════════════════════════════════════════════════
+function _xpsColor(c){
+  c=String(c||'').trim();
+  var m=c.match(/^#([0-9a-f]{2})([0-9a-f]{6})$/i);
+  if(m){ var a=parseInt(m[1],16)/255; return {c:'#'+m[2], o:a}; }
+  if(/^#[0-9a-f]{6}$/i.test(c)) return {c:c, o:1};
+  return null;
+}
+function _xpsEsc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function _xpsDatos(dat){
+  // XPS: «F0 M …» (par-impar) o «F1 M …» (distinto de cero). SVG no lleva el F.
+  var d=String(dat||'').trim(), regla='evenodd';
+  var m=d.match(/^F\s*([01])\s*/i);
+  if(m){ regla = m[1]==='1' ? 'nonzero' : 'evenodd'; d=d.substring(m[0].length); }
+  return {d:d, regla:regla};
+}
+function _xpsMatriz(t){
+  var v=String(t||'').split(/[\s,]+/).filter(Boolean).map(Number);
+  return v.length===6 ? 'matrix('+v.join(' ')+')' : '';
+}
+function _xpsNodo(el, imgs, tam){
+  var out='', tag=el.localName;
+  if(tag==='Canvas'){
+    var tr=_xpsMatriz(el.getAttribute('RenderTransform'));
+    out+='<g'+(tr?' transform="'+tr+'"':'')+'>';
+    for(var i=0;i<el.children.length;i++) out+=_xpsNodo(el.children[i], imgs, tam);
+    return out+'</g>';
+  }
+  if(tag==='Path'){
+    var pd=_xpsDatos(el.getAttribute('Data'));
+    var tr2=_xpsMatriz(el.getAttribute('RenderTransform'));
+    var ib=el.getElementsByTagNameNS('*','ImageBrush')[0];
+    if(ib){
+      var src=ib.getAttribute('ImageSource'), url=imgs[src];
+      if(!url) return '';
+      var vp=(ib.getAttribute('Viewport')||'').split(',').map(Number);
+      var vb=(ib.getAttribute('Viewbox')||'').split(',').map(Number);
+      var nat=tam[src]||{w:vb[2],h:vb[3]};
+      // La imagen se recorta al Viewbox y se estira al Viewport, como hace XPS.
+      return '<svg x="'+vp[0]+'" y="'+vp[1]+'" width="'+vp[2]+'" height="'+vp[3]+'" '
+        +'viewBox="'+vb.join(' ')+'" preserveAspectRatio="none" overflow="hidden"'
+        +(tr2?' transform="'+tr2+'"':'')+'>'
+        +'<image href="'+url+'" xlink:href="'+url+'" x="0" y="0" width="'+nat.w+'" height="'+nat.h+'" preserveAspectRatio="none"/></svg>';
+    }
+    var f=_xpsColor(el.getAttribute('Fill')), st=_xpsColor(el.getAttribute('Stroke'));
+    if(!f && !st) return '';
+    return '<path d="'+_xpsEsc(pd.d)+'" fill-rule="'+pd.regla+'"'
+      +' fill="'+(f?f.c:'none')+'"'+(f&&f.o<1?' fill-opacity="'+f.o.toFixed(3)+'"':'')
+      +(st?' stroke="'+st.c+'" stroke-width="'+(parseFloat(el.getAttribute('StrokeThickness'))||1)+'"':'')
+      +(tr2?' transform="'+tr2+'"':'')+'/>';
+  }
+  if(tag==='Glyphs'){
+    var txt=el.getAttribute('UnicodeString')||'';
+    if(!txt) return '';
+    var fc=_xpsColor(el.getAttribute('Fill'))||{c:'#000',o:1};
+    var sim=String(el.getAttribute('StyleSimulations')||'');
+    var tr3=_xpsMatriz(el.getAttribute('RenderTransform'));
+    return '<text x="'+el.getAttribute('OriginX')+'" y="'+el.getAttribute('OriginY')+'" '
+      +'font-family="Arial, Helvetica, sans-serif" font-size="'+el.getAttribute('FontRenderingEmSize')+'" '
+      +'fill="'+fc.c+'"'+(/Italic/i.test(sim)?' font-style="italic"':'')+(/Bold/i.test(sim)?' font-weight="bold"':'')
+      +(tr3?' transform="'+tr3+'"':'')+' xml:space="preserve">'+_xpsEsc(txt)+'</text>';
+  }
+  return '';
+}
+function _xpsSvgPagina(xml, imgs, tam){
+  var doc=new DOMParser().parseFromString(xml,'application/xml');
+  var pg=doc.documentElement;
+  var W=parseFloat(pg.getAttribute('Width'))||1122.56, H=parseFloat(pg.getAttribute('Height'))||793.76;
+  var cuerpo='';
+  for(var i=0;i<pg.children.length;i++) cuerpo+=_xpsNodo(pg.children[i], imgs, tam);
+  return '<svg class="pag" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
+    +'viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet">'
+    +'<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#fff"/>'+cuerpo+'</svg>';
+}
+// Tamaño real de cada imagen: hace falta para recortarla como manda el Viewbox.
+function _xpsTamanos(imgs){
+  var claves=Object.keys(imgs||{});
+  return Promise.all(claves.map(function(k){
+    return new Promise(function(res){
+      var im=new Image();
+      im.onload=function(){ res([k,{w:im.naturalWidth,h:im.naturalHeight}]); };
+      im.onerror=function(){ res([k,null]); };
+      im.src=imgs[k];
+    });
+  })).then(function(pares){
+    var t={}; pares.forEach(function(p){ if(p[1]) t[p[0]]=p[1]; }); return t;
+  });
+}
+function abrirGraficaXps(fecha, sufijo){
+  // La ventana se abre YA, dentro del toque: si se abre después de la espera,
+  // el navegador la bloquea como ventana emergente.
+  var w=window.open('','_blank');
+  if(!w){ toast('El navegador ha bloqueado la ventana','err'); return; }
+  var titulo='Gráfica pasteurización '+fecha.split('-').reverse().join('/')+(sufijo?' ('+sufijo+')':'');
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+titulo+'</title></head>'
+    +'<body style="font-family:Arial,sans-serif;padding:30px;color:#555">Cargando la gráfica del SCADA…</body></html>');
+  w.document.close();
+  fetch(API_URL+'?tipo=graficaxps&fecha='+encodeURIComponent(fecha)+'&sufijo='+encodeURIComponent(sufijo||''))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var g=d && d.data;
+      if(!g || !g.paginas || !g.paginas.length) throw new Error('No se ha encontrado la gráfica de ese día.');
+      return _xpsTamanos(g.imgs).then(function(tam){
+        var svgs=g.paginas.map(function(x){ return _xpsSvgPagina(x, g.imgs, tam); }).join('');
+        var html='<!doctype html><html><head><meta charset="utf-8">'
+          +'<meta name="viewport" content="width=device-width,initial-scale=1">'
+          +'<title>'+titulo+'</title><style>'
+          +'@page{size:A4 landscape;margin:8mm}'
+          +'body{margin:0;background:#e9e6e1;font-family:Arial,sans-serif}'
+          +'.barra{position:sticky;top:0;display:flex;gap:10px;align-items:center;padding:10px 14px;background:#8B2A2A;color:#fff}'
+          +'.barra b{flex:1;font-size:15px}'
+          +'.barra button{background:#fff;color:#8B2A2A;border:none;border-radius:8px;padding:9px 16px;font-weight:700;font-size:15px;cursor:pointer}'
+          +'.pag{display:block;width:100%;max-width:1400px;height:auto;margin:12px auto;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.2)}'
+          +'@media print{body{background:#fff}.barra{display:none}.pag{margin:0;max-width:none;width:100%;height:auto;box-shadow:none;page-break-after:always}}'
+          +'</style></head><body>'
+          +'<div class="barra"><b>'+titulo+'</b><button onclick="window.print()">🖨️ Imprimir</button></div>'
+          +svgs+'</body></html>';
+        w.document.open(); w.document.write(html); w.document.close();
+      });
+    })
+    .catch(function(e){
+      try{
+        w.document.open();
+        w.document.write('<!doctype html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;padding:30px;color:#8B2A2A">'
+          +'No se ha podido abrir la gráfica: '+_xpsEsc(e && e.message ? e.message : e)+'</body></html>');
+        w.document.close();
+      }catch(_){}
+    });
 }
 
 var _filtroFecha=new Date().toISOString().slice(0,10);
