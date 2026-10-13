@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.462</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.463</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4913,7 +4913,29 @@ function switchTab(tab){
   if(tab==='historial'){ try{ renderPartes(); }catch(e){} try{ cargarPartesSheets(_filtroFecha); }catch(e){} try{ cargarGraficaPasteurizacion(_filtroFecha); }catch(e){} }
 }
 
-function toggleSec(id){var b=document.getElementById('body-'+id);var c=document.getElementById('chev-'+id);if(b)b.classList.toggle('open');if(c)c.classList.toggle('open');}
+function toggleSec(id){
+  var b=document.getElementById('body-'+id);var c=document.getElementById('chev-'+id);
+  if(b)b.classList.toggle('open');if(c)c.classList.toggle('open');
+  // (v2.6.463) AL ABRIR UNA FASE, SUBE ARRIBA DEL TODO.
+  // Rellenando el parte en la tablet, al abrir la fase siguiente esta quedaba
+  // abajo y había que subirla con el dedo para tener sitio (Joaquín, 13/10).
+  // Ahora la cabecera de la fase se coloca justo debajo de la barra de arriba
+  // y de las pestañas; lo ya rellenado queda por encima, fuera de pantalla.
+  // Al CERRAR no se mueve nada.
+  if(b && b.classList.contains('open')){
+    setTimeout(function(){
+      try{
+        var cab = b.previousElementSibling || b.parentNode;
+        var alto = 0;
+        var h1=document.querySelector('.header'), h2=document.querySelector('.nav-tabs');
+        if(h1) alto+=h1.getBoundingClientRect().height;
+        if(h2) alto+=h2.getBoundingClientRect().height;
+        var y = cab.getBoundingClientRect().top + window.pageYOffset - alto - 6;
+        window.scrollTo({top: Math.max(0,y), behavior:'smooth'});
+      }catch(e){}
+    }, 60);
+  }
+}
 
 // ═══════════════════════════════════════════════
 // NUEVO PARTE
