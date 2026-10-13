@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.463</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.464</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4098,17 +4098,34 @@ function cmpPintar(){
   });
 }
 
-function cmpPedirCuba(fecha, cuba, cb){
+// (v2.6.464) SI LA PETICIÓN FALLA, SE VUELVE A INTENTAR.
+// El 13/10 la cuba 2 salió con «No se pudo leer el dato del SCADA» y su JSON
+// estaba en Drive y perfecto: lo que falló fue la llamada a Google, que se hace
+// a la vez para las tres cubas y alguna vez una se cae. Antes se daba por
+// perdida a la primera. Ahora se reintenta dos veces más (a los 2 y a los 5 s)
+// y, si aun así no llega, la tarjeta lo dice claro y trae un botón para volver
+// a pedirlo. Un fallo de conexión NO se guarda en CMP_CACHE.
+function cmpPedirCuba(fecha, cuba, cb, intento){
   var clave = fecha + '|' + cuba;
+  intento = intento || 1;
   if(CMP_CACHE[clave]) { cb(CMP_CACHE[clave]); return; }
+  function _otraVez(motivo){
+    if(intento < 3){
+      setTimeout(function(){ cmpPedirCuba(fecha, cuba, cb, intento + 1); }, intento === 1 ? 2000 : 5000);
+      return;
+    }
+    cb({ error: 'No se pudo hablar con el servidor para leer el SCADA de esta cuba '
+              + '(se ha intentado 3 veces). El archivo puede estar bien: pulsa «Volver a intentar».',
+         fallo_red: true, detalle: motivo || '' });
+  }
   fetch(API_URL + '?tipo=cuba&fecha=' + encodeURIComponent(fecha) + '&cuba=' + encodeURIComponent(cuba))
     .then(function(r){ return r.json(); })
     .then(function(j){
-      var d = (j && j.ok) ? j.data : null;
-      CMP_CACHE[clave] = d;
-      cb(d);
+      if(!j || !j.ok || !j.data){ _otraVez(j && j.error ? String(j.error) : 'respuesta vacía'); return; }
+      CMP_CACHE[clave] = j.data;
+      cb(j.data);
     })
-    .catch(function(){ cb(null); });
+    .catch(function(e){ _otraVez(String(e && e.message || e)); });
 }
 
 // (v2.6.392) "1ª cuba" en vez de "Cuba 1": el número es el orden de la jornada,
@@ -4187,6 +4204,9 @@ function cmpTarjeta(p, d){
     return '<div class="card" style="padding:14px 16px;margin-bottom:12px;">'+cab
       + '<div style="margin-top:8px;font-size:0.86rem;color:#b06a00;">'+msg+'</div>'
       + (d && d.buscado ? '<div style="margin-top:4px;font-size:0.78rem;color:#9a8a7a;">Buscaba: '+d.buscado+'</div>' : '')
+      + (d && d.fallo_red ? '<button onclick="cmpForzar()" style="margin-top:10px;padding:8px 14px;border:none;'
+          + 'border-radius:8px;background:#862133;color:#fff;font-weight:700;cursor:pointer;">↻ Volver a intentar</button>'
+          + (d.detalle ? '<div style="margin-top:4px;font-size:0.72rem;color:#b09a86;">('+d.detalle+')</div>' : '') : '')
       + '</div>';
   }
   // ── ELEGIR LA CUAJADA (v2.6.379) ──
