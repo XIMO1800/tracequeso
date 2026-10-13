@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 3;
+const API_VERSION = 4;
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -466,7 +466,9 @@ function doGet(e) {
 
   // (2026-10-13) La gráfica del SCADA (.xps) para dibujarla en la app.
   if (tipo === 'graficaxps') {
-    var json = JSON.stringify({ok: true, data: leerGraficaXps(e.parameter.fecha || '', e.parameter.sufijo || '')});
+    var json;
+    try { json = JSON.stringify({ok: true, data: leerGraficaXps(e.parameter.fecha || '', e.parameter.sufijo || '')}); }
+    catch (eG) { json = JSON.stringify({ok: false, error: String(eG && eG.message ? eG.message : eG)}); }
     if (callback) return ContentService.createTextOutput(callback + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
     return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
   }

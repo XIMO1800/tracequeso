@@ -1291,8 +1291,16 @@ function leerGraficaXps(fechaTxt, sufijo){
   var elegido = null;
   lista.forEach(function(x){ if(x.sufijo === suf) elegido = x; });
   if(!elegido) return null;
-  var zip = elegido.archivo.getBlob().setContentType('application/zip');
-  var partes = Utilities.unzip(zip);
+  var blob = elegido.archivo.getBlob();
+  var partes = null;
+  // (2026-10-13) Si Google no sabe abrir este .xps, se manda entero y lo abre
+  // la página (xps64). Así la gráfica sale igual aunque falle la descompresión.
+  try { partes = Utilities.unzip(blob.copyBlob().setContentType('application/zip')); }
+  catch(eZ){ partes = null; }
+  if(!partes || !partes.length){
+    return { fecha: fp.a+'-'+fp.m+'-'+fp.d, sufijo: suf, archivo: elegido.archivo.getName(),
+             xps64: Utilities.base64Encode(blob.getBytes()) };
+  }
   var paginas = [], imgs = {};
   partes.forEach(function(b){
     var n = String(b.getName()).replace(/^\/+/, '');

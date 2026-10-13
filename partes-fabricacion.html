@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.460</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.461</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -8216,6 +8216,36 @@ function _xpsTamanos(imgs){
     var t={}; pares.forEach(function(p){ if(p[1]) t[p[0]]=p[1]; }); return t;
   });
 }
+// Abre el .xps en la página (es un ZIP) cuando el servidor no ha podido.
+function _xpsCargarJSZip(){
+  if(window.JSZip) return Promise.resolve(window.JSZip);
+  return new Promise(function(res, rej){
+    var sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    sc.onload=function(){ window.JSZip ? res(window.JSZip) : rej(new Error('no se pudo cargar el lector')); };
+    sc.onerror=function(){ rej(new Error('no se pudo cargar el lector de archivos')); };
+    document.head.appendChild(sc);
+  });
+}
+function _xpsAbrirAqui(g){
+  return _xpsCargarJSZip().then(function(JSZip){ return JSZip.loadAsync(g.xps64, {base64:true}); })
+    .then(function(zip){
+      var pags=[], imgs={}, tareas=[];
+      zip.forEach(function(ruta, ent){
+        var r=ruta.replace(/^\/+/,'');
+        if(/Pages\/\d+\.fpage$/i.test(r)){
+          tareas.push(ent.async('string').then(function(t){ pags.push({n:parseInt(r.match(/(\d+)\.fpage$/i)[1],10), xml:t}); }));
+        } else if(/Resources\/Images\/[^\/]+\.(png|jpe?g)$/i.test(r)){
+          var tipo=/\.png$/i.test(r)?'image/png':'image/jpeg';
+          tareas.push(ent.async('base64').then(function(b){ imgs['/'+r]='data:'+tipo+';base64,'+b; }));
+        }
+      });
+      return Promise.all(tareas).then(function(){
+        pags.sort(function(a,b){ return a.n-b.n; });
+        g.paginas=pags.map(function(p){ return p.xml; }); g.imgs=imgs; return g;
+      });
+    });
+}
 function abrirGraficaXps(fecha, sufijo){
   // La ventana se abre YA, dentro del toque: si se abre después de la espera,
   // el navegador la bloquea como ventana emergente.
@@ -8228,8 +8258,14 @@ function abrirGraficaXps(fecha, sufijo){
   fetch(API_URL+'?tipo=graficaxps&fecha='+encodeURIComponent(fecha)+'&sufijo='+encodeURIComponent(sufijo||''))
     .then(function(r){ return r.json(); })
     .then(function(d){
+      if(d && d.ok===false) throw new Error(d.error||'error del servidor');
       var g=d && d.data;
-      if(!g || !g.paginas || !g.paginas.length) throw new Error('No se ha encontrado la gráfica de ese día.');
+      if(!g) throw new Error('No se ha encontrado la gráfica de ese día.');
+      // Si el servidor no pudo abrirla, viene entera (xps64) y se abre aquí.
+      return (g.xps64 ? _xpsAbrirAqui(g) : Promise.resolve(g));
+    })
+    .then(function(g){
+      if(!g.paginas || !g.paginas.length) throw new Error('La gráfica no tiene páginas.');
       return _xpsTamanos(g.imgs).then(function(tam){
         var svgs=g.paginas.map(function(x){ return _xpsSvgPagina(x, g.imgs, tam); }).join('');
         var html='<!doctype html><html><head><meta charset="utf-8">'
