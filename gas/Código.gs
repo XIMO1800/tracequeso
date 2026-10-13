@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 4;
+const API_VERSION = 5;
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -460,6 +460,13 @@ function doGet(e) {
   // Gráfica de pasteurización del día (PDF en Drive)
   if (tipo === 'grafica') {
     var json = JSON.stringify({ok: true, data: buscarGraficasPasteurizacion(e.parameter.fecha || '')});
+    if (callback) return ContentService.createTextOutput(callback + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
+    return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // (2026-10-13) Verificaciones de la gráfica de pasteurización de un día.
+  if (tipo === 'verifgrafica') {
+    var json = JSON.stringify({ok: true, data: leerVerifGrafica(e.parameter.fecha || '')});
     if (callback) return ContentService.createTextOutput(callback + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
     return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
   }
@@ -963,6 +970,7 @@ function _doPostEscritura(payload) {
   if (payload['_SHEET'] === 'SALIDAS_ENVASADO') return gestionarSalidasEnvasado(payload);
   if (payload['_SHEET'] === 'CLIENTE_NUEVO') return gestionarClienteNuevo(payload);
   if (payload['_SHEET'] === 'SALADERO') return gestionarSaladero(payload);   // (2026-08-23)
+  if (payload['_SHEET'] === 'VERIF_GRAFICA') return gestionarVerifGrafica(payload);   // (2026-10-13)
 
   var sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
   var data = sheet.getDataRange().getValues();
@@ -3245,4 +3253,70 @@ function leerDatosCuba(fechaTxt, cubaTxt) {
   } catch (err) {
     return { error: String(err) };
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// (2026-10-13) VERIFICACIÓN DE LA GRÁFICA DE PASTEURIZACIÓN
+// ──────────────────────────────────────────────────────────────────────────
+// Antes la gráfica se imprimía y se firmaba en papel. Ahora la imprime Calidad
+// desde la app, y Calidad pide que quede constancia de que la ha visto
+// Producción (Joaquín) y la ha visto Calidad. Una fila por día y por quién:
+//   FECHA (aaaa-mm-dd) · TIPO (PRODUCCION | CALIDAD) · NOMBRE · ROL · FECHA HORA
+// Verificar otra vez el mismo día y tipo actualiza la fila; con _DELETE se quita.
+// ══════════════════════════════════════════════════════════════════════════
+var HOJA_VERIF_GRAFICA = 'VERIFICACION GRAFICAS';
+
+function _hojaVerifGrafica(){
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var h = ss.getSheetByName(HOJA_VERIF_GRAFICA);
+  if(!h){
+    h = ss.insertSheet(HOJA_VERIF_GRAFICA);
+    h.appendRow(['FECHA','TIPO','NOMBRE','ROL','FECHA HORA']);
+    h.setFrozenRows(1);
+  }
+  return h;
+}
+
+function _fechaIsoVerif(v){
+  var fp = _fechaPartes(v);
+  return fp ? (fp.a + '-' + fp.m + '-' + fp.d) : '';
+}
+
+function leerVerifGrafica(fechaTxt){
+  var f = _fechaIsoVerif(fechaTxt);
+  if(!f) return [];
+  var h = SpreadsheetApp.openById(SHEET_ID).getSheetByName(HOJA_VERIF_GRAFICA);
+  if(!h) return [];
+  var d = h.getDataRange().getValues(), res = [];
+  for(var i = 1; i < d.length; i++){
+    if(_fechaIsoVerif(d[i][0]) !== f) continue;
+    var ts = d[i][4];
+    if(Object.prototype.toString.call(ts) === '[object Date]')
+      ts = Utilities.formatDate(ts, 'Europe/Madrid', 'dd/MM/yyyy HH:mm');
+    res.push({ tipo: String(d[i][1]||'').toUpperCase(), nombre: String(d[i][2]||''),
+               rol: String(d[i][3]||''), ts: String(ts||'') });
+  }
+  return res;
+}
+
+function gestionarVerifGrafica(payload){
+  var out = function(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); };
+  var f = _fechaIsoVerif(payload.fecha);
+  var tipo = String(payload.tipo || '').toUpperCase();
+  if(!f || (tipo !== 'PRODUCCION' && tipo !== 'CALIDAD')) return out({ok:false, error:'Faltan datos'});
+  var h = _hojaVerifGrafica();
+  var d = h.getDataRange().getValues(), fila = -1;
+  for(var i = 1; i < d.length; i++){
+    if(_fechaIsoVerif(d[i][0]) === f && String(d[i][1]||'').toUpperCase() === tipo){ fila = i + 1; break; }
+  }
+  if(payload._DELETE){
+    if(fila > -1) h.deleteRow(fila);
+    return out({ok:true, data: leerVerifGrafica(f)});
+  }
+  var ahora = Utilities.formatDate(new Date(), 'Europe/Madrid', 'dd/MM/yyyy HH:mm');
+  // La fecha se guarda como texto ('2026-10-13): que la hoja no la convierta.
+  var valores = ["'" + f, tipo, String(payload.nombre || ''), String(payload.rol || ''), ahora];
+  if(fila > -1) h.getRange(fila, 1, 1, 5).setValues([valores]);
+  else h.appendRow(valores);
+  return out({ok:true, data: leerVerifGrafica(f)});
 }

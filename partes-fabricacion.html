@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.461</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.462</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1774,6 +1774,8 @@ function cargarOperarios(){
       var h = JSON.parse(ho);
       if(h && h.operario){
         OPERARIO_ACTUAL = h.operario;
+        // (v2.6.462) Quién ha entrado de verdad (OPERARIO_ACTUAL cambia al abrir partes).
+        try{ localStorage.setItem('tq_partes_login', JSON.stringify({n:h.operario, rol:h.rol||''})); }catch(_){}
         if(OPERARIOS.indexOf(h.operario)<0) OPERARIOS.unshift(h.operario);
         if(h.rol) ROL_ACTUAL = h.rol;
         try{_aplicarPestanasAdmin();}catch(e){}   // (v2.6.361)
@@ -8114,9 +8116,80 @@ function _botonGraficaPDF(cont, fecha){
             + _icono
             + '<span>'+etiqueta+'</span></a>';
       });
+      html+='<div id="verif-grafica-'+fecha+'" style="margin:2px 0 8px"></div>';
       cont.innerHTML=html;
+      _cargarVerifGrafica(fecha);
     })
     .catch(function(){ cont.innerHTML=''; });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// (v2.6.462) VERIFICADO DE LA GRÁFICA: PRODUCCIÓN Y CALIDAD
+// ──────────────────────────────────────────────────────────────────────────
+// La gráfica ya no se firma en papel: la imprime Calidad desde aquí. Calidad
+// pide que conste que la han visto Producción (Joaquín, rol ADMIN) y Calidad
+// (rol CALIDAD). Cada uno pulsa «Verificar» en su casilla; queda su nombre y la
+// hora en la hoja VERIFICACION GRAFICAS y sale impreso al pie de la gráfica.
+// ══════════════════════════════════════════════════════════════════════════
+var _VERIF_GRAF = {};   // fecha → [{tipo,nombre,ts}]
+function _usuarioLogin(){
+  try{ var l=JSON.parse(localStorage.getItem('tq_partes_login')||'null'); if(l&&l.n) return l; }catch(e){}
+  return {n:OPERARIO_ACTUAL||'', rol:ROL_ACTUAL||''};
+}
+function _cargarVerifGrafica(fecha){
+  fetch(API_URL+'?tipo=verifgrafica&fecha='+encodeURIComponent(fecha))
+    .then(function(r){ return r.json(); })
+    .then(function(d){ _VERIF_GRAF[fecha]=(d&&d.data)||[]; _pintarVerifGrafica(fecha); })
+    .catch(function(){ _VERIF_GRAF[fecha]=_VERIF_GRAF[fecha]||[]; _pintarVerifGrafica(fecha); });
+}
+function _verifDe(fecha, tipo){
+  var v=null; (_VERIF_GRAF[fecha]||[]).forEach(function(x){ if(x.tipo===tipo) v=x; }); return v;
+}
+function _pintarVerifGrafica(fecha){
+  var el=document.getElementById('verif-grafica-'+fecha);
+  if(!el) return;
+  var rol=ROL_ACTUAL||_usuarioLogin().rol;
+  var casilla=function(tipo, etiqueta, puede){
+    var v=_verifDe(fecha, tipo);
+    var h='<div style="flex:1;min-width:150px;background:'+(v?'var(--green-bg,#e8f3e8)':'var(--bg2,#fff)')+';'
+      +'border:1.5px solid '+(v?'var(--green,#2e7d32)':'var(--border,#ddd)')+';border-radius:9px;padding:7px 10px;font-size:0.8rem">'
+      +'<div style="font-weight:800;color:var(--text2,#555)">'+etiqueta+'</div>';
+    if(v){
+      h+='<div style="color:var(--green,#2e7d32);font-weight:700">✓ '+_xpsEsc(v.nombre)+'</div>'
+        +'<div style="color:var(--text3,#888);font-size:0.72rem">'+_xpsEsc(v.ts)+'</div>';
+    } else if(puede){
+      h+='<button onclick="verificarGrafica(\''+fecha+'\',\''+tipo+'\')" style="margin-top:4px;background:var(--brand);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-weight:800;cursor:pointer">✓ Verificar</button>';
+    } else {
+      h+='<div style="color:var(--text3,#888)">Pendiente</div>';
+    }
+    return h+'</div>';
+  };
+  el.innerHTML='<div style="font-size:0.72rem;color:var(--text3,#888);margin:2px 0 4px">Gráfica verificada por:</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    +casilla('PRODUCCION','Producción', _rolContiene(rol,'ADMIN'))
+    +casilla('CALIDAD','Calidad', _rolContiene(rol,'CALIDAD'))
+    +'</div>';
+}
+function verificarGrafica(fecha, tipo){
+  var u=_usuarioLogin();
+  var nombre=u.n||OPERARIO_ACTUAL||'';
+  if(!nombre){ toast('No sé quién eres: entra desde TraceQueso','err'); return; }
+  var quien = tipo==='CALIDAD' ? 'Calidad' : 'Producción';
+  if(!confirm('¿Verificar la gráfica de pasteurización del '+fecha.split('-').reverse().join('/')
+     +' como '+quien+'?\n\nQuedará: '+nombre+' y la hora de ahora.')) return;
+  fetch(API_URL,{method:'POST',body:JSON.stringify({_SHEET:'VERIF_GRAFICA', fecha:fecha, tipo:tipo, nombre:nombre, rol:ROL_ACTUAL||u.rol||''})})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(!d || d.ok===false) throw new Error((d&&d.error)||'error');
+      _VERIF_GRAF[fecha]=d.data||[]; _pintarVerifGrafica(fecha); toast('✓ Gráfica verificada');
+    })
+    .catch(function(e){ toast('No se ha podido guardar: '+(e&&e.message?e.message:e),'err'); });
+}
+// Texto del pie impreso: «Verificado Producción: … · Calidad: …»
+function _textoVerifImpresa(fecha){
+  var p=_verifDe(fecha,'PRODUCCION'), c=_verifDe(fecha,'CALIDAD');
+  return 'Verificado Producción: '+(p?(p.nombre+' '+p.ts):'pendiente')
+       +'     ·     Calidad: '+(c?(c.nombre+' '+c.ts):'pendiente');
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -8267,7 +8340,12 @@ function abrirGraficaXps(fecha, sufijo){
     .then(function(g){
       if(!g.paginas || !g.paginas.length) throw new Error('La gráfica no tiene páginas.');
       return _xpsTamanos(g.imgs).then(function(tam){
-        var svgs=g.paginas.map(function(x){ return _xpsSvgPagina(x, g.imgs, tam); }).join('');
+        var pie=_xpsEsc(_textoVerifImpresa(fecha));
+        var svgs=g.paginas.map(function(x){
+          // El pie de verificación, dentro de la página, en el hueco de abajo.
+          return _xpsSvgPagina(x, g.imgs, tam).replace(/<\/svg>$/,
+            '<text x="300" y="768" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#000" xml:space="preserve">'+pie+'</text></svg>');
+        }).join('');
         var html='<!doctype html><html><head><meta charset="utf-8">'
           +'<meta name="viewport" content="width=device-width,initial-scale=1">'
           +'<title>'+titulo+'</title><style>'
