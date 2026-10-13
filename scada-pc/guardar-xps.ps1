@@ -26,7 +26,7 @@
 #  2026-10-10
 # =============================================================================
 
-$MODO = 'PRUEBA'          # 'PRUEBA' = solo apunta  |  'REAL' = guarda y coloca
+$MODO = 'REAL'            # 'PRUEBA' = solo apunta  |  'REAL' = guarda y coloca  (REAL desde 13/10/2026)
 
 $DIR      = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $LOG      = Join-Path $DIR 'guardar-xps.log'
@@ -218,7 +218,10 @@ public static System.Collections.Generic.List<IntPtr> Ventanas() {
       $dest = DestinoPara $r[0] $r[1] ''
       $carp = Split-Path -Parent $dest
       if (-not (Test-Path $carp)) { New-Item -ItemType Directory -Force -Path $carp | Out-Null }
-      Move-Item -Path $f.FullName -Destination $dest
+      # Si el archivo sigue abierto (la impresora aun escribe), no se mueve: se
+      # reintenta en la vuelta siguiente, sin dar nada por colocado (13/10/2026).
+      try { Move-Item -Path $f.FullName -Destination $dest -ErrorAction Stop }
+      catch { Log ('Aun no se puede mover ' + $f.Name + ' (se reintenta): ' + $_.Exception.Message); continue }
       $q = $r[0]; if ($q -eq '') { $q = 'SIN CLASIFICAR' }
       Log ('COLOCADO ' + $q + ': ' + $dest + '   [' + $r[2] + ']')
     }
