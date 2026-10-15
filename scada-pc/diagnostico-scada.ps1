@@ -87,7 +87,7 @@ netstat -an | Where-Object { $_ -match 'LISTENING|ESCUCHANDO' } | ForEach-Object
 
 # ---- 7. Proyecto de TIA Portal -------------------------------------------
 T '10. PROYECTOS DE TIA PORTAL O DEL RUNTIME EN ESTE PC'
-$sitios = @('C:\Users', 'C:\Program Files\Siemens', 'C:\Program Files (x86)\Siemens', 'C:\ProgramData\Siemens')
+$sitios = @('C:\Users', 'C:\Program Files\Siemens', 'C:\Program Files (x86)\Siemens', 'C:\ProgramData\Siemens', 'C:\SCADA', 'C:\SCADA_DATOS', 'C:\SCADA25', 'C:\IDE')
 foreach ($u in @('D:\', 'E:\')) { if (Test-Path $u) { $sitios += $u } }
 $enc = 0
 foreach ($s in $sitios) {
@@ -99,6 +99,19 @@ foreach ($s in $sitios) {
     }
 }
 if (-not $enc) { L '(no se ha encontrado ningun proyecto)' }
+
+T '11. QUE HAY EN LAS CARPETAS SCADA, SCADA_DATOS, SCADA25, IDE Y D:\ (primer nivel)'
+foreach ($c in @('C:\SCADA', 'C:\SCADA_DATOS', 'C:\SCADA25', 'C:\IDE', 'D:\')) {
+  if (-not (Test-Path $c)) { continue }
+  L ('--- ' + $c)
+  Get-ChildItem $c | Select-Object -First 60 | ForEach-Object {
+    $tam = ''; if (-not $_.PSIsContainer) { $tam = [math]::Round($_.Length/1KB,0).ToString() + ' KB' }
+    L ('   ' + $_.Name + '  |  ' + $_.LastWriteTime.ToString('dd/MM/yyyy') + '  ' + $tam)
+  }
+}
+
+T 'CARPETAS COMPARTIDAS'
+net share | ForEach-Object { L $_ }
 
 T 'FIN'
 L 'Este archivo no contiene contrasenas. Mandaselo a Claude tal cual.'
