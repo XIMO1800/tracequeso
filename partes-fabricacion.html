@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.464</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.465</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -8178,16 +8178,35 @@ function _usuarioLogin(){
   try{ var l=JSON.parse(localStorage.getItem('tq_partes_login')||'null'); if(l&&l.n) return l; }catch(e){}
   return {n:OPERARIO_ACTUAL||'', rol:ROL_ACTUAL||''};
 }
-function _cargarVerifGrafica(fecha){
+// (v2.6.465) La casilla salía vacía hasta que Google contestaba, y si tardaba o
+// no contestaba no aparecía nada: el 17/10 Joaquín no vio el botón Verificar en
+// la gráfica del 12/10. Ahora se ve al momento «Cargando…», se espera como mucho
+// 20 s, se reintenta una vez y, si aun así no llega, se pintan las casillas igual
+// (con su botón Verificar) y un aviso con «Reintentar».
+function _cargarVerifGrafica(fecha, intento){
+  intento = intento || 1;
+  var el=document.getElementById('verif-grafica-'+fecha);
+  if(el && intento===1) el.innerHTML='<div style="font-size:0.72rem;color:var(--text3,#888);margin:2px 0 4px">Cargando verificación de la gráfica…</div>';
+  var hecho=false;
+  var reloj=setTimeout(function(){ if(hecho) return; hecho=true; _fallo('no contesta'); }, 20000);
+  function _fallo(motivo){
+    if(intento<2){ setTimeout(function(){ _cargarVerifGrafica(fecha, 2); }, 1500); return; }
+    _VERIF_GRAF[fecha]=_VERIF_GRAF[fecha]||[];
+    _pintarVerifGrafica(fecha, 'No se ha podido comprobar si ya está verificada ('+motivo+').');
+  }
   fetch(API_URL+'?tipo=verifgrafica&fecha='+encodeURIComponent(fecha))
     .then(function(r){ return r.json(); })
-    .then(function(d){ _VERIF_GRAF[fecha]=(d&&d.data)||[]; _pintarVerifGrafica(fecha); })
-    .catch(function(){ _VERIF_GRAF[fecha]=_VERIF_GRAF[fecha]||[]; _pintarVerifGrafica(fecha); });
+    .then(function(d){
+      if(hecho) return; hecho=true; clearTimeout(reloj);
+      if(!d || d.ok===false){ _fallo((d&&d.error)||'respuesta vacía'); return; }
+      _VERIF_GRAF[fecha]=d.data||[]; _pintarVerifGrafica(fecha);
+    })
+    .catch(function(e){ if(hecho) return; hecho=true; clearTimeout(reloj); _fallo(String(e&&e.message||e)); });
 }
 function _verifDe(fecha, tipo){
   var v=null; (_VERIF_GRAF[fecha]||[]).forEach(function(x){ if(x.tipo===tipo) v=x; }); return v;
 }
-function _pintarVerifGrafica(fecha){
+function _pintarVerifGrafica(fecha, aviso){
   var el=document.getElementById('verif-grafica-'+fecha);
   if(!el) return;
   var rol=ROL_ACTUAL||_usuarioLogin().rol;
@@ -8210,7 +8229,9 @@ function _pintarVerifGrafica(fecha){
     +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
     +casilla('PRODUCCION','Producción', _rolContiene(rol,'ADMIN'))
     +casilla('CALIDAD','Calidad', _rolContiene(rol,'CALIDAD'))
-    +'</div>';
+    +'</div>'
+    +(aviso ? '<div style="font-size:0.74rem;color:#b06a00;margin-top:4px">⚠ '+_xpsEsc(aviso)
+       +' <a href="javascript:void(0)" onclick="_cargarVerifGrafica(\''+fecha+'\')" style="color:var(--brand);font-weight:700">Reintentar</a></div>' : '');
 }
 function verificarGrafica(fecha, tipo){
   var u=_usuarioLogin();
