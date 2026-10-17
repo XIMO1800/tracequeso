@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.465</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.466</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -8118,6 +8118,9 @@ function _botonGraficaPropia(d){
 }
 
 function _botonGraficaPDF(cont, fecha){
+  // (v2.6.466) La verificación se pide A LA VEZ que las gráficas, no después:
+  // antes eran dos esperas a Google seguidas y tardaba muchísimo (Joaquín, 17/10).
+  try{ _cargarVerifGrafica(fecha); }catch(_){}
   fetch(API_URL+'?tipo=grafica&fecha='+encodeURIComponent(fecha))
     .then(function(r){ return r.json(); })
     .then(function(d){
@@ -8160,7 +8163,11 @@ function _botonGraficaPDF(cont, fecha){
       });
       html+='<div id="verif-grafica-'+fecha+'" style="margin:2px 0 8px"></div>';
       cont.innerHTML=html;
-      _cargarVerifGrafica(fecha);
+      // Si la verificación ya llegó, se pinta ya; si no, «Cargando…» y la pinta
+      // la petición que va en marcha.
+      if(_VERIF_LISTA[fecha]) _pintarVerifGrafica(fecha, _VERIF_LISTA[fecha]===2 ? _VERIF_AVISO[fecha] : '');
+      else { var _ve=document.getElementById('verif-grafica-'+fecha);
+             if(_ve) _ve.innerHTML='<div style="font-size:0.72rem;color:var(--text3,#888);margin:2px 0 4px">Cargando verificación de la gráfica…</div>'; }
     })
     .catch(function(){ cont.innerHTML=''; });
 }
@@ -8174,6 +8181,8 @@ function _botonGraficaPDF(cont, fecha){
 // hora en la hoja VERIFICACION GRAFICAS y sale impreso al pie de la gráfica.
 // ══════════════════════════════════════════════════════════════════════════
 var _VERIF_GRAF = {};   // fecha → [{tipo,nombre,ts}]
+var _VERIF_LISTA = {};  // fecha → 1 cargada bien · 2 cargada con fallo  (v2.6.466)
+var _VERIF_AVISO = {};
 function _usuarioLogin(){
   try{ var l=JSON.parse(localStorage.getItem('tq_partes_login')||'null'); if(l&&l.n) return l; }catch(e){}
   return {n:OPERARIO_ACTUAL||'', rol:ROL_ACTUAL||''};
@@ -8185,6 +8194,7 @@ function _usuarioLogin(){
 // (con su botón Verificar) y un aviso con «Reintentar».
 function _cargarVerifGrafica(fecha, intento){
   intento = intento || 1;
+  if(intento===1){ delete _VERIF_LISTA[fecha]; delete _VERIF_AVISO[fecha]; }
   var el=document.getElementById('verif-grafica-'+fecha);
   if(el && intento===1) el.innerHTML='<div style="font-size:0.72rem;color:var(--text3,#888);margin:2px 0 4px">Cargando verificación de la gráfica…</div>';
   var hecho=false;
@@ -8192,14 +8202,16 @@ function _cargarVerifGrafica(fecha, intento){
   function _fallo(motivo){
     if(intento<2){ setTimeout(function(){ _cargarVerifGrafica(fecha, 2); }, 1500); return; }
     _VERIF_GRAF[fecha]=_VERIF_GRAF[fecha]||[];
-    _pintarVerifGrafica(fecha, 'No se ha podido comprobar si ya está verificada ('+motivo+').');
+    _VERIF_LISTA[fecha]=2;
+    _VERIF_AVISO[fecha]='No se ha podido comprobar si ya está verificada ('+motivo+').';
+    _pintarVerifGrafica(fecha, _VERIF_AVISO[fecha]);
   }
   fetch(API_URL+'?tipo=verifgrafica&fecha='+encodeURIComponent(fecha))
     .then(function(r){ return r.json(); })
     .then(function(d){
       if(hecho) return; hecho=true; clearTimeout(reloj);
       if(!d || d.ok===false){ _fallo((d&&d.error)||'respuesta vacía'); return; }
-      _VERIF_GRAF[fecha]=d.data||[]; _pintarVerifGrafica(fecha);
+      _VERIF_GRAF[fecha]=d.data||[]; _VERIF_LISTA[fecha]=1; _pintarVerifGrafica(fecha);
     })
     .catch(function(e){ if(hecho) return; hecho=true; clearTimeout(reloj); _fallo(String(e&&e.message||e)); });
 }
