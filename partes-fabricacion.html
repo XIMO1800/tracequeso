@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.466</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.467</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -9129,19 +9129,28 @@ function _svgGraficaEvolucion(p){
   s+='<text x="'+ml+'" y="'+(mt-14)+'" text-anchor="middle" font-size="11" fill="#7B3FA0" font-weight="700">pH</text>';
   s+='<text x="'+(W-mr)+'" y="'+(mt-14)+'" text-anchor="middle" font-size="11" fill="#c0392b" font-weight="700">°C</text>';
   // Calcular nivel de cada etiqueta: por defecto nivel 0; si choca en X con la anterior, baja de nivel
-  var ANCHO_ETIQ = 62; // ancho aprox en px que ocupa un nombre de hito
+  // (v2.6.467) EL ANCHO DE CADA NOMBRE CUENTA. Antes se daba a todos 62 px, y
+  // «Desmoldeo inicio» y «Desmoldeo fin» (25 min de separación) se quedaban en
+  // la misma fila montados uno encima del otro (Joaquín, 19/10). Ahora cada
+  // nombre mide según sus letras (Arial negrita 10,5 ≈ 6,2 px por letra) y dos
+  // nombres chocan si se tocan sus mitades. Si las tres filas están ocupadas,
+  // va a la que más hueco deja, no a la primera.
+  var ANCHO_ETIQ = 62; // mínimo (se sigue usando para la salmuera)
+  function _anchoEtiq(h){ return Math.max(ANCHO_ETIQ*0.6, String(h.nombre||'').length*6.2 + 8); }
   var niveles = []; // nivel asignado a cada hito
-  var ultimoXporNivel = {}; // último x usado en cada nivel
+  var ultimoPorNivel = {}; // nivel → {x, w} del último nombre puesto en esa fila
   HITOS.forEach(function(h,i){
-    var xx = x(_horaAMin(h.hora));
-    var nivel = 0;
-    // buscar el primer nivel libre (que no choque con la etiqueta anterior en ese nivel)
-    while(ultimoXporNivel[nivel]!=null && (xx - ultimoXporNivel[nivel]) < ANCHO_ETIQ){
-      nivel++;
-      if(nivel>2){ nivel=0; break; } // máximo 3 niveles, luego recicla
+    var xx = x(_horaAMin(h.hora)), w = _anchoEtiq(h);
+    var elegido = -1, mejor = -1e9, mejorNivel = 0;
+    for(var nv=0; nv<3; nv++){
+      var u = ultimoPorNivel[nv];
+      var hueco = u ? (xx - u.x) - (u.w/2 + w/2) : 1e9;   // >=0 → no se tocan
+      if(hueco >= 0){ elegido = nv; break; }
+      if(hueco > mejor){ mejor = hueco; mejorNivel = nv; }
     }
-    niveles[i] = nivel;
-    ultimoXporNivel[nivel] = xx;
+    if(elegido < 0) elegido = mejorNivel;
+    niveles[i] = elegido;
+    ultimoPorNivel[elegido] = {x:xx, w:w};
   });
   // (v2.6.386) La salmuera manda en la fila de arriba. El reparto automático la
   // mandaba a la segunda fila por chocar con "Desmoldeo fin", y quedaba la de
@@ -9152,10 +9161,10 @@ function _svgGraficaEvolucion(p){
     HITOS.forEach(function(h,i){ if(h.suelto) iSal=i; });
     if(iSal<0) return;
     niveles[iSal] = 0;
-    var xSal = x(_horaAMin(HITOS[iSal].hora));
+    var xSal = x(_horaAMin(HITOS[iSal].hora)), wSal = _anchoEtiq(HITOS[iSal]);
     HITOS.forEach(function(h,i){
       if(i===iSal || niveles[i]!==0) return;
-      if(Math.abs(x(_horaAMin(h.hora)) - xSal) < ANCHO_ETIQ) niveles[i] = 1;
+      if(Math.abs(x(_horaAMin(h.hora)) - xSal) < (wSal/2 + _anchoEtiq(h)/2)) niveles[i] = 1;
     });
   })();
   // Líneas de hito + nombre (escalonado por nivel) + hora + duración
