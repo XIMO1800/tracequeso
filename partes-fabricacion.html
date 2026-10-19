@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.467</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.468</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -9303,9 +9303,24 @@ function _svgGraficaEvolucion(p){
   ['t','p'].forEach(function(sr){
     var idx=[];
     _etiq.forEach(function(e,i){ if(e.serie===sr) idx.push(i); });
-    for(var k=0; k+1<idx.length; k++){
-      var a=_etiq[idx[k]], b=_etiq[idx[k+1]];
-      if(Math.abs(b.x-a.x) < 20 && !a.par && !b.par){ a.par='izq'; b.par='der'; }
+    // (v2.6.468) GRUPOS DE TRES O MÁS, EN ORDEN DE IZQUIERDA A DERECHA.
+    // Antes solo se emparejaban de dos en dos: con entrada, cloruro y fermento
+    // a 1-4 minutos, el tercero se quedaba suelto y su número caía donde podía
+    // (el 6.57 abajo a la izquierda y el 6.63 a la derecha, al revés de como
+    // pasa el tiempo). Joaquín (19/10): que se lean como avanza la gráfica.
+    // Ahora se junta toda la racha de puntos cercanos de la misma línea: todos
+    // menos el último llevan su número a la IZQUIERDA, a la altura de su punto
+    // (así quedan uno bajo otro, en el orden en que ocurrieron), y el último a
+    // la DERECHA, un poco por debajo de la línea para no pisarla.
+    var k=0;
+    while(k<idx.length){
+      var fin=k;
+      while(fin+1<idx.length && Math.abs(_etiq[idx[fin+1]].x-_etiq[idx[fin]].x) < 20) fin++;
+      if(fin>k){
+        for(var q=k; q<fin; q++) _etiq[idx[q]].par='izq';
+        _etiq[idx[fin]].par='der';
+      }
+      k=fin+1;
     }
   });
   // Cada rótulo prueba posiciones en orden de preferencia y se queda con la
@@ -9316,7 +9331,7 @@ function _svgGraficaEvolucion(p){
   _etiq.forEach(function(e, i){
     var cands=[];
     if(e.par==='izq'){ cands.push({x:e.x-26, y:e.ypt+4}, {x:e.x-40, y:e.ypt+4}); }
-    if(e.par==='der'){ cands.push({x:e.x+26, y:e.ypt+4}, {x:e.x+40, y:e.ypt+4}); }
+    if(e.par==='der'){ cands.push({x:e.x+26, y:e.ypt+13}, {x:e.x+40, y:e.ypt+13}, {x:e.x+26, y:e.ypt+4}); }
     cands.push(
       {x:e.x,    y:e.y},
       {x:e.x-26, y:e.y},
