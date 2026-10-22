@@ -13,10 +13,8 @@
 //   · Sala actual = la ÚLTIMA sala apuntada (SALA DESTINO, o SALA VOLTEO en un
 //     volteo), por fecha; si es VENTA, el palé ha salido. Es la regla v417 de
 //     la app, la que ve todo el mundo.
-// Solo avisa cuando una referencia PASA de tener palés a no tener ninguno, una
-// vez; no repite el correo cada media hora mientras siga a cero. El correo dice
-// también si hay palés de esa referencia en proceso (saladero, golpe de frío,
-// secaderos) y de qué fecha, para saber cuánto falta.
+// Avisa solo de lo que no está NI en cámara NI en proceso, y lo repite cada 24 h
+// hasta que se fabrique (ver revisarTiernosCamara).
 // ══════════════════════════════════════════════════════════════════════════
 var CORREO_AVISO_TIERNOS = 'Joaquin@quesoselhidalgo.com';
 
@@ -42,44 +40,54 @@ function _avisoTiernosSiToca(){
 }
 
 // Se puede ejecutar a mano desde el editor para probar (manda correo si toca).
+// (2026-10-22, v2) ES UNA ORDEN DE FABRICACIÓN, NO UN AVISO DE STOCK.
+// Joaquín: «el aviso es cuando no lo tengo ni siquiera en proceso». Mientras
+// haya un palé de esa referencia en cámara O en proceso (ya fabricado, aunque
+// aún se esté curando), no se avisa de nada. Cuando no hay en ningún sitio:
+//   · correo en cuanto se detecta (la revisión va cada 30 min),
+//   · y otro cada 24 h mientras siga igual,
+//   · hasta que aparezca un palé en proceso o en cámara: ahí se olvida.
+var TIERNOS_REPETIR_H = 24;
 function revisarTiernosCamara(){
   var props = PropertiesService.getScriptProperties();
   var est = _tiernosEstado();
-  var antes = {};
-  try{ antes = JSON.parse(props.getProperty('TIERNOS_ESTADO') || '{}'); }catch(e){ antes = {}; }
-  var agotados = [];
+  var avisos = {};   // ref → ms del último correo mientras le falta
+  try{ avisos = JSON.parse(props.getProperty('TIERNOS_AVISOS') || '{}'); }catch(e){ avisos = {}; }
+  var ahora = Date.now(), toca = [];
   est.forEach(function(x){
-    var habia = (antes[x.ref.n] === undefined) ? 1 : antes[x.ref.n];   // primera vez: se avisa de lo que ya esté a cero
-    if(x.camara === 0 && habia > 0) agotados.push(x);
+    var falta = (x.camara === 0 && x.proceso.length === 0);
+    if(!falta){ delete avisos[x.ref.n]; return; }                 // ya está fabricado o en cámara
+    var ult = avisos[x.ref.n] || 0;
+    if(!ult || ahora - ult >= TIERNOS_REPETIR_H*3600*1000 - 15*60*1000){
+      toca.push(x);
+      avisos[x.ref.n] = ahora;
+    }
   });
-  var nuevo = {};
-  est.forEach(function(x){ nuevo[x.ref.n] = x.camara; });
-  props.setProperty('TIERNOS_ESTADO', JSON.stringify(nuevo));
-  if(agotados.length) _tiernosMandarCorreo(agotados, est);
+  if(toca.length) _tiernosMandarCorreo(toca, est, avisos);
+  props.setProperty('TIERNOS_AVISOS', JSON.stringify(avisos));
   return est.map(function(x){ return x.ref.n + ': ' + x.camara + ' en cámara, ' + x.proceso.length + ' en proceso'; }).join('\n');
 }
 
-function _tiernosMandarCorreo(agotados, est){
+function _tiernosMandarCorreo(faltan, est){
   var hoy = Utilities.formatDate(new Date(), 'Europe/Madrid', 'dd/MM/yyyy HH:mm');
-  var asunto = '⚠️ Sin tierno en cámara: ' + agotados.map(function(x){ return x.ref.n; }).join(', ');
+  var asunto = '🧀 Fabricar tierno: ' + faltan.map(function(x){ return x.ref.n; }).join(', ');
   var L = [];
   L.push('Aviso de TraceQueso · ' + hoy);
   L.push('');
-  agotados.forEach(function(x){
-    L.push('▶ ' + x.ref.n + ': NO queda ningún palé en la Cámara de Frío.');
-    if(x.proceso.length){
-      x.proceso.sort(function(a,b){ return (a.fab||'') < (b.fab||'') ? -1 : 1; });
-      x.proceso.forEach(function(p){
-        L.push('    En proceso: ' + p.id + ' · ' + _tiernosSalaTxt(p.sala) + (p.fab ? ' · fabricado el ' + p.fab + ' (' + p.dias + ' días)' : ''));
-      });
-    } else {
-      L.push('    Tampoco hay nada en proceso → hay que fabricar.');
-    }
-    L.push('');
-  });
+  L.push('De estas referencias de tierno no queda ningún palé en la Cámara de Frío y tampoco hay ninguno en proceso (saladero, golpe de frío ni secaderos):');
+  L.push('');
+  faltan.forEach(function(x){ L.push('   ▶ ' + x.ref.n); });
+  L.push('');
+  L.push('Este aviso se repetirá cada 24 horas hasta que se fabrique: en cuanto haya un palé de la referencia en proceso o en cámara, deja de llegar.');
+  L.push('');
   L.push('Situación de todos los tiernos ahora mismo:');
   est.forEach(function(x){
-    L.push('  · ' + x.ref.n + ': ' + x.camara + ' en cámara' + (x.proceso.length ? ', ' + x.proceso.length + ' en proceso' : ''));
+    var txt = '  · ' + x.ref.n + ': ' + x.camara + ' en cámara';
+    if(x.proceso.length){
+      var fs = x.proceso.map(function(p){ return p.fab; }).filter(Boolean).sort();
+      txt += ', ' + x.proceso.length + ' en proceso' + (fs.length ? ' (fabricado el ' + fs[fs.length-1] + ')' : '');
+    }
+    L.push(txt);
   });
   L.push('');
   L.push('Ojo: el aviso es tan bueno como los registros. Si un palé sale de la cámara y no se registra el movimiento, la app sigue contándolo.');
