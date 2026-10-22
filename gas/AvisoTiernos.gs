@@ -70,7 +70,7 @@ function revisarTiernosCamara(){
 
 function _tiernosMandarCorreo(faltan, est){
   var hoy = Utilities.formatDate(new Date(), 'Europe/Madrid', 'dd/MM/yyyy HH:mm');
-  var asunto = '🧀 Fabricar tierno: ' + faltan.map(function(x){ return x.ref.n; }).join(', ');
+  var asunto = 'AVISO TraceQueso · Fabricar tierno: ' + faltan.map(function(x){ return x.ref.n; }).join(', ');
   var L = [];
   L.push('Aviso de TraceQueso · ' + hoy);
   L.push('');
