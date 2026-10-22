@@ -1107,6 +1107,8 @@ function procesarEntradaSCADA(){
   var lock = LockService.getScriptLock();
   if(!lock.tryLock(1000)) return;                     // ya hay otra vuelta en marcha
   var t00 = Date.now();
+  // (2026-10-22) Aviso por correo de tierno agotado en cámara: cada 30 min, aprovechando este activador.
+  try{ if(typeof _avisoTiernosSiToca === 'function') _avisoTiernosSiToca(); }catch(eT){ Logger.log('Aviso tiernos: ' + eT); }
   try{
     var entrada = _scadaCarpetaEntrada();
     var proc = _scadaSub(entrada, 'PROCESADOS'), errs = _scadaSub(entrada, 'ERRORES');
