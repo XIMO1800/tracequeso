@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 5;
+const API_VERSION = 6;
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -409,6 +409,15 @@ function parseFechaSheets(txt) {
 function doGet(e) {
   var tipo = e.parameter.tipo || '';
   var callback = e.parameter.callback || '';
+
+  // (v465) Foto del albarán de una entrada de material auxiliar, para verla
+  // dentro de la app sin ir a Drive. Solo sirve ficheros de la carpeta
+  // «Albaranes proveedor» (ver leerFotoAlbaran).
+  if (tipo === 'fotoAlbaran') {
+    var json = JSON.stringify(leerFotoAlbaran(e.parameter.id || ''));
+    if (callback) return ContentService.createTextOutput(callback + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
+    return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+  }
 
   if (tipo === 'matAux') {
     var datos = getMaterialAuxiliar();
@@ -3355,6 +3364,34 @@ function gestionarVerifGrafica(payload){
 // nombre, y se devuelve el enlace para apuntarlo en la entrada (FOTO ALBARAN).
 // Es el soporte documental que pide BRC, ligado a la entrada y a su lote.
 // ══════════════════════════════════════════════════════════════════════════
+// (v465) Devuelve la foto (o PDF) de un albarán en base64 para enseñarla en la
+// app. Por seguridad, SOLO entrega ficheros que estén dentro de la carpeta
+// «Albaranes proveedor» (en su subcarpeta del mes): con el ID de cualquier otro
+// fichero del Drive responde que no está permitido.
+function leerFotoAlbaran(id){
+  try{
+    id = String(id || '').trim();
+    if(!/^[A-Za-z0-9_-]{10,}$/.test(id)) return {ok:false, error:'Identificador de foto no válido'};
+    var raizId = PropertiesService.getScriptProperties().getProperty('ALBARANES_PROV_ID');
+    if(!raizId) return {ok:false, error:'Aún no hay carpeta de albaranes'};
+    var f = DriveApp.getFileById(id);
+    var dentro = false, padres = f.getParents();
+    while(padres.hasNext() && !dentro){
+      var p = padres.next();
+      if(p.getId() === raizId){ dentro = true; break; }
+      var abuelos = p.getParents();
+      while(abuelos.hasNext()){ if(abuelos.next().getId() === raizId){ dentro = true; break; } }
+    }
+    if(!dentro) return {ok:false, error:'Ese fichero no es un albarán'};
+    if(f.getSize() > 15*1024*1024) return {ok:false, error:'La foto es demasiado grande para verla aquí', url:f.getUrl()};
+    var blob = f.getBlob();
+    return {ok:true, mime: blob.getContentType(), nombre: f.getName(), url: f.getUrl(),
+            b64: Utilities.base64Encode(blob.getBytes())};
+  }catch(err){
+    return {ok:false, error:'No se pudo abrir la foto: ' + String(err)};
+  }
+}
+
 function guardarFotoAlbaran(payload){
   var out = function(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); };
   try{
