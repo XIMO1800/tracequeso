@@ -966,6 +966,7 @@ function _doPostEscritura(payload) {
   if (payload['_SHEET'] === 'PARTES')   return gestionarPartes(payload);
   if (payload['_SHEET'] === 'RECETAS')  return gestionarRecetas(payload);
   if (payload['_SHEET'] === 'ENTRADAS') return gestionarEntradas(payload);
+  if (payload['_SHEET'] === 'FOTO_ALBARAN') return guardarFotoAlbaran(payload);   // (2026-10-22)
   if (payload['_SHEET'] === 'STOCK')    return gestionarStock(payload);
   if (payload['_SHEET'] === 'SALIDAS_ENVASADO') return gestionarSalidasEnvasado(payload);
   if (payload['_SHEET'] === 'CLIENTE_NUEVO') return gestionarClienteNuevo(payload);
@@ -1936,6 +1937,17 @@ function leerOperarios() {
   var data = sheet.getDataRange().getValues();
   if (data.length < 2) return [];
   var headers = data[0];
+  // (2026-10-22) Columna nueva ACCESO RECEPCION (recepción de material auxiliar
+  // desde el móvil). Si la hoja aún no la tiene, se añade vacía al final: así
+  // Joaquín solo tiene que marcar a quién se la da.
+  try {
+    var _tieneRec = headers.some(function(h){ return _normTxt(h) === 'ACCESO RECEPCION'; });
+    if (!_tieneRec) {
+      sheet.getRange(1, headers.length + 1).setValue('ACCESO RECEPCION');
+      data = sheet.getDataRange().getValues();
+      headers = data[0];
+    }
+  } catch (eRec) {}
   var col = {};
   for (var i = 0; i < headers.length; i++) { col[_normTxt(headers[i])] = i; }
   function g(row, name)  { var i = col[name]; return (i === undefined) ? '' : row[i]; }
@@ -1957,6 +1969,7 @@ function leerOperarios() {
       scan:  gb(row, 'ACCESO SCANEO RAPIDO'),
       partes: gb(row, 'ACCESO PARTES'),
       planalmacen: gb(row, 'ACCESO PLAN ALMACEN'),
+      recepcion: gb(row, 'ACCESO RECEPCION'),
       p: {
         capa1:      gb(row, 'ACCESO 1 CAPA')      ? 1 : 0,
         volteo:     gb(row, 'ACCESO VOLTEO')      ? 1 : 0,
@@ -2193,7 +2206,19 @@ function gestionarEntradas(payload) {
     return ContentService.createTextOutput(JSON.stringify({ok:true, accion:'entrada_actualizada', fila:filaEnt})).setMimeType(ContentService.MimeType.JSON);
   }
 
+  // (2026-10-22) RECEPCIÓN DESDE EL MÓVIL: quién descargó, la foto del albarán
+  // y si Calidad lo ha verificado. Si la hoja no tiene esas columnas, se añaden
+  // al final (las demás pantallas leen por nombre de cabecera, no por posición).
+  ['RECIBIDO POR', 'FOTO ALBARAN', 'VERIFICADO CALIDAD'].forEach(function(nc){
+    if (_colIdx(headersEnt, nc) < 0) {
+      sheetEnt.getRange(1, headersEnt.length + 1).setValue(nc);
+      headersEnt = sheetEnt.getRange(1, 1, 1, sheetEnt.getLastColumn()).getValues()[0];
+    }
+  });
   var valoresPorCabecera = {
+    'RECIBIDO POR':       payload.recibido   || payload.operario || '',
+    'FOTO ALBARAN':       payload.foto       || '',
+    'VERIFICADO CALIDAD': payload.verificado || '',
     'ID ENTRADA': payload.id        || '',
     'FECHA':      payload.fecha     || '',
     'ALBARAN':    payload.albaran   || '',
@@ -3319,4 +3344,44 @@ function gestionarVerifGrafica(payload){
   if(fila > -1) h.getRange(fila, 1, 1, 5).setValues([valores]);
   else h.appendRow(valores);
   return out({ok:true, data: leerVerifGrafica(f)});
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// (2026-10-22) FOTO DEL ALBARÁN DE UNA RECEPCIÓN DE MATERIAL
+// ──────────────────────────────────────────────────────────────────────────
+// El que descarga hace la foto del albarán firmado desde la app. Se guarda en
+// Drive, en «Albaranes proveedor / AAAA-MM», con el proveedor y la fecha en el
+// nombre, y se devuelve el enlace para apuntarlo en la entrada (FOTO ALBARAN).
+// Es el soporte documental que pide BRC, ligado a la entrada y a su lote.
+// ══════════════════════════════════════════════════════════════════════════
+function guardarFotoAlbaran(payload){
+  var out = function(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); };
+  try{
+    var b64 = String(payload.b64 || '');
+    if(!b64) return out({ok:false, error:'Falta la imagen'});
+    var mime = String(payload.mime || 'image/jpeg');
+    var props = PropertiesService.getScriptProperties();
+    var raiz = null, idR = props.getProperty('ALBARANES_PROV_ID');
+    if(idR){ try{ raiz = DriveApp.getFolderById(idR); }catch(e){ raiz = null; } }
+    if(!raiz){
+      var it = DriveApp.getFoldersByName('Albaranes proveedor');
+      raiz = it.hasNext() ? it.next() : DriveApp.createFolder('Albaranes proveedor');
+      props.setProperty('ALBARANES_PROV_ID', raiz.getId());
+    }
+    var mes = Utilities.formatDate(new Date(), 'Europe/Madrid', 'yyyy-MM');
+    var itM = raiz.getFoldersByName(mes);
+    var carpeta = itM.hasNext() ? itM.next() : raiz.createFolder(mes);
+    var limpio = function(t){ return String(t||'').replace(/[\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim().substring(0,60); };
+    var ext = /pdf/i.test(mime) ? '.pdf' : '.jpg';
+    var nombre = Utilities.formatDate(new Date(), 'Europe/Madrid', 'yyyy-MM-dd HHmm') + ' · ' +
+                 (limpio(payload.proveedor) || 'SIN PROVEEDOR') +
+                 (payload.albaran ? ' · alb ' + limpio(payload.albaran) : '') +
+                 (payload.operario ? ' · ' + limpio(payload.operario) : '') + ext;
+    var blob = Utilities.newBlob(Utilities.base64Decode(b64), mime, nombre);
+    var f = carpeta.createFile(blob);
+    return out({ok:true, url: f.getUrl(), id: f.getId(), nombre: nombre});
+  }catch(err){
+    return out({ok:false, error: String(err)});
+  }
 }
