@@ -39,7 +39,7 @@ const CACHE = 'tracequeso-app';   // FIJO. No poner la versión aquí nunca más
 //
 // Así que: index nuevo → subir TAMBIÉN este archivo con la versión cambiada.
 // ═══════════════════════════════════════════════════════════════════════════
-const VERSION = 'v465';
+const VERSION = 'v466';
 const ASSETS = ['/tracequeso/', '/tracequeso/index.html'];
 
 // INSTALACIÓN: cachear archivos esenciales
@@ -66,6 +66,85 @@ self.addEventListener('install', function(e) {
 // (v347) La app pide el relevo cuando el operario pulsa "Actualizar ahora".
 self.addEventListener('message', function(e) {
   if (e.data === 'RELEVO') self.skipWaiting();
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// (v466) ENVÍO EN SEGUNDO PLANO DE LA LIBRETA (con la app cerrada)
+// ───────────────────────────────────────────────────────────────────────────
+// La app deja en IndexedDB ('tq_envio' → 'kv' → 'libreta') una copia de lo que
+// tiene sin enviar y pide un envío en segundo plano ('sync-libreta'). Android
+// lanza este evento cuando hay red, aunque la app esté cerrada.
+//  - Si la app está abierta y a la vista, se le avisa y envía ella (como siempre).
+//  - Si no, envía el service worker, uno a uno y comprobando la respuesta igual
+//    que la app. Lo enviado se apunta en 'enviadosSW' para que la app lo quite
+//    de su libreta al abrirse. Si algo falla, se lanza error y el sistema vuelve
+//    a intentarlo más tarde él solo.
+// La hoja no duplica: un registro con un ID que ya está responde "duplicado".
+// ═══════════════════════════════════════════════════════════════════════════
+function _swIdb(){
+  return new Promise(function(res, rej){
+    var rq = indexedDB.open('tq_envio', 1);
+    rq.onupgradeneeded = function(){ try{ rq.result.createObjectStore('kv'); }catch(e){} };
+    rq.onsuccess = function(){ res(rq.result); };
+    rq.onerror = function(){ rej(rq.error); };
+  });
+}
+function _swGet(db, k){
+  return new Promise(function(res, rej){
+    var r = db.transaction('kv','readonly').objectStore('kv').get(k);
+    r.onsuccess = function(){ res(r.result); }; r.onerror = function(){ rej(r.error); };
+  });
+}
+function _swPut(db, k, v){
+  return new Promise(function(res, rej){
+    var t = db.transaction('kv','readwrite'); t.objectStore('kv').put(v, k);
+    t.oncomplete = function(){ res(); }; t.onerror = function(){ rej(t.error); };
+  });
+}
+function _swEnviarLibreta(){
+  return self.clients.matchAll({type:'window', includeUncontrolled:true}).then(function(cs){
+    var visible = cs.filter(function(c){ return c.visibilityState === 'visible'; });
+    if (visible.length) {
+      visible.forEach(function(c){ try{ c.postMessage({tipo:'sincronizar-libreta'}); }catch(e){} });
+      return;
+    }
+    return _swIdb().then(function(db){
+      return _swGet(db, 'libreta').then(function(copia){
+        var regs = (copia && Array.isArray(copia.regs)) ? copia.regs : [];
+        var api = copia && copia.api;
+        if (!regs.length || !api) return;
+        var i = 0;
+        function siguiente(){
+          if (i >= regs.length) return Promise.resolve();
+          var reg = regs[i];
+          return fetch(api, {method:'POST', body: JSON.stringify(reg)})
+            .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+            .then(function(txt){
+              var j = JSON.parse(txt);
+              if (!j || j.ok !== true) throw new Error('sin confirmar');
+              // Apuntar como enviado y quitar de la copia, antes de seguir
+              return _swGet(db, 'enviadosSW').then(function(env){
+                env = Array.isArray(env) ? env : [];
+                if (reg && reg.ID && env.indexOf(reg.ID) < 0) env.push(reg.ID);
+                return _swPut(db, 'enviadosSW', env);
+              }).then(function(){
+                return _swGet(db, 'libreta').then(function(c2){
+                  if (c2 && Array.isArray(c2.regs)) {
+                    c2.regs = c2.regs.filter(function(x){ return !(x && reg && x.ID === reg.ID); });
+                    return _swPut(db, 'libreta', c2);
+                  }
+                });
+              });
+            })
+            .then(function(){ i++; return siguiente(); });
+        }
+        return siguiente();
+      });
+    });
+  });
+}
+self.addEventListener('sync', function(e) {
+  if (e.tag === 'sync-libreta') e.waitUntil(_swEnviarLibreta());
 });
 
 // ACTIVACIÓN: borrar cachés viejos
