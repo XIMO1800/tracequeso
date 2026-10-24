@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 6;
+const API_VERSION = 7;
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -245,6 +245,7 @@ const SHEET_STOCK    = 'STOCK MATERIAL AUXILIAR';
 const SHEET_CLIENTES = 'CLIENTES CONTRAETIQUETAS';
 const SHEET_ENTRADAS = 'ENTRADAS MATERIAL AUXILIAR';
 const SHEET_SALIDAS  = 'SALIDAS MATERIAL AUXILIAR';
+const SHEET_RECEPCIONES = 'RECEPCIONES MATERIAL';   // (2026-10-24) fotos de albarán de quien descarga
 const SHEET_PARTES   = 'PARTES FABRICACION';
 const SHEET_RECETAS  = 'RECETAS';
 const SHEET_OPERARIOS= 'LISTADO OPERARIOS';
@@ -413,6 +414,13 @@ function doGet(e) {
   // (v465) Foto del albarán de una entrada de material auxiliar, para verla
   // dentro de la app sin ir a Drive. Solo sirve ficheros de la carpeta
   // «Albaranes proveedor» (ver leerFotoAlbaran).
+  // (2026-10-24) Recepciones de material (fotos de albarán) para Calidad.
+  if (tipo === 'recepciones') {
+    var json = JSON.stringify({ok: true, apiVer: API_VERSION, data: leerRecepciones()});
+    if (callback) return ContentService.createTextOutput(callback + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
+    return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+  }
+
   if (tipo === 'fotoAlbaran') {
     var json = JSON.stringify(leerFotoAlbaran(e.parameter.id || ''));
     if (callback) return ContentService.createTextOutput(callback + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
@@ -976,6 +984,7 @@ function _doPostEscritura(payload) {
   if (payload['_SHEET'] === 'RECETAS')  return gestionarRecetas(payload);
   if (payload['_SHEET'] === 'ENTRADAS') return gestionarEntradas(payload);
   if (payload['_SHEET'] === 'FOTO_ALBARAN') return guardarFotoAlbaran(payload);   // (2026-10-22)
+  if (payload['_SHEET'] === 'RECEPCION') return gestionarRecepcion(payload);       // (2026-10-24)
   if (payload['_SHEET'] === 'STOCK')    return gestionarStock(payload);
   if (payload['_SHEET'] === 'SALIDAS_ENVASADO') return gestionarSalidasEnvasado(payload);
   if (payload['_SHEET'] === 'CLIENTE_NUEVO') return gestionarClienteNuevo(payload);
@@ -3364,6 +3373,100 @@ function gestionarVerifGrafica(payload){
 // nombre, y se devuelve el enlace para apuntarlo en la entrada (FOTO ALBARAN).
 // Es el soporte documental que pide BRC, ligado a la entrada y a su lote.
 // ══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════
+// (2026-10-24) RECEPCIONES DE MATERIAL
+// Quien descarga un camión solo hace la foto del albarán: cada envío es una fila
+// en RECEPCIONES MATERIAL con las fotos (enlaces de Drive) y ESTADO PENDIENTE.
+// Calidad da desde ahí la entrada o entradas (se apuntan en ENTRADAS) y la marca
+// TERMINADA o DESCARTADA. LECTURA IA queda para la lectura automática futura.
+// ══════════════════════════════════════════════════════════════════════════
+var REC_COLS = ['ID','FECHA','RECIBIDO POR','FOTOS','Nº FOTOS','ESTADO','ENTRADAS','LECTURA IA','CERRADA POR','FECHA CIERRE','OBSERVACIONES'];
+function _hojaRecepciones(){
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ss.getSheetByName(SHEET_RECEPCIONES);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_RECEPCIONES);
+    sh.getRange(1, 1, 1, REC_COLS.length).setValues([REC_COLS]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+    sh.getRange('B:B').setNumberFormat('@');
+    sh.getRange('J:J').setNumberFormat('@');
+  }
+  return sh;
+}
+function gestionarRecepcion(payload){
+  var out = function(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); };
+  try{
+    var sh = _hojaRecepciones();
+    var data = sh.getDataRange().getValues();
+    var h = data[0];
+    var c = function(n){ return h.indexOf(n); };
+    var id = String(payload.id || '').trim();
+    if (!id) return out({ok:false, error:'Falta el ID de la recepción'});
+    var fila = -1;
+    for (var i = 1; i < data.length; i++) { if (String(data[i][c('ID')]).trim() === id) { fila = i + 1; break; } }
+    var accion = String(payload.accion || '');
+    if (accion === 'nueva') {
+      if (fila > 0) return out({ok:true, duplicado:true});
+      var fotos = (payload.fotos || []).filter(function(x){ return x; });
+      if (!fotos.length) return out({ok:false, error:'La recepción no trae fotos'});
+      var row = REC_COLS.map(function(col){
+        if (col === 'ID') return id;
+        if (col === 'FECHA') return String(payload.fecha || Utilities.formatDate(new Date(), 'Europe/Madrid', 'd/M/yyyy, H:mm:ss'));
+        if (col === 'RECIBIDO POR') return String(payload.recibido || '');
+        if (col === 'FOTOS') return fotos.join(' | ');
+        if (col === 'Nº FOTOS') return fotos.length;
+        if (col === 'ESTADO') return 'PENDIENTE';
+        return '';
+      });
+      // Si alguien ha movido columnas, se escribe por nombre
+      var fin = h.map(function(name){ var k = REC_COLS.indexOf(name); return k >= 0 ? row[k] : ''; });
+      sh.appendRow(fin);
+      return out({ok:true});
+    }
+    if (fila < 0) return out({ok:false, error:'Recepción no encontrada'});
+    if (accion === 'entrada') {
+      var cE = c('ENTRADAS'), prev = String(data[fila-1][cE] || '');
+      var idE = String(payload.idEntrada || '').trim();
+      if (idE && prev.split(',').map(function(x){return x.trim();}).indexOf(idE) < 0) {
+        sh.getRange(fila, cE + 1).setValue(prev ? (prev + ',' + idE) : idE);
+      }
+      var cS = c('ESTADO');
+      if (String(data[fila-1][cS]) === 'PENDIENTE') sh.getRange(fila, cS + 1).setValue('EN CURSO');
+      return out({ok:true});
+    }
+    if (accion === 'cerrar') {
+      var est = (payload.estado === 'DESCARTADA') ? 'DESCARTADA' : 'TERMINADA';
+      sh.getRange(fila, c('ESTADO') + 1).setValue(est);
+      sh.getRange(fila, c('CERRADA POR') + 1).setValue(String(payload.quien || ''));
+      sh.getRange(fila, c('FECHA CIERRE') + 1).setValue(Utilities.formatDate(new Date(), 'Europe/Madrid', 'd/M/yyyy, H:mm:ss'));
+      if (payload.obs) sh.getRange(fila, c('OBSERVACIONES') + 1).setValue(String(payload.obs));
+      return out({ok:true});
+    }
+    return out({ok:false, error:'Acción desconocida'});
+  }catch(err){
+    return out({ok:false, error:String(err)});
+  }
+}
+// Pendientes y en curso (todas) + cerradas de los últimos 30 días.
+function leerRecepciones(){
+  var sh = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_RECEPCIONES);
+  if (!sh) return [];
+  var data = sh.getDataRange().getDisplayValues();
+  if (data.length < 2) return [];
+  var h = data[0], res = [], lim = Date.now() - 30*86400000;
+  for (var i = 1; i < data.length; i++) {
+    var o = {}; h.forEach(function(k, j){ o[k] = data[i][j]; });
+    if (!o.ID) continue;
+    var est = String(o.ESTADO || '').toUpperCase();
+    if (est !== 'PENDIENTE' && est !== 'EN CURSO') {
+      var m = String(o['FECHA CIERRE'] || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (!m || new Date(+m[3], +m[2]-1, +m[1]).getTime() < lim) continue;
+    }
+    res.push(o);
+  }
+  return res;
+}
+
 // (v465) Devuelve la foto (o PDF) de un albarán en base64 para enseñarla en la
 // app. Por seguridad, SOLO entrega ficheros que estén dentro de la carpeta
 // «Albaranes proveedor» (en su subcarpeta del mes): con el ID de cualquier otro
