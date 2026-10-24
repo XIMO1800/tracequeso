@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 7;
+const API_VERSION = 8;
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -985,6 +985,7 @@ function _doPostEscritura(payload) {
   if (payload['_SHEET'] === 'ENTRADAS') return gestionarEntradas(payload);
   if (payload['_SHEET'] === 'FOTO_ALBARAN') return guardarFotoAlbaran(payload);   // (2026-10-22)
   if (payload['_SHEET'] === 'RECEPCION') return gestionarRecepcion(payload);       // (2026-10-24)
+  if (payload['_SHEET'] === 'LOTE')      return gestionarLoteRegistros(payload);   // (2026-10-24)
   if (payload['_SHEET'] === 'STOCK')    return gestionarStock(payload);
   if (payload['_SHEET'] === 'SALIDAS_ENVASADO') return gestionarSalidasEnvasado(payload);
   if (payload['_SHEET'] === 'CLIENTE_NUEVO') return gestionarClienteNuevo(payload);
@@ -3373,6 +3374,78 @@ function gestionarVerifGrafica(payload){
 // nombre, y se devuelve el enlace para apuntarlo en la entrada (FOTO ALBARAN).
 // Es el soporte documental que pide BRC, ligado a la entrada y a su lote.
 // ══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════
+// (2026-10-24) VARIOS REGISTROS DE GOLPE (REGISTRO TOTAL)
+// ──────────────────────────────────────────────────────────────────────────
+// Alberto escaneó 20 y pico hojas de palé y cerró la app: de uno en uno, cada
+// registro tarda 2-3 s (se lee la hoja entera para ver si ya está, se escribe,
+// se fuerza el guardado y se vuelve a leer para comprobarlo), así que con 20 el
+// envío dura más de un minuto y casi nada llega. En iPhone no hay envío con la
+// app cerrada. Ahora la app manda hasta 25 juntos y aquí se hace lo mismo que en
+// el envío suelto, pero leyendo la columna ID una vez al principio y otra al
+// final, en vez de dos veces por registro:
+//   - un ID que ya está en la hoja → "duplicado" (ok, no se escribe otra vez);
+//   - cada fila nueva con appendRow, como siempre (una sola escritura por fila,
+//     con el ID PALET como texto), por si AppSheet está escribiendo a la vez;
+//   - al final, flush y comprobación: solo se confirma lo que está en la hoja.
+// Devuelve el resultado de CADA registro: la app solo quita de su libreta los
+// confirmados; lo demás sigue pendiente y se reintenta.
+// Solo registros normales: borrados, modificaciones y otras hojas van sueltos.
+// ══════════════════════════════════════════════════════════════════════════
+function gestionarLoteRegistros(payload) {
+  var out = function(o){ o.apiVer = API_VERSION; return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); };
+  var regs = Array.isArray(payload.registros) ? payload.registros.slice(0, 50) : [];
+  if (!regs.length) return out({ok:false, error:'Lote vacío'});
+  var sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var idxID = headers.indexOf('ID');
+  if (idxID < 0) return out({ok:false, error:'La hoja no tiene columna ID'});
+  var leerIds = function(){
+    var hay = {}, ult = sheet.getLastRow();
+    if (ult < 2) return hay;
+    var v = sheet.getRange(2, idxID + 1, ult - 1, 1).getValues();
+    for (var i = 0; i < v.length; i++) { var k = String(v[i][0]).trim(); if (k) hay[k] = true; }
+    return hay;
+  };
+  var hay = leerIds();
+  var resultados = [], nuevos = [];
+  regs.forEach(function(reg){
+    var id = String((reg && reg['ID']) || '').trim();
+    if (!reg || typeof reg !== 'object' || !id) { resultados.push({ID:id, ok:false, error:'Registro sin ID'}); return; }
+    if (reg['_DELETE'] || reg['_UPDATE'] || reg['_SHEET']) { resultados.push({ID:id, ok:false, error:'Este registro no va en lote'}); return; }
+    if (hay[id]) { resultados.push({ID:id, ok:true, duplicado:true}); return; }
+    try {
+      headers = _asegurarColumnasRegistroTotal(sheet, headers, reg);
+      if (reg['FECHA'] !== undefined) reg['FECHA'] = _fechaAppSheet(reg['FECHA']);
+      var idxPaletRow = headers.indexOf('ID PALET');
+      var row = headers.map(function(h, i){
+        var v = reg[h] || '';
+        if (i === idxPaletRow && v !== '' && String(v).charAt(0) !== "'") v = "'" + v;
+        return v;
+      });
+      sheet.appendRow(row);
+      hay[id] = true;
+      nuevos.push(reg);
+      resultados.push({ID:id, ok:null});      // se confirma al final
+    } catch (e) {
+      resultados.push({ID:id, ok:false, error:String(e)});
+    }
+  });
+  if (nuevos.length) {
+    SpreadsheetApp.flush();
+    var ya = leerIds();
+    resultados.forEach(function(r){
+      if (r.ok !== null) return;
+      r.ok = !!ya[r.ID];
+      if (!r.ok) r.error = 'No se pudo verificar en la hoja; se reintentará';
+    });
+    nuevos.forEach(function(reg){
+      if (ya[String(reg['ID']).trim()]) _anotarCambio(sheet, 'A', reg['ID'], reg['_QUIEN'] || reg['OPERARIO']);
+    });
+  }
+  return out({ok:true, resultados:resultados});
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 // (2026-10-24) RECEPCIONES DE MATERIAL
 // Quien descarga un camión solo hace la foto del albarán: cada envío es una fila
