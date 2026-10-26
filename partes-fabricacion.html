@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.468</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.469</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -5985,6 +5985,72 @@ function _ultimoLoteCO2Usado(){
   }catch(e){ return null; }
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// (v2.6.469) AL CAMBIAR DE BOTELLA DE CO2, LA ANTERIOR SE CIERRA
+// ──────────────────────────────────────────────────────────────────────────
+// Joaquín (22-26/10): las botellas se acaban mucho antes de lo que dice la app
+// (una dio ~12.700 L de los 25.450 apuntados) y quedaban "botellas fantasma"
+// con gas en el stock. Ahora, cuando en el parte se elige un lote de CO2 distinto
+// del que se usó en el último parte, se pregunta si el anterior está terminado y
+// lo que le queda se pone a cero con un AJUSTE (entrada negativa con su motivo).
+// Ese ajuste es además el dato real: lo que sobraba en cada botella.
+// Ojo: un mismo lote puede traer VARIAS botellas (p. ej. 50.900 L = 2). Por eso
+// se pregunta cuántas quedan llenas sin empezar, y esas no se descuentan.
+// ══════════════════════════════════════════════════════════════════════════
+var CO2_LITROS_BOTELLA = 17800;   // 35 kg (albarán Air Liquide) × ~509 L/kg
+function _cerrarBotellaCO2Anterior(loteNuevo){
+  if(!STOCK_REMOTO || !STOCK_REMOTO.stock || !STOCK_REMOTO.stock.length) return;
+  var conLote = PARTES.filter(function(p){
+    return p && p.co2 && p.co2.aplicado !== false && String(p.co2.lote||'').trim() && p.id !== CUBA_ACTIVA_ID;
+  });
+  if(!conLote.length) return;
+  conLote.sort(function(a,b){
+    var fa = String(a.fecha||'').slice(0,10), fb = String(b.fecha||'').slice(0,10);
+    if(fa !== fb) return fa < fb ? 1 : -1;
+    var ta = parseInt(String(a.id||'').replace(/\D/g,''),10)||0;
+    var tb = parseInt(String(b.id||'').replace(/\D/g,''),10)||0;
+    return tb - ta;
+  });
+  var ant = String(conLote[0].co2.lote).trim();
+  if(!ant || ant.toUpperCase() === String(loteNuevo||'').trim().toUpperCase()) return;
+  var fr = _filaStockCO2(ant);
+  if(!fr) return;
+  var queda = Math.round((parseFloat(fr.stockActual)||0)*100)/100;
+  if(!(queda > 1)) return;
+  var fmt = function(n){ return Math.round(n).toLocaleString('es-ES'); };
+  if(!confirm('Has cambiado de botella de CO2.\n\nEl lote anterior ('+ant+') figura todavía con '+fmt(queda)+' L.\n\n'
+      +'¿Se ha terminado? Si dices que sí, se pone a cero lo que le queda (queda anotado como ajuste).')) return;
+  var llenas = 0;
+  if(queda > CO2_LITROS_BOTELLA*1.05){
+    var r = prompt('Ese lote tiene más gas del que cabe en una botella: puede que trajera varias.\n\n'
+      +'¿Cuántas botellas de ese lote quedan LLENAS, sin empezar? (0 si ninguna)', '0');
+    if(r === null) return;
+    llenas = Math.max(0, parseInt(r,10)||0);
+  }
+  var guardar = Math.min(queda, llenas*CO2_LITROS_BOTELLA);
+  var ajuste = Math.round((queda - guardar)*100)/100;
+  if(!(ajuste > 0)){ toast('No se ajusta nada: lo que queda son botellas llenas'); return; }
+  var ahora = new Date(), pad = function(n){ return n<10?'0'+n:''+n; };
+  var hoyIso = ahora.getFullYear()+'-'+pad(ahora.getMonth()+1)+'-'+pad(ahora.getDate());
+  enviarEntradaSheets({
+    id: 'E-'+Date.now(), fecha: ahora.toISOString(), fentrada: hoyIso,
+    categoria: fr.categoria, articulo: fr.articulo, proveedor: fr.proveedor, lote: fr.lote,
+    cantidad: -ajuste, unidad: fr.unidad || 'L', caducidad: fr.caducidad || '',
+    operario: OPERARIO_ACTUAL || '', recibido: OPERARIO_ACTUAL || '', verificado: 'SI',
+    obs: 'Botella de CO2 cambiada en el parte: quedaban '+fmt(ajuste)+' L sin usar según la app'
+         +(llenas?(' (se conservan '+llenas+' botella'+(llenas>1?'s':'')+' llena'+(llenas>1?'s':'')+')'):'')
+  });
+  try{
+    STOCK_REMOTO.stock.forEach(function(row){
+      var n = normRowStock(row);
+      if((n.articulo.toUpperCase()==='CO2'||n.articulo==='CO₂') && n.lote.toUpperCase()===ant.toUpperCase()){
+        if(row['STOCK ACTUAL']!==undefined) row['STOCK ACTUAL'] = guardar; else row.stockActual = guardar;
+      }
+    });
+  }catch(e){}
+  toast('✅ Lote '+ant+' ajustado: −'+fmt(ajuste)+' L');
+}
+
 function obtenerLoteActivo(producto){
   if(!producto) return null;
   // 1) Si el usuario seleccionó manualmente un lote para este producto, lo respetamos
@@ -6716,6 +6782,8 @@ function seleccionarLote(producto,idx){
   if(parteActual.receta){var rid=parteActual.receta.id;document.getElementById('np-tipo').value=rid;onTipoChange();}
   iniciarCO2();
   toast('✅ Lote '+s.lote+' seleccionado');
+  // (v2.6.469) Cambio de botella de CO2: cerrar lo que le quede a la anterior.
+  if(producto==='CO2' || producto==='CO₂'){ try{ _cerrarBotellaCO2Anterior(s.lote); }catch(e){} }
   // Si ha cambiado a un lote distinto del que el sistema daba por activo, avisar a Calidad
   // por correo (mismo patrón que TraceQueso). Calidad reajustará el stock del lote agotado.
   if(esCambioReal){ try{ avisarCambioLoteCalidad(producto, loteAnterior, s.lote); }catch(e){} }
