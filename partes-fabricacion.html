@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.470</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.471</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4830,7 +4830,7 @@ function _htmlParteImpresion(p){
   // Nº CUBA = la cuba FÍSICA donde se elaboró (la que aparece en el parte de papel).
   // El nº cronológico (orden de cuajada del día) va arriba, al lado del LOTE.
   H.push('<table><tr><td class="lbl lft">CUBA Nº: <span style="font-weight:normal">'+n(p.cuba_fisica||p.cuba)+'</span></td><td class="lbl t">pH: <span style="font-weight:normal">'+n(p.ph)+'</span></td><td class="lbl t">ºD: <span style="font-weight:normal">'+n(p.dornic_leche)+'</span></td><td class="lbl t">TºC: <span style="font-weight:normal">'+n(p.temp)+'</span></td><td class="nob" colspan="2"></td></tr></table>');
-  var pcond = pa.temp ? ('Tºc '+e(pa.temp)+(pa.tiempo?(' - '+e(pa.tiempo)+'s'):'')) : '';
+  var pcond = pa.temp ? ('Tºc '+e(pa.temp)+(pa.tiempo?(' - '+e(pa.tiempo)+' min'):'')) : '';   // (v2.6.471) el tiempo va en MINUTOS (litros/15.000 L/h), no en segundos
   H.push('<div class="sec">Pasteurización</div><table><tr><td class="t lbl">Válvula desvío (C/I)</td><td class="t lbl">Fosfatasa alcalina</td><td class="t lbl">Condiciones pasteurización</td><td class="t lbl">Cruda</td><td class="nob" colspan="2"></td></tr>');
   H.push('<tr><td class="t">'+n(pa.valvula)+'</td><td class="t">'+_fosfatasaTxt(pa.fosfatasa)+'</td><td class="t">'+pcond+'</td><td class="t">'+(pa.cruda?'Sí':'')+'</td><td class="nob" colspan="2"></td></tr></table>');
   var am = p.aux_meta || {};
@@ -8691,7 +8691,7 @@ function _verParteRender(id){
     var pa='';
     pa += fila('Válvula desvío', p.pasteurizacion.valvula);
     pa += fila('Temperatura', p.pasteurizacion.temp ? p.pasteurizacion.temp+'°C' : '');
-    pa += fila('Tiempo', p.pasteurizacion.tiempo ? p.pasteurizacion.tiempo+' s' : '');
+    pa += fila('Tiempo', p.pasteurizacion.tiempo ? p.pasteurizacion.tiempo+' min' : '');
     pa += fila('Cruda', p.pasteurizacion.cruda ? 'Sí' : '');
     pa += fila('Fosfatasa', _fosfatasaTxt(p.pasteurizacion.fosfatasa));
     if(pa) h += bloque('🌡️ Pasteurización', pa);
