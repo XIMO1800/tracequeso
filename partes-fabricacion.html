@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.471</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.472</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -8597,7 +8597,7 @@ function renderPartes(){
 // ordenador se perdía. El historial se revisa a final de día en el PC, no en tablet,
 // así que aquí manda la legibilidad en pantalla grande: azul marino oscuro.
     var fmtBadge = fmtTxt ? '<span style="color:#123a5e;font-weight:800"> · '+fmtTxt+'</span>' : '';
-    h+='<div class="parte-item" onclick="verParteHist(\''+p.id+'\')"><div class="parte-item-top"><div class="parte-item-tipo">'+p.tipo+(p.variedad?' · '+p.variedad:'')+fmtBadge+badgeRev+'<span style="font-weight:800;color:var(--brand);margin-left:6px">'+(p.litros||0)+' L</span></div><div class="parte-item-badge">'+_badgeCubaFisica(p)+'</div></div><div class="parte-item-meta">'+totalPzas+' pzas · '+(p.operario||'—')+'</div></div>';
+    h+='<div class="parte-item" onclick="verParteHist(\''+p.id+'\')"><div class="parte-item-top"><div class="parte-item-tipo">'+p.tipo+(p.variedad?' · '+p.variedad:'')+fmtBadge+badgeRev+'<span style="font-weight:800;color:var(--brand);margin-left:6px">'+(p.litros||0)+' L</span></div><div style="display:flex;align-items:center;gap:6px;"><div class="parte-item-badge">'+_badgeCubaFisica(p)+'</div>'+(esCalidadOAdmin()?'<button title="Imprimir este parte" onclick="event.stopPropagation();imprimirParteLista(\''+p.id+'\')" style="border:1px solid var(--border);background:#fff;border-radius:8px;padding:3px 8px;font-size:0.95rem;cursor:pointer;line-height:1.2;">🖨️</button>':'')+'</div></div><div class="parte-item-meta">'+totalPzas+' pzas · '+(p.operario||'—')+'</div></div>';
   });
   c.innerHTML=h;
 }
@@ -8615,6 +8615,41 @@ function _badgeCubaFisica(p){
   if(fis) return 'Cuba ' + fis;
   var cro = String((p && p.cuba != null) ? p.cuba : '').trim();
   return cro ? ('Cuba ' + cro + "'") : '—';
+}
+
+// (v2.6.472) Imprimir directamente desde la lista del historial, sin abrir el
+// parte. La ventana se abre YA (al tocar), porque si se abre después de esperar
+// a Google el navegador la bloquea como ventana emergente. Si al parte le faltan
+// los ingredientes (viene del histórico de Sheets) se piden primero, como al
+// abrirlo, y luego se escribe la hoja y se lanza la impresión.
+function imprimirParteLista(id){
+  var p=PARTES.find(function(x){return x.id===id;});
+  if(!p){ toast('Parte no encontrado','err'); return; }
+  if(!esCalidadOAdmin()){ toast('Solo Calidad puede imprimir el parte','warn'); return; }
+  var w = window.open('', '_blank');
+  if(!w){ toast('Permite las ventanas emergentes para poder imprimir','warn'); return; }
+  try{ w.document.write('<p style="font-family:sans-serif;padding:30px;color:#666">Preparando el parte…</p>'); }catch(e){}
+  function pintar(){
+    try{
+      var html=_htmlParteImpresion(p);
+      w.document.open(); w.document.write(html); w.document.close();
+      setTimeout(function(){ try{ w.focus(); w.print(); }catch(e){} }, 600);
+    }catch(e){ try{ w.close(); }catch(_){} toast('No se pudo preparar la impresión: '+(e&&e.message),'err'); }
+  }
+  var sinIng = !(p.auxiliares && p.auxiliares.length) && !(p.fermentos && p.fermentos.length) && !(p.cuajo && p.cuajo.nombre);
+  if(sinIng && navigator.onLine && !p._ingFetched){
+    cargarIngredientesParte(id, function(data){
+      p._ingFetched = true;
+      if(data){
+        if(data.auxiliares && data.auxiliares.length) p.auxiliares = data.auxiliares;
+        if(data.fermentos  && data.fermentos.length)  p.fermentos  = data.fermentos;
+        if(data.cuajo && data.cuajo.nombre)           p.cuajo      = data.cuajo;
+      }
+      pintar();
+    });
+    return;
+  }
+  pintar();
 }
 
 function verParteHist(id){
