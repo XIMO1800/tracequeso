@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.469</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.470</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -9566,6 +9566,20 @@ function toggleGraficaEvolucion(id){
     if(!p){ cont.innerHTML='<div style="padding:12px;color:var(--text3)">No se encontró el parte.</div>'; }
     else {
       cont.innerHTML = _svgGraficaEvolucion(p);
+      // (v2.6.470) LA SALMUERA SIN TENER QUE PASAR POR SALADERO. Los datos del
+      // saladero solo se bajaban de Google al abrir esa pestaña, así que en un
+      // equipo donde no se había abierto, la gráfica salía sin pH, temperatura
+      // ni °Bé de la salmuera (Joaquín, 28/10). Si el día no está, se bajan ahora
+      // y se vuelve a dibujar en cuanto llegan.
+      try{
+        if(!_salmueraDelDia(p.fecha)){
+          if(!SAL_DATOS || !SAL_DATOS.length) salCargar();   // primero lo del aparato: lo pendiente no se pisa
+          salBajar(function(){
+            var c3 = document.getElementById('ep-grafica-evolucion');
+            if(c3 && c3.style.display!=='none' && _salmueraDelDia(p.fecha)) c3.innerHTML = _svgGraficaEvolucion(p);
+          });
+        }
+      }catch(e){}
       // (v2.6.436) Si el archivo del SCADA de esta cuba no está todavía a mano,
       // se pide y se vuelve a dibujar con la hora de entrada real. Mientras
       // llega ya se ve la gráfica con la hora aproximada, así que no se espera
