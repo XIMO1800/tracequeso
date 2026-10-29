@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.478</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.479</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2634,7 +2634,9 @@ function _avisoCoherenciaFormatos(p){
   // Mapa de formato (texto) → clave común. Cubre las dos nomenclaturas del sistema.
   var norm = function(f){
     if(!f) return '';
-    var s = String(f).toUpperCase().replace(/\s+/g,'').replace('KG','').replace('/','');
+    // (v2.6.479) "2 KG bajo en sal" es el mismo formato que "2 KG" (en prensado y
+    // desmoldeo no se distingue la sal): se compara como su formato base.
+    var s = String(f).toUpperCase().replace(/\s*BAJO\s*EN\s*SAL\s*$/,'').replace(/\s+/g,'').replace('KG','').replace('/','');
     var m = {'3':'3kg','2':'2kg','1':'1kg','12':'05kg','05':'05kg','BARRA':'barra','GIGANTE':'gigante'};
     return m[s] || String(f).toLowerCase().replace(/\s+/g,'').replace('kg','');
   };
@@ -2654,6 +2656,13 @@ function _avisoCoherenciaFormatos(p){
     ['3kg','2kg','1kg','05kg','barra','gigante'].forEach(function(k){
       var v = parseFloat(p.piezas[k]);
       if(!isNaN(v) && v>0) fases['Piezas'][k]=true;
+    });
+  }
+  // (v2.6.479) Las piezas "bajo en sal" van aparte (p.piezas_bajosal) y no se miraban.
+  if(p.piezas_bajosal){
+    Object.keys(p.piezas_bajosal).forEach(function(k){
+      var v = parseFloat(p.piezas_bajosal[k]);
+      if(!isNaN(v) && v>0) fases['Piezas'][norm(k)||k]=true;
     });
   }
 
