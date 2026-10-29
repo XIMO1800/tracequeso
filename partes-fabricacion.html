@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.474</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.475</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4826,6 +4826,9 @@ function _htmlParteImpresion(p){
   H.push('<table class="mt"><tr><td class="lft" colspan="2"><span class="lbl">FECHA:</span> '+fecha+'</td><td class="lft" colspan="2"><span class="lbl">TIPO DE QUESO:</span> '+n(p.tipo)+(p.variedad?(' · '+e(p.variedad)):'')+'</td><td class="lft"><span class="lbl">LOTE:</span> '+n(p.lote_queso)+'</td><td class="lft"><span class="lbl">CUAJADA Nº:</span> '+n(p.cuba)+'</td></tr></table>');
   H.push('<table class="mt"><tr><td></td><td class="t lbl">VACA</td><td class="t lbl">CABRA</td><td class="t lbl">OVEJA</td><td class="t lbl">MEZCLA</td><td class="t lbl">TOTAL</td></tr>');
   H.push('<tr><td class="lbl lft">LITROS DE LECHE</td><td class="t">'+z(p.lvaca)+'</td><td class="t">'+z(p.lcabra)+'</td><td class="t">'+z(p.loveja)+'</td><td class="t"></td><td class="t">'+n(p.litros)+'</td></tr>');
+  // (v2.6.475) CUBA Nº es la cuba FÍSICA tal como está guardada. Antes, si estaba
+  // vacía, se ponía el nº de orden de la cuajada (que ya sale en CUAJADA Nº), y al
+  // quitar la cuba en la revisada seguía imprimiéndose "2".
   // (v2.6.474) Si cada leche lleva su tanque (lo pone Calidad en la revisada de
   // las mezclas), el TOTAL no lleva tanque: la leche viene de varios sitios y el
   // "2" general del original confunde. Si no hay tanques por especie, sale el general.
@@ -4833,7 +4836,7 @@ function _htmlParteImpresion(p){
   H.push('<tr><td class="lbl lft">TANQUE PROCEDENCIA</td><td class="t">'+z(p.tanque_vaca)+'</td><td class="t">'+z(p.tanque_cabra)+'</td><td class="t">'+z(p.tanque_oveja)+'</td><td class="t"></td><td class="t">'+(_tqEsp?'':z(p.tanque))+'</td></tr></table>');
   // Nº CUBA = la cuba FÍSICA donde se elaboró (la que aparece en el parte de papel).
   // El nº cronológico (orden de cuajada del día) va arriba, al lado del LOTE.
-  H.push('<table><tr><td class="lbl lft">CUBA Nº: <span style="font-weight:normal">'+n(p.cuba_fisica||p.cuba)+'</span></td><td class="lbl t">pH: <span style="font-weight:normal">'+n(p.ph)+'</span></td><td class="lbl t">ºD: <span style="font-weight:normal">'+n(p.dornic_leche)+'</span></td><td class="lbl t">TºC: <span style="font-weight:normal">'+n(p.temp)+'</span></td><td class="nob" colspan="2"></td></tr></table>');
+  H.push('<table><tr><td class="lbl lft">CUBA Nº: <span style="font-weight:normal">'+n(p.cuba_fisica)+'</span></td><td class="lbl t">pH: <span style="font-weight:normal">'+n(p.ph)+'</span></td><td class="lbl t">ºD: <span style="font-weight:normal">'+n(p.dornic_leche)+'</span></td><td class="lbl t">TºC: <span style="font-weight:normal">'+n(p.temp)+'</span></td><td class="nob" colspan="2"></td></tr></table>');
   var pcond = pa.temp ? ('Tºc '+e(pa.temp)+(pa.tiempo?(' - '+e(pa.tiempo)+' min'):'')) : '';   // (v2.6.471) el tiempo va en MINUTOS (litros/15.000 L/h), no en segundos
   H.push('<div class="sec">Pasteurización</div><table><tr><td class="t lbl">Válvula desvío (C/I)</td><td class="t lbl">Fosfatasa alcalina</td><td class="t lbl">Condiciones pasteurización</td><td class="t lbl">Cruda</td><td class="nob" colspan="2"></td></tr>');
   H.push('<tr><td class="t">'+n(pa.valvula)+'</td><td class="t">'+_fosfatasaTxt(pa.fosfatasa)+'</td><td class="t">'+pcond+'</td><td class="t">'+(pa.cruda?'Sí':'')+'</td><td class="nob" colspan="2"></td></tr></table>');
