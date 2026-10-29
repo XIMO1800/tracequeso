@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.477</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.478</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4834,7 +4834,7 @@ function _htmlParteImpresion(p){
   // "2" general del original confunde. Si no hay tanques por especie, sale el general.
   var _tqEsp = [p.tanque_vaca,p.tanque_cabra,p.tanque_oveja].some(function(x){ return String(x==null?'':x).trim()!==''; });
   // (v2.6.477) Leche de varios tanques: "3: 3000 L · 5: 1855 L" en el total.
-  var _trp = (Array.isArray(p.tanques_reparto)?p.tanques_reparto:[]).filter(function(r){ return r && String(r.tanque||'').trim(); });
+  var _trp = (p.version==='revisado' && Array.isArray(p.tanques_reparto)?p.tanques_reparto:[]).filter(function(r){ return r && String(r.tanque||'').trim(); });
   var _tqTot = _tqEsp ? '' : (_trp.length>1 ? _trp.map(function(r){ return e(r.tanque)+(r.litros!==''&&r.litros!=null?(': '+e(r.litros)+' L'):''); }).join('<br>') : z(p.tanque));
   H.push('<tr><td class="lbl lft">TANQUE PROCEDENCIA</td><td class="t">'+z(p.tanque_vaca)+'</td><td class="t">'+z(p.tanque_cabra)+'</td><td class="t">'+z(p.tanque_oveja)+'</td><td class="t"></td><td class="t">'+_tqTot+'</td></tr></table>');
   // Nº CUBA = la cuba FÍSICA donde se elaboró (la que aparece en el parte de papel).
@@ -8726,7 +8726,7 @@ function _verParteRender(id){
   var dg = '';
   if(p.lote_queso) dg += fila('Lote queso', p.lote_queso);
   dg += fila('Litros totales', p.litros);
-  if(p.tanque && !([p.tanque_vaca,p.tanque_cabra,p.tanque_oveja].some(function(x){ return String(x==null?'':x).trim()!==''; }))) dg += fila('Tanque procedencia', ((Array.isArray(p.tanques_reparto)?p.tanques_reparto:[]).filter(function(r){return r&&String(r.tanque||'').trim();}).length>1) ? p.tanques_reparto.filter(function(r){return r&&String(r.tanque||'').trim();}).map(function(r){ return 'T'+r.tanque+(r.litros!==''&&r.litros!=null?(': '+r.litros+' L'):''); }).join(' · ') : p.tanque);   // (v2.6.474 / 477)
+  if(p.tanque && !([p.tanque_vaca,p.tanque_cabra,p.tanque_oveja].some(function(x){ return String(x==null?'':x).trim()!==''; }))) dg += fila('Tanque procedencia', ((p.version==='revisado' && Array.isArray(p.tanques_reparto)?p.tanques_reparto:[]).filter(function(r){return r&&String(r.tanque||'').trim();}).length>1) ? p.tanques_reparto.filter(function(r){return r&&String(r.tanque||'').trim();}).map(function(r){ return 'T'+r.tanque+(r.litros!==''&&r.litros!=null?(': '+r.litros+' L'):''); }).join(' · ') : p.tanque);   // (v2.6.474 / 477)
   dg += fila('L. Vaca',  p.lvaca  ? p.lvaca  +(p.tanque_vaca  ? ' (tanque '+p.tanque_vaca +')' : '') : '');
   dg += fila('L. Cabra', p.lcabra ? p.lcabra +(p.tanque_cabra ? ' (tanque '+p.tanque_cabra+')' : '') : '');
   dg += fila('L. Oveja', p.loveja ? p.loveja +(p.tanque_oveja ? ' (tanque '+p.tanque_oveja+')' : '') : '');
@@ -9879,6 +9879,8 @@ function renderEpForm(skipRecoger){
     // pero si no cabe se manda al 5 y una cuba puede llevar leche de los dos.
     // Calidad apunta cuántos litros salieron de cada tanque; se imprime así.
     var _tr = Array.isArray(p.tanques_reparto) ? p.tanques_reparto : [];
+    // (v2.6.478) Solo para Calidad: los operarios y los originales no lo ven.
+    if(typeof esCalidadOAdmin==='function' && esCalidadOAdmin()){
     h += '<div style="border-radius:8px;margin-bottom:8px;border:1px solid var(--border);overflow:hidden">'
        + '<div style="background:#F2EBDC;border-bottom:1px solid var(--border);color:var(--brand);font-size:0.72rem;font-weight:700;padding:4px 9px;display:flex;justify-content:space-between;align-items:center">'
        + '<span>Leche de varios tanques (opcional)</span>'
@@ -9899,6 +9901,7 @@ function renderEpForm(skipRecoger){
       h += '<div style="font-size:0.7rem;color:'+(Math.abs(_sumTr-_lt)<0.5?'var(--green)':'#b45309')+';font-weight:700">Suma de tanques: '+_sumTr+' L'+(_lt?(' · litros del parte: '+_lt+' L'+(Math.abs(_sumTr-_lt)<0.5?' ✓':' — no coinciden')):'')+'</div>';
     }
     h += '</div></div>';
+    }
   }
 
   // ── PASTEURIZACIÓN ──
