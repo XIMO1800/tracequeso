@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.473</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.474</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4826,7 +4826,11 @@ function _htmlParteImpresion(p){
   H.push('<table class="mt"><tr><td class="lft" colspan="2"><span class="lbl">FECHA:</span> '+fecha+'</td><td class="lft" colspan="2"><span class="lbl">TIPO DE QUESO:</span> '+n(p.tipo)+(p.variedad?(' · '+e(p.variedad)):'')+'</td><td class="lft"><span class="lbl">LOTE:</span> '+n(p.lote_queso)+'</td><td class="lft"><span class="lbl">CUAJADA Nº:</span> '+n(p.cuba)+'</td></tr></table>');
   H.push('<table class="mt"><tr><td></td><td class="t lbl">VACA</td><td class="t lbl">CABRA</td><td class="t lbl">OVEJA</td><td class="t lbl">MEZCLA</td><td class="t lbl">TOTAL</td></tr>');
   H.push('<tr><td class="lbl lft">LITROS DE LECHE</td><td class="t">'+z(p.lvaca)+'</td><td class="t">'+z(p.lcabra)+'</td><td class="t">'+z(p.loveja)+'</td><td class="t"></td><td class="t">'+n(p.litros)+'</td></tr>');
-  H.push('<tr><td class="lbl lft">TANQUE PROCEDENCIA</td><td class="t">'+z(p.tanque_vaca)+'</td><td class="t">'+z(p.tanque_cabra)+'</td><td class="t">'+z(p.tanque_oveja)+'</td><td class="t"></td><td class="t">'+z(p.tanque)+'</td></tr></table>');
+  // (v2.6.474) Si cada leche lleva su tanque (lo pone Calidad en la revisada de
+  // las mezclas), el TOTAL no lleva tanque: la leche viene de varios sitios y el
+  // "2" general del original confunde. Si no hay tanques por especie, sale el general.
+  var _tqEsp = [p.tanque_vaca,p.tanque_cabra,p.tanque_oveja].some(function(x){ return String(x==null?'':x).trim()!==''; });
+  H.push('<tr><td class="lbl lft">TANQUE PROCEDENCIA</td><td class="t">'+z(p.tanque_vaca)+'</td><td class="t">'+z(p.tanque_cabra)+'</td><td class="t">'+z(p.tanque_oveja)+'</td><td class="t"></td><td class="t">'+(_tqEsp?'':z(p.tanque))+'</td></tr></table>');
   // Nº CUBA = la cuba FÍSICA donde se elaboró (la que aparece en el parte de papel).
   // El nº cronológico (orden de cuajada del día) va arriba, al lado del LOTE.
   H.push('<table><tr><td class="lbl lft">CUBA Nº: <span style="font-weight:normal">'+n(p.cuba_fisica||p.cuba)+'</span></td><td class="lbl t">pH: <span style="font-weight:normal">'+n(p.ph)+'</span></td><td class="lbl t">ºD: <span style="font-weight:normal">'+n(p.dornic_leche)+'</span></td><td class="lbl t">TºC: <span style="font-weight:normal">'+n(p.temp)+'</span></td><td class="nob" colspan="2"></td></tr></table>');
@@ -8716,7 +8720,7 @@ function _verParteRender(id){
   var dg = '';
   if(p.lote_queso) dg += fila('Lote queso', p.lote_queso);
   dg += fila('Litros totales', p.litros);
-  if(p.tanque)        dg += fila('Tanque procedencia', p.tanque);
+  if(p.tanque && !([p.tanque_vaca,p.tanque_cabra,p.tanque_oveja].some(function(x){ return String(x==null?'':x).trim()!==''; }))) dg += fila('Tanque procedencia', p.tanque);   // (v2.6.474)
   dg += fila('L. Vaca',  p.lvaca  ? p.lvaca  +(p.tanque_vaca  ? ' (tanque '+p.tanque_vaca +')' : '') : '');
   dg += fila('L. Cabra', p.lcabra ? p.lcabra +(p.tanque_cabra ? ' (tanque '+p.tanque_cabra+')' : '') : '');
   dg += fila('L. Oveja', p.loveja ? p.loveja +(p.tanque_oveja ? ' (tanque '+p.tanque_oveja+')' : '') : '');
