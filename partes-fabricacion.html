@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.476</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.477</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4833,7 +4833,10 @@ function _htmlParteImpresion(p){
   // las mezclas), el TOTAL no lleva tanque: la leche viene de varios sitios y el
   // "2" general del original confunde. Si no hay tanques por especie, sale el general.
   var _tqEsp = [p.tanque_vaca,p.tanque_cabra,p.tanque_oveja].some(function(x){ return String(x==null?'':x).trim()!==''; });
-  H.push('<tr><td class="lbl lft">TANQUE PROCEDENCIA</td><td class="t">'+z(p.tanque_vaca)+'</td><td class="t">'+z(p.tanque_cabra)+'</td><td class="t">'+z(p.tanque_oveja)+'</td><td class="t"></td><td class="t">'+(_tqEsp?'':z(p.tanque))+'</td></tr></table>');
+  // (v2.6.477) Leche de varios tanques: "3: 3000 L · 5: 1855 L" en el total.
+  var _trp = (Array.isArray(p.tanques_reparto)?p.tanques_reparto:[]).filter(function(r){ return r && String(r.tanque||'').trim(); });
+  var _tqTot = _tqEsp ? '' : (_trp.length>1 ? _trp.map(function(r){ return e(r.tanque)+(r.litros!==''&&r.litros!=null?(': '+e(r.litros)+' L'):''); }).join('<br>') : z(p.tanque));
+  H.push('<tr><td class="lbl lft">TANQUE PROCEDENCIA</td><td class="t">'+z(p.tanque_vaca)+'</td><td class="t">'+z(p.tanque_cabra)+'</td><td class="t">'+z(p.tanque_oveja)+'</td><td class="t"></td><td class="t">'+_tqTot+'</td></tr></table>');
   // Nº CUBA = la cuba FÍSICA donde se elaboró (la que aparece en el parte de papel).
   // El nº cronológico (orden de cuajada del día) va arriba, al lado del LOTE.
   H.push('<table><tr><td class="lbl lft">CUBA Nº: <span style="font-weight:normal">'+n(p.cuba_fisica)+'</span></td><td class="lbl t">pH: <span style="font-weight:normal">'+n(p.ph)+'</span></td><td class="lbl t">ºD: <span style="font-weight:normal">'+n(p.dornic_leche)+'</span></td><td class="lbl t">TºC: <span style="font-weight:normal">'+n(p.temp)+'</span></td><td class="nob" colspan="2"></td></tr></table>');
@@ -8723,7 +8726,7 @@ function _verParteRender(id){
   var dg = '';
   if(p.lote_queso) dg += fila('Lote queso', p.lote_queso);
   dg += fila('Litros totales', p.litros);
-  if(p.tanque && !([p.tanque_vaca,p.tanque_cabra,p.tanque_oveja].some(function(x){ return String(x==null?'':x).trim()!==''; }))) dg += fila('Tanque procedencia', p.tanque);   // (v2.6.474)
+  if(p.tanque && !([p.tanque_vaca,p.tanque_cabra,p.tanque_oveja].some(function(x){ return String(x==null?'':x).trim()!==''; }))) dg += fila('Tanque procedencia', ((Array.isArray(p.tanques_reparto)?p.tanques_reparto:[]).filter(function(r){return r&&String(r.tanque||'').trim();}).length>1) ? p.tanques_reparto.filter(function(r){return r&&String(r.tanque||'').trim();}).map(function(r){ return 'T'+r.tanque+(r.litros!==''&&r.litros!=null?(': '+r.litros+' L'):''); }).join(' · ') : p.tanque);   // (v2.6.474 / 477)
   dg += fila('L. Vaca',  p.lvaca  ? p.lvaca  +(p.tanque_vaca  ? ' (tanque '+p.tanque_vaca +')' : '') : '');
   dg += fila('L. Cabra', p.lcabra ? p.lcabra +(p.tanque_cabra ? ' (tanque '+p.tanque_cabra+')' : '') : '');
   dg += fila('L. Oveja', p.loveja ? p.loveja +(p.tanque_oveja ? ' (tanque '+p.tanque_oveja+')' : '') : '');
@@ -9872,6 +9875,30 @@ function renderEpForm(skipRecoger){
        + '<div>'+_epInpC('ep-tanque', p.tanque || _tanqueDefault(p.tipo))+'</div></div>';
     h += '</div></div>';
     h += '<div style="font-size:0.68rem;color:var(--text3);margin-bottom:8px">Tanque por defecto: cabra=1, vaca=2, manchega=3, oveja=4. Editable. Varios: ej. "3+4".</div>';
+    // (v2.6.477) LECHE DE VARIOS TANQUES. Joaquín (29/10): la manchega va al 3,
+    // pero si no cabe se manda al 5 y una cuba puede llevar leche de los dos.
+    // Calidad apunta cuántos litros salieron de cada tanque; se imprime así.
+    var _tr = Array.isArray(p.tanques_reparto) ? p.tanques_reparto : [];
+    h += '<div style="border-radius:8px;margin-bottom:8px;border:1px solid var(--border);overflow:hidden">'
+       + '<div style="background:#F2EBDC;border-bottom:1px solid var(--border);color:var(--brand);font-size:0.72rem;font-weight:700;padding:4px 9px;display:flex;justify-content:space-between;align-items:center">'
+       + '<span>Leche de varios tanques (opcional)</span>'
+       + '<button type="button" onclick="_epAddTanqueRep()" style="border:1px solid var(--brand);background:#fff;color:var(--brand);border-radius:12px;padding:2px 10px;font-size:0.7rem;font-weight:700;cursor:pointer">+ Añadir tanque</button></div>'
+       + '<div style="background:var(--card);padding:7px 9px">';
+    if(!_tr.length){
+      h += '<div style="font-size:0.7rem;color:var(--text3)">Si toda la leche vino de un solo tanque, no hace falta nada aquí.</div>';
+    } else {
+      var _sumTr = 0;
+      _tr.forEach(function(t,ix){
+        _sumTr += parseFloat(t.litros)||0;
+        h += '<div style="display:grid;grid-template-columns:1fr 2fr 34px;gap:6px;align-items:end;margin-bottom:6px">'
+           + '<div>'+_epLbl('Tanque')+_epInp('ep-tr-t-'+ix, t.tanque||'')+'</div>'
+           + '<div>'+_epLbl('Litros')+_epInp('ep-tr-l-'+ix, (t.litros===undefined?'':t.litros), 'number')+'</div>'
+           + '<button type="button" onclick="_epDelTanqueRep('+ix+')" title="Quitar" style="height:30px;border:none;background:rgba(139,42,42,0.12);color:var(--brand);border-radius:6px;font-weight:700;cursor:pointer">✕</button></div>';
+      });
+      var _lt = parseFloat(p.litros)||0;
+      h += '<div style="font-size:0.7rem;color:'+(Math.abs(_sumTr-_lt)<0.5?'var(--green)':'#b45309')+';font-weight:700">Suma de tanques: '+_sumTr+' L'+(_lt?(' · litros del parte: '+_lt+' L'+(Math.abs(_sumTr-_lt)<0.5?' ✓':' — no coinciden')):'')+'</div>';
+    }
+    h += '</div></div>';
   }
 
   // ── PASTEURIZACIÓN ──
@@ -10499,6 +10526,26 @@ function _epTanqueMezclaRow(tipoLeche, label, litros, tanque){
     + '</div>';
 }
 
+// (v2.6.477) Filas de "leche de varios tanques"
+function _epAddTanqueRep(){
+  _epRecogerEnEstado();
+  var p = window._parteEditando; if(!p) return;
+  if(!Array.isArray(p.tanques_reparto)) p.tanques_reparto = [];
+  if(!p.tanques_reparto.length){
+    // Primera fila: el tanque que ya tenía, con todos los litros; la segunda, vacía.
+    p.tanques_reparto.push({tanque: String(p.tanque||'').split('+')[0].trim(), litros: p.litros||''});
+  }
+  p.tanques_reparto.push({tanque:'', litros:''});
+  var f=document.getElementById('ep-form'); if(f) f.innerHTML='';
+  renderEpForm(true);
+}
+function _epDelTanqueRep(ix){
+  _epRecogerEnEstado();
+  var p = window._parteEditando; if(!p || !Array.isArray(p.tanques_reparto)) return;
+  p.tanques_reparto.splice(ix,1);
+  var f=document.getElementById('ep-form'); if(f) f.innerHTML='';
+  renderEpForm(true);
+}
 // Añadir / eliminar elementos a las listas del parte
 function _epAdd(lista){
   _epRecogerEnEstado();
@@ -10636,6 +10683,19 @@ function _epRecogerEnEstado(){
   if(v('ep-tanque-vaca')!==undefined)  p.tanque_vaca = v('ep-tanque-vaca');
   if(v('ep-tanque-cabra')!==undefined) p.tanque_cabra = v('ep-tanque-cabra');
   if(v('ep-tanque-oveja')!==undefined) p.tanque_oveja = v('ep-tanque-oveja');
+  // (v2.6.477) Leche de varios tanques: se recogen las filas y el tanque general
+  // pasa a ser "3+5" para que todo lo demás siga funcionando igual.
+  if(Array.isArray(p.tanques_reparto) && document.getElementById('ep-tr-t-0')){
+    var _rows=[];
+    for(var _k=0; document.getElementById('ep-tr-t-'+_k); _k++){
+      var _t=String(v('ep-tr-t-'+_k)||'').trim(), _l=n('ep-tr-l-'+_k);
+      _rows.push({tanque:_t, litros:(_l===undefined?'':_l)});
+    }
+    p.tanques_reparto=_rows;
+    var _llenas=_rows.filter(function(r){ return r.tanque; });
+    if(_llenas.length>1) p.tanque=_llenas.map(function(r){ return r.tanque; }).join('+');
+    else if(_llenas.length===1) p.tanque=_llenas[0].tanque;
+  }
 
   // Generales
   if(v('ep-ph')!==undefined)       p.ph = v('ep-ph');
