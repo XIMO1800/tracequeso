@@ -605,6 +605,7 @@ function doGet(e) {
   // con todo el histórico, repetir 45 nombres de columna en cada registro
   // multiplicaba el tamaño de la descarga. Solo lo pide el modo base-en-el-móvil.
   var compacto = (e.parameter.formato === 'compacto');
+  var _kIdPalet = COLS.indexOf('ID PALET');
   for (var i = 1; i < data.length; i++) {
     var fila = data[i];
     if (!modoCompleto) {
@@ -613,7 +614,9 @@ function doGet(e) {
       if (fecha && fecha < limite) continue;
     }
     if (compacto) {
-      rows.push(idx.map(function(k){ return k >= 0 ? fila[k] : ''; }));
+      var _fc = idx.map(function(k){ return k >= 0 ? fila[k] : ''; });
+      if (_kIdPalet >= 0 && typeof _fc[_kIdPalet] === 'number') _fc[_kIdPalet] = String(_fc[_kIdPalet]);   // (2026-10-29)
+      rows.push(_fc);
       continue;
     }
     var obj = {};
@@ -621,6 +624,7 @@ function doGet(e) {
     // -1 y fila[-1] es undefined. Se deja como cadena vacía para que el móvil
     // reciba siempre la misma forma de objeto.
     COLS.forEach(function(c, j){ obj[c] = (idx[j] >= 0) ? fila[idx[j]] : ''; });
+    if (typeof obj['ID PALET'] === 'number') obj['ID PALET'] = String(obj['ID PALET']);   // (2026-10-29) siempre texto
     rows.push(obj);
   }
   var json = compacto
@@ -737,6 +741,7 @@ function _cambiosDesde(desdeTxt) {
     function aObj(fila){
       var obj = {};
       COLS.forEach(function(c, j){ obj[c] = (idx[j] >= 0) ? fila[idx[j]] : ''; });
+      if (typeof obj['ID PALET'] === 'number') obj['ID PALET'] = String(obj['ID PALET']);   // (2026-10-29) siempre texto
       return obj;
     }
     var nBuscar = Object.keys(buscar).length;
@@ -934,6 +939,7 @@ function _filasUltimosDias(dias) {
     if (fecha && fecha < limite) continue;
     var obj = {};
     COLS.forEach(function(c, j){ obj[c] = (idx[j] >= 0) ? fila[idx[j]] : ''; });
+    if (typeof obj['ID PALET'] === 'number') obj['ID PALET'] = String(obj['ID PALET']);   // (2026-10-29) siempre texto
     rows.push(obj);
   }
   return rows;
@@ -955,6 +961,7 @@ function buscarPaleCompleto(paleId) {
     if (celdaLimpia === paleIdLimpio || celda === paleId) {
       var obj = {};
       COLS.forEach(function(c, j){ obj[c] = (idx[j] >= 0) ? data[i][idx[j]] : ''; });
+      if (typeof obj['ID PALET'] === 'number') obj['ID PALET'] = String(obj['ID PALET']);   // (2026-10-29) siempre texto
       rows.push(obj);
     }
   }
@@ -1024,7 +1031,14 @@ function _doPostEscritura(payload) {
     if (filaEncontrada > -1) {
       if (payload['FECHA'] !== undefined) payload['FECHA'] = _fechaAppSheet(payload['FECHA']);
       headers.forEach(function(h, col) {
-        if (payload[h] !== undefined && !h.startsWith('_')) sheet.getRange(filaEncontrada, col+1).setValue(payload[h]);
+        if (payload[h] !== undefined && !h.startsWith('_')) {
+          // (2026-10-29) El ID PALET va SIEMPRE como texto (apóstrofo delante), igual que
+          // al crear la fila. Sin él, al corregir un registro un ID solo de cifras
+          // (826143003062) se guardaba como NÚMERO y la app fallaba al leerlo.
+          var _v = payload[h];
+          if (h === 'ID PALET' && _v !== '' && _v !== null && String(_v).charAt(0) !== "'") _v = "'" + String(_v);
+          sheet.getRange(filaEncontrada, col+1).setValue(_v);
+        }
       });
       _anotarCambio(sheet, 'M', valorIDBuscado, payload['_QUIEN'], headers, data[filaEncontrada - 1]);   // (2026-10-08)
     }
