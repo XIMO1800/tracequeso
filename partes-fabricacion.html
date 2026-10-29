@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.475</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.476</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4823,7 +4823,7 @@ function _htmlParteImpresion(p){
   H.push('table.sechd{width:192mm;border:2px solid #000}table.sechd td{background:#e6e6e6;border:none}table.sechd td.sectd{font-weight:bold;text-transform:uppercase;text-align:left}');
   H.push('</style></head><body>');
   H.push('<div class="hdr">'+(logo?'<img src="'+logo+'">':'')+'<div class="ti">PARTE DE FABRICACIÓN</div></div>');
-  H.push('<table class="mt"><tr><td class="lft" colspan="2"><span class="lbl">FECHA:</span> '+fecha+'</td><td class="lft" colspan="2"><span class="lbl">TIPO DE QUESO:</span> '+n(p.tipo)+(p.variedad?(' · '+e(p.variedad)):'')+'</td><td class="lft"><span class="lbl">LOTE:</span> '+n(p.lote_queso)+'</td><td class="lft"><span class="lbl">CUAJADA Nº:</span> '+n(p.cuba)+'</td></tr></table>');
+  H.push('<table class="mt"><tr><td class="lft" colspan="2"><span class="lbl">FECHA:</span> '+fecha+'</td><td class="lft" colspan="2"><span class="lbl">TIPO DE QUESO:</span> '+n(p.tipo)+(p.variedad?(' · '+e(p.variedad)):'')+'</td><td class="lft"><span class="lbl">LOTE:</span> '+n(p.lote_queso)+'</td><td class="lft"><span class="lbl">CUAJADA Nº:</span> '+(p.version==='revisado'?'':n(p.cuba))+'</td></tr></table>');   // (v2.6.476) en la versión de Calidad, en blanco
   H.push('<table class="mt"><tr><td></td><td class="t lbl">VACA</td><td class="t lbl">CABRA</td><td class="t lbl">OVEJA</td><td class="t lbl">MEZCLA</td><td class="t lbl">TOTAL</td></tr>');
   H.push('<tr><td class="lbl lft">LITROS DE LECHE</td><td class="t">'+z(p.lvaca)+'</td><td class="t">'+z(p.lcabra)+'</td><td class="t">'+z(p.loveja)+'</td><td class="t"></td><td class="t">'+n(p.litros)+'</td></tr>');
   // (v2.6.475) CUBA Nº es la cuba FÍSICA tal como está guardada. Antes, si estaba
