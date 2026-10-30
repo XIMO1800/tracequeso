@@ -179,7 +179,7 @@ td.obs{white-space:normal;max-width:320px;color:var(--muted)}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v1';
+var VER = 'v2';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // de momento, solo Joaquín
@@ -283,7 +283,15 @@ function idbEscribir(obj){
 // SESIÓN (la de TraceQueso)
 // ═══════════════════════════════════════════════════════════════════════════
 var CU=null;
+// (v2) Tres sitios, por orden. El primero falló en el PC de la oficina: con la
+// memoria del navegador llena, TraceQueso no llega a guardar 'tq_sesion' (por eso
+// además pedía el PIN cada vez) y aquí salía "entra con tu PIN" en bucle.
+//  1) Lo que deja TraceQueso al pulsar el logo (sessionStorage, se hereda).
+//  2) La pestaña de TraceQueso que nos abrió (window.opener), si sigue abierta.
+//  3) La sesión guardada de TraceQueso (localStorage 'tq_sesion').
 function leerSesion(){
+  try{ var s=JSON.parse(sessionStorage.getItem('tq_of_u')||'null'); if(s && s.n) return s; }catch(e){}
+  try{ if(window.opener && window.opener.CU && window.opener.CU.n){ var o=JSON.parse(JSON.stringify(window.opener.CU)); try{ sessionStorage.setItem('tq_of_u', JSON.stringify(o)); }catch(_){} return o; } }catch(e){}
   try{
     var d=JSON.parse(localStorage.getItem('tq_sesion')||'null');
     if(!d||!d.u||!d.ts) return null;
@@ -647,7 +655,7 @@ function exportarCSV(){
   CU=leerSesion();
   var nombre=CU?String(CU.n||'').toUpperCase():'';
   if(!CU){
-    $('bloq-m').innerHTML='Entra primero en TraceQueso con tu PIN y vuelve a abrir esta página desde el logo de El Hidalgo.';
+    $('bloq-m').innerHTML='Abre esta página desde TraceQueso: entra con tu PIN y, en la pantalla de inicio, pulsa el <b>logo de El Hidalgo</b> de arriba a la izquierda.<br><br>Puedes cerrar esta pestaña.';
     $('bloq').hidden=false; return;
   }
   if(PERMITIDOS.indexOf(nombre)<0){
