@@ -155,6 +155,32 @@ tr.cad td{background:var(--warn-soft)}
 .sumlote span{display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase}
 .sumlote b{font-family:var(--display);font-size:24px}
 .fotoalb{max-width:100%;border:1px solid var(--line);border-radius:8px;margin-top:8px;cursor:zoom-in}
+.mov.clic{cursor:pointer}.mov.clic:hover{background:var(--brand-soft)}
+.volver{margin-bottom:10px}
+.ent-wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
+@media (min-width:1600px){.ent-wrap{grid-template-columns:minmax(0,1.3fr) minmax(380px,1fr)}}
+@media (max-width:1100px){.ent-wrap{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.card h3{margin:0 0 10px;font-family:var(--display);font-size:20px;color:var(--brand);text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:8px}
+.card h3 small{font-family:var(--body);font-size:13px;text-transform:none;letter-spacing:0;color:var(--muted);font-weight:500}
+.g3>.fld{order:1}.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 14px}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 14px}
+.fld{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.fld.full{grid-column:1/-1}
+.fld input,.fld select,.fld textarea{border:1.5px solid var(--line);border-radius:7px;padding:7px 9px;background:#fff;color:var(--ink);font-size:15.5px;font-weight:500;text-transform:none;letter-spacing:0;width:100%}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.fld .req{color:var(--bad)}
+table.lin{font-size:15px}
+table.lin td{padding:4px 4px;border-bottom:1px solid #eee7e8;white-space:normal}
+table.lin th{cursor:default;position:static;white-space:normal;padding:6px 4px}
+table.lin input,table.lin select{border:1.5px solid var(--line);border-radius:6px;padding:6px 7px;width:100%;font-size:15px;background:#fff}
+.ci{display:flex;gap:4px}
+.ci button{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:7px;padding:7px 4px;font-weight:700;font-size:14.5px;cursor:pointer;color:var(--ink);white-space:nowrap}
+.ci button.okk{background:var(--ok);border-color:var(--ok);color:#fff}
+.ci button.mal{background:var(--bad);border-color:var(--bad);color:#fff}
+.fotobox{background:var(--surface2);border:2px dashed var(--line);border-radius:12px;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;text-align:center;color:var(--muted)}
+.fotobox img{max-width:100%;border-radius:8px;cursor:zoom-in}
+.pruebas{background:var(--warn-soft);border:1px solid #efd9a9;color:#6b4300;border-radius:10px;padding:8px 12px;font-size:14px;margin-bottom:12px}
 .lnkb{background:none;border:0;color:var(--brand);font-weight:700;cursor:pointer;padding:0;text-decoration:underline;font-size:inherit}
 
 /* (v4) Barra lateral clara: va al final para mandar sobre lo de arriba. */
@@ -224,7 +250,7 @@ tr.cad td{background:var(--warn-soft)}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v5';
+var VER = 'v6';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // de momento, solo Joaquín
@@ -483,7 +509,7 @@ document.addEventListener('click', function(e){
   if(g){ var k=g.getAttribute('data-g'); PLEG[k]=!PLEG[k]; try{ localStorage.setItem('tqof_pleg',JSON.stringify(PLEG)); }catch(_){} pintarMenu(); return; }
   var b=e.target.closest('#nav button');
   if(b){
-    if(b.getAttribute('data-url')){ window.open(b.getAttribute('data-url'),'_blank'); return; }
+    if(b.getAttribute('data-url')){ if(/partes-fabricacion/.test(b.getAttribute('data-url'))) handoffPartes(); window.open(b.getAttribute('data-url'),'_blank'); return; }
     var v=b.getAttribute('data-v'); if(v) ir(v);
   }
 });
@@ -706,7 +732,7 @@ function exportarCSV(){
 // Dar entradas, salidas y correcciones se sigue haciendo en TraceQueso.
 // ═══════════════════════════════════════════════════════════════════════════
 var MAT={stock:[], ent:[], sal:[], rec:[], cargado:false, cargando:false, err:''};
-var MF={tab:'stock', cat:'', q:'', conStock:true, desde:'', hasta:''};
+var MF={tab:'entradas', cat:'', q:'', conStock:true, desde:'', hasta:''};
 try{ var _mf=JSON.parse(sessionStorage.getItem('tqof_mf')||'null'); if(_mf) for(var k2 in _mf) MF[k2]=_mf[k2]; }catch(e){}
 function guardarMF(){ try{ sessionStorage.setItem('tqof_mf', JSON.stringify(MF)); }catch(e){} }
 
@@ -799,14 +825,14 @@ function vistaMat(){
     +'<div style="flex:1"></div><div style="align-self:center;text-align:right;font-size:13px;color:var(--muted)">Datos de las '+fHora(MAT.hora)+'<br><button class="btn" onclick="cargarMat(true);this.disabled=true;this.textContent=\'Cargando…\'">⟳ Recargar</button></div>'
     +'</div>';
   h+='<div class="tabs">'
-    +'<button data-mt="stock" class="'+(MF.tab==='stock'?'on':'')+'">📦 Stock</button>'
     +'<button data-mt="entradas" class="'+(MF.tab==='entradas'?'on':'')+'">📥 Entradas</button>'
+    +'<button data-mt="stock" class="'+(MF.tab==='stock'?'on':'')+'">📦 Stock</button>'
     +'<button data-mt="salidas" class="'+(MF.tab==='salidas'?'on':'')+'">📤 Consumos</button>'
     +'<button data-mt="rec" class="'+(MF.tab==='rec'?'on':'')+'">📷 Recepciones'+(nRec?'<span class="n">'+nRec+'</span>':'')+'</button>'
     +'</div><div id="mt-body"></div>';
   $('cont').innerHTML=h;
   document.querySelectorAll('.tabs button').forEach(function(b){ b.onclick=function(){ MF.tab=b.getAttribute('data-mt'); guardarMF(); vistaMat(); }; });
-  if(MF.tab==='entradas') matEntradas();
+  if(MF.tab==='entradas') matFormEntrada();
   else if(MF.tab==='salidas') matSalidas();
   else if(MF.tab==='rec') matRecepciones();
   else matTablaStock(st);
@@ -872,22 +898,25 @@ function fichaLote(x){
   $('p-sub').textContent=x.cat+(x.prov?(' · '+x.prov):'')+(x.cad?(' · caduca '+dmy(x.cad)):'');
   var h='<div class="sumlote"><div><span>Entró</span><b style="color:var(--ok)">'+fNum(tE)+'</b> '+esc(x.uni)+'</div><div><span>Consumido</span><b style="color:var(--bad)">'+fNum(tS)+'</b> '+esc(x.uni)+'</div><div><span>Queda</span><b>'+fNum(tE-tS)+'</b> '+esc(x.uni)+'</div></div>';
   h+='<h3 style="font-family:var(--display);margin:6px 0">📥 Entradas ('+ents.length+')</h3>';
+  MAT._fichaEnts=ents; MAT._fichaSals=sals; MAT._fichaLote=x;
   ents.forEach(function(e,i){
     var c=num(gEnt(e,['CANTIDAD','cantidad'])), aj=c<0, foto=String(gEnt(e,['FOTO ALBARAN','foto'])||'');
-    h+='<div class="mov '+(aj?'aj':'ent')+'"><div><b>'+(aj?'⚖️ Ajuste':dmy(diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha']))))+'</b>'
+    h+='<div class="mov '+(aj?'aj':'ent')+' clic" data-ent="'+i+'" title="Ver la entrada"><div><b>'+(aj?'⚖️ Ajuste':dmy(diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha']))))+'</b>'
       +'<div style="font-size:13px;color:var(--muted)">'
       +[gEnt(e,['ALBARAN','albaran'])?('Albarán '+esc(gEnt(e,['ALBARAN','albaran']))):'', gEnt(e,['CADUCIDAD','caducidad'])?('Cad. '+dmy(diaKey(gEnt(e,['CADUCIDAD','caducidad'])))):'', esc(gEnt(e,['ESTADO','estado'])), esc(gEnt(e,['OBSERVACIONES','OBSERVACION','OBS','obs']))].filter(Boolean).join(' · ')
       +'</div>'+(fotoId(foto)?'<button class="lnkb" data-foto="'+esc(foto)+'">📷 Ver albarán</button><div class="fotoh"></div>':'')+'</div>'
-      +'<div class="q" style="color:'+(aj?'#9c5c00':'var(--ok)')+'">'+(aj?'':'+')+fNum(c)+' '+esc(gEnt(e,['UNIDAD','unidad'])||x.uni)+'</div></div>';
+      +'<div class="q" style="color:'+(aj?'#9c5c00':'var(--ok)')+'">'+(aj?'':'+')+fNum(c)+' '+esc(gEnt(e,['UNIDAD','unidad'])||x.uni)+' ›</div></div>';
   });
   h+='<h3 style="font-family:var(--display);margin:14px 0 6px">📤 Consumos ('+sals.length+')</h3>';
   if(!sals.length) h+='<div style="color:var(--muted)">Sin consumos.</div>';
-  sals.forEach(function(s){
-    h+='<div class="mov sal"><div><b>'+dmy(diaKey(s.FECHA||s.fecha))+'</b><div style="font-size:13px;color:var(--muted)">'+esc(s.MOTIVO||s.motivo||'')+(s['ID PARTE']?(' · '+esc(s['ID PARTE'])):'')+'</div></div>'
-      +'<div class="q" style="color:var(--bad)">−'+fNum(s.CANTIDAD||s.cantidad)+' '+esc(x.uni)+'</div></div>';
+  sals.forEach(function(s,i){
+    h+='<div class="mov sal'+(s['ID PARTE']?' clic':'')+'" data-sal="'+i+'" title="'+(s['ID PARTE']?'Abrir el registro que lo consumió':'')+'"><div><b>'+dmy(diaKey(s.FECHA||s.fecha))+'</b><div style="font-size:13px;color:var(--muted)">'+esc(s.MOTIVO||s.motivo||'')+(s['ID PARTE']?(' · '+esc(s['ID PARTE'])):'')+'</div></div>'
+      +'<div class="q" style="color:var(--bad)">−'+fNum(s.CANTIDAD||s.cantidad)+' '+esc(x.uni)+(s['ID PARTE']?' ›':'')+'</div></div>';
   });
   $('p-body').innerHTML=h;
-  $('p-body').querySelectorAll('[data-foto]').forEach(function(b){ b.onclick=function(){ verFoto(b.getAttribute('data-foto'), b.nextElementSibling); }; });
+  $('p-body').querySelectorAll('[data-foto]').forEach(function(b){ b.onclick=function(ev){ ev.stopPropagation(); verFoto(b.getAttribute('data-foto'), b.nextElementSibling); }; });
+  $('p-body').querySelectorAll('[data-ent]').forEach(function(d){ d.onclick=function(){ fichaEntrada(MAT._fichaEnts[+d.getAttribute('data-ent')], MAT._fichaLote); }; });
+  $('p-body').querySelectorAll('[data-sal]').forEach(function(d){ d.onclick=function(){ abrirOrigen(MAT._fichaSals[+d.getAttribute('data-sal')]); }; });
   $('panel').hidden=false; $('velo').hidden=false;
 }
 function fotoId(url){ url=String(url||''); var m=url.match(/\/d\/([A-Za-z0-9_-]{10,})/)||url.match(/[?&]id=([A-Za-z0-9_-]{10,})/); return m?m[1]:''; }
@@ -906,6 +935,7 @@ function verFoto(url, dest){
 
 // ── ENTRADAS ──
 function matEntradas(soloTabla){
+  // (v6) Ahora es el HISTORIAL que va debajo del formulario de entrada.
   var r=rangoMat();
   var lista=MAT.ent.map(function(e){
     return {e:e, f:diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha'])), cat:String(gEnt(e,['CATEGORIA','CATEGORÍA','categoria'])), art:String(gEnt(e,['ARTICULO','ARTÍCULO','articulo'])),
@@ -919,7 +949,7 @@ function matEntradas(soloTabla){
   }).sort(function(a,b){ return b.f.localeCompare(a.f); });
   MAT._listaEnt=lista;
   if(!soloTabla){
-    $('mt-body').innerHTML='<div class="filt"><label>Desde<input type="date" id="m-desde" value="'+esc(r.ini)+'"></label><label>Hasta<input type="date" id="m-hasta" value="'+esc(MF.hasta)+'"></label>'
+    $('m-hist').innerHTML='<div class="filt"><label>Desde<input type="date" id="m-desde" value="'+esc(r.ini)+'"></label><label>Hasta<input type="date" id="m-hasta" value="'+esc(MF.hasta)+'"></label>'
       +selCat(catsDe(MAT.ent,function(e){ return String(gEnt(e,['CATEGORIA','CATEGORÍA','categoria'])); }))
       +'<label>Buscar<input type="search" id="m-q" placeholder="artículo, proveedor, lote, albarán…" value="'+esc(MF.q)+'"></label>'
       +'<div style="flex:1"></div><button class="btn" onclick="csvMat(\'entradas\')">⬇ Excel (CSV)</button></div><div class="tbl-wrap" id="m-tbl"></div>';
@@ -932,9 +962,7 @@ function matEntradas(soloTabla){
       +'<td class="num">'+fNum(x.cant)+'</td><td>'+esc(x.uni)+'</td><td>'+dmy(x.cad)+'</td><td>'+esc(x.alb)+'</td><td>'+esc(x.est)+'</td><td>'+(fotoId(x.foto)?'📷':'')+'</td></tr>';
   });
   $('m-tbl').innerHTML=h+'</tbody></table>';
-  $('m-tbl').querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(!tr) return; var x=MAT._listaEnt[+tr.getAttribute('data-i')];
-    var st=matStock().filter(function(s){ return nrm(s.art)===nrm(x.art) && nrm(s.lote)===nrm(x.lote); })[0] || {art:x.art, lote:x.lote, cat:x.cat, prov:x.prov, uni:x.uni, cad:x.cad};
-    fichaLote(st); };
+  $('m-tbl').querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(!tr) return; fichaEntrada(MAT._listaEnt[+tr.getAttribute('data-i')].e); };
 }
 
 // ── CONSUMOS ──
@@ -997,6 +1025,249 @@ function matRecepciones(){
     $('p-body').innerHTML=h2; $('panel').hidden=false; $('velo').hidden=false;
     var hs=$('p-body').querySelectorAll('.fotoh'); fotos.forEach(function(u,i){ verFoto(u, hs[i]); });
   };
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// (v6) REGISTRO DE ENTRADA — formato de escritorio
+// Joaquín (30/10): "Entradas" es para METER una entrada, como en TraceQueso,
+// pero con formato de ordenador. Mismos datos que la ficha del móvil
+// (renderMatEntrada / guardarMatEntrada): fecha, categoría, artículo,
+// proveedor, albarán, foto, lote, caducidad, cantidad, unidad, control de
+// recepción (estado, etiqueta, camión C/I, Tª camión, acciones correctoras),
+// firma y observaciones.
+// Lo nuevo del escritorio:
+//  · Un albarán trae varios artículos: la cabecera (fecha, proveedor, albarán,
+//    foto y control) se rellena UNA vez y debajo van las LÍNEAS (una por lote).
+//  · La foto del albarán se ve a la derecha mientras se escribe, grande.
+//  · Se puede partir de una RECEPCIÓN pendiente (la foto que hizo quien descargó).
+// EN PRUEBAS: de momento NO GUARDA. El botón enseña lo que se grabaría.
+// ═══════════════════════════════════════════════════════════════════════════
+var CATS_FIJAS=['AUXILIAR FABRICACION','CUAJO','FERMENTO','PLASTICO','CONDIMENTOS','CARTONAJE','RECUBRIMIENTOS PLASTICOS'];
+var UNIDADES=['unidades','kg','g','L','ml'];
+var EF=null;   // el formulario en curso
+function efNuevo(){
+  return {fecha:isoDia(new Date()), prov:'', alb:'', rec:'', firma:'', obs:'',
+          estado:'', etiqueta:'', camion:'', temp:'', acciones:'',
+          foto:null, fotoNombre:'', lineas:[efLinea()]};
+}
+function efLinea(){ return {cat:'', art:'', lote:'', cad:'', cant:'', uni:''}; }
+function catalogo(){
+  var cats={}, arts={}, provs={}, uniArt={}, provArt={};
+  CATS_FIJAS.forEach(function(c){ cats[c]=1; });
+  MAT.stock.forEach(function(s){
+    var c=String(s.CATEGORIA||s['CATEGORÍA']||s.categoria||'').trim(), a=String(s.ARTICULO||s['ARTÍCULO']||s.articulo||'').trim(), p=String(s.PROVEEDOR||s.proveedor||'').trim();
+    if(c){ cats[c]=1; (arts[c]=arts[c]||{})[a]=1; }
+    if(p) provs[p]=1;
+    if(a){ var u=String(s.UNIDAD||s.unidad||'').trim(); if(u) uniArt[a]=u; if(p) provArt[a]=p; }
+  });
+  MAT.ent.forEach(function(e){ var p=String(gEnt(e,['PROVEEDOR','proveedor'])).trim(); if(p) provs[p]=1; });
+  return {cats:Object.keys(cats).sort(), arts:arts, provs:Object.keys(provs).sort(), uniArt:uniArt, provArt:provArt};
+}
+function operarios(){
+  try{ var u=JSON.parse(localStorage.getItem('tq_operarios')||'null'); if(u&&u.length) return u.map(function(x){ return String(x.n||'').trim(); }).filter(Boolean).sort(); }catch(e){}
+  return [];
+}
+function ciBtns(campo){
+  var v=EF[campo];
+  return '<div class="ci" data-ci="'+campo+'"><button data-v="C" class="'+(v==='C'?'okk':'')+'">Correcto</button><button data-v="I" class="'+(v==='I'?'mal':'')+'">Incorrecto</button></div>';
+}
+function matFormEntrada(){
+  if(!EF) EF=efNuevo();
+  var cat=catalogo(), ops=operarios(), pend=recPend();
+  var h='<div class="pruebas">🧪 <b>En pruebas.</b> Puedes rellenarlo entero para ver cómo queda, pero <b>todavía no guarda</b>: las entradas se siguen dando en TraceQueso. Cuando lo des por bueno, se activa.</div>';
+  h+='<div class="ent-wrap"><div>';
+  // ── De una recepción ──
+  if(pend.length){
+    h+='<div class="card"><h3>📷 ¿Viene de una recepción? <small>la foto que hizo quien descargó</small></h3>'
+      +'<div class="fld full"><select id="ef-rec"><option value="">— No, entrada nueva —</option>'
+      +pend.map(function(r,i){ var d=parseFecha(r.FECHA); return '<option value="'+i+'"'+(EF.rec===String(i)?' selected':'')+'>'+(d?(fDia(d)+' '+fHora(d)):'')+' · '+esc(r['RECIBIDO POR']||'')+' · '+String(r.FOTOS||'').split('|').filter(Boolean).length+' foto(s)</option>'; }).join('')
+      +'</select></div></div>';
+  }
+  // ── Cabecera del albarán ──
+  h+='<div class="card"><h3>🧾 Albarán</h3><div class="g4">'
+    +'<label class="fld">Fecha de entrada *<input type="date" id="ef-fecha" value="'+esc(EF.fecha)+'"></label>'
+    +'<label class="fld" style="grid-column:span 2">Proveedor *<input id="ef-prov" list="dl-prov" value="'+esc(EF.prov)+'" placeholder="Escribe o elige…" autocomplete="off"></label>'
+    +'<label class="fld">Nº albarán<input id="ef-alb" value="'+esc(EF.alb)+'" autocomplete="off"></label>'
+    +'</div><datalist id="dl-prov">'+cat.provs.map(function(p){ return '<option value="'+esc(p)+'">'; }).join('')+'</datalist></div>';
+  // ── Líneas ──
+  h+='<div class="card"><h3>📦 Material recibido <small>una línea por artículo y lote</small></h3>'
+    +'<table class="lin" style="table-layout:fixed"><thead><tr><th style="width:17%">Categoría *</th><th style="width:24%">Artículo *</th><th style="width:13%">Lote *</th><th style="width:15%">Caducidad</th><th style="width:12%">Cantidad *</th><th style="width:13%">Unidad *</th><th style="width:6%"></th></tr></thead><tbody>';
+  EF.lineas.forEach(function(l,i){
+    var artsCat=Object.keys((cat.arts[l.cat]||{})).sort();
+    h+='<tr data-l="'+i+'">'
+      +'<td><select data-f="cat"><option value="">—</option>'+cat.cats.map(function(c){ return '<option'+(l.cat===c?' selected':'')+'>'+esc(c)+'</option>'; }).join('')+'</select></td>'
+      +'<td><select data-f="art"><option value="">'+(l.cat?'— Elige —':'— Antes la categoría —')+'</option>'+artsCat.map(function(a){ return '<option'+(l.art===a?' selected':'')+'>'+esc(a)+'</option>'; }).join('')
+        +(l.art && artsCat.indexOf(l.art)<0?'<option selected>'+esc(l.art)+'</option>':'')+(l.cat?'<option value="__NEW__">➕ Nuevo artículo…</option>':'')+'</select></td>'
+      +'<td><input data-f="lote" value="'+esc(l.lote)+'" autocomplete="off" style="text-transform:uppercase"></td>'
+      +'<td><input type="date" data-f="cad" value="'+esc(l.cad)+'"></td>'
+      +'<td><input type="number" step="0.01" data-f="cant" value="'+esc(l.cant)+'" inputmode="decimal"></td>'
+      +'<td><select data-f="uni">'+UNIDADES.map(function(u){ return '<option'+(l.uni===u?' selected':'')+'>'+u+'</option>'; }).join('')+'</select></td>'
+      +'<td>'+(EF.lineas.length>1?'<button class="btn" data-quita="'+i+'" title="Quitar línea">✕</button>':'')+'</td></tr>';
+  });
+  h+='</tbody></table><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">'
+    +'<button class="btn" id="ef-mas" style="white-space:nowrap">➕ Añadir otra línea</button>'
+    +'<span style="font-size:13px;color:var(--muted)">Cantidad negativa (−25) = ajuste o baja por merma: explica el motivo en observaciones.</span></div></div>';
+  // ── Control de recepción ──
+  var hayI = EF.estado==='I'||EF.etiqueta==='I'||EF.camion==='I';
+  h+='<div class="card"><h3>✔️ Control de recepción</h3><div class="g3">'
+    +'<div class="fld">Estado'+ciBtns('estado')+'</div>'
+    +'<div class="fld">Etiqueta'+ciBtns('etiqueta')+'</div>'
+    +'<div class="fld">Condiciones camión'+ciBtns('camion')+'</div>'
+    +'<label class="fld">Tª camión (°C)<input type="number" step="0.1" id="ef-temp" value="'+esc(EF.temp)+'" placeholder="Ej: 4"></label>'
+    +'<label class="fld full" style="order:9;'+(hayI?'':'opacity:.6')+'">Acciones correctoras '+(hayI?'<span class="req">* (hay algo incorrecto)</span>':'')+'<input id="ef-acc" value="'+esc(EF.acciones)+'" placeholder="Solo si algo viene incorrecto"></label>'
+    +'<label class="fld">Firma (responsable)'+(ops.length?('<select id="ef-firma"><option value="">— Elige —</option>'+ops.map(function(o){ return '<option'+(EF.firma===o?' selected':'')+'>'+esc(o)+'</option>'; }).join('')+'</select>'):'<input id="ef-firma" value="'+esc(EF.firma)+'">')+'</label>'
+    +'<label class="fld">Observaciones<input id="ef-obs" value="'+esc(EF.obs)+'" placeholder="Opcional"></label>'
+    +'</div></div>';
+  h+='<div class="errbanner" id="ef-err" style="display:none;background:var(--bad-soft);border:1px solid #f0b4b6;color:var(--bad);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:600"></div>'
+    +'<div style="display:flex;gap:10px;margin-bottom:18px"><button class="btn pri" id="ef-ok" style="font-size:17px;padding:12px 22px">💾 Registrar entrada</button><button class="btn" id="ef-limpiar">Empezar de nuevo</button></div>';
+  h+='</div>';
+  // ── Columna derecha: la foto ──
+  h+='<div style="position:sticky;top:80px"><div class="card"><h3>📄 Foto del albarán <small>'+(isAdminCal()?'':'obligatoria')+'</small></h3>'
+    +'<div class="fotobox" id="ef-fotobox">'+(EF.foto?'':'<div style="font-size:42px">📄</div><div style="margin:8px 0 12px">Sin foto todavía</div>')+'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:10px;align-items:center"><label class="btn" style="cursor:pointer">📎 Elegir archivo<input type="file" id="ef-foto" accept="image/*,application/pdf" hidden></label><span style="font-size:13px;color:var(--muted)" id="ef-fotonom">'+esc(EF.fotoNombre)+'</span></div>'
+    +'</div></div>';
+  h+='</div>';
+  h+='<h3 style="font-family:var(--display);font-size:22px;margin:20px 0 8px;color:var(--brand)">📚 Entradas registradas</h3><div id="m-hist"></div>';
+  $('mt-body').innerHTML=h;
+  efPintarFoto();
+  efEnlazar(cat);
+  matEntradas();
+}
+// El parte de fabricación entra sin PIN si encuentra este "relevo" (igual que
+// cuando se abre desde TraceQueso).
+function handoffPartes(){ try{ localStorage.setItem('tq_partes_handoff', JSON.stringify({operario:CU?CU.n:'', rol:CU?CU.rol:'', ts:Date.now()})); }catch(e){} }
+function isAdminCal(){ return CU && (rolTiene(CU.rol,'ADMIN')||rolTiene(CU.rol,'CALIDAD')); }
+function efLeer(){
+  if(!$('ef-fecha')) return;
+  EF.fecha=$('ef-fecha').value; EF.prov=$('ef-prov').value.trim().toUpperCase(); EF.alb=$('ef-alb').value.trim();
+  EF.temp=$('ef-temp').value; EF.acciones=$('ef-acc').value; EF.firma=$('ef-firma').value; EF.obs=$('ef-obs').value;
+  document.querySelectorAll('table.lin tbody tr').forEach(function(tr){
+    var l=EF.lineas[+tr.getAttribute('data-l')]; if(!l) return;
+    tr.querySelectorAll('[data-f]').forEach(function(el){ var f=el.getAttribute('data-f'); if(f!=='art'||el.value!=='__NEW__') l[f]=(f==='lote')?el.value.trim().toUpperCase():el.value; });
+  });
+}
+function efEnlazar(cat){
+  if($('ef-rec')) $('ef-rec').onchange=function(){
+    efLeer(); EF.rec=this.value;
+    var r=EF.rec!==''?recPend()[+EF.rec]:null;
+    if(r){ var d=parseFecha(r.FECHA); if(d) EF.fecha=isoDia(d); EF.foto=null; EF.fotoNombre=''; }
+    matFormEntrada();
+  };
+  document.querySelectorAll('table.lin tbody tr').forEach(function(tr){
+    var i=+tr.getAttribute('data-l');
+    tr.querySelector('[data-f="cat"]').onchange=function(){ efLeer(); EF.lineas[i].cat=this.value; EF.lineas[i].art=''; matFormEntrada(); };
+    tr.querySelector('[data-f="art"]').onchange=function(){
+      efLeer(); var v=this.value, l=EF.lineas[i];
+      if(v==='__NEW__'){ var n=prompt('Nombre del artículo nuevo:'); if(!n||!n.trim()){ matFormEntrada(); return; } v=n.trim().toUpperCase(); }
+      l.art=v;
+      if(cat.uniArt[v]) l.uni=cat.uniArt[v];
+      if(!EF.prov && cat.provArt[v]) EF.prov=cat.provArt[v];
+      matFormEntrada();
+    };
+  });
+  document.querySelectorAll('[data-quita]').forEach(function(b){ b.onclick=function(){ efLeer(); EF.lineas.splice(+b.getAttribute('data-quita'),1); matFormEntrada(); }; });
+  $('ef-mas').onclick=function(){ efLeer(); var u=EF.lineas[EF.lineas.length-1]; var n=efLinea(); if(u){ n.cat=u.cat; n.uni=u.uni; } EF.lineas.push(n); matFormEntrada(); };
+  document.querySelectorAll('[data-ci]').forEach(function(g){ g.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ efLeer(); var c=g.getAttribute('data-ci'), v=b.getAttribute('data-v'); EF[c]=(EF[c]===v)?'':v; matFormEntrada(); }; }); });
+  $('ef-foto').onchange=function(){
+    var f=this.files&&this.files[0]; if(!f) return; efLeer();
+    var rd=new FileReader(); rd.onload=function(){ EF.foto=rd.result; EF.fotoNombre=f.name; EF.rec=''; matFormEntrada(); }; rd.readAsDataURL(f);
+  };
+  $('ef-limpiar').onclick=function(){ if(confirm('¿Borrar todo lo escrito y empezar de nuevo?')){ EF=efNuevo(); matFormEntrada(); } };
+  $('ef-ok').onclick=efRegistrar;
+}
+function efPintarFoto(){
+  var box=$('ef-fotobox'); if(!box) return;
+  if(EF.foto){
+    if(/^data:application\/pdf/.test(EF.foto)) box.innerHTML='<embed src="'+EF.foto+'" type="application/pdf" style="width:100%;height:560px">';
+    else { box.innerHTML='<img src="'+EF.foto+'" title="Pulsa para verla grande">'; box.querySelector('img').onclick=function(){ var w=window.open(); if(w) w.document.write('<img src="'+EF.foto+'" style="max-width:100%">'); }; }
+    return;
+  }
+  if(EF.rec!==''){
+    var r=recPend()[+EF.rec]; if(!r) return;
+    var fotos=String(r.FOTOS||'').split('|').map(function(x){ return x.trim(); }).filter(Boolean);
+    box.innerHTML=fotos.map(function(){ return '<div class="fotoh" style="width:100%;margin-bottom:8px"></div>'; }).join('')||'Esta recepción no tiene fotos.';
+    var hs=box.querySelectorAll('.fotoh'); fotos.forEach(function(u,i){ verFoto(u, hs[i]); });
+  }
+}
+// Comprueba lo mismo que guardarMatEntrada() del móvil y enseña lo que se grabaría.
+function efRegistrar(){
+  efLeer();
+  var err=[];
+  if(!EF.fecha) err.push('Falta la fecha de entrada.');
+  if(!EF.prov) err.push('Falta el proveedor.');
+  if(!isAdminCal() && !EF.foto && EF.rec==='') err.push('Falta la foto del albarán.');
+  var lineas=EF.lineas.filter(function(l){ return l.cat||l.art||l.lote||l.cant; });
+  if(!lineas.length) err.push('No hay ninguna línea de material.');
+  lineas.forEach(function(l,i){
+    var n='Línea '+(i+1)+': ';
+    if(!l.cat) err.push(n+'falta la categoría.');
+    if(!l.art) err.push(n+'falta el artículo.');
+    if(!l.lote) err.push(n+'falta el lote.');
+    if(!l.cant || !num(l.cant)) err.push(n+'falta la cantidad.');
+    if(!l.uni) err.push(n+'falta la unidad.');
+    if(num(l.cant)<0 && !EF.obs.trim()) err.push(n+'es negativa (ajuste): explica el motivo en observaciones.');
+    if(l.cad && l.cad<isoDia(new Date())) err.push(n+'la caducidad ya ha pasado ('+dmy(l.cad)+').');
+    var ya=MAT.ent.filter(function(e){ return nrm(gEnt(e,['ARTICULO','ARTÍCULO','articulo']))===nrm(l.art) && nrm(gEnt(e,['LOTE','lote']))===nrm(l.lote); }).length;
+    if(ya && l.art && l.lote) err.push(n+'⚠️ ya hay '+ya+' entrada(s) de '+l.art+' con el lote '+l.lote+'. Si es otra partida del mismo lote, es correcto; si no, revisa.');
+  });
+  if((EF.estado==='I'||EF.etiqueta==='I'||EF.camion==='I') && !EF.acciones.trim()) err.push('Hay algo incorrecto en el control: escribe las acciones correctoras.');
+  var e=$('ef-err');
+  if(err.length){ e.innerHTML=err.map(esc).join('<br>'); e.style.display='block'; e.scrollIntoView({block:'center',behavior:'smooth'}); return; }
+  e.style.display='none';
+  // Lo que se grabaría: una fila de ENTRADAS MATERIAL AUXILIAR por línea.
+  var h='<div class="pruebas">🧪 En pruebas: esto es lo que se <b>grabaría</b>. Todavía no se ha guardado nada.</div>';
+  lineas.forEach(function(l,i){
+    var fila={'FECHA ENTRADA':dmy(EF.fecha),'CATEGORIA':l.cat,'ARTICULO':l.art,'PROVEEDOR':EF.prov,'LOTE':l.lote,'CADUCIDAD':l.cad?dmy(l.cad):'','CANTIDAD':l.cant,'UNIDAD':l.uni,'ALBARAN':EF.alb,
+      'ESTADO':EF.estado,'ETIQUETA':EF.etiqueta,'CONDICIONES CAMION':EF.camion,'TEMP CAMION':EF.temp,'ACCIONES CORRECTORAS':EF.acciones,'FIRMA':EF.firma,'OBSERVACIONES':EF.obs,
+      'FOTO ALBARAN':EF.foto?('(se subiría '+EF.fotoNombre+')'):(EF.rec!==''?'(fotos de la recepción)':'')};
+    h+='<h3 style="font-family:var(--display);margin:10px 0 6px">Línea '+(i+1)+' · '+esc(l.art)+'</h3><div class="ficha">';
+    Object.keys(fila).forEach(function(k){ if(fila[k]!=='' && fila[k]!=null) h+='<div class="k">'+esc(k)+'</div><div class="v">'+esc(fila[k])+'</div>'; });
+    h+='</div>';
+  });
+  $('p-tit').textContent='Entrada de material · '+lineas.length+' línea'+(lineas.length>1?'s':'');
+  $('p-sub').textContent=EF.prov+(EF.alb?(' · albarán '+EF.alb):'')+' · '+dmy(EF.fecha);
+  $('p-body').innerHTML=h; $('panel').hidden=false; $('velo').hidden=false;
+}
+
+// Ficha de UNA entrada (todos sus datos y la foto del albarán).
+function fichaEntrada(e, lote){
+  if(!e) return;
+  var art=gEnt(e,['ARTICULO','ARTÍCULO','articulo']), lt=gEnt(e,['LOTE','lote']);
+  $('p-tit').textContent='Entrada · '+art;
+  $('p-sub').textContent='Lote '+lt+' · '+dmy(diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha'])));
+  var CI={C:'Correcto',I:'Incorrecto'};
+  var campos=[['Fecha de entrada',dmy(diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha'])))],['Categoría',gEnt(e,['CATEGORIA','CATEGORÍA','categoria'])],['Artículo',art],
+    ['Proveedor',gEnt(e,['PROVEEDOR','proveedor'])],['Lote',lt],['Caducidad',dmy(diaKey(gEnt(e,['CADUCIDAD','caducidad'])))],
+    ['Cantidad',fNum(gEnt(e,['CANTIDAD','cantidad']))+' '+gEnt(e,['UNIDAD','unidad'])],['Nº albarán',gEnt(e,['ALBARAN','albaran'])],
+    ['Estado',CI[gEnt(e,['ESTADO','estado'])]||gEnt(e,['ESTADO','estado'])],['Etiqueta',CI[gEnt(e,['ETIQUETA','etiqueta'])]||gEnt(e,['ETIQUETA','etiqueta'])],
+    ['Condiciones camión',CI[gEnt(e,['CONDICIONES CAMION','camion'])]||gEnt(e,['CONDICIONES CAMION','camion'])],['Tª camión',gEnt(e,['TEMP CAMION','temp'])],
+    ['Acciones correctoras',gEnt(e,['ACCIONES CORRECTORAS','acciones'])],['Firma',gEnt(e,['FIRMA','firma'])],['Observaciones',gEnt(e,['OBSERVACIONES','OBSERVACION','OBS','obs'])],
+    ['ID de la entrada',gEnt(e,['ID ENTRADA','id'])]];
+  var h=(lote?'<button class="btn volver" id="p-volver">← Volver al lote</button>':'')+'<div class="ficha">';
+  campos.forEach(function(c){ if(c[1]!==''&&c[1]!=null&&String(c[1]).trim()!=='') h+='<div class="k">'+esc(c[0])+'</div><div class="v">'+esc(c[1])+'</div>'; });
+  h+='</div>';
+  var foto=String(gEnt(e,['FOTO ALBARAN','foto'])||'');
+  h+=fotoId(foto)?'<h3 style="font-family:var(--display);margin:14px 0 4px">📄 Albarán</h3><div id="p-foto"></div>':'<p style="color:var(--muted)">Esta entrada no tiene foto del albarán.</p>';
+  h+='<p style="font-size:13px;color:var(--muted);margin-top:12px">Solo consulta. Para corregirla, de momento, desde TraceQueso.</p>';
+  $('p-body').innerHTML=h; $('panel').hidden=false; $('velo').hidden=false;
+  if(fotoId(foto)) verFoto(foto, $('p-foto'));
+  if(lote && $('p-volver')) $('p-volver').onclick=function(){ fichaLote(lote); };
+}
+// Del consumo al registro que lo generó: un parte (P-…) abre el parte de
+// fabricación; un envasado u otro registro (ID-…) abre su ficha.
+function abrirOrigen(s){
+  var id=String(s['ID PARTE']||'').trim(), m=nrm(s.MOTIVO||s.motivo);
+  if(!id) return;
+  if(m.indexOf('PARTE')>=0 || id.indexOf('P-')===0){
+    var f=diaKey(s.FECHA||s.fecha);
+    handoffPartes();
+    window.open('partes-fabricacion.html?parte='+encodeURIComponent(id)+(f?('&fecha='+encodeURIComponent(f)):''),'_blank');
+    return;
+  }
+  var r=ROWS.filter(function(x){ return String(x['ID']||'').trim()===id; })[0];
+  if(r){ abrirFicha(r); return; }
+  alert('Registro '+id+'\n\nNo está entre los datos de este ordenador. Pulsa "Actualizar datos" y vuelve a intentarlo.');
 }
 
 function csvMat(tipo){
