@@ -242,6 +242,24 @@ table.lin input,table.lin select{border:1.5px solid var(--line);border-radius:6p
 .totart:hover{border-color:var(--brand)}
 .totart.on{background:#fff;border:2px solid var(--brand);box-shadow:0 1px 3px rgba(90,40,20,.15)}
 .totart.on span{color:var(--brand)}
+.tz-cab{background:#fff;border:1px solid var(--line);border-left:5px solid var(--brand);border-radius:12px;padding:14px 18px;margin-bottom:14px;display:flex;gap:18px 30px;flex-wrap:wrap;align-items:center}
+.tz-lote{font-family:var(--display);font-size:34px;color:var(--brand);line-height:1}
+.tz-fab{font-size:16px;color:var(--muted);margin-top:4px}
+.tz-tipos{display:flex;flex-direction:column;gap:3px;font-size:15px;flex:1;min-width:240px}
+.tz-blq{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 16px 12px;margin-bottom:14px}
+.tz-pales{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
+.tz-pale{background:#fff;border:1px solid #d9c3c7;border-radius:8px;padding:6px 10px;cursor:pointer;text-align:left;font-size:14px}
+.tz-pale:hover{border-color:var(--brand)}
+.tz-pale small{display:block;color:var(--muted);font-size:12px}
+table.tz-t td{white-space:normal}
+table.tz-t td:first-child{white-space:nowrap}
+tr.tz-vol td{color:var(--muted);background:#faf6f2}
+.tz-parte{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:#fff}
+.tz-ph{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:15px;margin-bottom:8px}
+.tz-ph .btn{margin-left:auto}
+.tz-pg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:8px;font-size:14.5px}
+.tz-pg span{display:block;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+@media print{ #side,.filt,#velo,#panel,.top .who{display:none!important} #main{margin:0!important} .tbl-wrap{max-height:none!important;overflow:visible!important} body{background:#fff} }
 a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 #sf-ok{font-size:16px!important;padding:9px 18px!important}
 #ef-ok{font-size:16px!important;padding:9px 18px!important}
@@ -293,7 +311,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v13';
+var VER = 'v14';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // de momento, solo Joaquín
@@ -506,14 +524,16 @@ var MENU=[
     {id:'registros', t:'Registros'},
     {id:'stock', t:'Stock por salas', pronto:1},
     {id:'plan', t:'Plan de trabajo', pronto:1},
-    {id:'traz', t:'Trazabilidad por lote', pronto:1},
-    {id:'pale', t:'Historial de palé', pronto:1},
+    {id:'traz', t:'Trazabilidad por lote'},
+    {id:'pale', t:'Historial de palé'},
     {t:'Partes de fabricación', url:'partes-fabricacion.html'}
   ]},
   // (v5) Joaquín 30/10: las gráficas del SCADA van con los partes de
   // fabricación, no aquí. Calidad ve los registros y los partes desde Producción.
   {g:'CALIDAD', items:[
     {id:'mat', t:'Material auxiliar'},
+    {id:'trazq', t:'Trazabilidad por lote'},
+    {id:'trazinv', t:'Trazabilidad inversa'},
     {t:'Corregir registros', pronto:1},
     {t:'Analíticas de leche', pronto:1},
     {t:'Informes de auditoría', pronto:1}
@@ -560,6 +580,9 @@ function ir(v){ VISTA=v; try{ localStorage.setItem('tqof_vista',v); }catch(_){} 
 function refrescar(){
   if(VISTA==='registros') vistaRegistros();
   else if(VISTA==='mat') vistaMat();
+  else if(VISTA==='traz' || VISTA==='trazq') vistaTraz();
+  else if(VISTA==='trazinv') vistaTrazInv();
+  else if(VISTA==='pale') vistaPale();
   else vistaInicio();
 }
 
@@ -809,7 +832,7 @@ function cargarMat(forzar){
     MAT.rec=(r[1]&&r[1].ok&&r[1].data)||[];
     MAT.cargado=true;
   }).catch(function(e){ MAT.err=e.message||String(e); })
-  .then(function(){ MAT.cargando=false; MAT.hora=new Date(); if(VISTA==='mat') vistaMat(); });
+  .then(function(){ MAT.cargando=false; MAT.hora=new Date(); if(VISTA==='mat') vistaMat(); else if(VISTA==='trazinv') tiLista(); });
 }
 
 // Stock por LOTE, normalizado (las cabeceras de la hoja varían de acento).
@@ -1562,6 +1585,444 @@ function csvMat(tipo){
   var txt='﻿'+cab.join(';')+'\r\n'+filas.map(function(f){ return f.map(c).join(';'); }).join('\r\n');
   var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'text/csv;charset=utf-8'}));
   a.download='material_'+tipo+'_'+isoDia(new Date())+'.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// (v14) TRAZABILIDAD — la de TraceQueso, pasada a escritorio (Joaquín, 30/10).
+//   · Por lote de queso: cabecera del lote, parte de fabricación de origen
+//     (con sus fermentos, cuajo y auxiliares), y por formato sus palés y la
+//     historia en orden cronológico (los volteos agrupados, como en el móvil).
+//   · Inversa: de un lote de material (antifúngico, pintura, plásticos,
+//     condimentos, etiquetas, fermento, cuajo…) a los lotes de queso y palés
+//     donde se usó.
+//   · Historial de palé: todos los registros de un palé.
+// Mismas reglas que index.html (parsearId, fecha de fabricación desde el ID,
+// agrupación de volteos). Solo consulta.
+// ═══════════════════════════════════════════════════════════════════════════
+var TQMAP={'1':'MEZCLA','2':'OVEJA','3':'D.O. PAST.','4':'D.O. CRUDA','5':'CABRA','6':'OVEJA CRUDA','7':'FINOS','8':'MESNERA'};
+var FMAP={'1':'1 KG','2':'2 KG','3':'3 KG','4':'BARRA','5':'SUPERMINIS'};
+// Copia de parsearId() de index.html
+function parsearId(id){
+  id=String(id==null?'':id);
+  var base=id.split('*')[0], tieneEspacio=(base.charAt(6)===' ');
+  var c6=base.charAt(6), c7=base.charAt(7), nPale;
+  var isDOc=(base.replace(/\s/g,'').charAt(0)==='3'||base.replace(/\s/g,'').charAt(0)==='4');
+  if(c6===' '){ nPale=(base.length>=13)?(parseInt(c7+(base.charAt(8)||''))||0):(parseInt(c7)||0); }
+  else if(isDOc){ nPale=parseInt(c6+(c7||''))||0; }
+  else { nPale=parseInt(c7)||0; }
+  var dig=base.replace(/\s/g,'').replace(/\D/g,'');
+  var tipo=TQMAP[dig.charAt(0)]||'?';
+  var isDO=(dig.charAt(0)==='3'||dig.charAt(0)==='4');
+  var lote=isDO?dig.substring(0,6):dig.substring(0,7);
+  var fmtD,piezas;
+  if(tieneEspacio){ if(base.length>=13){ fmtD=base.charAt(9); piezas=parseInt(base.substring(10,13))||0; } else { fmtD=base.charAt(8); piezas=parseInt(base.substring(9,12))||0; } }
+  else { fmtD=dig.charAt(8); piezas=parseInt(dig.substring(9,12))||0; }
+  var mV=id.match(/\*([^!]+)/), mL=id.match(/!(.+)/);
+  return {tipo:tipo, lote:lote, nPale:nPale, fmt:FMAP[fmtD]||'—', fmtD:fmtD, piezas:piezas, variedad:mV?mV[1].trim():'', loteCorto:mL?mL[1].trim():'', isDO:isDO, dig:dig};
+}
+// Fecha de fabricación (aaaa-mm-dd) desde los dígitos: tipo·AA·SEMANA·DÍA(1=lunes)
+function fechaFabKey(id){
+  var d=String(id||'').replace(/\s/g,'').replace(/\D/g,'');
+  if(d.length<6) return '';
+  var a=2000+parseInt(d.substring(1,3),10), s=parseInt(d.substring(3,5),10), di=parseInt(d.charAt(5),10);
+  if(!a||!s||!di||di>7) return '';
+  var e1=new Date(a,0,1,12), dow=e1.getDay()||7;
+  return isoDia(new Date(a,0,1-(dow-1)+(s-1)*7+(di-1),12));
+}
+// Lo contrario: de una fecha a "AA SEMANA DÍA" (5 dígitos), para ir del parte al lote.
+function claveFechaLote(k){
+  var m=String(k||'').match(/^(\d{4})-(\d{2})-(\d{2})/); if(!m) return '';
+  var f=new Date(+m[1],+m[2]-1,+m[3],12), e1=new Date(+m[1],0,1,12), dow=e1.getDay()||7;
+  var lun=new Date(+m[1],0,1-(dow-1),12);
+  var sem=Math.floor(Math.round((f-lun)/864e5)/7)+1, di=f.getDay()||7;
+  return m[1].substring(2)+pad(sem)+di;
+}
+function clavePalet(id){ var i=parsearId(id); return [i.tipo, i.variedad, i.fmt].filter(function(x){ return x && x!=='—' && x!=='?'; }).join(' · ')||'Sin clasificar'; }
+function pesoFmt(f){ var s=String(f||'').toUpperCase(); if(s.indexOf('GIGANTE')>=0) return 0; if(s.indexOf('BARRA')>=0) return 99.6; if(s.indexOf('1/2')>=0||s.indexOf('SUPERMINI')>=0) return 99.7; var m=s.match(/(\d+)\s*KG/); return m?100-parseFloat(m[1]):900; }
+function ordenClave(a,b){ var pa=pesoFmt(a.split('·').pop()), pb=pesoFmt(b.split('·').pop()); return pa!==pb?pa-pb:(a<b?-1:(a>b?1:0)); }
+function secDe(r){ return String(r['SECCIÓN']||'').trim().toUpperCase(); }
+function pidDe(r){ return String(r['ID PALET']||'').trim(); }
+function piezasDe(r){ var n=parseInt(r['Nº DE PIEZAS'],10); return n||parsearId(pidDe(r)).piezas||0; }
+function partirLotes(v){
+  var s=String(v==null?'':v).trim(); if(!s) return [];
+  var out=[], vis={};
+  s.split(/\s*\|\s*|\s*;\s*|[\r\n]+|\s*,\s*|\s+\/\s+/).forEach(function(t){
+    var x=String(t||'').trim().replace(/\s+/g,' ');
+    if(!x || x.indexOf('*')>=0 || x.indexOf('!')>=0 || /^\d{11,}$/.test(x.replace(/\s/g,''))) return;
+    var k=x.toUpperCase().replace(/\s/g,''); if(vis[k]) return; vis[k]=1; out.push(x);
+  });
+  return out;
+}
+// Materiales de envasado con su columna (las dos variantes de nombre que hay en la hoja).
+var MAT_ENV=[
+  {n:'Bobina / termoformado tapa', cols:['TERMOFORMADO (Lote tapa)','REFERENCIA BOBINA TAPA'], g:'Plásticos de envasado'},
+  {n:'Bobina / termoformado fondo', cols:['TERMOFORMADO (Lote fondo)','REFERENCIA BOBINA FONDO'], g:'Plásticos de envasado'},
+  {n:'Bolsa de campana', cols:['MATERIAL ENVASADO CAMPANA. (Lote bolsa)','LOTE BOLSA FILM'], g:'Plásticos de envasado'},
+  {n:'Aceite', cols:['LOTE ACEITE'], g:'Condimentos y otros'},
+  {n:'Trufa', cols:['LOTE TRUFA'], g:'Condimentos y otros'},
+  {n:'Manteca', cols:['LOTE MANTECA'], g:'Condimentos y otros'},
+  {n:'Romero', cols:['LOTE ROMERO'], g:'Condimentos y otros'},
+  {n:'Finas hierbas', cols:['LOTE FINAS HIERBAS'], g:'Condimentos y otros'},
+  {n:'Pimienta', cols:['LOTE PIMIENTA'], g:'Condimentos y otros'},
+  {n:'Etiquetas', cols:['LOTE ETIQUETAS'], g:'Etiquetas'}
+];
+function lotesEnv(r, m){ var o=[]; m.cols.forEach(function(c){ partirLotes(r[c]).forEach(function(l){ if(o.indexOf(l)<0) o.push(l); }); }); return o; }
+
+// ── Partes de fabricación de un día (con caché) ──
+var PDIA={};
+function partesDelDia(f){
+  if(PDIA[f]) return Promise.resolve(PDIA[f]);
+  return fetchJSON(API_URL+'?tipo=partes&fecha='+encodeURIComponent(f)).then(function(j){
+    var l=((j&&j.ok&&j.data)||[]).map(function(row){
+      var p={}; try{ p=JSON.parse(row.JSON||'{}')||{}; }catch(e){}
+      p.id=p.id||row.ID; p.fecha=row.FECHA||p.fecha;
+      if(row.CUBA!==undefined && row.CUBA!=='') p.cuba=row.CUBA;
+      if(row['CUBA FISICA']!==undefined && row['CUBA FISICA']!=='') p.cuba_fisica=row['CUBA FISICA'];
+      if(!p.tipo) p.tipo=row['TIPO DE QUESO']||''; if(!p.variedad) p.variedad=row.VARIEDAD||'';
+      if(!p.litros) p.litros=row.LITROS||''; if(!p.operario) p.operario=row.OPERARIO||'';
+      p._rev=(p.version==='revisado'||String(p.id||'').indexOf('PR-')===0);
+      p._orig=p._rev?(p.original_id||p.id_original||''):p.id;
+      return p;
+    });
+    // Una entrada por parte: la REVISADA si la hay (la oficial para auditoría).
+    var porO={}; l.forEach(function(p){ var k=p._orig||p.id; if(!porO[k] || p._rev) porO[k]=p; });
+    PDIA[f]=Object.keys(porO).map(function(k){ return porO[k]; });
+    return PDIA[f];
+  });
+}
+function partesDeLote(lote, fechaK){
+  return partesDelDia(fechaK).then(function(ps){
+    var L=nrm(lote), cuba=L.length>=7?L.charAt(6):'';
+    var exact=ps.filter(function(p){ return nrm(p.lote_queso)===L; });
+    if(exact.length) return {ps:exact, como:'el parte tiene apuntado este lote'};
+    if(cuba){
+      var c1=ps.filter(function(p){ return String(p.cuba)===cuba; });
+      if(c1.length) return {ps:c1, como:'fecha de fabricación y cuba nº '+cuba+' del día'};
+      var c2=ps.filter(function(p){ return String(p.cuba_fisica)===cuba; });
+      if(c2.length) return {ps:c2, como:'fecha de fabricación y cuba física '+cuba};
+    }
+    return {ps:ps, como:'', todos:true};
+  });
+}
+function abrirParte(id, f){ handoffPartes(); window.open('partes-fabricacion.html?parte='+encodeURIComponent(id)+(f?('&fecha='+encodeURIComponent(f)):''),'_blank'); }
+
+// ═══ VISTA: TRAZABILIDAD POR LOTE ═══
+var TZ={q:'', lote:'', pales:[]};
+try{ var _tz=JSON.parse(sessionStorage.getItem('tqof_tz')||'null'); if(_tz) TZ.q=_tz.q||''; }catch(e){}
+function vistaTraz(){
+  $('t-tit').textContent='Trazabilidad por lote';
+  $('t-sub').textContent='Lote de queso → parte de fabricación, palés, tratamientos, envasado y ventas';
+  $('cont').innerHTML='<div class="filt"><label>Lote de queso, lote corto D.O. o ID de palé<input type="search" id="tz-q" style="min-width:320px;font-size:18px" placeholder="Ej: 2263341  ·  2263341 22108" value="'+esc(TZ.q)+'"></label>'
+    +'<button class="btn pri" id="tz-ok">🔎 Buscar</button><div style="flex:1"></div><button class="btn" id="tz-imp">🖨 Imprimir</button></div><div id="tz-res"></div>';
+  $('tz-ok').onclick=function(){ tzBuscar($('tz-q').value); };
+  $('tz-q').onkeydown=function(e){ if(e.key==='Enter') tzBuscar(this.value); };
+  $('tz-imp').onclick=function(){ window.print(); };
+  if(TZ.q) tzBuscar(TZ.q); else $('tz-res').innerHTML='<div class="vacio">Escribe un lote (mínimo 5 cifras) y pulsa Buscar.<br><br>Un lote de queso son las 7 primeras cifras del palé (las D.O., 6 o su lote corto).</div>';
+  setTimeout(function(){ try{ $('tz-q').focus(); }catch(e){} },50);
+}
+function tzLoteDeEntrada(q){
+  q=String(q||'').trim(); var d=q.replace(/\s/g,'');
+  if(/^\d{9,}/.test(d) || q.indexOf('*')>=0){ var i=parsearId(q); return i.isDO&&i.loteCorto?i.loteCorto:i.lote; }
+  return d;
+}
+function tzBuscar(q){
+  TZ.q=String(q||'').trim(); try{ sessionStorage.setItem('tqof_tz',JSON.stringify({q:TZ.q})); }catch(e){}
+  var lote=tzLoteDeEntrada(TZ.q);
+  if(lote.length<5 && !/[A-Za-z]/.test(lote)){ $('tz-res').innerHTML='<div class="vacio">Pon al menos 5 cifras.</div>'; return; }
+  var set={};
+  ROWS.forEach(function(r){
+    var pid=pidDe(r); if(!pid) return;
+    var dig=pid.split('*')[0].replace(/\s/g,'').replace(/\D/g,''), mL=pid.match(/!(.+)/), lc=mL?mL[1].trim():'';
+    if(lc===lote || dig.substring(0,7)===lote || dig.substring(0,6)===lote || dig.indexOf(lote)===0 || nrm(r['LOTE QUESO'])===nrm(lote)) set[pid]=1;
+  });
+  var pales=Object.keys(set).sort();
+  TZ.lote=lote; TZ.pales=pales;
+  if(!pales.length){ $('tz-res').innerHTML='<div class="vacio">No hay palés del lote <b>'+esc(lote)+'</b> en los registros de este ordenador ('+fmtN(ROWS.length)+' registros).</div>'; return; }
+  tzPintar(lote, pales);
+}
+function tzPintar(lote, pales){
+  var setP={}; pales.forEach(function(p){ setP[p]=1; });
+  var regs=ROWS.filter(function(r){ return setP[pidDe(r)]; }).sort(function(a,b){ return a.__t-b.__t; });
+  var tipos={}, pzT=0, fabs={};
+  pales.forEach(function(p){ var k=clavePalet(p); tipos[k]=(tipos[k]||0)+1; pzT+=parsearId(p).piezas||0; var f=fechaFabKey(p); if(f) fabs[f]=1; });
+  var fk=Object.keys(fabs).sort(), fabTxt=fk.length?(fk.length===1?dmy(fk[0]):dmy(fk[0])+' — '+dmy(fk[fk.length-1])):'';
+  // Resumen de lo que ha pasado con el lote
+  var env=0, ven=0, noApt=0;
+  regs.forEach(function(r){ var s=secDe(r);
+    if(s==='ENVASADO') env+=piezasDe(r);
+    if(s==='VENTA PARCIAL') ven+=piezasDe(r);
+    if(s==='MOVIMIENTO' && /VENTA/i.test(String(r['SALA DESTINO']||''))) ven+=piezasDe(r);
+    noApt+=parseInt(r['Nº PIEZAS NO APTAS']||r['PIEZAS NO APTAS']||0,10)||0; });
+  var h='<div class="tz-cab"><div><div class="tz-lote">Lote '+esc(lote)+'</div>'+(fabTxt?'<div class="tz-fab">Fabricado el '+fabTxt+'</div>':'')+'</div>'
+    +'<div class="tz-tipos">'+Object.keys(tipos).sort(ordenClave).map(function(t){ return '<span><b>'+esc(t)+'</b> ('+tipos[t]+' palé'+(tipos[t]>1?'s':'')+')</span>'; }).join('')+'</div>'
+    +'<div class="kpis" style="margin:0">'
+      +'<div class="kpi"><span>Palés</span><b>'+pales.length+'</b></div>'
+      +'<div class="kpi"><span>Piezas (según palés)</span><b>'+fmtN(pzT)+'</b></div>'
+      +'<div class="kpi"><span>Envasadas</span><b>'+fmtN(env)+'</b></div>'
+      +'<div class="kpi"><span>A venta</span><b>'+fmtN(ven)+'</b></div>'
+      +(noApt?'<div class="kpi aviso"><span>No aptas</span><b>'+fmtN(noApt)+'</b></div>':'')
+    +'</div></div>';
+  h+='<div class="tz-blq" id="tz-parte"><h3 class="pbt">🧀 Origen · parte de fabricación</h3><p class="sinv">'+(fk.length?'Buscando el parte del '+dmy(fk[0])+'…':'No se puede saber la fecha de fabricación de este lote.')+'</p></div>';
+  // Un bloque por formato
+  var porF={}; pales.forEach(function(p){ var k=clavePalet(p); (porF[k]=porF[k]||[]).push(p); });
+  TZ.filas=[];
+  Object.keys(porF).sort(ordenClave).forEach(function(k){
+    var pk=porF[k], sk={}; pk.forEach(function(p){ sk[p]=1; });
+    var fil=tzFilas(regs.filter(function(r){ return sk[pidDe(r)]; }));
+    var base=TZ.filas.length; TZ.filas=TZ.filas.concat(fil);
+    var pz=0; pk.forEach(function(p){ pz+=parsearId(p).piezas||0; });
+    h+='<div class="tz-blq"><h3 class="pbt">'+esc(k)+' <small class="cnt">'+pk.length+' palé'+(pk.length>1?'s':'')+(pz?' · '+fmtN(pz)+' piezas':'')+'</small></h3>'
+      +'<div class="tz-pales">'+pk.map(function(p){ var i=parsearId(p); return '<button class="tz-pale" data-pale="'+esc(p)+'"><span class="mono">'+esc(p)+'</span>'+(i.piezas?'<small>'+i.piezas+' pzas · '+esc(tzUbic(p))+'</small>':'')+'</button>'; }).join('')+'</div>'
+      +tzTabla(fil, base)+'</div>';
+  });
+  $('tz-res').innerHTML=h;
+  $('tz-res').onclick=function(ev){
+    var b=ev.target.closest('[data-pale]'); if(b){ verPale(b.getAttribute('data-pale')); return; }
+    var tr=ev.target.closest('tr[data-f]'); if(tr){ tzAccion(TZ.filas[+tr.getAttribute('data-f')]); return; }
+    var pp=ev.target.closest('[data-parte]'); if(pp){ abrirParte(pp.getAttribute('data-parte'), pp.getAttribute('data-fecha')); return; }
+    var lm=ev.target.closest('[data-mat]'); if(lm){ ev.preventDefault(); var a=lm.getAttribute('data-mat').split('|'); var st=(MAT.cargado?matStock():[]).filter(function(s){ return nrm(s.art)===nrm(a[0]) && nrm(s.lote)===nrm(a[1]); })[0]; if(st) fichaLote(st); else { MF.tab='traz'; } }
+  };
+  if(fk.length) tzParte(lote, fk[0]);
+}
+// Última ubicación conocida del palé (última sala de destino registrada).
+function tzUbic(pid){
+  var u='', t=0;
+  ROWS.forEach(function(r){ if(pidDe(r)!==pid) return; var d=String(r['SALA DESTINO']||'').trim(); if(d && r.__t>=t){ t=r.__t; u=d; } });
+  return u?sl(u):'—';
+}
+function tzFilas(regs){
+  var g={};
+  regs.forEach(function(r){
+    var sec=secDe(r); if(!sec || sec==='DESDOBLAMIENTO' || !r.__f) return;
+    var fk=isoDia(r.__f), prod=String(r['PRODUCTO']||'').trim(), lp=String(r['LOTE PRODUCTO']||'').trim(), ex='';
+    if(sec==='MOVIMIENTO') ex=sl(r['SALA ORIGEN'])+' → '+sl(r['SALA DESTINO']);
+    else if(sec==='ENVASADO') ex=MAT_ENV.map(function(m){ var l=lotesEnv(r,m); return l.length?(m.n.toLowerCase()+' '+l.join('/')):''; }).filter(Boolean).join(' · ');
+    var k=sec+'|'+fk+'|'+prod+'|'+lp+'|'+ex;
+    var o=g[k]||(g[k]={sec:sec, fk:fk, prod:prod, lp:lp, ex:ex, pz:0, pales:{}, regs:[]});
+    var pid=pidDe(r); if(!o.pales[pid]){ o.pales[pid]=1; o.pz+=piezasDe(r); }
+    o.regs.push(r);
+  });
+  var l=Object.keys(g).map(function(k){ return g[k]; }).sort(function(a,b){ return a.fk<b.fk?-1:(a.fk>b.fk?1:0); });
+  var out=[], buf=[];
+  function volcar(){ if(!buf.length) return; var p={}, regs=[], fs=[]; buf.forEach(function(x){ Object.keys(x.pales).forEach(function(k){ p[k]=1; }); regs=regs.concat(x.regs); if(fs.indexOf(x.fk)<0) fs.push(x.fk); });
+    out.push({sec:'VOLTEO', vol:true, n:fs.length, fk:buf[0].fk, fk2:buf[buf.length-1].fk, pales:p, pz:0, regs:regs}); buf=[]; }
+  l.forEach(function(x){ if(x.sec==='VOLTEO'){ buf.push(x); return; } volcar(); out.push(x); });
+  volcar();
+  return out;
+}
+var SEC_TXT={'1ª CAPA':'🫧 1ª capa antifúngico','2ª CAPA':'🫧 2ª capa antifúngico','VOLTEO':'🔄 Volteo','MOVIMIENTO':'🚚 Movimiento','PINTURA':'🎨 Pintura / encerado','ENVASADO':'🧀 Envasado','VENTA PARCIAL':'🏷️ Venta parcial','SELECCIÓN':'✔ Selección'};
+function tzTabla(fil, base){
+  if(!fil.length) return '<p class="sinv">Sin operaciones registradas.</p>';
+  var h='<table class="ptab tz-t"><thead><tr><th style="width:200px">Fecha</th><th style="width:240px">Acción</th><th>Producto y lote / detalle</th><th class="r" style="width:90px">Piezas</th><th class="r" style="width:80px">Palés</th></tr></thead><tbody>';
+  fil.forEach(function(x,i){
+    var np=Object.keys(x.pales).length;
+    if(x.vol) h+='<tr data-f="'+(base+i)+'" class="tz-vol"><td>'+dmy(x.fk)+(x.fk2!==x.fk?' – '+dmy(x.fk2):'')+'</td><td>🔄 '+x.n+' volteo'+(x.n>1?'s':'')+'</td><td class="sinv">pincha para ver las fechas</td><td></td><td class="r">'+np+'</td></tr>';
+    else h+='<tr data-f="'+(base+i)+'"><td>'+dmy(x.fk)+'</td><td><b>'+esc(SEC_TXT[x.sec]||x.sec)+'</b></td><td>'+esc(x.prod)+(x.lp?' · lote <b class="mono">'+esc(x.lp)+'</b>':'')+(x.ex?(x.prod||x.lp?' · ':'')+esc(x.ex):'')+'</td><td class="r">'+fmtN(x.pz)+'</td><td class="r">'+np+'</td></tr>';
+  });
+  return h+'</tbody></table>';
+}
+// Registros de una acción (una línea de la tabla), uno por palé.
+function tzAccion(x){
+  if(!x) return;
+  $('p-tit').textContent=x.vol?('Volteos · '+x.n+' día'+(x.n>1?'s':'')):(SEC_TXT[x.sec]||x.sec).replace(/^\S+\s/,'');
+  $('p-sub').textContent='Lote '+TZ.lote+' · '+dmy(x.fk)+(x.fk2&&x.fk2!==x.fk?' – '+dmy(x.fk2):'');
+  var regs=x.regs.slice().sort(function(a,b){ return a.__t-b.__t; });
+  var h='<table class="ptab"><thead><tr><th>Fecha</th><th>Palé</th><th class="r">Pzas</th><th>Operario</th><th>Detalle</th></tr></thead><tbody>';
+  regs.forEach(function(r,i){
+    var s=secDe(r), det=s==='MOVIMIENTO'?(sl(r['SALA ORIGEN'])+' → '+sl(r['SALA DESTINO'])):[r['PRODUCTO'],r['LOTE PRODUCTO']?('lote '+r['LOTE PRODUCTO']):'',r['Nº PIEZAS NO APTAS']&&r['Nº PIEZAS NO APTAS']!='0'?('no aptas '+r['Nº PIEZAS NO APTAS']):''].filter(Boolean).join(' · ');
+    h+='<tr data-r="'+i+'"><td>'+fDia(r.__f)+' '+fHora(r.__f)+'</td><td class="mono">'+esc(pidDe(r))+'</td><td class="r">'+piezasDe(r)+'</td><td>'+esc(r['OPERARIO'])+'</td><td style="white-space:normal">'+esc(det)+'</td></tr>';
+  });
+  $('p-body').innerHTML='<p style="font-size:13px;color:var(--muted);margin:4px 0 8px">Pincha una línea para ver el registro completo.</p>'+h+'</tbody></table>';
+  $('p-body').querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(tr) abrirFicha(regs[+tr.getAttribute('data-r')]); };
+  $('panel').hidden=false; $('velo').hidden=false;
+}
+// Bloque del parte de fabricación de origen.
+function tzParte(lote, fk){
+  partesDeLote(lote, fk).then(function(res){
+    if(TZ.lote!==lote || !$('tz-parte')) return;
+    var h='<h3 class="pbt">🧀 Origen · parte de fabricación del '+dmy(fk)+'</h3>';
+    if(!res.ps.length){ $('tz-parte').innerHTML=h+'<p class="sinv">No hay partes de fabricación guardados ese día.</p>'; return; }
+    h+=res.todos?'<div class="aviso">No he podido saber con seguridad de qué cuba es este lote: te enseño <b>todos los partes de ese día</b>.</div>'
+                :'<p style="font-size:13px;color:var(--muted);margin:0 0 6px">Relacionado por: '+esc(res.como)+'.</p>';
+    res.ps.forEach(function(p){
+      var pz=p.piezas||{}, pzs=[['3 KG','3kg'],['2 KG','2kg'],['1 KG','1kg'],['1/2 KG','05kg'],['BARRA','barra'],['GIGANTE','gigante']].filter(function(a){ return num(pz[a[1]]); }).map(function(a){ return a[0]+': '+pz[a[1]]; });
+      if(num(p.piezas_bajosal)) pzs.push('bajo en sal: '+p.piezas_bajosal);
+      var lech=[['vaca',p.lvaca,p.tanque_vaca],['cabra',p.lcabra,p.tanque_cabra],['oveja',p.loveja,p.tanque_oveja]].filter(function(a){ return num(a[1]); }).map(function(a){ return fNum(a[1])+' L '+a[0]+(a[2]?' (tanque '+a[2]+')':''); });
+      var rep=(Array.isArray(p.tanques_reparto)?p.tanques_reparto:[]).filter(function(r){ return r&&String(r.tanque||'').trim(); });
+      var tq=rep.length>1?rep.map(function(r){ return 'tanque '+r.tanque+(r.litros?': '+r.litros+' L':''); }).join(' · '):(p.tanque?('tanque '+p.tanque):'');
+      var pa=p.pasteurizacion||{};
+      h+='<div class="tz-parte"><div class="tz-ph"><b>'+esc(p.tipo||'')+(p.variedad?' · '+esc(p.variedad):'')+'</b> · cuba nº '+esc(p.cuba||'—')+(p.cuba_fisica?' (física '+esc(p.cuba_fisica)+')':'')
+        +(p.lote_queso?' · lote '+esc(p.lote_queso):'')+' · '+esc(p.operario||'')+' '+(p._rev?'<span class="tag ok">revisado Calidad</span>':'<span class="tag">original</span>')
+        +'<button class="btn" data-parte="'+esc(p.id)+'" data-fecha="'+esc(fk)+'">Abrir el parte ↗</button></div>'
+        +'<div class="tz-pg"><div><span>Leche</span>'+(fNum(p.litros)||'—')+' L'+(lech.length?' · '+esc(lech.join(' · ')):'')+(tq?' · '+esc(tq):'')+'</div>'
+        +'<div><span>Pasteurización</span>'+(pa.cruda?'Leche cruda':esc([pa.temp?pa.temp+' °C':'', pa.tiempo?pa.tiempo+' min':'', pa.valvula?'válvula '+pa.valvula:'', pa.fosfatasa?'fosfatasa '+pa.fosfatasa:''].filter(Boolean).join(' · ')||'—'))+'</div>'
+        +'<div><span>Piezas fabricadas</span>'+(pzs.length?esc(pzs.join(' · ')):'—')+'</div></div>';
+      var ing=[];
+      function add(tipo, a){ (a||[]).forEach(function(x){ if(x && (x.nombre||x.lote)) ing.push({t:tipo, n:x.nombre||'', l:x.lote||'', pr:x.proveedor||'', c:x.consumo_total, cad:x.caducidad||''}); }); }
+      add('Fermento', p.fermentos); add('Cuajo', p.cuajo?[p.cuajo]:[]); add('Cuajo', p.cuajos_extra); add('Auxiliar', p.auxiliares); add('Auxiliar', p.otrosAuxiliares);
+      if(p.co2 && p.co2.lote) ing.push({t:'CO2', n:'CO2', l:p.co2.lote, pr:p.co2.proveedor||'', c:'', cad:p.co2.caducidad||''});
+      if(ing.length){
+        h+='<table class="ptab"><thead><tr><th>Ingrediente</th><th>Producto</th><th>Proveedor</th><th>Lote</th><th class="r">Cantidad</th><th>Caducidad</th></tr></thead><tbody>'
+          +ing.map(function(x){ return '<tr class="nolink"><td>'+esc(x.t)+'</td><td><b>'+esc(x.n)+'</b></td><td>'+esc(x.pr)+'</td><td class="mono">'+(x.l?'<a href="#" class="lnk" data-mat="'+esc(x.n)+'|'+esc(x.l)+'">'+esc(x.l)+'</a>':'—')+'</td><td class="r">'+(x.c!==''&&x.c!=null?esc(x.c):'')+'</td><td>'+dmy(diaKey(x.cad))+'</td></tr>'; }).join('')+'</tbody></table>';
+      } else h+='<p class="sinv">El parte no tiene apuntados fermentos, cuajo ni auxiliares.</p>';
+      h+='</div>';
+    });
+    $('tz-parte').innerHTML=h;
+    if(!MAT.cargado) cargarMat();
+  }).catch(function(e){ if($('tz-parte')) $('tz-parte').innerHTML='<h3 class="pbt">🧀 Origen · parte de fabricación</h3><p class="sinv">No se ha podido traer el parte ('+esc(e.message)+').</p>'; });
+}
+
+// ═══ HISTORIAL DE PALÉ ═══
+function verPale(pid){
+  var regs=ROWS.filter(function(r){ return pidDe(r)===pid; }).sort(function(a,b){ return a.__t-b.__t; });
+  var i=parsearId(pid), fab=fechaFabKey(pid);
+  $('p-tit').textContent='Palé '+pid;
+  $('p-sub').textContent=[clavePalet(pid), i.piezas?i.piezas+' piezas':'', fab?'fabricado '+dmy(fab):'', 'ahora: '+tzUbic(pid)].filter(Boolean).join(' · ');
+  var h='<table class="ptab"><thead><tr><th>Fecha</th><th>Acción</th><th>Detalle</th><th class="r">Pzas</th><th>Operario</th></tr></thead><tbody>';
+  regs.forEach(function(r,k){
+    var s=secDe(r), det=s==='MOVIMIENTO'?(sl(r['SALA ORIGEN'])+' → '+sl(r['SALA DESTINO'])):[r['PRODUCTO'],r['LOTE PRODUCTO']?('lote '+r['LOTE PRODUCTO']):'',sl(r['SALA DESTINO'])].filter(Boolean).join(' · ');
+    h+='<tr data-r="'+k+'"><td>'+fDia(r.__f)+' '+fHora(r.__f)+'</td><td><b>'+esc((SEC_TXT[s]||s).replace(/^\S+\s/,''))+'</b></td><td style="white-space:normal">'+esc(det)+'</td><td class="r">'+piezasDe(r)+'</td><td>'+esc(r['OPERARIO'])+'</td></tr>';
+  });
+  $('p-body').innerHTML=(regs.length?'<p style="font-size:13px;color:var(--muted);margin:4px 0 8px">'+regs.length+' registros. Pincha uno para verlo entero.</p>'+h+'</tbody></table>':'<p class="sinv">Este palé no tiene registros en este ordenador.</p>');
+  if(regs.length) $('p-body').querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(tr) abrirFicha(regs[+tr.getAttribute('data-r')]); };
+  $('panel').hidden=false; $('velo').hidden=false;
+}
+function vistaPale(){
+  $('t-tit').textContent='Historial de palé';
+  $('t-sub').textContent='Todos los registros de un palé, en orden';
+  $('cont').innerHTML='<div class="filt"><label>ID del palé (o parte del número)<input type="search" id="hp-q" style="min-width:360px;font-size:18px" placeholder="Ej: 226334122108"></label><button class="btn pri" id="hp-ok">🔎 Buscar</button></div><div id="hp-res"></div>';
+  function buscar(){
+    var q=String($('hp-q').value||'').replace(/\s/g,''); if(q.length<5){ $('hp-res').innerHTML='<div class="vacio">Pon al menos 5 cifras.</div>'; return; }
+    var set={}; ROWS.forEach(function(r){ var p=pidDe(r); if(p && p.replace(/\s/g,'').indexOf(q)>=0) set[p]=1; });
+    var l=Object.keys(set).sort();
+    if(!l.length){ $('hp-res').innerHTML='<div class="vacio">No hay ningún palé con '+esc(q)+'.</div>'; return; }
+    if(l.length===1) verPale(l[0]);
+    $('hp-res').innerHTML='<div class="tbl-wrap"><table><thead><tr><th>Palé</th><th>Lote</th><th>Tipo · variedad · formato</th><th style="text-align:right">Piezas</th><th>Fabricado</th><th>Última ubicación</th></tr></thead><tbody>'
+      +l.map(function(p,k){ var i=parsearId(p); return '<tr data-k="'+k+'"><td class="mono">'+esc(p)+'</td><td class="mono">'+esc(i.isDO&&i.loteCorto?i.loteCorto:i.lote)+'</td><td>'+esc(clavePalet(p))+'</td><td class="num">'+(i.piezas||'')+'</td><td>'+dmy(fechaFabKey(p))+'</td><td>'+esc(tzUbic(p))+'</td></tr>'; }).join('')+'</tbody></table></div>';
+    $('hp-res').querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(tr) verPale(l[+tr.getAttribute('data-k')]); };
+  }
+  $('hp-ok').onclick=buscar; $('hp-q').onkeydown=function(e){ if(e.key==='Enter') buscar(); };
+  setTimeout(function(){ try{ $('hp-q').focus(); }catch(e){} },50);
+}
+
+// ═══ TRAZABILIDAD INVERSA ═══
+// Fuentes: 1ª capa / 2ª capa / pintura (PRODUCTO + LOTE PRODUCTO del registro),
+// envasado (una columna por material) y, desde material auxiliar, los
+// consumos de los partes (fermentos, cuajo, auxiliares de fabricación).
+var TI={mat:'', q:'', lote:''};
+try{ var _ti=JSON.parse(sessionStorage.getItem('tqof_ti')||'null'); if(_ti){ TI.mat=_ti.mat||''; TI.q=_ti.q||''; } }catch(e){}
+function guardarTI(){ try{ sessionStorage.setItem('tqof_ti',JSON.stringify({mat:TI.mat,q:TI.q})); }catch(e){} }
+var TI_MATS=[
+  {id:'1ª CAPA', n:'1ª capa antifúngico', g:'Recubrimientos plásticos', sec:'1ª CAPA'},
+  {id:'2ª CAPA', n:'2ª capa antifúngico', g:'Recubrimientos plásticos', sec:'2ª CAPA'},
+  {id:'PINTURA', n:'Pinturas / encerado', g:'Recubrimientos plásticos', sec:'PINTURA'}
+].concat(MAT_ENV.map(function(m,i){ return {id:'ENV'+i, n:m.n, g:m.g, env:m}; }))
+ .concat([{id:'FERMENTO', n:'Fermentos', g:'Fabricación (partes)', cat:'FERMENTO'},{id:'CUAJO', n:'Cuajo', g:'Fabricación (partes)', cat:'CUAJO'},{id:'AUXILIAR FABRICACION', n:'Auxiliares de fabricación', g:'Fabricación (partes)', cat:'AUXILIAR FABRICACION'}]);
+function tiMat(){ return TI_MATS.filter(function(m){ return m.id===TI.mat; })[0]; }
+// Lotes de un material: [{lote, prod, prim, ult, usos:[{r|s}], pales, pz}]
+function tiLotes(m){
+  var map={};
+  function lot(l, prod){ var k=nrm(l)+'|'+nrm(prod); return map[k]||(map[k]={lote:l, prod:prod, prim:'', ult:'', regs:[], sals:[], pales:{}, pz:0}); }
+  if(m.cat){
+    var catDe={};
+    MAT.ent.forEach(function(e){ catDe[nrm(gEnt(e,['ARTICULO','ARTÍCULO','articulo']))]=nrm(gEnt(e,['CATEGORIA','CATEGORÍA','categoria'])); });
+    MAT.stock.forEach(function(s){ catDe[nrm(s.ARTICULO||s['ARTÍCULO']||s.articulo)]=nrm(s.CATEGORIA||s['CATEGORÍA']||s.categoria); });
+    MAT.sal.forEach(function(s){
+      var art=String(s.ARTICULO||s['ARTÍCULO']||s.articulo||''), l=String(s.LOTE||s.lote||'').trim(), id=String(s['ID PARTE']||'').trim();
+      if(!l || catDe[nrm(art)]!==m.cat || id.indexOf('P')!==0) return;
+      var o=lot(l, art), f=diaKey(s.FECHA||s.fecha);
+      o.sals.push(s); if(f){ if(!o.prim||f<o.prim) o.prim=f; if(!o.ult||f>o.ult) o.ult=f; }
+    });
+  } else {
+    ROWS.forEach(function(r){
+      var sec=secDe(r), ls, prod;
+      if(m.sec){ if(sec!==m.sec) return; ls=partirLotes(r['LOTE PRODUCTO']); prod=String(r['PRODUCTO']||'').trim(); }
+      else { if(sec!=='ENVASADO') return; ls=lotesEnv(r, m.env); prod=''; }
+      if(!ls.length) return;
+      var f=r.__f?isoDia(r.__f):'', pid=pidDe(r);
+      ls.forEach(function(l){ var o=lot(l, prod); o.regs.push(r);
+        if(!o.pales[pid]){ o.pales[pid]=1; o.pz+=piezasDe(r)/ls.length; }
+        if(f){ if(!o.prim||f<o.prim) o.prim=f; if(!o.ult||f>o.ult) o.ult=f; } });
+    });
+  }
+  return Object.keys(map).map(function(k){ return map[k]; }).sort(function(a,b){ return (b.ult||'').localeCompare(a.ult||''); });
+}
+function vistaTrazInv(){
+  $('t-tit').textContent='Trazabilidad inversa';
+  $('t-sub').textContent='De un lote de material a los lotes de queso y palés donde se usó';
+  var grupos={}; TI_MATS.forEach(function(m){ (grupos[m.g]=grupos[m.g]||[]).push(m); });
+  var sel='<select id="ti-mat" style="min-width:280px"><option value="">— Elige el material —</option>'+Object.keys(grupos).map(function(g){ return '<optgroup label="'+esc(g)+'">'+grupos[g].map(function(m){ return '<option value="'+esc(m.id)+'"'+(TI.mat===m.id?' selected':'')+'>'+esc(m.n)+'</option>'; }).join('')+'</optgroup>'; }).join('')+'</select>';
+  $('cont').innerHTML='<div class="filt"><label>Material'+sel+'</label><label>Buscar lote o producto<input type="search" id="ti-q" value="'+esc(TI.q)+'" placeholder="lote, producto…"></label><div style="flex:1"></div><button class="btn" id="ti-imp">🖨 Imprimir</button></div><div id="ti-res"></div>';
+  $('ti-mat').onchange=function(){ TI.mat=this.value; TI.lote=''; guardarTI(); tiLista(); };
+  var t=null; $('ti-q').oninput=function(){ var v=this.value; clearTimeout(t); t=setTimeout(function(){ TI.q=v; guardarTI(); tiLista(); },250); };
+  $('ti-imp').onclick=function(){ window.print(); };
+  tiLista();
+}
+function tiLista(){
+  var m=tiMat();
+  if(!m){ $('ti-res').innerHTML='<div class="vacio">Elige el material arriba (antifúngico, pintura, plástico, aceite, etiquetas, fermento, cuajo…).</div>'; return; }
+  if(m.cat && !MAT.cargado){ $('ti-res').innerHTML='<div class="vacio">Cargando los consumos de material auxiliar…</div>'; cargarMat(); return; }
+  var q=nrm(TI.q), l=tiLotes(m).filter(function(o){ return !q || (nrm(o.lote)+' '+nrm(o.prod)).indexOf(q)>=0; });
+  TI._lista=l;
+  if(!l.length){ $('ti-res').innerHTML='<div class="vacio">No hay lotes de '+esc(m.n.toLowerCase())+(q?' con «'+esc(TI.q)+'»':'')+'.</div>'; return; }
+  var h='<div style="font-weight:700;color:var(--brand);margin:0 0 8px">'+l.length+' lote'+(l.length>1?'s':'')+' de '+esc(m.n.toLowerCase())+' · pincha uno para ver dónde se usó</div><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th>Lote</th><th>'+(m.cat?'Artículo':'Producto')+'</th><th>Primer uso</th><th>Último uso</th><th style="text-align:right">'+(m.cat?'Partes':'Palés')+'</th>'+(m.cat?'':'<th style="text-align:right">Piezas</th>')+'</tr></thead><tbody>';
+  l.forEach(function(o,i){
+    h+='<tr data-i="'+i+'" class="'+(TI.lote===o.lote+'|'+o.prod?'sel':'')+'"><td class="mono"><b>'+esc(o.lote)+'</b></td><td>'+esc(o.prod||'—')+'</td><td>'+dmy(o.prim)+'</td><td>'+dmy(o.ult)+'</td><td class="num">'+(m.cat?tiPartesDe(o).length:Object.keys(o.pales).length)+'</td>'+(m.cat?'':'<td class="num">'+fmtN(Math.round(o.pz))+'</td>')+'</tr>';
+  });
+  $('ti-res').innerHTML=h+'</tbody></table></div><div id="ti-det"></div>';
+  $('ti-res').querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(!tr) return; var o=TI._lista[+tr.getAttribute('data-i')]; TI.lote=o.lote+'|'+o.prod;
+    document.querySelectorAll('#ti-res tbody tr').forEach(function(x){ x.classList.toggle('sel', x===tr); }); tiDetalle(m, o); };
+  var ya=l.filter(function(o){ return TI.lote===o.lote+'|'+o.prod; })[0]; if(ya) tiDetalle(m, ya);
+}
+function tiPartesDe(o){ var v={}; o.sals.forEach(function(s){ v[String(s['ID PARTE']).trim()]=diaKey(s.FECHA||s.fecha); }); return Object.keys(v).map(function(k){ return {id:k, f:v[k]}; }); }
+function tiDetalle(m, o){
+  var h='<div class="tz-blq" style="margin-top:14px"><h3 class="pbt">Lote '+esc(o.lote)+(o.prod?' · '+esc(o.prod):'')+'</h3>';
+  if(!m.cat){
+    // Agrupado por lote de queso
+    var g={};
+    Object.keys(o.pales).forEach(function(pid){ var i=parsearId(pid), lq=(i.isDO&&i.loteCorto)?i.loteCorto:i.lote; var x=g[lq]||(g[lq]={lq:lq, tipos:{}, pales:[], pz:0, fab:fechaFabKey(pid), usos:{}}); x.pales.push(pid); x.tipos[clavePalet(pid)]=1; });
+    o.regs.forEach(function(r){ var pid=pidDe(r), i=parsearId(pid), lq=(i.isDO&&i.loteCorto)?i.loteCorto:i.lote; if(g[lq]){ g[lq].pz+=piezasDe(r); if(r.__f) g[lq].usos[isoDia(r.__f)]=1; } });
+    var arr=Object.keys(g).map(function(k){ return g[k]; }).sort(function(a,b){ return (a.fab||'').localeCompare(b.fab||''); });
+    h+='<p style="font-size:13px;color:var(--muted);margin:0 0 6px">'+arr.length+' lote'+(arr.length>1?'s':'')+' de queso · '+Object.keys(o.pales).length+' palés. Pincha un lote de queso para su trazabilidad completa, o un palé para su historial.</p>'
+      +'<table class="ptab"><thead><tr><th>Lote de queso</th><th>Fabricado</th><th>Tipo · variedad · formato</th><th>Usado el</th><th class="r">Piezas</th><th>Palés</th></tr></thead><tbody>'
+      +arr.map(function(x){ return '<tr class="nolink"><td class="mono"><a href="#" class="lnk" data-lq="'+esc(x.lq)+'">'+esc(x.lq)+'</a></td><td>'+dmy(x.fab)+'</td><td style="white-space:normal">'+esc(Object.keys(x.tipos).sort(ordenClave).join(' / '))+'</td><td>'+Object.keys(x.usos).sort().map(dmy).join(', ')+'</td><td class="r">'+fmtN(x.pz)+'</td><td style="white-space:normal">'+x.pales.sort().map(function(p){ return '<a href="#" class="lnk mono" data-pale="'+esc(p)+'">'+esc(p)+'</a>'; }).join(' ')+'</td></tr>'; }).join('')
+      +'</tbody></table></div>';
+    $('ti-det').innerHTML=h; tiEnlaces(); return;
+  }
+  // Fermentos / cuajo / auxiliares: por parte de fabricación
+  var ps=tiPartesDe(o).sort(function(a,b){ return a.f.localeCompare(b.f); });
+  var cant={}; o.sals.forEach(function(s){ var k=String(s['ID PARTE']).trim(); cant[k]=(cant[k]||0)+num(s.CANTIDAD||s.cantidad); });
+  var uni=(matStock().filter(function(s){ return nrm(s.art)===nrm(o.prod) && nrm(s.lote)===nrm(o.lote); })[0]||{}).uni||'';
+  h+='<p style="font-size:13px;color:var(--muted);margin:0 0 6px">'+ps.length+' parte'+(ps.length>1?'s':'')+' de fabricación. El lote de queso sale de la fecha y la cuba del parte.</p>'
+    +'<table class="ptab"><thead><tr><th>Fecha</th><th>Parte</th><th class="r">Cantidad</th><th>Tipo · cuba</th><th>Lote(s) de queso</th><th></th></tr></thead><tbody>'
+    +ps.map(function(p,i){ return '<tr class="nolink"><td>'+dmy(p.f)+'</td><td class="mono">'+esc(p.id)+'</td><td class="r">'+fNum(cant[p.id])+' '+esc(uni)+'</td><td id="ti-c'+i+'" class="sinv">…</td><td id="ti-l'+i+'" class="sinv">…</td><td><button class="btn" data-parte="'+esc(p.id)+'" data-fecha="'+esc(p.f)+'">Abrir parte ↗</button></td></tr>'; }).join('')
+    +'</tbody></table></div>';
+  $('ti-det').innerHTML=h; tiEnlaces();
+  // Lotes con palés en los registros, por "AA SEMANA DÍA" + cuba
+  var lotesR={}; ROWS.forEach(function(r){ var d=pidDe(r).split('*')[0].replace(/\s/g,'').replace(/\D/g,''); if(d.length>=7) lotesR[d.substring(0,7)]=1; });
+  ps.forEach(function(p,i){
+    if(!p.f) return;
+    partesDelDia(p.f).then(function(lst){
+      var pr=lst.filter(function(x){ return x.id===p.id || x._orig===p.id || x.original_id===p.id; })[0];
+      var c=$('ti-c'+i), L=$('ti-l'+i); if(!c) return;
+      if(!pr){ c.textContent='—'; L.textContent='(parte no encontrado)'; return; }
+      c.className=''; c.textContent=(pr.tipo||'')+(pr.variedad?' · '+pr.variedad:'')+' · cuba '+(pr.cuba||'—');
+      var cf=claveFechaLote(p.f), cand=[];
+      if(pr.lote_queso) cand.push(String(pr.lote_queso).trim());
+      [pr.cuba, pr.cuba_fisica].forEach(function(cb){ if(cand.length || cb===undefined || cb==='') return;
+        Object.keys(lotesR).forEach(function(l){ if(l.substring(1,6)===cf && l.charAt(6)===String(cb) && cand.indexOf(l)<0) cand.push(l); }); });
+      L.className='';
+      L.innerHTML=cand.length?cand.map(function(l){ return '<a href="#" class="lnk mono" data-lq="'+esc(l)+'">'+esc(l)+'</a>'; }).join(' '):'<span class="sinv">sin palés de esa cuba en los registros</span>';
+    }).catch(function(){ var c=$('ti-c'+i); if(c) c.textContent='(sin conexión)'; });
+  });
+}
+function tiEnlaces(){
+  $('ti-det').onclick=function(ev){
+    var a=ev.target.closest('[data-lq]'); if(a){ ev.preventDefault(); TZ.q=a.getAttribute('data-lq'); try{ sessionStorage.setItem('tqof_tz',JSON.stringify({q:TZ.q})); }catch(e){} ir('traz'); return; }
+    var p=ev.target.closest('[data-pale]'); if(p){ ev.preventDefault(); verPale(p.getAttribute('data-pale')); return; }
+    var b=ev.target.closest('[data-parte]'); if(b){ abrirParte(b.getAttribute('data-parte'), b.getAttribute('data-fecha')); }
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
