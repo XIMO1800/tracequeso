@@ -93,6 +93,7 @@ button,input,select{font:inherit}
 .chips{display:flex;gap:4px}
 .chips button{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:5px 11px;font-size:14px;font-weight:700;cursor:pointer;color:var(--ink)}
 .chips button:hover{border-color:var(--brand);color:var(--brand)}
+.chips button.on{border:2px solid var(--brand);color:var(--brand);background:#fff}
 
 /* Tabla */
 .tbl-wrap{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:calc(100vh - 290px)}
@@ -265,6 +266,9 @@ tr.tz-vol td{color:var(--muted);background:#faf6f2}
 .tz-pg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:8px;font-size:14.5px}
 .tz-pg span{display:block;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 @media print{ #side,.filt,#velo,#panel,.top .who{display:none!important} #main{margin:0!important} .tbl-wrap{max-height:none!important;overflow:visible!important} body{background:#fff} }
+.minban{background:var(--bad-soft);border:1.5px solid var(--bad);color:var(--bad);border-radius:10px;padding:9px 14px;margin:0 0 12px;cursor:pointer;font-size:14.5px}
+.minban span{color:var(--ink);font-weight:500}.minban u{margin-left:6px;font-weight:700}
+.nav button .nb{margin-left:auto;background:var(--bad);color:#fff;border-radius:99px;font-size:11.5px;font-weight:800;padding:1px 7px}
 a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 #sf-ok{font-size:16px!important;padding:9px 18px!important}
 #ef-ok{font-size:16px!important;padding:9px 18px!important}
@@ -316,7 +320,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v16';
+var VER = 'v17';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // de momento, solo Joaquín
@@ -566,7 +570,7 @@ function pintarMenu(){
     g.items.forEach(function(it){
       if(it.url) h+='<button data-url="'+esc(it.url)+'">'+esc(it.t)+'<span class="ext">abre ↗</span></button>';
       else if(it.pronto) h+='<button class="dis">'+esc(it.t)+'<span class="pr">pronto</span></button>';
-      else h+='<button data-v="'+it.id+'" class="'+(VISTA===it.id?'on':'')+'">'+esc(it.t)+'</button>';
+      else h+='<button data-v="'+it.id+'" class="'+(VISTA===it.id?'on':'')+'">'+esc(it.t)+(it.id==='mat'&&MAT.cargado?(function(){ var n=matArticulos().filter(function(a){ return a.bajo; }).length; return n?'<span class="nb" title="Artículos bajo mínimo">'+n+'</span>':''; })():'')+'</button>';
     });
     h+='</div>';
   });
@@ -841,7 +845,7 @@ function cargarMat(forzar){
     MAT.rec=(r[1]&&r[1].ok&&r[1].data)||[];
     MAT.cargado=true;
   }).catch(function(e){ MAT.err=e.message||String(e); })
-  .then(function(){ MAT.cargando=false; MAT.hora=new Date(); if(VISTA==='mat') vistaMat(); else if(VISTA==='trazinv') tiLista(); });
+  .then(function(){ MAT.cargando=false; MAT.hora=new Date(); pintarMenu(); if(VISTA==='mat') vistaMat(); else if(VISTA==='trazinv') tiLista(); });
 }
 
 // Stock por LOTE, normalizado (las cabeceras de la hoja varían de acento).
@@ -868,11 +872,20 @@ function matStock(){
     };
   });
   // Mínimo por ARTÍCULO: se compara la suma de sus lotes, como en el móvil.
+  // (v17) Como en el móvil: lotes en kg y en g se suman bien (todo a gramos y
+  // se presenta en kg; L/ml → L). Antes se sumaban tal cual (0,5 kg + 960 g).
   var porArt={};
-  lista.forEach(function(x){ var a=porArt[x.art]||(porArt[x.art]={tot:0,min:0}); a.tot+=x.stock; if(x.min>a.min) a.min=x.min; });
+  lista.forEach(function(x){
+    var k=nrm(x.cat)+'|'+nrm(x.art), a=porArt[k]||(porArt[k]={base:0,min:0,masa:false,liq:false,nl:0}), u=x.uni.toLowerCase();
+    if(u==='kg'||u==='g'||u==='gr'||u==='gramos') a.masa=true; else if(u==='l'||u==='litros'||u==='ml') a.liq=true;
+    a.base+=(u==='kg'||u==='l'||u==='litros')?x.stock*1000:x.stock;
+    if(x.stock>0) a.nl++;
+    if(x.min>a.min) a.min=x.min;
+  });
+  Object.keys(porArt).forEach(function(k){ var a=porArt[k]; a.uni=a.masa?'kg':(a.liq?'L':'uds'); a.tot=Math.round(((a.masa||a.liq)?a.base/1000:a.base)*1000)/1000; });
   var hoy=isoDia(new Date()), en30=isoDia(new Date(Date.now()+30*86400000));
   lista.forEach(function(x){
-    var a=porArt[x.art]; x.totArt=a.tot; x.minArt=a.min; x.bajo=(a.min>0 && a.tot<=a.min);
+    var a=porArt[nrm(x.cat)+'|'+nrm(x.art)]; x.totArt=a.tot; x.minArt=a.min; x.uniArt=a.uni; x.nLotesArt=a.nl; x.bajo=(a.min>0 && a.tot<=a.min);
     x.caducado=!!(x.cad && x.cad<hoy && x.stock>0); x.caduca=!!(x.cad && x.cad>=hoy && x.cad<=en30 && x.stock>0);
   });
   return lista;
@@ -888,30 +901,36 @@ function vistaMat(){
   }
   var st=matStock(), nRec=recPend().length;
   var arts={}; st.forEach(function(x){ if(x.stock>0) arts[x.art]=1; });
-  var bajos={}; st.forEach(function(x){ if(x.bajo) bajos[x.art]=1; });
+  var bajos={}; st.forEach(function(x){ if(x.bajo) bajos[x.art]=x; });
   var nCad=st.filter(function(x){ return x.caduca; }).length, nCdo=st.filter(function(x){ return x.caducado; }).length;
   var h='<div class="kpis">'
     +'<div class="kpi"><span>Artículos con stock</span><b>'+Object.keys(arts).length+'</b></div>'
     +'<div class="kpi"><span>Lotes con stock</span><b>'+st.filter(function(x){return x.stock>0;}).length+'</b></div>'
-    +'<div class="kpi'+(Object.keys(bajos).length?' alerta':'')+'"><span>Bajo mínimo</span><b>'+Object.keys(bajos).length+'</b></div>'
+    +'<div class="kpi'+(Object.keys(bajos).length?' alerta':'')+'" data-ir="min" style="cursor:pointer" title="Ver el control de mínimos"><span>Bajo mínimo</span><b>'+Object.keys(bajos).length+'</b></div>'
     +'<div class="kpi'+(nCad?' aviso':'')+'"><span>Caducan en 30 días</span><b>'+nCad+'</b></div>'
     +'<div class="kpi'+(nCdo?' alerta':'')+'"><span>Caducados con stock</span><b>'+nCdo+'</b></div>'
     +'<div class="kpi'+(nRec?' aviso':'')+'"><span>Recepciones pendientes</span><b>'+nRec+'</b></div>'
     +'<div style="flex:1"></div><div style="align-self:center;text-align:right;font-size:13px;color:var(--muted)">Datos de las '+fHora(MAT.hora)+'<br><button class="btn" onclick="cargarMat(true);this.disabled=true;this.textContent=\'Cargando…\'">⟳ Recargar</button></div>'
     +'</div>';
+  // (v17) Aviso rojo arriba si hay artículos bajo mínimo (Joaquín, 30/10).
+  var nb=Object.keys(bajos).length;
+  if(nb && MF.tab!=='min') h+='<div class="minban" data-ir="min">🔴 <b>'+nb+' artículo'+(nb>1?'s':'')+' bajo mínimo:</b> '+Object.keys(bajos).sort().slice(0,8).map(function(a){ var x=bajos[a]; return esc(a)+' <span>('+fNum(x.totArt)+' de '+fNum(x.minArt)+' '+esc(x.uniArt)+')</span>'; }).join(' · ')+(nb>8?' · …':'')+' <u>ver mínimos</u></div>';
   h+='<div class="tabs">'
     +'<button data-mt="entradas" class="'+(MF.tab==='entradas'?'on':'')+'">📥 Entradas</button>'
     +'<button data-mt="stock" class="'+(MF.tab==='stock'?'on':'')+'">📦 Stock</button>'
     +'<button data-mt="salidas" class="'+(MF.tab==='salidas'?'on':'')+'">📤 Salidas y consumos</button>'
     +'<button data-mt="traz" class="'+(MF.tab==='traz'?'on':'')+'">🔎 Trazabilidad</button>'
     +'<button data-mt="rec" class="'+(MF.tab==='rec'?'on':'')+'">📷 Recepciones'+(nRec?'<span class="n">'+nRec+'</span>':'')+'</button>'
+    +'<button data-mt="min" class="'+(MF.tab==='min'?'on':'')+'">⚠️ Mínimos'+(nb?'<span class="n">'+nb+'</span>':'')+'</button>'
     +'</div><div id="mt-body"></div>';
   $('cont').innerHTML=h;
+  document.querySelectorAll('#cont [data-ir="min"]').forEach(function(b){ b.onclick=function(){ MF.tab='min'; guardarMF(); vistaMat(); }; });
   document.querySelectorAll('.tabs button').forEach(function(b){ b.onclick=function(){ MF.tab=b.getAttribute('data-mt'); guardarMF(); vistaMat(); }; });
   if(MF.tab==='entradas') matFormEntrada();
   else if(MF.tab==='salidas') matTabSalidas();
   else if(MF.tab==='traz') matTraz();
   else if(MF.tab==='rec') matRecepciones();
+  else if(MF.tab==='min') matMinimos(st);
   else matTablaStock(st);
 }
 function catsDe(lista, f){ var c={}; lista.forEach(function(x){ var v=f(x); if(v) c[v]=1; }); return Object.keys(c).sort(); }
@@ -961,7 +980,7 @@ function matTablaStock(st, soloTabla){
     var tSt=lista.reduce(function(t,x){ return t+num(x.stock); },0), conSt=lista.filter(function(x){ return x.stock>0; }).length;
     h+='<div class="resArt"><b>'+esc(MF.art)+'</b><span>'+lista.length+' lote'+(lista.length===1?'':'s')+(MF.conStock?'':' ('+conSt+' con stock)')+'</span>'
       +'<span>Stock total: <b>'+fNum(tSt)+' '+esc(lista[0].uni)+'</b></span>'
-      +(lista[0].minArt?'<span>Mínimo: '+fNum(lista[0].minArt)+'</span>':'')
+      +(lista[0].minArt?'<span style="'+(lista[0].bajo?'color:var(--bad);font-weight:700':'')+'">'+(lista[0].bajo?'🔴 BAJO MÍNIMO · ':'')+'Mínimo: '+fNum(lista[0].minArt)+' '+esc(lista[0].uniArt)+'</span>':'')
       +'<span class="sinv">Pincha un lote para ver su entrada y sus consumos</span></div>';
   }
   h+='<table><thead><tr><th>Categoría</th><th>Artículo</th><th>Proveedor</th><th>Lote</th><th>Entrada</th><th style="text-align:right">Entró</th><th style="text-align:right">Consumido</th><th style="text-align:right">Stock</th><th>Ud.</th><th>Caducidad</th><th>Aviso</th></tr></thead><tbody>';
@@ -969,7 +988,7 @@ function matTablaStock(st, soloTabla){
     var aviso=x.caducado?'<span class="tag bad">CADUCADO</span>':(x.bajo?'<span class="tag bad">BAJO MÍNIMO</span>':(x.caduca?'<span class="tag warn">CADUCA PRONTO</span>':''));
     if(x.bajo && x.caduca && !x.caducado) aviso+=' <span class="tag warn">CADUCA PRONTO</span>';
     h+='<tr data-i="'+i+'" class="'+(x.caducado||x.bajo?'bajo':(x.caduca?'cad':''))+'">'
-      +'<td>'+esc(x.cat)+'</td><td><b>'+esc(x.art)+'</b>'+(x.minArt?'<div style="font-size:12px;color:var(--muted)">mín. '+fNum(x.minArt)+' · total '+fNum(x.totArt)+'</div>':'')+'</td>'
+      +'<td>'+esc(x.cat)+'</td><td><b>'+esc(x.art)+'</b>'+(x.minArt?'<div style="font-size:12px;color:'+(x.bajo?'var(--bad)':'var(--muted)')+';font-weight:'+(x.bajo?'700':'500')+'">'+(x.bajo?'🔴 ':'')+'total '+fNum(x.totArt)+' '+esc(x.uniArt)+' · mín. '+fNum(x.minArt)+'</div>':'')+'</td>'
       +'<td>'+esc(x.prov)+'</td><td class="mono">'+esc(x.lote)+'</td><td>'+dmy(x.fe)+'</td>'
       +'<td class="num">'+fNum(x.ent)+'</td><td class="num">'+fNum(x.cons)+'</td><td class="num" style="font-size:16px">'+fNum(x.stock)+'</td>'
       +'<td>'+esc(x.uni)+'</td><td>'+dmy(x.cad)+'</td><td>'+aviso+'</td></tr>';
@@ -1581,6 +1600,73 @@ function imprimirHTML(html){
   setTimeout(function(){ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){ alert('No se ha podido abrir la impresión.'); } setTimeout(function(){ fr.remove(); },60000); },300);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// (v17) CONTROL DE MÍNIMOS — un mínimo por ARTÍCULO (la suma de sus lotes),
+// el mismo que se pone en TraceQueso. Se guarda en la columna ALERTA MINIMO de
+// todos los lotes del artículo, igual que hace el móvil. El correo a Calidad
+// lo manda el servidor (AvisoMinimos.gs) cuando un artículo baja del mínimo.
+// ═══════════════════════════════════════════════════════════════════════════
+function matArticulos(st){
+  var m={};
+  (st||matStock()).forEach(function(x){ var k=nrm(x.cat)+'|'+nrm(x.art); if(!m[k]) m[k]={cat:x.cat, art:x.art, tot:x.totArt, min:x.minArt, uni:x.uniArt, nl:x.nLotesArt, bajo:x.bajo}; });
+  return Object.keys(m).map(function(k){ return m[k]; });
+}
+function matMinimos(st){
+  var A=matArticulos(st);
+  var cats=catsDe(A,function(a){ return a.cat; });
+  if(MF.cat && cats.indexOf(MF.cat)<0) MF.cat='';
+  var vista=MF.minVer||'todos';
+  var l=A.filter(function(a){
+    if(MF.cat && a.cat!==MF.cat) return false;
+    if(vista==='bajo' && !a.bajo) return false;
+    if(vista==='con' && !(a.min>0)) return false;
+    if(vista==='sin' && a.min>0) return false;
+    return filtroTexto([a.cat,a.art]);
+  }).sort(function(a,b){ return (b.bajo-a.bajo) || a.cat.localeCompare(b.cat) || a.art.localeCompare(b.art); });
+  var nb=A.filter(function(a){ return a.bajo; }).length, nc=A.filter(function(a){ return a.min>0; }).length;
+  function chip(v,t){ return '<button class="'+(vista===v?'on':'')+'" data-v="'+v+'">'+t+'</button>'; }
+  var h='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)">El mínimo es por <b>artículo</b>: se compara con la suma de todos sus lotes. Cuando un artículo baja de su mínimo sale en rojo aquí y <b>llega un correo a Calidad</b> (calidad@ y Joaquin@). Para quitar el mínimo, deja la casilla a 0.</div>'
+    +'<div class="filt">'+selCat(cats)+'<label>Buscar<input type="search" id="m-q" placeholder="artículo…" value="'+esc(MF.q)+'"></label>'
+    +'<div class="chips" id="min-ch" style="align-self:center">'+chip('todos','Todos ('+A.length+')')+chip('bajo','🔴 Bajo mínimo ('+nb+')')+chip('con','Con mínimo ('+nc+')')+chip('sin','Sin mínimo ('+(A.length-nc)+')')+'</div></div>';
+  if(!l.length){ $('mt-body').innerHTML=h+'<div class="vacio">Nada con estos filtros.</div>'; enlMin(); return; }
+  h+='<div class="tbl-wrap"><table id="min-t"><thead><tr><th>Estado</th><th>Categoría</th><th>Artículo</th><th style="text-align:right">Stock total</th><th style="text-align:right">Mínimo</th><th></th><th style="text-align:right">Lotes con stock</th></tr></thead><tbody>';
+  l.forEach(function(a,i){
+    var est=a.bajo?(a.tot<=0?'<span class="tag bad">🔴 AGOTADO</span>':'<span class="tag bad">🔴 BAJO MÍNIMO</span>'):(a.min>0?'<span class="tag ok">✓ Bien</span>':'<span class="sinv">sin mínimo</span>');
+    h+='<tr data-i="'+i+'" class="'+(a.bajo?'bajo':'')+'"><td>'+est+'</td><td>'+esc(a.cat)+'</td><td><b>'+esc(a.art)+'</b></td>'
+      +'<td class="num" style="font-size:16px'+(a.bajo?';color:var(--bad)':'')+'">'+fNum(a.tot)+' '+esc(a.uni)+'</td>'
+      +'<td style="text-align:right"><input type="number" min="0" step="any" class="min-in" value="'+(a.min>0?a.min:'')+'" placeholder="0" style="width:100px;text-align:right;border:1.5px solid var(--line);border-radius:7px;padding:4px 6px;font-size:15px"></td>'
+      +'<td>'+esc(a.uni)+' <button class="btn min-ok" hidden>Guardar</button></td><td class="num">'+a.nl+'</td></tr>';
+  });
+  $('mt-body').innerHTML=h+'</tbody></table></div>';
+  MAT._listaMin=l;
+  enlMin();
+  var tb=$('min-t').querySelector('tbody');
+  tb.oninput=function(ev){ var tr=ev.target.closest('tr'); if(tr) tr.querySelector('.min-ok').hidden=false; };
+  tb.onkeydown=function(ev){ if(ev.key==='Enter' && ev.target.classList.contains('min-in')){ ev.target.closest('tr').querySelector('.min-ok').click(); } };
+  tb.onclick=function(ev){
+    var b=ev.target.closest('.min-ok'); if(!b) return;
+    var tr=b.closest('tr'), a=MAT._listaMin[+tr.getAttribute('data-i')], v=parseFloat(String(tr.querySelector('.min-in').value).replace(',','.'))||0;
+    guardarMinimo(a, v, b);
+  };
+}
+function enlMin(){
+  enlazarFiltrosMat(function(){ matMinimos(); });
+  if($('min-ch')) $('min-ch').onclick=function(ev){ var b=ev.target.closest('[data-v]'); if(!b) return; MF.minVer=b.getAttribute('data-v'); guardarMF(); matMinimos(); };
+}
+function guardarMinimo(a, v, btn){
+  var lotes=MAT.stock.filter(function(s){ return nrm(s.CATEGORIA||s['CATEGORÍA']||s.categoria)===nrm(a.cat) && nrm(s.ARTICULO||s['ARTÍCULO']||s.articulo)===nrm(a.art); });
+  if(!lotes.length){ alert('No encuentro los lotes de '+a.art+'.'); return; }
+  if(!confirm('Mínimo de '+a.art+': '+(v>0?(fNum(v)+' '+a.uni):'SIN MÍNIMO')+'\n\nSe guarda en sus '+lotes.length+' lote'+(lotes.length>1?'s':'')+' (como en TraceQueso).')) return;
+  btn.disabled=true; btn.textContent='Guardando…';
+  Promise.all(lotes.map(function(s){
+    return fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'STOCK', _UPDATE:true,
+      categoria:String(s.CATEGORIA||s['CATEGORÍA']||s.categoria||'').trim(), articulo:String(s.ARTICULO||s['ARTÍCULO']||s.articulo||'').trim(),
+      proveedor:String(s.PROVEEDOR||s.proveedor||'').trim(), lote:String(s.LOTE||s.lote||'').trim(), alertaMinimo:v})})
+      .then(function(r){ return r.json(); }).then(function(j){ if(!j||!j.ok) throw new Error('el servidor no lo ha confirmado'); s['ALERTA MINIMO']=v; });
+  })).then(function(){ pintarMenu(); vistaMat(); })
+    .catch(function(e){ btn.disabled=false; btn.textContent='Guardar'; alert('⚠️ No se ha podido guardar el mínimo de todos los lotes ('+e.message+'). Recarga y revisa.'); });
+}
+
 function csvMat(tipo){
   var filas=[], cab=[];
   if(tipo==='stock'){ cab=['Categoría','Artículo','Proveedor','Lote','Fecha entrada','Entró','Consumido','Stock','Unidad','Caducidad','Mínimo artículo','Aviso'];
@@ -2076,9 +2162,10 @@ function tiEnlaces(){
   }
   $('app').hidden=false;
   $('t-who').textContent=nombre;
-  $('s-ver').textContent=VER+' · solo consulta';
-  try{ var v=localStorage.getItem('tqof_vista'); if(v==='registros'||v==='mat') VISTA=v; }catch(e){}
+  $('s-ver').textContent=VER+' · en pruebas';
+  try{ var v=localStorage.getItem('tqof_vista'); if(['registros','mat','traz','trazq','trazinv','pale'].indexOf(v)>=0) VISTA=v; }catch(e){}
   pintarMenu();
+  cargarMat();   // (v17) para el aviso de mínimos en el menú, se esté donde se esté
   $('b-act').onclick=function(){ ponerAlDia(); };
   estado('Abriendo los datos del ordenador…');
   cargarLocal().then(function(ok){

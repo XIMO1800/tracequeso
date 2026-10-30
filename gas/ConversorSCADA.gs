@@ -1109,6 +1109,8 @@ function procesarEntradaSCADA(){
   var t00 = Date.now();
   // (2026-10-22) Aviso por correo de tierno agotado en cámara: cada 30 min, aprovechando este activador.
   try{ if(typeof _avisoTiernosSiToca === 'function') _avisoTiernosSiToca(); }catch(eT){ Logger.log('Aviso tiernos: ' + eT); }
+  // (2026-10-30) Aviso por correo de material auxiliar bajo mínimo: cada hora (AvisoMinimos.gs).
+  try{ if(typeof _avisoMinimosSiToca === 'function') _avisoMinimosSiToca(); }catch(eM){ Logger.log('Aviso mínimos: ' + eM); }
   try{
     var entrada = _scadaCarpetaEntrada();
     var proc = _scadaSub(entrada, 'PROCESADOS'), errs = _scadaSub(entrada, 'ERRORES');
