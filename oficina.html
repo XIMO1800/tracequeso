@@ -223,6 +223,8 @@ table.lin input,table.lin select{border:1.5px solid var(--line);border-radius:6p
    Correcto/Incorrecto). Joaquín, 30/10. */
 .btn.pri{background:#fff;border:2px solid var(--brand);color:var(--brand);font-weight:800;box-shadow:0 1px 3px rgba(90,40,20,.15)}
 .btn.pri:hover{background:var(--brand);border-color:var(--brand);color:#fff}
+.resArt{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:baseline;background:#fff;border:1px solid var(--line,#e3d3c0);border-left:4px solid var(--brand);border-radius:10px;padding:10px 14px;margin:0 0 10px;font-size:15px}
+.resArt>b{font-size:18px;color:var(--brand)}
 #ef-ok{font-size:16px!important;padding:9px 18px!important}
 </style>
 </head>
@@ -272,7 +274,7 @@ table.lin input,table.lin select{border:1.5px solid var(--line);border-radius:6p
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v10';
+var VER = 'v11';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // de momento, solo Joaquín
@@ -754,7 +756,7 @@ function exportarCSV(){
 // Dar entradas, salidas y correcciones se sigue haciendo en TraceQueso.
 // ═══════════════════════════════════════════════════════════════════════════
 var MAT={stock:[], ent:[], sal:[], rec:[], cargado:false, cargando:false, err:''};
-var MF={tab:'entradas', cat:'', q:'', conStock:true, desde:'', hasta:''};
+var MF={tab:'entradas', cat:'', art:'', q:'', conStock:true, desde:'', hasta:''};
 try{ var _mf=JSON.parse(sessionStorage.getItem('tqof_mf')||'null'); if(_mf) for(var k2 in _mf) MF[k2]=_mf[k2]; }catch(e){}
 function guardarMF(){ try{ sessionStorage.setItem('tqof_mf', JSON.stringify(MF)); }catch(e){} }
 
@@ -862,7 +864,8 @@ function vistaMat(){
 function catsDe(lista, f){ var c={}; lista.forEach(function(x){ var v=f(x); if(v) c[v]=1; }); return Object.keys(c).sort(); }
 function selCat(cats){ return '<label>Categoría<select id="m-cat"><option value="">Todas</option>'+cats.map(function(c){ return '<option'+(MF.cat===c?' selected':'')+'>'+esc(c)+'</option>'; }).join('')+'</select></label>'; }
 function enlazarFiltrosMat(rep){
-  if($('m-cat')) $('m-cat').onchange=function(){ MF.cat=this.value; guardarMF(); rep(); };
+  if($('m-cat')) $('m-cat').onchange=function(){ MF.cat=this.value; MF.art=''; guardarMF(); rep(); };
+  if($('m-art')) $('m-art').onchange=function(){ MF.art=this.value; guardarMF(); rep(); };
   if($('m-q')){ var t=null; $('m-q').oninput=function(){ var v=this.value; clearTimeout(t); t=setTimeout(function(){ MF.q=v; guardarMF(); rep(true); },250); }; }
   if($('m-con')) $('m-con').onchange=function(){ MF.conStock=this.checked; guardarMF(); rep(); };
   if($('m-desde')) $('m-desde').onchange=function(){ MF.desde=this.value; guardarMF(); rep(); };
@@ -881,19 +884,34 @@ function matTablaStock(st, soloTabla){
   var lista=st.filter(function(x){
     if(MF.conStock && !(x.stock>0)) return false;
     if(MF.cat && x.cat!==MF.cat) return false;
+    if(MF.art && x.art!==MF.art) return false;
     return filtroTexto([x.cat,x.art,x.prov,x.lote]);
   });
   lista.sort(function(a,b){ return a.cat.localeCompare(b.cat) || a.art.localeCompare(b.art) || (a.cad||'9').localeCompare(b.cad||'9') || a.lote.localeCompare(b.lote); });
   MAT._listaStock=lista;
   if(!soloTabla){
-    $('mt-body').innerHTML='<div class="filt">'+selCat(catsDe(st,function(x){return x.cat;}))
+    // (v11) Artículo dentro de la categoría: Categoría → Artículo → sus lotes
+    // (Joaquín, 30/10). La lista de artículos sale de la categoría elegida.
+    var arts=catsDe(st.filter(function(x){ return !MF.cat || x.cat===MF.cat; }), function(x){ return x.art; });
+    if(MF.art && arts.indexOf(MF.art)<0) MF.art='';
+    var selArt='<label>Artículo<select id="m-art" style="min-width:220px"><option value="">Todos'+(MF.cat?' los de '+esc(MF.cat.toLowerCase()):'')+'</option>'
+      +arts.map(function(a){ return '<option'+(MF.art===a?' selected':'')+'>'+esc(a)+'</option>'; }).join('')+'</select></label>';
+    $('mt-body').innerHTML='<div class="filt">'+selCat(catsDe(st,function(x){return x.cat;}))+selArt
       +'<label>Buscar<input type="search" id="m-q" placeholder="artículo, proveedor, lote…" value="'+esc(MF.q)+'"></label>'
       +'<label style="flex-direction:row;align-items:center;gap:6px;text-transform:none;font-size:14.5px;color:var(--ink)"><input type="checkbox" id="m-con"'+(MF.conStock?' checked':'')+' style="min-width:0;width:18px;height:18px"> Solo lotes con stock</label>'
       +'<div style="flex:1"></div><button class="btn" onclick="csvMat(\'stock\')">⬇ Excel (CSV)</button></div><div class="tbl-wrap" id="m-tbl"></div>';
     enlazarFiltrosMat(function(soloT){ matTablaStock(null, soloT); });
   }
   if(!lista.length){ $('m-tbl').innerHTML='<div class="vacio">Nada con estos filtros.</div>'; return; }
-  var h='<table><thead><tr><th>Categoría</th><th>Artículo</th><th>Proveedor</th><th>Lote</th><th>Entrada</th><th style="text-align:right">Entró</th><th style="text-align:right">Consumido</th><th style="text-align:right">Stock</th><th>Ud.</th><th>Caducidad</th><th>Aviso</th></tr></thead><tbody>';
+  var h='';
+  if(MF.art){
+    var tSt=lista.reduce(function(t,x){ return t+num(x.stock); },0), conSt=lista.filter(function(x){ return x.stock>0; }).length;
+    h+='<div class="resArt"><b>'+esc(MF.art)+'</b><span>'+lista.length+' lote'+(lista.length===1?'':'s')+(MF.conStock?'':' ('+conSt+' con stock)')+'</span>'
+      +'<span>Stock total: <b>'+fNum(tSt)+' '+esc(lista[0].uni)+'</b></span>'
+      +(lista[0].minArt?'<span>Mínimo: '+fNum(lista[0].minArt)+'</span>':'')
+      +'<span class="sinv">Pincha un lote para ver su entrada y sus consumos</span></div>';
+  }
+  h+='<table><thead><tr><th>Categoría</th><th>Artículo</th><th>Proveedor</th><th>Lote</th><th>Entrada</th><th style="text-align:right">Entró</th><th style="text-align:right">Consumido</th><th style="text-align:right">Stock</th><th>Ud.</th><th>Caducidad</th><th>Aviso</th></tr></thead><tbody>';
   lista.forEach(function(x,i){
     var aviso=x.caducado?'<span class="tag bad">CADUCADO</span>':(x.bajo?'<span class="tag bad">BAJO MÍNIMO</span>':(x.caduca?'<span class="tag warn">CADUCA PRONTO</span>':''));
     if(x.bajo && x.caduca && !x.caducado) aviso+=' <span class="tag warn">CADUCA PRONTO</span>';
