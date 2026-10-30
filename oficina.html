@@ -113,10 +113,12 @@ td.obs{white-space:normal;max-width:320px;color:var(--muted)}
 
 /* Panel derecho */
 #velo{position:fixed;inset:0;background:rgba(29,22,24,.25);z-index:8}
-#panel{position:fixed;top:0;right:0;bottom:0;width:560px;max-width:92vw;background:var(--surface);z-index:9;box-shadow:-8px 0 30px rgba(0,0,0,.18);display:flex;flex-direction:column}
+#panel{position:fixed;top:0;right:0;bottom:0;width:660px;max-width:92vw;background:var(--surface);z-index:9;box-shadow:-8px 0 30px rgba(0,0,0,.18);display:flex;flex-direction:column}
 #panel .ph{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:10px}
 #panel .ph h2{margin:0;font-family:var(--display);font-size:22px}
 #panel .ph .x{margin-left:auto}
+#panel.ancho{width:min(1150px,94vw)}
+#panel .ph .btn{white-space:nowrap}
 #panel .pb{padding:10px 18px 24px;overflow:auto}
 .ficha{display:grid;grid-template-columns:200px 1fr;border-top:1px solid #eee7e8}
 .ficha div{padding:6px 4px;border-bottom:1px solid #eee7e8}
@@ -305,7 +307,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 
 <div id="velo" hidden></div>
 <aside id="panel" hidden>
-  <div class="ph"><div><h2 id="p-tit">Registro</h2><div class="sub" id="p-sub" style="font-size:12.5px;color:var(--muted)"></div></div><button class="btn x" id="p-x">✕ Cerrar</button></div>
+  <div class="ph"><div><h2 id="p-tit">Registro</h2><div class="sub" id="p-sub" style="font-size:12.5px;color:var(--muted)"></div></div><button class="btn x" id="p-amp" title="Hacer el panel más ancho o más estrecho">⤢ Ampliar</button><button class="btn" id="p-x">✕ Cerrar</button></div>
   <div class="pb" id="p-body"></div>
 </aside>
 
@@ -314,7 +316,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v15';
+var VER = 'v16';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // de momento, solo Joaquín
@@ -761,13 +763,13 @@ function pintarTabla(){
 function abrirFicha(r){
   if(!r) return;
   $('p-tit').textContent=String(r['SECCIÓN']||'Registro');
-  $('p-sub').textContent=fDia(r.__f)+' '+fHora(r.__f)+' · '+String(r['OPERARIO']||'');
+  $('p-sub').textContent=fDia(r.__f)+' · '+String(r['OPERARIO']||'');   // (v16) sin hora: lo que importa es la fecha
   var h='<div class="ficha">';
   Object.keys(r).forEach(function(k){
     if(k.indexOf('__')===0) return;
     var v=r[k]; if(v===''||v==null) return;
     if(/^SALA/.test(k)) v=sl(v)+(sl(v)!==String(v)?'  ('+v+')':'');
-    if(k==='FECHA') v=fDia(r.__f)+' '+fHora(r.__f);
+    if(k==='FECHA') v=fDia(r.__f);
     h+='<div class="k">'+esc(k)+'</div><div class="v">'+esc(v)+'</div>';
   });
   h+='</div><p style="font-size:12.5px;color:var(--muted);margin-top:14px">Solo consulta. Para corregir, de momento, desde TraceQueso.</p>';
@@ -776,6 +778,10 @@ function abrirFicha(r){
 }
 function cerrarFicha(){ $('panel').hidden=true; $('velo').hidden=true; }
 $('p-x').onclick=cerrarFicha; $('velo').onclick=cerrarFicha;
+// (v16) Panel ancho o estrecho, a gusto; se recuerda en este ordenador.
+function panelAncho(on){ $('panel').classList.toggle('ancho',!!on); $('p-amp').textContent=on?'⤡ Estrechar':'⤢ Ampliar'; try{ localStorage.setItem('tqof_panel_ancho',on?'1':''); }catch(e){} }
+$('p-amp').onclick=function(){ panelAncho(!$('panel').classList.contains('ancho')); };
+try{ panelAncho(localStorage.getItem('tqof_panel_ancho')==='1'); }catch(e){}
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') cerrarFicha(); });
 
 function exportarCSV(){
@@ -1834,7 +1840,7 @@ function tzAccion(x){
   var h='<table class="ptab"><thead><tr><th>Fecha</th><th>Palé</th><th class="r">Pzas</th><th>Operario</th><th>Detalle</th></tr></thead><tbody>';
   regs.forEach(function(r,i){
     var s=secDe(r), det=s==='MOVIMIENTO'?(sl(r['SALA ORIGEN'])+' → '+sl(r['SALA DESTINO'])):[r['PRODUCTO'],r['LOTE PRODUCTO']?('lote '+r['LOTE PRODUCTO']):'',r['Nº PIEZAS NO APTAS']&&r['Nº PIEZAS NO APTAS']!='0'?('no aptas '+r['Nº PIEZAS NO APTAS']):''].filter(Boolean).join(' · ');
-    h+='<tr data-r="'+i+'"><td>'+fDia(r.__f)+' '+fHora(r.__f)+'</td><td class="mono">'+esc(pidDe(r))+'</td><td class="r">'+piezasDe(r)+'</td><td>'+esc(r['OPERARIO'])+'</td><td style="white-space:normal">'+esc(det)+'</td></tr>';
+    h+='<tr data-r="'+i+'"><td>'+fDia(r.__f)+'</td><td class="mono">'+esc(pidDe(r))+'</td><td class="r">'+piezasDe(r)+'</td><td>'+esc(r['OPERARIO'])+'</td><td style="white-space:normal">'+esc(det)+'</td></tr>';
   });
   $('p-body').innerHTML='<p style="font-size:13px;color:var(--muted);margin:4px 0 8px">Pincha una línea para ver el registro completo.</p>'+h+'</tbody></table>';
   $('p-body').querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(tr) abrirFicha(regs[+tr.getAttribute('data-r')]); };
@@ -1885,7 +1891,7 @@ function verPale(pid){
   var h='<table class="ptab"><thead><tr><th>Fecha</th><th>Acción</th><th>Detalle</th><th class="r">Pzas</th><th>Operario</th></tr></thead><tbody>';
   regs.forEach(function(r,k){
     var s=secDe(r), det=s==='MOVIMIENTO'?(sl(r['SALA ORIGEN'])+' → '+sl(r['SALA DESTINO'])):[r['PRODUCTO'],r['LOTE PRODUCTO']?('lote '+r['LOTE PRODUCTO']):'',sl(r['SALA DESTINO'])].filter(Boolean).join(' · ');
-    h+='<tr data-r="'+k+'"><td>'+fDia(r.__f)+' '+fHora(r.__f)+'</td><td><b>'+esc((SEC_TXT[s]||s).replace(/^\S+\s/,''))+'</b></td><td style="white-space:normal">'+esc(det)+'</td><td class="r">'+piezasDe(r)+'</td><td>'+esc(r['OPERARIO'])+'</td></tr>';
+    h+='<tr data-r="'+k+'"><td>'+fDia(r.__f)+'</td><td><b>'+esc((SEC_TXT[s]||s).replace(/^\S+\s/,''))+'</b></td><td style="white-space:normal">'+esc(det)+'</td><td class="r">'+piezasDe(r)+'</td><td>'+esc(r['OPERARIO'])+'</td></tr>';
   });
   $('p-body').innerHTML=(regs.length?'<p style="font-size:13px;color:var(--muted);margin:4px 0 8px">'+regs.length+' registros. Pincha uno para verlo entero.</p>'+h+'</tbody></table>':'<p class="sinv">Este palé no tiene registros en este ordenador.</p>');
   if(regs.length) $('p-body').querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(tr) abrirFicha(regs[+tr.getAttribute('data-r')]); };
