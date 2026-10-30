@@ -253,6 +253,9 @@ table.lin input,table.lin select{border:1.5px solid var(--line);border-radius:6p
 .tz-pale small{display:block;color:var(--muted);font-size:12px}
 table.tz-t td{white-space:normal}
 table.tz-t td:first-child{white-space:nowrap}
+#ti-tab tr.ti-exp{cursor:default}
+#ti-tab tr.ti-exp>td{background:#faf6f2!important;padding:4px 12px 8px;white-space:normal}
+.ti-fl{color:var(--brand);font-size:13px}
 tr.tz-vol td{color:var(--muted);background:#faf6f2}
 .tz-parte{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:#fff}
 .tz-ph{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:15px;margin-bottom:8px}
@@ -311,7 +314,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v14';
+var VER = 'v15';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // de momento, solo Joaquín
@@ -1910,9 +1913,9 @@ function vistaPale(){
 // Fuentes: 1ª capa / 2ª capa / pintura (PRODUCTO + LOTE PRODUCTO del registro),
 // envasado (una columna por material) y, desde material auxiliar, los
 // consumos de los partes (fermentos, cuajo, auxiliares de fabricación).
-var TI={mat:'', q:'', lote:''};
-try{ var _ti=JSON.parse(sessionStorage.getItem('tqof_ti')||'null'); if(_ti){ TI.mat=_ti.mat||''; TI.q=_ti.q||''; } }catch(e){}
-function guardarTI(){ try{ sessionStorage.setItem('tqof_ti',JSON.stringify({mat:TI.mat,q:TI.q})); }catch(e){} }
+var TI={mat:'', art:'', q:'', lote:''};
+try{ var _ti=JSON.parse(sessionStorage.getItem('tqof_ti')||'null'); if(_ti){ TI.mat=_ti.mat||''; TI.art=_ti.art||''; TI.q=_ti.q||''; } }catch(e){}
+function guardarTI(){ try{ sessionStorage.setItem('tqof_ti',JSON.stringify({mat:TI.mat,art:TI.art,q:TI.q})); }catch(e){} }
 var TI_MATS=[
   {id:'1ª CAPA', n:'1ª capa antifúngico', g:'Recubrimientos plásticos', sec:'1ª CAPA'},
   {id:'2ª CAPA', n:'2ª capa antifúngico', g:'Recubrimientos plásticos', sec:'2ª CAPA'},
@@ -1953,8 +1956,11 @@ function vistaTrazInv(){
   $('t-sub').textContent='De un lote de material a los lotes de queso y palés donde se usó';
   var grupos={}; TI_MATS.forEach(function(m){ (grupos[m.g]=grupos[m.g]||[]).push(m); });
   var sel='<select id="ti-mat" style="min-width:280px"><option value="">— Elige el material —</option>'+Object.keys(grupos).map(function(g){ return '<optgroup label="'+esc(g)+'">'+grupos[g].map(function(m){ return '<option value="'+esc(m.id)+'"'+(TI.mat===m.id?' selected':'')+'>'+esc(m.n)+'</option>'; }).join('')+'</optgroup>'; }).join('')+'</select>';
-  $('cont').innerHTML='<div class="filt"><label>Material'+sel+'</label><label>Buscar lote o producto<input type="search" id="ti-q" value="'+esc(TI.q)+'" placeholder="lote, producto…"></label><div style="flex:1"></div><button class="btn" id="ti-imp">🖨 Imprimir</button></div><div id="ti-res"></div>';
-  $('ti-mat').onchange=function(){ TI.mat=this.value; TI.lote=''; guardarTI(); tiLista(); };
+  // (v15) Material → Artículo → lote (Joaquín, 30/10): con 74 lotes de fermento
+  // hay que poder quedarse con un fermento concreto antes de buscar el lote.
+  $('cont').innerHTML='<div class="filt"><label>Material'+sel+'</label><label>Artículo<select id="ti-art" style="min-width:240px"></select></label><label>Buscar lote<input type="search" id="ti-q" value="'+esc(TI.q)+'" placeholder="nº de lote…"></label><div style="flex:1"></div><button class="btn" id="ti-imp">🖨 Imprimir</button></div><div id="ti-res"></div>';
+  $('ti-mat').onchange=function(){ TI.mat=this.value; TI.art=''; TI.lote=''; guardarTI(); tiLista(); };
+  $('ti-art').onchange=function(){ TI.art=this.value; TI.lote=''; guardarTI(); tiLista(); };
   var t=null; $('ti-q').oninput=function(){ var v=this.value; clearTimeout(t); t=setTimeout(function(){ TI.q=v; guardarTI(); tiLista(); },250); };
   $('ti-imp').onclick=function(){ window.print(); };
   tiLista();
@@ -1963,21 +1969,44 @@ function tiLista(){
   var m=tiMat();
   if(!m){ $('ti-res').innerHTML='<div class="vacio">Elige el material arriba (antifúngico, pintura, plástico, aceite, etiquetas, fermento, cuajo…).</div>'; return; }
   if(m.cat && !MAT.cargado){ $('ti-res').innerHTML='<div class="vacio">Cargando los consumos de material auxiliar…</div>'; cargarMat(); return; }
-  var q=nrm(TI.q), l=tiLotes(m).filter(function(o){ return !q || (nrm(o.lote)+' '+nrm(o.prod)).indexOf(q)>=0; });
+  var todos=tiLotes(m), arts=catsDe(todos,function(o){ return o.prod; });
+  if(TI.art && arts.indexOf(TI.art)<0) TI.art='';
+  var sa=$('ti-art');
+  if(sa){ sa.disabled=!arts.length;
+    sa.innerHTML=arts.length?('<option value="">Todos ('+arts.length+')</option>'+arts.map(function(a){ return '<option'+(TI.art===a?' selected':'')+'>'+esc(a)+'</option>'; }).join('')):'<option value="">— no aplica —</option>'; }
+  var q=nrm(TI.q), l=todos.filter(function(o){ return (!TI.art || o.prod===TI.art) && (!q || (nrm(o.lote)+' '+nrm(o.prod)).indexOf(q)>=0); });
   TI._lista=l;
   if(!l.length){ $('ti-res').innerHTML='<div class="vacio">No hay lotes de '+esc(m.n.toLowerCase())+(q?' con «'+esc(TI.q)+'»':'')+'.</div>'; return; }
-  var h='<div style="font-weight:700;color:var(--brand);margin:0 0 8px">'+l.length+' lote'+(l.length>1?'s':'')+' de '+esc(m.n.toLowerCase())+' · pincha uno para ver dónde se usó</div><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th>Lote</th><th>'+(m.cat?'Artículo':'Producto')+'</th><th>Primer uso</th><th>Último uso</th><th style="text-align:right">'+(m.cat?'Partes':'Palés')+'</th>'+(m.cat?'':'<th style="text-align:right">Piezas</th>')+'</tr></thead><tbody>';
+  var nc=m.cat?5:6;
+  var h='<div style="font-weight:700;color:var(--brand);margin:0 0 8px">'+l.length+' lote'+(l.length>1?'s':'')+' de '+esc(TI.art||m.n.toLowerCase())+' · pincha uno y se abre debajo; pincha otra vez para cerrarlo</div><div class="tbl-wrap" style="max-height:none"><table id="ti-tab"><thead><tr><th>Lote</th><th>'+(m.cat?'Artículo':'Producto')+'</th><th>Primer uso</th><th>Último uso</th><th style="text-align:right">'+(m.cat?'Partes':'Palés')+'</th>'+(m.cat?'':'<th style="text-align:right">Piezas</th>')+'</tr></thead><tbody>';
   l.forEach(function(o,i){
-    h+='<tr data-i="'+i+'" class="'+(TI.lote===o.lote+'|'+o.prod?'sel':'')+'"><td class="mono"><b>'+esc(o.lote)+'</b></td><td>'+esc(o.prod||'—')+'</td><td>'+dmy(o.prim)+'</td><td>'+dmy(o.ult)+'</td><td class="num">'+(m.cat?tiPartesDe(o).length:Object.keys(o.pales).length)+'</td>'+(m.cat?'':'<td class="num">'+fmtN(Math.round(o.pz))+'</td>')+'</tr>';
+    h+='<tr data-i="'+i+'"><td class="mono"><span class="ti-fl">▸</span> <b>'+esc(o.lote)+'</b></td><td>'+esc(o.prod||'—')+'</td><td>'+dmy(o.prim)+'</td><td>'+dmy(o.ult)+'</td><td class="num">'+(m.cat?tiPartesDe(o).length:Object.keys(o.pales).length)+'</td>'+(m.cat?'':'<td class="num">'+fmtN(Math.round(o.pz))+'</td>')+'</tr>';
   });
-  $('ti-res').innerHTML=h+'</tbody></table></div><div id="ti-det"></div>';
-  $('ti-res').querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(!tr) return; var o=TI._lista[+tr.getAttribute('data-i')]; TI.lote=o.lote+'|'+o.prod;
-    document.querySelectorAll('#ti-res tbody tr').forEach(function(x){ x.classList.toggle('sel', x===tr); }); tiDetalle(m, o); };
-  var ya=l.filter(function(o){ return TI.lote===o.lote+'|'+o.prod; })[0]; if(ya) tiDetalle(m, ya);
+  $('ti-res').innerHTML=h+'</tbody></table></div>';
+  // (v15) El detalle se abre JUSTO DEBAJO de la fila pinchada (antes iba al
+  // final de la lista y no se veía). Otro clic en la misma fila lo cierra.
+  function abrir(tr){
+    var prev=document.querySelector('#ti-tab tr.ti-exp'), eraEsta=prev && prev.previousElementSibling===tr;
+    if(prev){ prev.previousElementSibling.classList.remove('sel'); var f0=prev.previousElementSibling.querySelector('.ti-fl'); if(f0) f0.textContent='▸'; prev.remove(); }
+    if(eraEsta){ TI.lote=''; return; }
+    var o=TI._lista[+tr.getAttribute('data-i')]; TI.lote=o.lote+'|'+o.prod;
+    tr.classList.add('sel'); var fl=tr.querySelector('.ti-fl'); if(fl) fl.textContent='▾';
+    var ex=document.createElement('tr'); ex.className='ti-exp'; ex.innerHTML='<td colspan="'+nc+'"><div id="ti-det"></div></td>';
+    tr.parentNode.insertBefore(ex, tr.nextSibling);
+    tiDetalle(m, o);
+    setTimeout(function(){ try{ tr.scrollIntoView({block:'start', behavior:'smooth'}); }catch(e){} },30);
+  }
+  $('ti-tab').querySelector('tbody').onclick=function(ev){
+    if(ev.target.closest('tr.ti-exp')) return;
+    var tr=ev.target.closest('tr[data-i]'); if(tr) abrir(tr);
+  };
+  var yaI=-1; l.forEach(function(o,i){ if(TI.lote===o.lote+'|'+o.prod) yaI=i; });
+  if(yaI>=0){ TI.lote=''; abrir(document.querySelector('#ti-tab tr[data-i="'+yaI+'"]')); }
+  else if(l.length===1) abrir(document.querySelector('#ti-tab tr[data-i="0"]'));
 }
 function tiPartesDe(o){ var v={}; o.sals.forEach(function(s){ v[String(s['ID PARTE']).trim()]=diaKey(s.FECHA||s.fecha); }); return Object.keys(v).map(function(k){ return {id:k, f:v[k]}; }); }
 function tiDetalle(m, o){
-  var h='<div class="tz-blq" style="margin-top:14px"><h3 class="pbt">Lote '+esc(o.lote)+(o.prod?' · '+esc(o.prod):'')+'</h3>';
+  var h='<div class="tz-blq" style="margin:6px 0 10px;box-shadow:0 2px 8px rgba(90,40,20,.12)"><h3 class="pbt">Lote '+esc(o.lote)+(o.prod?' · '+esc(o.prod):'')+'</h3>';
   if(!m.cat){
     // Agrupado por lote de queso
     var g={};
