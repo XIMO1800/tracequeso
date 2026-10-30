@@ -235,6 +235,13 @@ table.lin input,table.lin select{border:1.5px solid var(--line);border-radius:6p
 .sfg select:disabled{background:var(--surface2);color:var(--muted)}
 .sfg .cu{display:flex;align-items:center;gap:8px}.sfg .cu input{width:140px}.sfg .cu b{color:var(--ink);text-transform:none;letter-spacing:0;font-size:15px}
 .sfinfo{font-size:14.5px;margin:2px 0 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.totart-t{width:100%;font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.totart{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:5px 12px;cursor:pointer;text-align:left;font-size:13px;color:var(--ink)}
+.totart span{display:block;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.totart b{font-family:var(--display);font-size:21px}
+.totart:hover{border-color:var(--brand)}
+.totart.on{background:#fff;border:2px solid var(--brand);box-shadow:0 1px 3px rgba(90,40,20,.15)}
+.totart.on span{color:var(--brand)}
 a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 #sf-ok{font-size:16px!important;padding:9px 18px!important}
 #ef-ok{font-size:16px!important;padding:9px 18px!important}
@@ -286,7 +293,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v12';
+var VER = 'v13';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // de momento, solo Joaquín
@@ -1040,28 +1047,43 @@ function matEntradas(soloTabla){
 function matSalidas(soloTabla){
   var r=rangoMat();
   var uniDe={}; MAT.stock.forEach(function(s){ uniDe[nrm(s.ARTICULO||s['ARTÍCULO']||s.articulo)+'|'+nrm(s.LOTE||s.lote)]=String(s.UNIDAD||s.unidad||''); });
-  var catDe={}; MAT.stock.forEach(function(s){ catDe[nrm(s.ARTICULO||s['ARTÍCULO']||s.articulo)]=String(s.CATEGORIA||s['CATEGORÍA']||s.categoria||''); });
+  var catDe={};
+  // (v13) Categoría también desde las entradas, por si un artículo ya no está en el stock.
+  MAT.ent.forEach(function(e){ var c=String(gEnt(e,['CATEGORIA','CATEGORÍA','categoria'])); if(c) catDe[nrm(gEnt(e,['ARTICULO','ARTÍCULO','articulo']))]=c; });
+  MAT.stock.forEach(function(s){ var c=String(s.CATEGORIA||s['CATEGORÍA']||s.categoria||''); if(c) catDe[nrm(s.ARTICULO||s['ARTÍCULO']||s.articulo)]=c; });
   var lista=MAT.sal.map(function(s){
     var art=String(s.ARTICULO||s['ARTÍCULO']||s.articulo||''), lote=String(s.LOTE||s.lote||'');
     return {s:s, f:diaKey(s.FECHA||s.fecha), art:art, lote:lote, cat:catDe[nrm(art)]||'', cant:num(s.CANTIDAD||s.cantidad), uni:uniDe[nrm(art)+'|'+nrm(lote)]||'',
       mot:String(s.MOTIVO||s.motivo||''), parte:String(s['ID PARTE']||'')};
-  }).filter(function(x){
+  });
+  // (v13) Artículos de la categoría (los del stock y los que tengan consumos),
+  // para el desplegable que va al lado de Categoría (Joaquín, 30/10).
+  var artsCat=catsDe(MAT.stock.map(function(s){ return {c:String(s.CATEGORIA||s['CATEGORÍA']||s.categoria||''), a:String(s.ARTICULO||s['ARTÍCULO']||s.articulo||'')}; })
+      .concat(lista.map(function(x){ return {c:x.cat, a:x.art}; })).filter(function(o){ return !MF.cat || o.c===MF.cat; }), function(o){ return o.a; });
+  if(MF.art && artsCat.indexOf(MF.art)<0) MF.art='';
+  lista=lista.filter(function(x){
     if(!x.f || x.f<r.ini || x.f>r.fin) return false;
     if(MF.cat && x.cat!==MF.cat) return false;
     return filtroTexto([x.cat,x.art,x.lote,x.mot,x.parte]);
   }).sort(function(a,b){ return b.f.localeCompare(a.f); });
+  var listaSinArt=lista;
+  if(MF.art) lista=lista.filter(function(x){ return x.art===MF.art; });
   MAT._listaSal=lista;
   if(!soloTabla){
     $('m-list').innerHTML='<div class="filt"><label>Desde<input type="date" id="m-desde" value="'+esc(r.ini)+'"></label><label>Hasta<input type="date" id="m-hasta" value="'+esc(MF.hasta)+'"></label>'
       +selCat(catsDe(MAT.stock,function(s){ return String(s.CATEGORIA||s['CATEGORÍA']||s.categoria||''); }))
-      +'<label>Buscar<input type="search" id="m-q" placeholder="artículo, lote, motivo, parte…" value="'+esc(MF.q)+'"></label>'
+      +'<label>Artículo<select id="m-art" style="min-width:220px"><option value="">Todos'+(MF.cat?' los de '+esc(MF.cat.toLowerCase()):'')+'</option>'+artsCat.map(function(a){ return '<option'+(MF.art===a?' selected':'')+'>'+esc(a)+'</option>'; }).join('')+'</select></label>'
+      +'<label>Buscar<input type="search" id="m-q" placeholder="lote, motivo, parte…" value="'+esc(MF.q)+'"></label>'
       +'<div style="flex:1"></div><button class="btn" onclick="csvMat(\'salidas\')">⬇ Excel (CSV)</button></div><div class="kpis" id="m-tot"></div><div class="tbl-wrap" id="m-tbl"></div>';
     enlazarFiltrosMat(matSalidas);
   }
-  // Total consumido por artículo en el periodo
-  var tot={}; lista.forEach(function(x){ var k=x.art+'|'+x.uni; tot[k]=(tot[k]||0)+x.cant; });
-  var tk=Object.keys(tot).sort(function(a,b){ return tot[b]-tot[a]; }).slice(0,6);
-  $('m-tot').innerHTML=tk.map(function(k){ var p=k.split('|'); return '<div class="kpi"><span>'+esc(p[0])+'</span><b>'+fNum(tot[k])+'</b> '+esc(p[1])+'</div>'; }).join('');
+  // (v13) Total del periodo de TODOS los artículos (antes solo los 6 primeros,
+  // por eso no salían BS-20, CR-540…). Pinchar uno = ver solo ese artículo.
+  var tot={}; listaSinArt.forEach(function(x){ var k=x.art+'|'+x.uni; tot[k]=(tot[k]||0)+x.cant; });
+  var tk=Object.keys(tot).sort(function(a,b){ return a.localeCompare(b); });
+  $('m-tot').innerHTML=tk.length?('<div class="totart-t">Total del periodo por artículo · pincha uno para ver solo sus consumos'+(MF.art?' · <a href="#" class="lnk" data-art="">ver todos</a>':'')+'</div>'
+    +tk.map(function(k){ var p=k.split('|'); return '<button class="totart'+(MF.art===p[0]?' on':'')+'" data-art="'+esc(p[0])+'"><span>'+esc(p[0])+'</span><b>'+fNum(tot[k])+'</b> '+esc(p[1])+'</button>'; }).join('')):'';
+  $('m-tot').onclick=function(ev){ var b=ev.target.closest('[data-art]'); if(!b) return; ev.preventDefault(); var a=b.getAttribute('data-art'); MF.art=(MF.art===a?'':a); guardarMF(); matSalidas(); };
   if(!lista.length){ $('m-tbl').innerHTML='<div class="vacio">No hay consumos entre el '+dmy(r.ini)+' y el '+dmy(r.fin)+'.</div>'; return; }
   var h='<table><thead><tr><th>Fecha</th><th>Categoría</th><th>Artículo</th><th>Lote</th><th style="text-align:right">Cantidad</th><th>Ud.</th><th>Motivo</th><th>Registro</th></tr></thead><tbody>';
   lista.forEach(function(x,i){
