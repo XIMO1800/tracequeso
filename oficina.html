@@ -155,6 +155,17 @@ tr.cad td{background:var(--warn-soft)}
 .sumlote span{display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase}
 .sumlote b{font-family:var(--display);font-size:24px}
 .fotoalb{max-width:100%;border:1px solid var(--line);border-radius:8px;margin-top:8px;cursor:zoom-in}
+table.ptab{width:100%;border-collapse:collapse;font-size:14.5px;margin-bottom:6px}
+table.ptab th{position:static;background:var(--surface2);font-size:11.5px;padding:6px 8px;cursor:default;border-bottom:1px solid var(--line)}
+table.ptab td{padding:6px 8px;border-bottom:1px solid #eee7e8;white-space:nowrap}
+table.ptab tbody tr{cursor:pointer}
+table.ptab tbody tr.nolink{cursor:default}
+table.ptab tbody tr:hover td{background:var(--brand-soft)}
+table.ptab tbody tr.nolink:hover td{background:transparent}
+table.ptab .r{text-align:right}
+table.ptab .fl{color:var(--muted);width:18px;text-align:center}
+h3.pbt small.cnt{font-family:var(--body);font-size:13px;color:var(--muted);font-weight:600;background:var(--surface2);border:1px solid var(--line);border-radius:99px;padding:0 8px;margin-left:4px;letter-spacing:0}
+#panel .kpi{min-width:0;flex:1}
 .sinv{color:#a39a9c;font-style:italic;font-weight:500}
 h3.pbt{font-family:var(--display);font-size:19px;color:var(--brand);margin:14px 0 4px;text-transform:uppercase;letter-spacing:.04em}
 .mov.clic{cursor:pointer}.mov.clic:hover{background:var(--brand-soft)}
@@ -255,7 +266,7 @@ table.lin input,table.lin select{border:1.5px solid var(--line);border-radius:6p
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v7';
+var VER = 'v8';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // de momento, solo Joaquín
@@ -892,6 +903,8 @@ function matTablaStock(st, soloTabla){
 }
 
 // Ficha de un lote: entradas y consumos, con totales.
+// (v8) En TABLAS, como el resto del escritorio (antes eran tarjetas de móvil
+// con franja de color a la izquierda — Joaquín, 30/10).
 function fichaLote(x){
   if(!x) return;
   var ents=MAT.ent.filter(function(e){ return nrm(gEnt(e,['ARTICULO','ARTÍCULO','articulo']))===nrm(x.art) && nrm(gEnt(e,['LOTE','lote']))===nrm(x.lote); });
@@ -899,27 +912,42 @@ function fichaLote(x){
   sals.sort(function(a,b){ return diaKey(b.FECHA||b.fecha).localeCompare(diaKey(a.FECHA||a.fecha)); });
   var tE=ents.reduce(function(t,e){ return t+num(gEnt(e,['CANTIDAD','cantidad'])); },0);
   var tS=sals.reduce(function(t,s){ return t+num(s.CANTIDAD||s.cantidad); },0);
+  MAT._fichaEnts=ents; MAT._fichaSals=sals; MAT._fichaLote=x;
   $('p-tit').textContent=x.art+' · lote '+x.lote;
   $('p-sub').textContent=x.cat+(x.prov?(' · '+x.prov):'')+(x.cad?(' · caduca '+dmy(x.cad)):'');
-  var h='<div class="sumlote"><div><span>Entró</span><b style="color:var(--ok)">'+fNum(tE)+'</b> '+esc(x.uni)+'</div><div><span>Consumido</span><b style="color:var(--bad)">'+fNum(tS)+'</b> '+esc(x.uni)+'</div><div><span>Queda</span><b>'+fNum(tE-tS)+'</b> '+esc(x.uni)+'</div></div>';
-  h+='<h3 style="font-family:var(--display);margin:6px 0">📥 Entradas ('+ents.length+')</h3>';
-  MAT._fichaEnts=ents; MAT._fichaSals=sals; MAT._fichaLote=x;
-  ents.forEach(function(e,i){
-    var c=num(gEnt(e,['CANTIDAD','cantidad'])), aj=c<0, foto=String(gEnt(e,['FOTO ALBARAN','foto'])||'');
-    h+='<div class="mov '+(aj?'aj':'ent')+' clic" data-ent="'+i+'" title="Ver la entrada"><div><b>'+(aj?'⚖️ Ajuste':dmy(diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha']))))+'</b>'
-      +'<div style="font-size:13px;color:var(--muted)">'
-      +[gEnt(e,['ALBARAN','albaran'])?('Albarán '+esc(gEnt(e,['ALBARAN','albaran']))):'', gEnt(e,['CADUCIDAD','caducidad'])?('Cad. '+dmy(diaKey(gEnt(e,['CADUCIDAD','caducidad'])))):'', esc(gEnt(e,['ESTADO','estado'])), esc(gEnt(e,['OBSERVACIONES','OBSERVACION','OBS','obs']))].filter(Boolean).join(' · ')
-      +'</div>'+(fotoId(foto)?'<button class="lnkb" data-foto="'+esc(foto)+'">📷 Ver albarán</button><div class="fotoh"></div>':'')+'</div>'
-      +'<div class="q" style="color:'+(aj?'#9c5c00':'var(--ok)')+'">'+(aj?'':'+')+fNum(c)+' '+esc(gEnt(e,['UNIDAD','unidad'])||x.uni)+' ›</div></div>';
-  });
-  h+='<h3 style="font-family:var(--display);margin:14px 0 6px">📤 Consumos ('+sals.length+')</h3>';
-  if(!sals.length) h+='<div style="color:var(--muted)">Sin consumos.</div>';
-  sals.forEach(function(s,i){
-    h+='<div class="mov sal'+(s['ID PARTE']?' clic':'')+'" data-sal="'+i+'" title="'+(s['ID PARTE']?'Abrir el registro que lo consumió':'')+'"><div><b>'+dmy(diaKey(s.FECHA||s.fecha))+'</b><div style="font-size:13px;color:var(--muted)">'+esc(s.MOTIVO||s.motivo||'')+(s['ID PARTE']?(' · '+esc(s['ID PARTE'])):'')+'</div></div>'
-      +'<div class="q" style="color:var(--bad)">−'+fNum(s.CANTIDAD||s.cantidad)+' '+esc(x.uni)+(s['ID PARTE']?' ›':'')+'</div></div>';
-  });
+  var u=esc(x.uni);
+  var h='<div class="kpis" style="margin:4px 0 6px">'
+    +'<div class="kpi"><span>Entró</span><b>'+fNum(tE)+'</b> '+u+'</div>'
+    +'<div class="kpi"><span>Consumido</span><b>'+fNum(tS)+'</b> '+u+'</div>'
+    +'<div class="kpi"><span>Queda</span><b>'+fNum(tE-tS)+'</b> '+u+'</div></div>';
+  h+='<h3 class="pbt">📥 Entradas <small class="cnt">'+ents.length+'</small></h3>';
+  if(!ents.length) h+='<p class="sinv">Sin entradas.</p>';
+  else {
+    h+='<table class="ptab"><thead><tr><th>Fecha</th><th>Albarán</th><th>Caducidad</th><th>Recepción</th><th class="r">Cantidad</th><th></th></tr></thead><tbody>';
+    ents.forEach(function(e,i){
+      var c=num(gEnt(e,['CANTIDAD','cantidad'])), est=String(gEnt(e,['ESTADO','estado'])).toUpperCase(), foto=fotoId(gEnt(e,['FOTO ALBARAN','foto']));
+      h+='<tr data-ent="'+i+'" title="Ver la entrada">'
+        +'<td>'+(c<0?'<span class="tag warn">Ajuste</span> ':'')+dmy(diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha'])))+'</td>'
+        +'<td>'+esc(gEnt(e,['ALBARAN','albaran']))+(foto?' 📷':'')+'</td>'
+        +'<td>'+dmy(diaKey(gEnt(e,['CADUCIDAD','caducidad'])))+'</td>'
+        +'<td>'+(est==='C'?'<span class="tag ok">✓ Correcto</span>':(est==='I'?'<span class="tag bad">✕ Incorrecto</span>':'<span class="sinv">—</span>'))+'</td>'
+        +'<td class="r"><b>'+(c>0?'+':'')+fNum(c)+'</b> '+esc(gEnt(e,['UNIDAD','unidad'])||x.uni)+'</td><td class="fl">›</td></tr>';
+    });
+    h+='</tbody></table>';
+  }
+  h+='<h3 class="pbt">📤 Consumos <small class="cnt">'+sals.length+'</small></h3>';
+  if(!sals.length) h+='<p class="sinv">Sin consumos.</p>';
+  else {
+    h+='<table class="ptab"><thead><tr><th>Fecha</th><th>Motivo</th><th>Registro</th><th class="r">Cantidad</th><th></th></tr></thead><tbody>';
+    sals.forEach(function(s,i){
+      var id=String(s['ID PARTE']||'');
+      h+='<tr data-sal="'+i+'"'+(id?' title="Abrir el registro que lo consumió"':' class="nolink"')+'>'
+        +'<td>'+dmy(diaKey(s.FECHA||s.fecha))+'</td><td>'+esc(s.MOTIVO||s.motivo||'')+'</td><td class="mono">'+esc(id)+'</td>'
+        +'<td class="r"><b>−'+fNum(s.CANTIDAD||s.cantidad)+'</b> '+u+'</td><td class="fl">'+(id?'↗':'')+'</td></tr>';
+    });
+    h+='</tbody></table>';
+  }
   $('p-body').innerHTML=h;
-  $('p-body').querySelectorAll('[data-foto]').forEach(function(b){ b.onclick=function(ev){ ev.stopPropagation(); verFoto(b.getAttribute('data-foto'), b.nextElementSibling); }; });
   $('p-body').querySelectorAll('[data-ent]').forEach(function(d){ d.onclick=function(){ fichaEntrada(MAT._fichaEnts[+d.getAttribute('data-ent')], MAT._fichaLote); }; });
   $('p-body').querySelectorAll('[data-sal]').forEach(function(d){ d.onclick=function(){ abrirOrigen(MAT._fichaSals[+d.getAttribute('data-sal')]); }; });
   $('panel').hidden=false; $('velo').hidden=false;
