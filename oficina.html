@@ -40,6 +40,10 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body)
 button,input,select{font:inherit}
 
 /* ── Barra lateral ── */
+/* (v4) BARRA CLARA. En el monitor de la oficina el granate casi negro con letra
+   blanca no se leía (Joaquín, 30/10): la parte clara se ve bien, la oscura no.
+   Fondo crema, letra casi negra en negrita, títulos en granate y la opción
+   elegida en granate lleno con letra blanca. Mismos colores de la casa. */
 #side{position:fixed;left:0;top:0;bottom:0;width:280px;background:var(--side);color:#fff;overflow-y:auto;padding:0 12px 12px;display:flex;flex-direction:column;z-index:5}
 .side-logo{padding:16px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;border-bottom:1px solid rgba(196,149,43,.5);margin-bottom:10px}
 .side-logo .logo{background:#fff;padding:5px 14px;border-radius:9px;cursor:pointer}
@@ -131,6 +135,26 @@ td.obs{white-space:normal;max-width:320px;color:var(--muted)}
 .aviso{background:var(--warn-soft);border:1px solid #efd9a9;color:#6b4300;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13.5px}
 .bloqueo{max-width:520px;margin:12vh auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px;text-align:center}
 .bloqueo h2{font-family:var(--display);margin:6px 0 10px}
+
+/* (v4) Barra lateral clara: va al final para mandar sobre lo de arriba. */
+#side{background:#f3e9dc;color:var(--ink);border-right:3px solid var(--brand)}
+.side-logo{border-bottom:2px solid #d9c6ae}
+.side-logo .logo{background:#fff;border:1px solid #d9c6ae}
+.side-logo .app{color:var(--brand);font-size:21px;white-space:nowrap}
+.side-logo small{color:#4a3b3d;opacity:1}
+.navgt{color:var(--brand);border-bottom:2px solid #d9c6ae;margin:6px 0 4px}
+.nav button{color:#1d1618;font-weight:700}
+.nav button:hover{background:#e8d9c6;color:#1d1618}
+.nav button.on{background:var(--brand);color:#fff;box-shadow:inset 4px 0 0 var(--gold)}
+.nav button .pr{background:#e3d3bf;color:#5a4a4c}
+.nav button .ext{color:var(--brand);font-weight:700}
+.nav button.dis{color:#6f6062;font-weight:600}
+.nav button.dis:hover{background:transparent}
+.sbot{border-top:2px solid #d9c6ae}
+.sbot .est{color:#1d1618}
+.sbot .est b{color:var(--brand)}
+.navb{color:var(--brand);border:1.5px solid var(--brand);background:#fff;font-weight:700}
+.navb:hover{background:var(--brand);color:#fff}
 </style>
 </head>
 <body>
@@ -179,7 +203,7 @@ td.obs{white-space:normal;max-width:320px;color:var(--muted)}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v3';
+var VER = 'v4';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // de momento, solo Joaquín
