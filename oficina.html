@@ -208,7 +208,7 @@ table.lin input,table.lin select{border:1.5px solid var(--line);border-radius:6p
 .navgt{color:var(--brand);border-bottom:2px solid #d9c6ae;margin:6px 0 4px}
 .nav button{color:#1d1618;font-weight:700}
 .nav button:hover{background:#e8d9c6;color:#1d1618}
-.nav button.on{background:var(--brand);color:#fff;box-shadow:inset 4px 0 0 var(--gold)}
+.nav button.on{background:#f7e3e6;color:var(--brand);box-shadow:inset 3px 0 0 var(--brand);border:1px solid #ecc9cf}
 .nav button .pr{background:#e3d3bf;color:#5a4a4c}
 .nav button .ext{color:var(--brand);font-weight:700}
 .nav button.dis{color:#6f6062;font-weight:600}
@@ -218,6 +218,12 @@ table.lin input,table.lin select{border:1.5px solid var(--line);border-radius:6p
 .sbot .est b{color:var(--brand)}
 .navb{color:var(--brand);border:1.5px solid var(--brand);background:#fff;font-weight:700}
 .navb:hover{background:var(--brand);color:#fff}
+
+/* (v9) Botón principal y opción elegida en tono suave, como el selector
+   Correcto/Incorrecto (Joaquín, 30/10): el color distingue, no grita. */
+.btn.pri{background:#f7e3e6;border:1.5px solid #e2b3bb;color:var(--brand)}
+.btn.pri:hover{background:#f1d3d8;border-color:var(--brand);color:var(--brand)}
+#ef-ok{font-size:16px!important;padding:9px 18px!important}
 </style>
 </head>
 <body>
@@ -266,7 +272,7 @@ table.lin input,table.lin select{border:1.5px solid var(--line);border-radius:6p
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v8';
+var VER = 'v9';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // de momento, solo Joaquín
