@@ -144,7 +144,7 @@ td.obs{white-space:normal;max-width:320px;color:var(--muted)}
 tr.bajo td{background:var(--bad-soft)}
 tr.cad td{background:var(--warn-soft)}
 .tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:99px}
-.tag.bad{background:var(--bad);color:#fff}.tag.warn{background:#f3c46b;color:#3d2600}.tag.ok{background:var(--ok-soft);color:var(--ok)}
+.tag.bad{background:#fbeaea;color:#a8262c;border:1px solid #f0c7c9}.tag.warn{background:#fdf0d8;color:#7a4a00;border:1px solid #efd9a9}.tag.ok{background:#e9f4ec;color:#1e6b3e;border:1px solid #c9e3d2}
 .kpi.alerta{border-color:var(--bad);background:var(--bad-soft)}
 .kpi.aviso{border-color:#e7b85b;background:var(--warn-soft)}
 .mov{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px;display:flex;justify-content:space-between;gap:10px}
@@ -155,6 +155,8 @@ tr.cad td{background:var(--warn-soft)}
 .sumlote span{display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase}
 .sumlote b{font-family:var(--display);font-size:24px}
 .fotoalb{max-width:100%;border:1px solid var(--line);border-radius:8px;margin-top:8px;cursor:zoom-in}
+.sinv{color:#a39a9c;font-style:italic;font-weight:500}
+h3.pbt{font-family:var(--display);font-size:19px;color:var(--brand);margin:14px 0 4px;text-transform:uppercase;letter-spacing:.04em}
 .mov.clic{cursor:pointer}.mov.clic:hover{background:var(--brand-soft)}
 .volver{margin-bottom:10px}
 .ent-wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
@@ -175,9 +177,12 @@ table.lin td{padding:4px 4px;border-bottom:1px solid #eee7e8;white-space:normal}
 table.lin th{cursor:default;position:static;white-space:normal;padding:6px 4px}
 table.lin input,table.lin select{border:1.5px solid var(--line);border-radius:6px;padding:6px 7px;width:100%;font-size:15px;background:#fff}
 .ci{display:flex;gap:4px}
-.ci button{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:7px;padding:7px 4px;font-weight:700;font-size:14.5px;cursor:pointer;color:var(--ink);white-space:nowrap}
-.ci button.okk{background:var(--ok);border-color:var(--ok);color:#fff}
-.ci button.mal{background:var(--bad);border-color:var(--bad);color:#fff}
+.ci{display:inline-flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;align-self:flex-start}
+.ci button{border:0;border-right:1px solid var(--line);background:#fff;padding:6px 14px;font-weight:600;font-size:14.5px;cursor:pointer;color:var(--muted);white-space:nowrap}
+.ci button:last-child{border-right:0}
+.ci button:hover{background:var(--surface2);color:var(--ink)}
+.ci button.okk{background:#e9f4ec;color:#1e6b3e;font-weight:700}
+.ci button.mal{background:#fbeaea;color:#a8262c;font-weight:700}
 .fotobox{background:var(--surface2);border:2px dashed var(--line);border-radius:12px;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;text-align:center;color:var(--muted)}
 .fotobox img{max-width:100%;border-radius:8px;cursor:zoom-in}
 .pruebas{background:var(--warn-soft);border:1px solid #efd9a9;color:#6b4300;border-radius:10px;padding:8px 12px;font-size:14px;margin-bottom:12px}
@@ -250,7 +255,7 @@ table.lin input,table.lin select{border:1.5px solid var(--line);border-radius:6p
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v6';
+var VER = 'v7';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // de momento, solo Joaquín
@@ -1070,7 +1075,7 @@ function operarios(){
 }
 function ciBtns(campo){
   var v=EF[campo];
-  return '<div class="ci" data-ci="'+campo+'"><button data-v="C" class="'+(v==='C'?'okk':'')+'">Correcto</button><button data-v="I" class="'+(v==='I'?'mal':'')+'">Incorrecto</button></div>';
+  return '<div class="ci" data-ci="'+campo+'"><button data-v="C" class="'+(v==='C'?'okk':'')+'">'+(v==='C'?'✓ ':'')+'Correcto</button><button data-v="I" class="'+(v==='I'?'mal':'')+'">'+(v==='I'?'✕ ':'')+'Incorrecto</button></div>';
 }
 function matFormEntrada(){
   if(!EF) EF=efNuevo();
@@ -1236,20 +1241,32 @@ function fichaEntrada(e, lote){
   var art=gEnt(e,['ARTICULO','ARTÍCULO','articulo']), lt=gEnt(e,['LOTE','lote']);
   $('p-tit').textContent='Entrada · '+art;
   $('p-sub').textContent='Lote '+lt+' · '+dmy(diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha'])));
-  var CI={C:'Correcto',I:'Incorrecto'};
-  var campos=[['Fecha de entrada',dmy(diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha'])))],['Categoría',gEnt(e,['CATEGORIA','CATEGORÍA','categoria'])],['Artículo',art],
-    ['Proveedor',gEnt(e,['PROVEEDOR','proveedor'])],['Lote',lt],['Caducidad',dmy(diaKey(gEnt(e,['CADUCIDAD','caducidad'])))],
-    ['Cantidad',fNum(gEnt(e,['CANTIDAD','cantidad']))+' '+gEnt(e,['UNIDAD','unidad'])],['Nº albarán',gEnt(e,['ALBARAN','albaran'])],
-    ['Estado',CI[gEnt(e,['ESTADO','estado'])]||gEnt(e,['ESTADO','estado'])],['Etiqueta',CI[gEnt(e,['ETIQUETA','etiqueta'])]||gEnt(e,['ETIQUETA','etiqueta'])],
-    ['Condiciones camión',CI[gEnt(e,['CONDICIONES CAMION','camion'])]||gEnt(e,['CONDICIONES CAMION','camion'])],['Tª camión',gEnt(e,['TEMP CAMION','temp'])],
-    ['Acciones correctoras',gEnt(e,['ACCIONES CORRECTORAS','acciones'])],['Firma',gEnt(e,['FIRMA','firma'])],['Observaciones',gEnt(e,['OBSERVACIONES','OBSERVACION','OBS','obs'])],
-    ['ID de la entrada',gEnt(e,['ID ENTRADA','id'])]];
-  var h=(lote?'<button class="btn volver" id="p-volver">← Volver al lote</button>':'')+'<div class="ficha">';
-  campos.forEach(function(c){ if(c[1]!==''&&c[1]!=null&&String(c[1]).trim()!=='') h+='<div class="k">'+esc(c[0])+'</div><div class="v">'+esc(c[1])+'</div>'; });
-  h+='</div>';
+  function ci(v){ v=String(v||'').trim().toUpperCase(); if(v==='C') return '<span class="tag ok">✓ Correcto</span>'; if(v==='I') return '<span class="tag bad">✕ Incorrecto</span>'; return v?esc(v):'<span class="sinv">sin rellenar</span>'; }
+  function val(v){ return (v===''||v==null||String(v).trim()==='')?'<span class="sinv">—</span>':esc(v); }
+  function bloque(tit, filas){ return '<h3 class="pbt">'+tit+'</h3><div class="ficha">'+filas.map(function(f){ return '<div class="k">'+esc(f[0])+'</div><div class="v">'+f[1]+'</div>'; }).join('')+'</div>'; }
+  var cant=num(gEnt(e,['CANTIDAD','cantidad']));
+  var h=(lote?'<button class="btn volver" id="p-volver">← Volver al lote</button>':'');
+  h+=bloque('🧾 Albarán',[
+    ['Fecha de entrada', val(dmy(diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha']))))],
+    ['Proveedor', val(gEnt(e,['PROVEEDOR','proveedor']))],
+    ['Nº albarán', val(gEnt(e,['ALBARAN','albaran']))]]);
+  h+=bloque('📦 Material',[
+    ['Categoría', val(gEnt(e,['CATEGORIA','CATEGORÍA','categoria']))],
+    ['Artículo', '<b>'+val(art)+'</b>'],
+    ['Lote', val(lt)],
+    ['Caducidad', val(dmy(diaKey(gEnt(e,['CADUCIDAD','caducidad']))))],
+    ['Cantidad', (cant<0?'<span class="tag warn">AJUSTE</span> ':'')+'<b>'+fNum(cant)+'</b> '+esc(gEnt(e,['UNIDAD','unidad']))]]);
+  h+=bloque('✔️ Control de recepción',[
+    ['Estado', ci(gEnt(e,['ESTADO','estado']))],
+    ['Etiqueta', ci(gEnt(e,['ETIQUETA','etiqueta']))],
+    ['Condiciones camión', ci(gEnt(e,['CONDICIONES CAMION','camion']))],
+    ['Tª camión', (function(t){ return t!==''?esc(t)+' °C':'<span class="sinv">—</span>'; })(gEnt(e,['TEMP CAMION','temp']))],
+    ['Acciones correctoras', val(gEnt(e,['ACCIONES CORRECTORAS','acciones']))],
+    ['Firma', val(gEnt(e,['FIRMA','firma']))],
+    ['Observaciones', val(gEnt(e,['OBSERVACIONES','OBSERVACION','OBS','obs']))]]);
   var foto=String(gEnt(e,['FOTO ALBARAN','foto'])||'');
-  h+=fotoId(foto)?'<h3 style="font-family:var(--display);margin:14px 0 4px">📄 Albarán</h3><div id="p-foto"></div>':'<p style="color:var(--muted)">Esta entrada no tiene foto del albarán.</p>';
-  h+='<p style="font-size:13px;color:var(--muted);margin-top:12px">Solo consulta. Para corregirla, de momento, desde TraceQueso.</p>';
+  h+='<h3 class="pbt">📄 Foto del albarán</h3>'+(fotoId(foto)?'<div id="p-foto"></div>':'<p class="sinv" style="margin:4px 0">Esta entrada no tiene foto del albarán.</p>');
+  h+='<p style="font-size:13px;color:var(--muted);margin-top:14px">ID '+esc(gEnt(e,['ID ENTRADA','id']))+' · Solo consulta. Para corregirla, de momento, desde TraceQueso.</p>';
   $('p-body').innerHTML=h; $('panel').hidden=false; $('velo').hidden=false;
   if(fotoId(foto)) verFoto(foto, $('p-foto'));
   if(lote && $('p-volver')) $('p-volver').onclick=function(){ fichaLote(lote); };
