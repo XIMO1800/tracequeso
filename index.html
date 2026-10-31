@@ -78,11 +78,11 @@
     var _lat = JSON.parse(localStorage.getItem('tq_latido')||'null');
     if(_lat && _lat.t){
       var _d = new Date(_lat.t);
-      _negra('ARRANQUE v495 · último latido previo: '+_d.getDate()+'/'+(_d.getMonth()+1)+' '
+      _negra('ARRANQUE v496 · último latido previo: '+_d.getDate()+'/'+(_d.getMonth()+1)+' '
         +('0'+_d.getHours()).slice(-2)+':'+('0'+_d.getMinutes()).slice(-2)
         +' en '+(_lat.p||'?')+(_lat.pend?(' con '+_lat.pend+' pendientes'):''));
     }else{
-      _negra('ARRANQUE v495 · sin latido previo');
+      _negra('ARRANQUE v496 · sin latido previo');
     }
   }catch(e){}
 
@@ -1293,7 +1293,7 @@ textarea.finput{resize:vertical;min-height:60px;}
   <div class="lcard">
     <div style="text-align:center;margin-bottom:6px;"><img src="data:image/jpeg;base64,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" style="height:54px;object-fit:contain;"></div>
     <div class="lsub">Trazabilidad · Lácteos Cuquerella</div>
-    <div id="ver-login" style="font-size:0.65rem;color:var(--text3);margin-top:4px;font-family:'Inconsolata',monospace;opacity:0.6;">v495</div>
+    <div id="ver-login" style="font-size:0.65rem;color:var(--text3);margin-top:4px;font-family:'Inconsolata',monospace;opacity:0.6;">v496</div>
     <select class="lsel" id="l-nombre" onchange="resetPin()">
       <option value="">— ¿Quién eres? —</option>
     </select>
@@ -1319,7 +1319,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div id="ver-home" style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v495</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div id="ver-home" style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v496</div></div>
   <div class="scrl" style="padding:0;">
 
   <!-- (v424) COBERTURA. En las naves se corta y nadie sabía si el problema era
@@ -1790,11 +1790,11 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div style="font-family:'Karla',sans-serif;font-weight:800;font-size:1rem;color:var(--text);margin-bottom:12px;">✏️ Registro manual</div>
       <div class="fgrid">
         <div class="fg full">
-          <div class="flabel">ID Palet <span style="color:var(--text3);font-weight:400;">(opcional — si no tienes, déjalo vacío)</span></div>
+          <div class="flabel">ID Palet <span style="color:var(--text3);font-weight:400;">(solo si el palé tiene QR; si es antiguo SIN QR, déjalo VACÍO)</span></div>
           <input class="finput" type="text" id="pint-man-id" placeholder="Ej: 126011113109" autocomplete="off" autocapitalize="off" oninput="autorellenarPintManual(this.value)">
         </div>
         <div class="fg full">
-          <div class="flabel">Lote queso <span style="color:red;">*</span></div>
+          <div class="flabel">Lote largo del queso <span style="color:red;">*</span> <span style="color:var(--text3);font-weight:400;">(o el corto, abajo)</span></div>
           <input class="finput" type="text" id="pint-man-lote" placeholder="Ej: 1261711" autocomplete="off" oninput="actualizarPreviewIdPint()">
         </div>
         <div class="fg full">
@@ -1828,12 +1828,12 @@ textarea.finput{resize:vertical;min-height:60px;}
           <input class="finput" type="number" id="pint-man-piezas" placeholder="0" min="0" inputmode="numeric" oninput="actualizarPreviewIdPint()">
         </div>
         <div class="fg full">
-          <div class="flabel">Lote corto <span style="color:var(--text3);font-weight:400;">(solo manchego, ej: L-26049)</span></div>
+          <div class="flabel">Lote corto <span style="color:var(--text3);font-weight:400;">(D.O., el del tarjetón; ej: 24159)</span></div>
           <input class="finput" type="text" id="pint-man-lotecorto" placeholder="Ej: L-26049" autocomplete="off" autocapitalize="off" oninput="actualizarPreviewIdPint()">
         </div>
       </div>
       <div id="pint-man-id-preview" style="display:none;background:rgba(26,94,200,0.08);border:1.5px solid var(--blue);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-family:'Inconsolata',monospace;font-size:0.8rem;color:var(--blue);">
-        <span style="font-weight:700;">ID que se generará: </span><span id="pint-man-id-preview-val"></span>
+        <span style="font-weight:700;">Se guardará SIN QR, solo con el lote: </span><span id="pint-man-id-preview-val"></span>
       </div>
       <div class="errbanner" id="pint-man-err"></div>
       <button onclick="registrarPintManual()" style="width:100%;margin-top:14px;padding:14px;background:#3a6b3a;color:#fff;border:none;border-radius:10px;font-family:'Karla',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;">✅ Guardar registro</button>
@@ -2502,6 +2502,13 @@ textarea.finput{resize:vertical;min-height:60px;}
             autocomplete="off" autocapitalize="off"
             oninput="onEnvPaleInput(this.value)"
             style="font-family:'Inconsolata',monospace;">
+          <!-- (v496) Sin QR: el tarjetón trae el lote LARGO y, en D.O., el CORTO. Se
+               puede poner uno, otro o los dos; se guardan juntos en LOTE QUESO
+               como «largo!corto», igual que van en el ID de palé. -->
+          <div id="env-corto-wrap" style="display:none;margin-top:9px;">
+            <div class="flabel" style="margin-bottom:4px;">Lote corto (D.O., el del tarjetón; si lo sabes)</div>
+            <input class="finput" type="text" id="env-lote-corto" placeholder="Ej: 24159" autocomplete="off" inputmode="numeric" style="font-family:'Inconsolata',monospace;">
+          </div>
         </div>
         <!-- Info palet autorellenada -->
         <div id="env-pale-data" style="display:none;">
@@ -5341,6 +5348,7 @@ function avisarDuplicado(paleId, seccion, etiqueta, idErr){
 }
 
 function registrarC1(codigo){
+  codigo=comprobarIdPale(codigo,'c1-err'); if(!codigo) return;   // (v496)
   var codigoCompleto=normalizarQR(codigo);
   var paleId=codigoCompleto.split('*')[0].trim();
   // Validar fecha del ID
@@ -5485,6 +5493,7 @@ function onVolteoKey(e){
   }
 }
 function registrarVolteo(codigo){
+  codigo=comprobarIdPale(codigo, (document.getElementById('v-man-err')&&document.getElementById('v-man-err').offsetParent)?'v-man-err':'v-err'); if(!codigo) return;   // (v496)
   var codigoCompleto=normalizarQR(codigo);
   var paleId=codigoCompleto.split('*')[0].trim();
   // Buscar el palé con la clave COMPLETA (dígitos + variedad), igual que hace
@@ -5743,6 +5752,7 @@ function getSalaActualPale(paleId){
   return (pFin&&pFin.sala)?pFin.sala:'';
 }
 function registrarC2(codigo){
+  codigo=comprobarIdPale(codigo,'c2-err'); if(!codigo) return;   // (v496)
   var paleId=codigo.split('*')[0];
   var codigoCompleto=normalizarQR(codigo);
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('c2-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('c2-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('c2-err');}
@@ -5819,6 +5829,7 @@ function _bloquearMov(htmlMsg, textoPlano, errElParam){
 }
 
 function registrarMov(codigo){
+  codigo=comprobarIdPale(codigo,'mov-err'); if(!codigo) return;   // (v496)
   var paleId=codigo.split('*')[0];
   var codigoCompleto=normalizarQR(codigo);
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('mov-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('mov-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('mov-err');}
@@ -6364,6 +6375,7 @@ function _pintListaParaGuardar(){
 function onNuevoLotePint(v){nuevoLotePint=v.trim();transPint=v.trim()?2:0;}
 function onPintKey(e){if(e.key==='Enter'){var v=document.getElementById('pint-qr').value.trim();if(v){registrarPint(v);document.getElementById('pint-qr').value='';}}}
 function registrarPint(codigo){
+  codigo=comprobarIdPale(codigo,'pint-err'); if(!codigo) return;   // (v496)
   var paleId=codigo.split('*')[0];
   var codigoCompleto=normalizarQR(codigo);
   var val=validarFechaId(paleId);if(val.ok===false){mostrarErrFecha('pint-err',val.msg);return;}if(val.ok==='aviso'){mostrarErrFecha('pint-err',val.msg);if(!confirm(val.msg+'\n\n¿Continuar de todos modos?'))return;}else{ocultarErrFecha('pint-err');}
@@ -6440,8 +6452,9 @@ function actualizarPreviewIdPint(){
   if(!lote){preview.style.display='none';return;}
   var fmt2=document.getElementById('pint-man-fmt')?document.getElementById('pint-man-fmt').value.trim():'';
   var pzs2=parseInt(document.getElementById('pint-man-piezas')?document.getElementById('pint-man-piezas').value:0)||0;
-  var idGen=_idProvisionalPale(lote, fmt2, pzs2, variedad, loteCorto);
-  previewVal.textContent=idGen;
+  // (v496) Sin QR NO se inventa ningún ID de palé: se enseña el lote que se guardará.
+  var _lc=String(loteCorto||'').replace(/^L-?/i,'').replace(/^!+/,'').trim();
+  previewVal.textContent=lote+(_lc?('!'+_lc):'')+(fmt2?' · '+fmt2:'')+(pzs2?' · '+pzs2+' pzas':'');
   preview.style.display='';
 }
 function autorellenarPintManual(val){
@@ -6503,7 +6516,7 @@ function registrarPintManual(){
   var noAptas=parseInt((document.getElementById('pint-noAptas')||{value:'0'}).value)||0;
   var errEl=document.getElementById('pint-man-err');
   var loteCorto=document.getElementById('pint-man-lotecorto')?document.getElementById('pint-man-lotecorto').value.trim():'';
-  if(!lote){errEl.textContent='El lote es obligatorio';errEl.style.display='block';return;}
+  if(!lote && !loteCorto){errEl.textContent='Pon el lote del queso (largo, corto o los dos)';errEl.style.display='block';return;}
   if(!tipo){errEl.textContent='El tipo de queso es obligatorio';errEl.style.display='block';return;}
   if(!fmt){errEl.textContent='El formato/peso es obligatorio';errEl.style.display='block';return;}
   if(!piezas){errEl.textContent='Introduce el número de piezas';errEl.style.display='block';return;}
@@ -6529,22 +6542,23 @@ function registrarPintManual(){
         + (_esElLote
             ? 'Has escrito el lote (' + lote + ') en la casilla del ID. El lote ya está en su campo, un poco más abajo.'
             : 'Un ID de palet tiene 12 dígitos y tú has puesto ' + _digId.length + '.')
-        + '<br><br>Si este palet es antiguo y no tiene QR, <b>deja el ID vacío</b>: la app lo genera sola con el lote, el formato y las piezas.';
+        + '<br><br>Si este palet es antiguo y no tiene QR, <b>deja el ID vacío</b>: se guarda sin QR, solo con el lote.';
       errEl.style.display='block';
       try{ document.getElementById('pint-man-id').focus(); }catch(e){}
       return;
     }
   }
   errEl.style.display='none';
-  // Generar ID provisional si no hay ID palet
-  if(!idPale){
-    // Lógica real del ID: LLLLLLL + 00 (cuba/palet desconocidos) + F + PPP
-    // LLLLLLL = 7 dígitos del lote
-    // 00 = cuba y nº palet desconocidos
-    // F = código formato (3KG→3, 2KG→2, 1KG→1, BARRA→5, SUPERMINIS→9)
-    // PPP = nº piezas en 3 dígitos (ej: 108, 096)
-    idPale=_idProvisionalPale(lote, fmt, piezas, variedad, loteCorto);   // (v482)
+  // (v496) SIN QR NO HAY ID DE PALÉ, NUNCA (Joaquín, 31/10). Antes la app se
+  // inventaba uno (lote + 00 + formato + piezas), que parecía un palé y no lo
+  // era: sin QR no se sabe ni la cuba ni el palé, y las piezas pueden ser
+  // sueltas. Ahora el ID se queda vacío y el lote (largo!corto) va a LOTE QUESO.
+  // Si se escribe un ID, tiene que ser el de un palé de verdad.
+  if(idPale){
+    idPale=comprobarIdPale(idPale,'pint-man-err'); if(!idPale) return;
   }
+  var _lcP=String(loteCorto||'').replace(/^L-?/i,'').replace(/^!+/,'').trim();
+  if(!idPale){ lote = lote && _lcP ? (lote.replace(/\s+/g,'')+'!'+_lcP) : (lote||_lcP); }
   if(!_pintListaParaGuardar()) return;   // (v413) sin producto y sin lote, no se guarda
   var loteActual=_loteVigente(lotePinturaPorProducto[pintProdActual]||'');
   var loteUsado=loteActual;
@@ -6562,8 +6576,8 @@ function registrarPintManual(){
   }
   var p=idPale?pales.find(function(x){return x.id===idPale;}):null;
   var salaPint=idPale?(getSalaActualPale(idPale)||(p?p.sala:'')):''
-  var datos={'ID PALET':idPale||'SIN QR','SECCIÓN':'PINTURA','OPERARIO':CU.n,'FECHA':fechaHoraEspana(),'LOTE QUESO':lote,'TIPO DE QUESO':tipo,'VARIEDAD':variedad,'FORMATO/PESO':fmt,'Nº DE PIEZAS':piezas,'PIEZAS NO APTAS':noAptas,'PRODUCTO':pintProdActual,'LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaPint,'SALA DESTINO':salaPint,'OBSERVACIONES':(document.getElementById('pint-notas')?document.getElementById('pint-notas').value:'')+' [REGISTRO MANUAL]'};
-  guardarRegistro(datos,'PINTURA',idPale||'SIN QR');
+  var datos={'ID PALET':idPale||'','SECCIÓN':'PINTURA','OPERARIO':CU.n,'FECHA':fechaHoraEspana(),'LOTE QUESO':lote,'TIPO DE QUESO':tipo,'VARIEDAD':variedad,'FORMATO/PESO':fmt,'Nº DE PIEZAS':piezas,'PIEZAS NO APTAS':noAptas,'PRODUCTO':pintProdActual,'LOTE PRODUCTO':loteUsado,'SALA ORIGEN':salaPint,'SALA DESTINO':salaPint,'OBSERVACIONES':(document.getElementById('pint-notas')?document.getElementById('pint-notas').value:'')+' [REGISTRO MANUAL]'};
+  guardarRegistro(datos,'PINTURA',idPale||'');
   cntPint++;document.getElementById('pint-cnt').textContent=cntPint;
   // Limpiar formulario
   // (v363) AQUÍ VIVÍA EL ERROR DE LA LÍNEA 4841 QUE CAZÓ LA CAJA NEGRA:
@@ -6574,7 +6588,7 @@ function registrarPintManual(){
   // pintura. Ahora la limpieza comprueba cada casilla antes de tocarla: una
   // casilla renombrada nunca más tira la función entera.
   ['pint-man-id','pint-man-lote','pint-man-tipo','pint-man-variedad',
-   'pint-man-fmt','pint-man-piezas','pint-noAptas'].forEach(function(_id){
+   'pint-man-fmt','pint-man-piezas','pint-noAptas','pint-man-lotecorto'].forEach(function(_id){
     var _el=document.getElementById(_id);
     if(_el) _el.value='';
   });
@@ -14293,6 +14307,9 @@ function buscarLote(lote){
     var p7=digitos.substring(0,7);
     var p6=digitos.substring(0,6);
     if(loteCorto===lote||p7===lote||p6===lote||digitos.startsWith(lote)){
+      // (v496) Un ID inventado (lote + 00 + formato + piezas) no es un palé:
+      // sus registros van con los «sin QR».
+      if(_idInventado(paleId)) return;
       if(!paleIds[paleId])paleIds[paleId]={paleId:paleId,ops:[]};
     }
   });
@@ -14313,14 +14330,29 @@ function buscarLote(lote){
     if(_cv) _cv.insertAdjacentHTML('beforeend', _bsq);
   }
 }
+// (v496) ¿Es un ID que la app se inventó (o un lote tecleado como ID)? Tiene
+// cifras pero no la estructura de un palé y ese palé no existe fuera de
+// envasados. Se guarda en caché porque se pregunta muchas veces.
+var _cacheInv={};
+function _idInventado(id){
+  id=String(id||'').trim(); if(!id) return false;
+  if(_cacheInv.hasOwnProperty(id)) return _cacheInv[id];
+  var r=!!_estructuraIdPale(id) && !_paleExisteEnApp(id);
+  _cacheInv[id]=r; return r;
+}
 // (v494) Registros de un lote hechos SIN QR (ID de palé vacío o «SIN QR»):
 // envasados y pinturas de quesos antiguos. Se enseñan aparte, por fecha.
 function _bloqueSinQR(lote){
   var L=String(lote||'').trim().toUpperCase(); if(!L) return '';
   var regs=(rawRows||[]).filter(function(r){
     var id=String(r['ID PALET']||'').trim();
-    if(/\d{6}/.test(id.replace(/\s/g,''))) return false;
-    return String(r['LOTE QUESO']||'').trim().toUpperCase()===L;
+    if(/\d{6}/.test(id.replace(/\s/g,''))){
+      var _d=id.split('*')[0].split('!')[0].replace(/\D/g,''), _m=id.match(/!(.+)/);
+      var _es=_d.substring(0,6)===L || _d.substring(0,7)===L || (_m && _m[1].trim().toUpperCase()===L) || String(r['LOTE QUESO']||'').toUpperCase().split(/[!\s·\/|]+/).indexOf(L)>=0;
+      return _es && _idInventado(id);   // primero lo barato; lo caro solo para las del lote
+    }
+    // (v496) LOTE QUESO puede ser «largo!corto»: vale cualquiera de los dos.
+    return String(r['LOTE QUESO']||'').toUpperCase().split(/[!\s·\/|]+/).indexOf(L)>=0;
   });
   if(!regs.length) return '';
   regs.sort(function(a,b){ var fa=parseFecha(a['FECHA']), fb=parseFecha(b['FECHA']); return (fa?fa.getTime():0)-(fb?fb.getTime():0); });
@@ -14332,7 +14364,8 @@ function _bloqueSinQR(lote){
     var det=[r['TIPO DE QUESO'],r['VARIEDAD'],r['FORMATO/PESO']].filter(function(x){return String(x||'').trim();}).join(' · ');
     var prod=String(r['PRODUCTO']||'').trim();
     h+='<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--border);font-size:0.85rem;">'
-      +'<div><b>'+String(r['SECCIÓN']||'')+'</b> · '+det+(prod?' · '+prod:'')+'<div style="font-size:0.72rem;color:var(--text3);">'+String(r['OPERARIO']||'')+'</div></div>'
+      +'<div><b>'+String(r['SECCIÓN']||'')+'</b> · '+det+(prod?' · '+prod:'')+'<div style="font-size:0.72rem;color:var(--text3);">'+String(r['OPERARIO']||'')
+      +(String(r['ID PALET']||'').trim()?(' · <span style="color:#8a5a00;">guardado con un ID que no es de palé: '+String(r['ID PALET']).trim()+'</span>'):'')+'</div></div>'
       +'<div style="text-align:right;white-space:nowrap;">'+f+'<div style="font-size:0.75rem;color:var(--text3);">'+(r['Nº DE PIEZAS']||'')+' pzas</div></div></div>';
   });
   return h+'</div>';
@@ -15384,6 +15417,64 @@ function mostrarDetalleOp(idx){
 // Normaliza un QR escaneado para preservar el formato fijo:
 // {ID}*{VARIEDAD_RELLENA_A_12_CHARS}!{LOTE_OPCIONAL}
 // Compatible con AppSheet, que guarda los registros con esta estructura.
+// ══════════════════════════════════════════════════════════════════════════
+// (v496) EN LA CASILLA DEL PALÉ SOLO ENTRA UN ID DE PALÉ (Joaquín, 31/10).
+// ──────────────────────────────────────────────────────────────────────────
+// «Nunca podemos dejar que alguien ponga en el sitio del ID algo que no tenga
+// la estructura de ID». Antes se colaba el lote (324286) o la app se inventaba
+// un ID juntando lote + 00 + formato + piezas, y esos «palés» que no existen
+// ensuciaban la trazabilidad. Ahora, en 1ª capa, volteo, 2ª capa, movimiento,
+// pintura y envasado, lo escaneado o tecleado tiene que ser:
+//   · un ID con estructura de palé: 12 cifras (tipo · año · semana · día ·
+//     palé · formato · piezas) y el «*» de la variedad;
+//     o bien las 12 cifras de un palé que ya existe (se completa solo);
+//   · con un número de palé de verdad (no 00) — salvo que ese palé ya exista
+//     en la app, para no bloquear nunca un palé real.
+// Si no, NO se guarda y se le dice al operario qué hacer. Los quesos antiguos
+// sin QR van por «Queso antiguo sin QR» (solo lote), nunca como palé.
+// ══════════════════════════════════════════════════════════════════════════
+function _estructuraIdPale(id){
+  id=String(id||'').trim();
+  var base=id.split('*')[0].split('!')[0];
+  if(!/^[0-9 ]+$/.test(base)) return 'no son cifras';
+  var dig=base.replace(/ /g,'');
+  if(!(base.length===12||base.length===13) || dig.length<11 || dig.length>13) return 'no tiene las 12 cifras de un palé';
+  if(!TQMAP[dig.charAt(0)]) return 'la 1ª cifra no es un tipo de queso';
+  var sem=parseInt(dig.substring(3,5),10), dia=parseInt(dig.charAt(5),10);
+  if(!(sem>=1&&sem<=53)) return 'la semana ('+dig.substring(3,5)+') no existe';
+  if(!(dia>=1&&dia<=7)) return 'el día de la semana ('+dig.charAt(5)+') no existe';
+  if(!(parseInt(parsearId(id).nPale,10)>=1)) return 'el número de palé es 00';
+  return '';
+}
+// Un palé "existe" si tiene algún registro que no sea un envasado/selección
+// (los IDs inventados nacieron justo en envasados, así que esos no cuentan).
+function _paleExisteEnApp(id){
+  return (rawRows||[]).some(function(r){ var s=String(r['SECCIÓN']||'').toUpperCase(); return s!=='ENVASADO' && s!=='SELECCIÓN' && matchPaleId(r['ID PALET'],id); });
+}
+// Devuelve el código bueno (a veces completado) o '' si no vale (y avisa).
+function comprobarIdPale(codigo, errId){
+  var c=String(codigo||'').trim();
+  function mal(motivo){
+    var msg='🚫 «'+(c||'(vacío)')+'» no es un ID de palé'+(motivo?(' ('+motivo+')'):'')+'. '
+      +'Escanea el QR del palé. Si lo tecleas, tienen que ser sus 12 cifras con el * y el ! '
+      +'(ej.: 126175111264*ACEITE!L-26049). Si es un queso antiguo sin QR, usa «sin QR» y pon solo el lote. NO se ha guardado.';
+    try{ mostrarErrFecha(errId,msg); }catch(e){ toast(msg,'err'); }
+    try{ toast('🚫 ID de palé no válido: no se ha guardado','err'); navigator.vibrate && navigator.vibrate([200,80,200]); }catch(e){}
+    try{ window._negra && window._negra('ID PALÉ RECHAZADO: «'+c+'» · '+(motivo||'')); }catch(e){}
+    return '';
+  }
+  if(!c) return mal('');
+  // Solo cifras: tiene que ser un palé que ya exista → se completa con su ID.
+  if(c.indexOf('*')<0){
+    if(!_estructuraIdPale(c) && _paleExisteEnApp(c)) return c;
+    var cand=(c.replace(/\D/g,'').length>=12) ? buscarPorDigitos(c).filter(function(p){ return !_estructuraIdPale(p.id) || _paleExisteEnApp(p.id); }) : [];
+    if(cand.length===1) return cand[0].id;
+    return mal(cand.length>1?'hay varios palés con esas cifras: escanea el QR':'falta el * y no hay ningún palé con esas cifras');
+  }
+  var e=_estructuraIdPale(c);
+  if(e && !_paleExisteEnApp(c)) return mal(e);
+  return c;
+}
 function normalizarQR(codigo){
   if(!codigo) return '';
   // Quitar solo espacios al inicio (no al final ni en medio)
@@ -15794,7 +15885,7 @@ var ENV_BORRADOR_KEY='tq_env_borrador';
 
 // Campos del formulario que hay que conservar. Son los de datos: los botones y
 // las etiquetas se vuelven a pintar solos.
-var ENV_CAMPOS=['env-pale-input','env-tipo','env-variedad','env-formato','env-piezas',
+var ENV_CAMPOS=['env-pale-input','env-lote-corto','env-tipo','env-variedad','env-formato','env-piezas',
   'env-lote','env-cunas-total','env-etiq-num','env-etiq-desc','env-etiq-nc',
   'env-lote-etiquetas','env-lote-bolsa','env-lote-aceite','env-cant-aceite',
   'env-lote-trufa','env-cant-trufa','env-lote-finas-hierbas','env-lote-manteca',
@@ -16400,8 +16491,9 @@ function onEnvSinQR(){
   var sinQR=_envSinQR();
   var lbl=document.getElementById('env-pale-lbl');
   var inp=document.getElementById('env-pale-input');
-  if(lbl) lbl.textContent = sinQR ? 'Lote del queso' : 'ID Palet o lote';
-  if(inp) inp.placeholder = sinQR ? 'Ej: 2266175' : 'Ej: 126175111264*ACEITE!L-26049';
+  if(lbl) lbl.textContent = sinQR ? 'Lote largo del queso (el del tarjetón)' : 'ID del palé (escanea el QR)';
+  if(inp) inp.placeholder = sinQR ? 'Ej: 2266175 · D.O.: 324286' : 'Ej: 126175111264*ACEITE!L-26049';
+  var _cw=document.getElementById('env-corto-wrap'); if(_cw) _cw.style.display = sinQR ? '' : 'none';
   // (v300) SIN QR TAMBIÉN HAY QUE RELLENAR TIPO, FORMATO Y PIEZAS.
   // Antes se ocultaba 'env-pale-data' entera, y dentro van DOS cosas: el resumen
   // gris del palé (que sin QR no existe) y los campos editables (que sí hacen
@@ -16747,8 +16839,14 @@ function guardarEnvasado(){
   if(!piezas){errEl.textContent='Introduce el número de piezas';errEl.style.display='block';return;}
   // (v295) Sin QR el LOTE es obligatorio: es lo único que identifica ese queso.
   // Un registro sin ID de palé Y sin lote no se podría rastrear de ninguna forma.
-  if(_envSinQR() && !String(lote||'').trim()){
-    errEl.textContent='Queso antiguo sin QR: el lote es obligatorio';errEl.style.display='block';return;
+  // (v496) Sin QR: lote largo y/o corto (al menos uno). Se guardan juntos.
+  if(_envSinQR()){
+    var _lL=String((document.getElementById('env-pale-input')||{}).value||'').trim().replace(/\s+/g,'');
+    var _lC=String((document.getElementById('env-lote-corto')||{}).value||'').trim().replace(/^!+/,'').replace(/\s+/g,'');
+    if(!_lL) _lL=String(lote||'').trim();
+    if(!_lL && !_lC){ errEl.textContent='Queso antiguo sin QR: pon el lote (largo, corto o los dos)';errEl.style.display='block';return; }
+    if(_lL && /[*]/.test(_lL)){ errEl.textContent='Sin QR va solo el LOTE, no un ID de palé. Si tiene QR, desmarca «Queso antiguo sin QR» y escanéalo.';errEl.style.display='block';return; }
+    lote = _lL && _lC ? (_lL+'!'+_lC) : (_lL||_lC);
   }
   var esDO=(tipo==='D.O. PAST.'||tipo==='D.O. CRUDA');
   // Contraetiquetas: SOLO se exigen si es D.O. y ademas el queso VA ETIQUETADO.
@@ -16778,6 +16876,14 @@ function guardarEnvasado(){
   // Sin QR lo único cierto es el LOTE, y ahí es donde se guarda.
   if(_envSinQR()){
     paleId='';
+  } else if(_idPaleValido(paleId) && _estructuraIdPale(paleId) && !_paleExisteEnApp(paleId)){
+    // (v496) Tiene * y ! pero las cifras no son de un palé (p. ej. 324286003108*!24159:
+    // lote + 00 + formato + piezas). No se guarda.
+    errEl.textContent='«'+paleId+'» no es un ID de palé ('+_estructuraIdPale(paleId)+'). Escanea el QR del palé, o si solo sabes el lote marca «Queso antiguo sin QR».';
+    errEl.style.display='block';
+    try{ navigator.vibrate && navigator.vibrate([200,80,200]); }catch(_){}
+    toast('🚫 ID de palé no válido: no se ha guardado','err');
+    return;
   } else if(!_idPaleValido(paleId)){
     // (v473) EN «ID PALET» SOLO VALE UN ID DE PALÉ DE VERDAD. Joaquín (26/10):
     // Calidad estaba escribiendo el LOTE (p. ej. 1262531) en esa casilla y se
@@ -17015,6 +17121,7 @@ function nuevoRegistroEnvasado(){
   envBorrarBorrador();
   try{ var _b=document.getElementById('env-aviso-borrador'); if(_b){_b.style.display='none';_b.innerHTML='';} }catch(_){}
   var pi=document.getElementById('env-pale-input');if(pi)pi.value='';
+  var _lc=document.getElementById('env-lote-corto');if(_lc)_lc.value='';
   var sq=document.getElementById('env-sin-qr');
   if(sq && sq.checked){ sq.checked=false; try{ onEnvSinQR(); }catch(e){} }
   document.getElementById('env-pale-data').style.display='none';

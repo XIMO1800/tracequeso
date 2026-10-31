@@ -293,6 +293,7 @@ tr.tz-vol td{color:var(--muted);background:#faf6f2}
 .minban{background:var(--bad-soft);border:1px solid var(--bad);color:var(--bad);border-radius:4px;padding:9px 14px;margin:0 0 12px;cursor:pointer;font-size:14.5px}
 .minban span{color:var(--ink);font-weight:500}.minban u{margin-left:6px;font-weight:700}
 .nav button .nb{margin-left:auto;background:var(--bad);color:#fff;border-radius:99px;font-size:11.5px;font-weight:800;padding:1px 7px}
+.rv-cd{display:inline-flex;align-items:center;gap:5px;margin:2px 10px 2px 0;font-size:14px;cursor:pointer}
 a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 #sf-ok{font-size:16px!important;padding:9px 18px!important}
 #ef-ok{font-size:16px!important;padding:9px 18px!important}
@@ -344,7 +345,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v24';
+var VER = 'v25';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -477,6 +478,7 @@ function leerSesion(){
 var ROWS=[], META=null, CARGANDO=false, FUENTE='';
 // Se precalcula la fecha de cada registro una sola vez (con 44.000 hace falta).
 function prep(rows){
+  _invC=null;
   rows.forEach(function(r){
     if(r.__f===undefined){ var d=parseFecha(r['FECHA']); r.__f=d; r.__t=d?d.getTime():0; }
   });
@@ -573,7 +575,7 @@ var MENU=[
     {id:'mat', t:'Material auxiliar'},
     {id:'trazq', t:'Trazabilidad por lote'},
     {id:'trazinv', t:'Trazabilidad inversa'},
-    {t:'Corregir registros', pronto:1},
+    {id:'revision', t:'Corregir registros'},
     {t:'Analíticas de leche', pronto:1},
     {t:'Informes de auditoría', pronto:1}
   ]},
@@ -622,6 +624,7 @@ function refrescar(){
   else if(VISTA==='traz' || VISTA==='trazq') vistaTraz();
   else if(VISTA==='trazinv') vistaTrazInv();
   else if(VISTA==='pale') vistaPale();
+  else if(VISTA==='revision') vistaRevision();
   else vistaInicio();
 }
 
@@ -1800,6 +1803,26 @@ function parsearId(id){
   var mV=id.match(/\*([^!]+)/), mL=id.match(/!(.+)/);
   return {tipo:tipo, lote:lote, nPale:nPale, fmt:FMAP[fmtD]||'—', fmtD:fmtD, piezas:piezas, variedad:mV?mV[1].trim():'', loteCorto:mL?mL[1].trim():'', isDO:isDO, dig:dig};
 }
+// (v25) ¿ID inventado? (lote + 00 + formato + piezas, o el lote tecleado como ID).
+// Misma regla que index v496: cifras sin estructura de palé y ese palé no tiene
+// registros fuera de envasado/selección.
+function estructuraIdPale(id){
+  id=String(id||'').trim(); var base=id.split('*')[0].split('!')[0];
+  if(!/^[0-9 ]+$/.test(base)) return 'no son cifras';
+  var dig=base.replace(/ /g,'');
+  if(!(base.length===12||base.length===13) || dig.length<11 || dig.length>13) return 'no tiene 12 cifras';
+  if(!TQMAP[dig.charAt(0)]) return 'tipo';
+  var sem=parseInt(dig.substring(3,5),10), dia=parseInt(dig.charAt(5),10);
+  if(!(sem>=1&&sem<=53)) return 'semana'; if(!(dia>=1&&dia<=7)) return 'día';
+  if(!(parsearId(id).nPale>=1)) return 'palé 00';
+  return '';
+}
+var _invC=null;
+function idInventado(id){
+  id=String(id||'').trim(); if(!/\d{6}/.test(id.replace(/\s/g,''))) return false;
+  if(!_invC){ _invC={buenos:{}}; ROWS.forEach(function(r){ var s=secDe(r); if(s!=='ENVASADO'&&s!=='SELECCIÓN'){ var d=pidDe(r).split('*')[0].replace(/\s/g,''); if(d) _invC.buenos[d]=1; } }); }
+  return !!estructuraIdPale(id) && !_invC.buenos[id.split('*')[0].split('!')[0].replace(/\s/g,'')];
+}
 // Fecha de fabricación (aaaa-mm-dd) desde los dígitos: tipo·AA·SEMANA·DÍA(1=lunes)
 function fechaFabKey(id){
   var d=String(id||'').replace(/\s/g,'').replace(/\D/g,'');
@@ -1913,7 +1936,7 @@ function tzBuscar(q){
   ROWS.forEach(function(r){
     var pid=pidDe(r); if(!pid) return;
     var dig=pid.split('*')[0].replace(/\s/g,'').replace(/\D/g,''), mL=pid.match(/!(.+)/), lc=mL?mL[1].trim():'';
-    if(lc===lote || dig.substring(0,7)===lote || dig.substring(0,6)===lote || dig.indexOf(lote)===0 || nrm(r['LOTE QUESO'])===nrm(lote)) set[pid]=1;
+    if(lc===lote || dig.substring(0,7)===lote || dig.substring(0,6)===lote || dig.indexOf(lote)===0 || nrm(r['LOTE QUESO'])===nrm(lote)){ if(!idInventado(pid)) set[pid]=1; }
   });
   var pales=Object.keys(set).sort();
   TZ.lote=lote; TZ.pales=pales;
@@ -1925,13 +1948,20 @@ function tzBuscar(q){
 // (v24) Registros SIN QR del lote (quesos antiguos: ID de palé vacío, solo el lote).
 function tzSinQR(lote){
   var L=nrm(lote);
-  var regs=ROWS.filter(function(r){ return !/\d{6}/.test(pidDe(r).replace(/\s/g,'')) && nrm(r['LOTE QUESO'])===L; }).sort(function(a,b){ return a.__t-b.__t; });
+  function partes(v){ return nrm(v).split(/[!\s·\/|]+/); }
+  var regs=ROWS.filter(function(r){
+    var id=pidDe(r);
+    if(!/\d{6}/.test(id.replace(/\s/g,''))) return partes(r['LOTE QUESO']).indexOf(L)>=0;
+    var d=id.split('*')[0].split('!')[0].replace(/\D/g,''), m=id.match(/!(.+)/);
+    var es=d.substring(0,6)===L || d.substring(0,7)===L || (m && nrm(m[1])===L) || partes(r['LOTE QUESO']).indexOf(L)>=0;
+    return es && idInventado(id);
+  }).sort(function(a,b){ return a.__t-b.__t; });
   TZ.sq=regs;
   if(!regs.length) return '';
   return '<div class="tz-blq"><h3 class="pbt">Registros sin QR de este lote <small class="cnt">'+regs.length+'</small></h3>'
     +'<p style="font-size:13px;color:var(--muted);margin:0 0 6px">Quesos antiguos sin QR: no tienen palé, solo el lote. Pincha uno para verlo entero.</p>'
     +'<table class="ptab"><thead><tr><th>Fecha</th><th>Acción</th><th>Tipo · variedad · formato</th><th>Producto / detalle</th><th class="r">Piezas</th><th>Operario</th></tr></thead><tbody>'
-    +regs.map(function(r,i){ return '<tr data-sq="'+i+'"><td>'+fDia(r.__f)+'</td><td><b>'+esc((SEC_TXT[secDe(r)]||secDe(r)).replace(/^\S+\s/,''))+'</b></td><td>'+esc([r['TIPO DE QUESO'],r['VARIEDAD'],r['FORMATO/PESO']].filter(Boolean).join(' · '))+'</td><td style="white-space:normal">'+esc([r['PRODUCTO'],r['LOTE PRODUCTO']?('lote '+r['LOTE PRODUCTO']):''].filter(Boolean).join(' · '))+'</td><td class="r">'+esc(r['Nº DE PIEZAS'])+'</td><td>'+esc(r['OPERARIO'])+'</td></tr>'; }).join('')
+    +regs.map(function(r,i){ return '<tr data-sq="'+i+'"><td>'+fDia(r.__f)+'</td><td><b>'+esc((SEC_TXT[secDe(r)]||secDe(r)).replace(/^\S+\s/,''))+'</b></td><td>'+esc([r['TIPO DE QUESO'],r['VARIEDAD'],r['FORMATO/PESO']].filter(Boolean).join(' · '))+'</td><td style="white-space:normal">'+esc([r['PRODUCTO'],r['LOTE PRODUCTO']?('lote '+r['LOTE PRODUCTO']):''].filter(Boolean).join(' · '))+(pidDe(r)?'<div style="font-size:12px;color:#8a5a00">guardado con un ID que no es de palé: '+esc(pidDe(r))+'</div>':'')+'</td><td class="r">'+esc(r['Nº DE PIEZAS'])+'</td><td>'+esc(r['OPERARIO'])+'</td></tr>'; }).join('')
     +'</tbody></table></div>';
 }
 function tzEnlSQ(){ $('tz-res').onclick=function(ev){ var tr=ev.target.closest('tr[data-sq]'); if(tr) abrirFicha(TZ.sq[+tr.getAttribute('data-sq')]); }; }
@@ -2246,6 +2276,118 @@ function tiEnlaces(){
   };
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+// (v25) CORREGIR REGISTROS — limpieza de envasados viejos (Joaquín, 31/10).
+// Tres listas; se marca lo que está mal y se corrige de una vez, con el mismo
+// envío de edición que usa Calidad en TraceQueso (ID + _UPDATE: solo cambian
+// las casillas que se mandan; queda anotado quién lo hizo).
+//   1) Envasados guardados con un ID que no es de palé (lote + 00 + formato +
+//      piezas, o el lote tecleado como ID) → pasan a «sin QR»: ID vacío y el
+//      lote (largo!corto) en LOTE QUESO.
+//   2) Envasados sin QR con sala puesta (la cogían de otro queso) → sala vacía.
+//   3) Envasados con lote de manteca/romero/finas hierbas/pimienta → se quitan
+//      los que se marquen (los que el queso no llevaba).
+// ═══════════════════════════════════════════════════════════════════════════
+var RV={tab:'ids', sel:{}, desde:'', hasta:''};
+var CONDS=[['LOTE MANTECA','manteca'],['LOTE ROMERO','romero'],['LOTE FINAS HIERBAS','finas hierbas'],['LOTE PIMIENTA','pimienta']];
+function esSinQR(r){ var id=pidDe(r); return !/\d{6}/.test(id.replace(/\s/g,'')) || idInventado(id); }
+function loteDeId(r){
+  var id=pidDe(r), i=parsearId(id), corto=i.loteCorto.replace(/^L-?/i,'').trim();
+  var largo=(i.dig||'').length>=12 ? i.lote : id.split('*')[0].split('!')[0].replace(/\s/g,'');
+  var actual=String(r['LOTE QUESO']||'').trim();
+  var base=actual||largo;
+  if(corto && nrm(base).split(/[!\s]+/).indexOf(nrm(corto))<0) base=base+'!'+corto;
+  return base;
+}
+function rvListas(){
+  function enFecha(r){ var f=r.__f?isoDia(r.__f):''; return !(RV.desde && f<RV.desde) && !(RV.hasta && f>RV.hasta); }
+  var env=ROWS.filter(function(r){ return secDe(r)==='ENVASADO' && enFecha(r); }).sort(function(a,b){ return b.__t-a.__t; });
+  // Los IDs inventados salen también en PINTURA (el registro manual se los inventaba).
+  var envPint=ROWS.filter(function(r){ var s=secDe(r); return (s==='ENVASADO'||s==='PINTURA') && enFecha(r); }).sort(function(a,b){ return b.__t-a.__t; });
+  return {
+    ids: envPint.filter(function(r){ var id=pidDe(r); return id && /\d{4}/.test(id) && idInventado(id); }),
+    sala: env.filter(function(r){ return esSinQR(r) && (String(r['SALA ORIGEN']||'').trim() || String(r['SALA DESTINO']||'').trim()); }),
+    cond: env.filter(function(r){ return CONDS.some(function(c){ return String(r[c[0]]||'').trim(); }); })
+  };
+}
+function vistaRevision(){
+  $('t-tit').textContent='Corregir registros';
+  $('t-sub').textContent='Limpieza de envasados antiguos: IDs que no son de palé, salas cogidas de otro queso y condimentos que no tocaban';
+  var L=rvListas();
+  var h='<div class="tabs">'
+    +'<button data-rt="ids" class="'+(RV.tab==='ids'?'on':'')+'">IDs que no son de palé'+(L.ids.length?'<span class="n">'+L.ids.length+'</span>':'')+'</button>'
+    +'<button data-rt="sala" class="'+(RV.tab==='sala'?'on':'')+'">Sin QR con sala'+(L.sala.length?'<span class="n">'+L.sala.length+'</span>':'')+'</button>'
+    +'<button data-rt="cond" class="'+(RV.tab==='cond'?'on':'')+'">Condimentos'+(L.cond.length?'<span class="n">'+L.cond.length+'</span>':'')+'</button></div>';
+  var txt={ids:'Envasados y pinturas guardados con un número que <b>no es un palé</b> (el lote tecleado como ID, o lote + 00 + formato + piezas). Al corregir pasan a <b>sin QR</b>: se quita el ID y se deja el lote (largo y corto) en «Lote queso».',
+           sala:'Envasados de quesos <b>sin QR</b> que tienen sala puesta. Hasta la v494 esa sala se cogía de <b>otro queso</b>, así que no vale. Al corregir, la sala se queda en blanco.',
+           cond:'Envasados con lote de <b>manteca, romero, finas hierbas o pimienta</b>. Hasta la v495 se ponían solos aunque el queso no los llevara. <b>Marca solo los que NO llevaba</b> ese queso: se borrará ese lote.'}[RV.tab];
+  h+='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)">'+txt+'</div>'
+    +'<div class="filt"><label>Desde<input type="date" id="rv-desde" value="'+esc(RV.desde)+'"></label><label>Hasta<input type="date" id="rv-hasta" value="'+esc(RV.hasta)+'"></label>'
+    +'<button class="btn" id="rv-todos">Marcar todos</button><button class="btn" id="rv-ninguno">Desmarcar</button><div style="flex:1"></div>'
+    +'<span id="rv-cnt" style="font-weight:700;color:var(--brand)"></span><button class="btn pri" id="rv-ok">Corregir lo marcado</button></div><div class="tbl-wrap" id="rv-tbl" style="max-height:none"></div>';
+  $('cont').innerHTML=h;
+  document.querySelectorAll('#cont .tabs button').forEach(function(b){ b.onclick=function(){ RV.tab=b.getAttribute('data-rt'); RV.sel={}; vistaRevision(); }; });
+  $('rv-desde').onchange=function(){ RV.desde=this.value; RV.sel={}; vistaRevision(); };
+  $('rv-hasta').onchange=function(){ RV.hasta=this.value; RV.sel={}; vistaRevision(); };
+  var lista=L[RV.tab]; RV._lista=lista;
+  if(!lista.length){ $('rv-tbl').innerHTML='<div class="vacio">No hay nada que corregir aquí. 👍</div>'; rvCnt(); return; }
+  var t='<table><thead><tr><th></th><th>Fecha</th>'+(RV.tab==='ids'?'<th>Sección</th>':'')+'<th>Operario</th><th>ID guardado</th><th>Lote queso</th><th>Tipo · formato</th><th style="text-align:right">Pzas</th>';
+  if(RV.tab==='ids') t+='<th>Quedará como</th>';
+  if(RV.tab==='sala') t+='<th>Sala puesta</th>';
+  if(RV.tab==='cond') t+='<th>Lotes de condimento (marca los que NO llevaba)</th>';
+  t+='</tr></thead><tbody>';
+  lista.forEach(function(r,i){
+    var k=String(r['ID']||i);
+    t+='<tr class="nolink">';
+    if(RV.tab==='cond'){
+      t+='<td></td>';
+    } else t+='<td><input type="checkbox" class="rv-ck" data-k="'+esc(k)+'"'+(RV.sel[k]?' checked':'')+'></td>';
+    t+='<td>'+fDia(r.__f)+'</td>'+(RV.tab==='ids'?'<td>'+esc(secDe(r))+'</td>':'')+'<td>'+esc(r['OPERARIO'])+'</td><td class="mono">'+esc(pidDe(r)||'—')+'</td><td class="mono">'+esc(r['LOTE QUESO'])+'</td>'
+      +'<td>'+esc([r['TIPO DE QUESO'],r['VARIEDAD'],r['FORMATO/PESO']].filter(Boolean).join(' · '))+'</td><td class="num">'+esc(r['Nº DE PIEZAS'])+'</td>';
+    if(RV.tab==='ids') t+='<td>sin QR · lote <b class="mono">'+esc(loteDeId(r))+'</b></td>';
+    if(RV.tab==='sala') t+='<td>'+esc(sl(r['SALA ORIGEN']))+(String(r['SALA DESTINO']||'')!==String(r['SALA ORIGEN']||'')?' → '+esc(sl(r['SALA DESTINO'])):'')+'</td>';
+    if(RV.tab==='cond') t+='<td style="white-space:normal">'+CONDS.filter(function(c){ return String(r[c[0]]||'').trim(); }).map(function(c){ var kk=k+'|'+c[0];
+        return '<label class="rv-cd"><input type="checkbox" class="rv-ck" data-k="'+esc(kk)+'"'+(RV.sel[kk]?' checked':'')+'> '+esc(c[1])+' <span class="mono">'+esc(r[c[0]])+'</span></label>'; }).join(' ')+'</td>';
+    t+='</tr>';
+  });
+  $('rv-tbl').innerHTML=t+'</tbody></table>';
+  $('rv-tbl').onchange=function(ev){ var c=ev.target.closest('.rv-ck'); if(!c) return; if(c.checked) RV.sel[c.getAttribute('data-k')]=1; else delete RV.sel[c.getAttribute('data-k')]; rvCnt(); };
+  $('rv-todos').onclick=function(){ document.querySelectorAll('#rv-tbl .rv-ck').forEach(function(c){ c.checked=true; RV.sel[c.getAttribute('data-k')]=1; }); rvCnt(); };
+  $('rv-ninguno').onclick=function(){ RV.sel={}; document.querySelectorAll('#rv-tbl .rv-ck').forEach(function(c){ c.checked=false; }); rvCnt(); };
+  $('rv-ok').onclick=rvAplicar;
+  rvCnt();
+}
+function rvCnt(){ var n=Object.keys(RV.sel).length; if($('rv-cnt')) $('rv-cnt').textContent=n?(n+' marcado'+(n>1?'s':'')):''; }
+function rvAplicar(){
+  if(soloMirar()) return;
+  var porId={}, lista=RV._lista||[];
+  lista.forEach(function(r,i){ porId[String(r['ID']||i)]=r; });
+  var cambios=[];   // {r, set:{col:val}}
+  Object.keys(RV.sel).forEach(function(k){
+    var p=k.split('|'), r=porId[p[0]]; if(!r || !r['ID']) return;
+    var c=cambios.filter(function(x){ return x.r===r; })[0]; if(!c){ c={r:r, set:{}}; cambios.push(c); }
+    if(RV.tab==='ids'){ c.set['LOTE QUESO']=loteDeId(r); c.set['ID PALET']=''; }
+    else if(RV.tab==='sala'){ c.set['SALA ORIGEN']=''; c.set['SALA DESTINO']=''; }
+    else if(p[1]) c.set[p[1]]='';
+  });
+  if(!cambios.length){ alert('No hay nada marcado.'); return; }
+  if(!confirm('Se van a corregir '+cambios.length+' registro'+(cambios.length>1?'s':'')+' en la hoja (REGISTRO TOTAL).\n\nQueda anotado que lo has hecho tú. ¿Seguir?')) return;
+  var b=$('rv-ok'); b.disabled=true;
+  var hechos=0, fallos=0, i=0;
+  (function sig(){
+    if(i>=cambios.length){
+      b.disabled=false; RV.sel={};
+      alert('Hecho: '+hechos+' corregido'+(hechos===1?'':'s')+(fallos?(' · '+fallos+' NO se han podido corregir (vuelve a intentarlo)'):'')+'.');
+      vistaRevision(); return;
+    }
+    var c=cambios[i++]; b.textContent='Corrigiendo '+i+' de '+cambios.length+'…';
+    var pay=Object.assign({ID:c.r['ID'], _UPDATE:true, _QUIEN:(CU&&CU.n)||''}, c.set);
+    fetch(API_URL,{method:'POST', body:JSON.stringify(pay)}).then(function(x){ return x.json(); }).then(function(j){
+      if(j && j.ok){ hechos++; Object.keys(c.set).forEach(function(k){ c.r[k]=c.set[k]; }); _invC=null; } else fallos++;
+    }).catch(function(){ fallos++; }).then(function(){ guardarCopia(); sig(); });
+  })();
+}
 // ═══════════════════════════════════════════════════════════════════════════
 // ARRANQUE
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2263,7 +2405,7 @@ function tiEnlaces(){
   $('app').hidden=false;
   $('t-who').textContent=nombre;
   $('s-ver').textContent=VER+(puedeGuardar()?' · en pruebas':' · en pruebas · solo mirar');
-  try{ var v=localStorage.getItem('tqof_vista'); if(['registros','mat','traz','trazq','trazinv','pale'].indexOf(v)>=0) VISTA=v; }catch(e){}
+  try{ var v=localStorage.getItem('tqof_vista'); if(['registros','mat','traz','trazq','trazinv','pale','revision'].indexOf(v)>=0) VISTA=v; }catch(e){}
   pintarMenu();
   cargarMat();   // (v17) para el aviso de mínimos en el menú, se esté donde se esté
   $('b-act').onclick=function(){ ponerAlDia(); };
