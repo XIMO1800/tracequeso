@@ -354,7 +354,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v34';
+var VER = 'v35';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -1579,7 +1579,7 @@ function efPintarFoto(){
 // Comprueba lo mismo que guardarMatEntrada() del móvil y enseña lo que se grabaría.
 function efRegistrar(){
   efLeer();
-  var err=[];
+  var err=[], avisos=[];   // (v35) avisos = no paran el guardado, se enseñan al confirmar
   if(!EF.fecha) err.push('Falta la fecha de entrada.');
   if(!EF.prov) err.push('Falta el proveedor.');
   if(!isAdminCal() && !EF.foto && EF.rec==='') err.push('Falta la foto del albarán.');
@@ -1595,7 +1595,9 @@ function efRegistrar(){
     if(num(l.cant)<0 && !EF.obs.trim()) err.push(n+'es negativa (ajuste): explica el motivo en observaciones.');
     if(l.cad && l.cad<isoDia(new Date())) err.push(n+'la caducidad ya ha pasado ('+dmy(l.cad)+').');
     var ya=MAT.ent.filter(function(e){ return nrm(gEnt(e,['ARTICULO','ARTÍCULO','articulo']))===nrm(l.art) && nrm(gEnt(e,['LOTE','lote']))===nrm(l.lote); }).length;
-    if(ya && l.art && l.lote) err.push(n+'⚠️ ya hay '+ya+' entrada(s) de '+l.art+' con el lote '+l.lote+'. Si es otra partida del mismo lote, es correcto; si no, revisa.');
+    // (v35) Antes esto era un ERROR y no dejaba guardar nunca (Joaquín, 31/10:
+    // «no sé si se está guardando»). Es solo un aviso: se enseña al confirmar.
+    if(ya && l.art && l.lote) avisos.push(n+'ya hay '+ya+' entrada(s) de '+l.art+' con el lote '+l.lote+' (si es otra partida o una regularización, es correcto).');
   });
   if((EF.estado==='I'||EF.etiqueta==='I'||EF.camion==='I') && !EF.acciones.trim()) err.push('Hay algo incorrecto en el control: escribe las acciones correctoras.');
   var e=$('ef-err');
@@ -1609,6 +1611,8 @@ function efRegistrar(){
   var rec=EF.rec!==''?recPend()[+EF.rec]:null;
   if(!confirm('¿Registrar esta entrada?\n\n'+EF.prov+(EF.alb?(' · albarán '+EF.alb):'')+' · '+dmy(EF.fecha)+'\n'
      +lineas.map(function(l){ return '· '+l.art+' · lote '+l.lote+' · '+l.cant+' '+l.uni; }).join('\n')
+     +(EF.obs.trim()?('\nObservaciones: '+EF.obs.trim()):'')
+     +(avisos.length?('\n\n⚠️ OJO:\n'+avisos.join('\n')):'')
      +'\n\nSe suma al stock de cada lote.')) return;
   var b=$('ef-ok'); b.disabled=true;
   function paso(t){ b.textContent=t; }
