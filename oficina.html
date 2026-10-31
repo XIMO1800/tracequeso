@@ -344,7 +344,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v23';
+var VER = 'v24';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -1917,9 +1917,24 @@ function tzBuscar(q){
   });
   var pales=Object.keys(set).sort();
   TZ.lote=lote; TZ.pales=pales;
-  if(!pales.length){ $('tz-res').innerHTML='<div class="vacio">No hay palés del lote <b>'+esc(lote)+'</b> en los registros de este ordenador ('+fmtN(ROWS.length)+' registros).</div>'; return; }
+  var sq=tzSinQR(lote);
+  if(!pales.length){ $('tz-res').innerHTML=(sq||'<div class="vacio">No hay palés del lote <b>'+esc(lote)+'</b> en los registros de este ordenador ('+fmtN(ROWS.length)+' registros).</div>'); tzEnlSQ(); return; }
   tzPintar(lote, pales);
+  if(sq){ $('tz-res').insertAdjacentHTML('beforeend', sq); }
 }
+// (v24) Registros SIN QR del lote (quesos antiguos: ID de palé vacío, solo el lote).
+function tzSinQR(lote){
+  var L=nrm(lote);
+  var regs=ROWS.filter(function(r){ return !/\d{6}/.test(pidDe(r).replace(/\s/g,'')) && nrm(r['LOTE QUESO'])===L; }).sort(function(a,b){ return a.__t-b.__t; });
+  TZ.sq=regs;
+  if(!regs.length) return '';
+  return '<div class="tz-blq"><h3 class="pbt">Registros sin QR de este lote <small class="cnt">'+regs.length+'</small></h3>'
+    +'<p style="font-size:13px;color:var(--muted);margin:0 0 6px">Quesos antiguos sin QR: no tienen palé, solo el lote. Pincha uno para verlo entero.</p>'
+    +'<table class="ptab"><thead><tr><th>Fecha</th><th>Acción</th><th>Tipo · variedad · formato</th><th>Producto / detalle</th><th class="r">Piezas</th><th>Operario</th></tr></thead><tbody>'
+    +regs.map(function(r,i){ return '<tr data-sq="'+i+'"><td>'+fDia(r.__f)+'</td><td><b>'+esc((SEC_TXT[secDe(r)]||secDe(r)).replace(/^\S+\s/,''))+'</b></td><td>'+esc([r['TIPO DE QUESO'],r['VARIEDAD'],r['FORMATO/PESO']].filter(Boolean).join(' · '))+'</td><td style="white-space:normal">'+esc([r['PRODUCTO'],r['LOTE PRODUCTO']?('lote '+r['LOTE PRODUCTO']):''].filter(Boolean).join(' · '))+'</td><td class="r">'+esc(r['Nº DE PIEZAS'])+'</td><td>'+esc(r['OPERARIO'])+'</td></tr>'; }).join('')
+    +'</tbody></table></div>';
+}
+function tzEnlSQ(){ $('tz-res').onclick=function(ev){ var tr=ev.target.closest('tr[data-sq]'); if(tr) abrirFicha(TZ.sq[+tr.getAttribute('data-sq')]); }; }
 function tzPintar(lote, pales){
   var setP={}; pales.forEach(function(p){ setP[p]=1; });
   var regs=ROWS.filter(function(r){ return setP[pidDe(r)]; }).sort(function(a,b){ return a.__t-b.__t; });
@@ -1958,6 +1973,7 @@ function tzPintar(lote, pales){
   $('tz-res').innerHTML=h;
   $('tz-res').onclick=function(ev){
     var b=ev.target.closest('[data-pale]'); if(b){ verPale(b.getAttribute('data-pale')); return; }
+    var sq=ev.target.closest('tr[data-sq]'); if(sq){ abrirFicha(TZ.sq[+sq.getAttribute('data-sq')]); return; }
     var tr=ev.target.closest('tr[data-f]'); if(tr){ tzAccion(TZ.filas[+tr.getAttribute('data-f')]); return; }
     var pp=ev.target.closest('[data-parte]'); if(pp){ abrirParte(pp.getAttribute('data-parte'), pp.getAttribute('data-fecha')); return; }
     var lm=ev.target.closest('[data-mat]'); if(lm){ ev.preventDefault(); var a=lm.getAttribute('data-mat').split('|'); var st=(MAT.cargado?matStock():[]).filter(function(s){ return nrm(s.art)===nrm(a[0]) && nrm(s.lote)===nrm(a[1]); })[0]; if(st) fichaLote(st); else { MF.tab='traz'; } }
