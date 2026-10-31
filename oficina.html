@@ -344,10 +344,16 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v22';
+var VER = 'v23';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
-var PERMITIDOS = ['JOAQUIN'];   // de momento, solo Joaquín
+var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
+// (v23) Calidad (Sonia, María Ángeles… cualquiera con rol CALIDAD o ADMIN)
+// entra para ir viéndolo y proponer mejoras, pero de momento SOLO MIRA:
+// la salida a mano y el cambio de mínimos quedan bloqueados para ellos.
+function puedeEntrar(){ var n=CU?String(CU.n||'').toUpperCase():''; return PERMITIDOS.indexOf(n)>=0 || rolTiene(CU&&CU.rol,'CALIDAD') || rolTiene(CU&&CU.rol,'ADMIN'); }
+function puedeGuardar(){ return !!CU && PERMITIDOS.indexOf(String(CU.n||'').toUpperCase())>=0; }
+function soloMirar(){ if(puedeGuardar()) return false; alert('De momento la versión de oficina es solo para mirar: esto no se guarda.\n\nPara hacerlo de verdad, sigue usando TraceQueso. Apunta lo que eches en falta o lo que mejorarías y se lo dices a Joaquín.'); return true; }
 
 var SLBL={'1.SALADERO':'Saladero','2.GOLPE FRIO':'Golpe Frío','3.SECADERO 1':'Secadero 1','4.SECADERO 2':'Secadero 2','5.SECADERO 3':'Secadero 3','6.CAMARA FRIO':'Cámara Frío','7.CAMARA MADURACION':'C. Maduración','8.FABRICA VIEJA':'Fábrica Vieja','9.VENTA':'Venta'};
 var ORDEN_SEC=['1ª CAPA','VOLTEO','2ª CAPA','MOVIMIENTO','PINTURA','ENVASADO','VENTA PARCIAL','SELECCIÓN','DESDOBLAMIENTO'];
@@ -1531,6 +1537,7 @@ function sfPintar(){
   $('sf-ok').onclick=function(){ sfRegistrar(it, this); };
 }
 function sfRegistrar(it, btn){
+  if(soloMirar()) return;
   if(!it){ alert('Elige categoría, artículo y lote.'); return; }
   var cant=parseFloat(String($('sf-cant').value).replace(',','.'));
   if(!cant || cant<=0){ alert('Pon la cantidad que sale.'); $('sf-cant').focus(); return; }
@@ -1730,6 +1737,7 @@ function enlMin(){
   if($('min-ch')) $('min-ch').onclick=function(ev){ var b=ev.target.closest('[data-v]'); if(!b) return; MF.minVer=b.getAttribute('data-v'); guardarMF(); matMinimos(); };
 }
 function guardarMinimo(a, v, btn){
+  if(soloMirar()){ matMinimos(); return; }
   var lotes=MAT.stock.filter(function(s){ return nrm(s.CATEGORIA||s['CATEGORÍA']||s.categoria)===nrm(a.cat) && nrm(s.ARTICULO||s['ARTÍCULO']||s.articulo)===nrm(a.art); });
   if(!lotes.length){ alert('No encuentro los lotes de '+a.art+'.'); return; }
   if(!confirm('Mínimo de '+a.art+': '+(v>0?(fNum(v)+' '+a.uni):'SIN MÍNIMO')+'\n\nSe guarda en sus '+lotes.length+' lote'+(lotes.length>1?'s':'')+' (como en TraceQueso).')) return;
@@ -2232,13 +2240,13 @@ function tiEnlaces(){
     $('bloq-m').innerHTML='Abre esta página desde TraceQueso: entra con tu PIN y, en la pantalla de inicio, pulsa el <b>logo de El Hidalgo</b> de arriba a la izquierda.<br><br>Puedes cerrar esta pestaña.';
     $('bloq').hidden=false; return;
   }
-  if(PERMITIDOS.indexOf(nombre)<0){
-    $('bloq-m').innerHTML='La versión de oficina está en pruebas y de momento solo la usa JOAQUIN.<br>Sigue trabajando en TraceQueso como siempre.';
+  if(!puedeEntrar()){
+    $('bloq-m').innerHTML='La versión de oficina está en pruebas y de momento solo la usan Joaquín y Calidad.<br>Sigue trabajando en TraceQueso como siempre.';
     $('bloq').hidden=false; return;
   }
   $('app').hidden=false;
   $('t-who').textContent=nombre;
-  $('s-ver').textContent=VER+' · en pruebas';
+  $('s-ver').textContent=VER+(puedeGuardar()?' · en pruebas':' · en pruebas · solo mirar');
   try{ var v=localStorage.getItem('tqof_vista'); if(['registros','mat','traz','trazq','trazinv','pale'].indexOf(v)>=0) VISTA=v; }catch(e){}
   pintarMenu();
   cargarMat();   // (v17) para el aviso de mínimos en el menú, se esté donde se esté
