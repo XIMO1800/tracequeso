@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 9;   // 9 (30/10): aviso por correo de material auxiliar bajo mínimo (AvisoMinimos.gs)
+const API_VERSION = 10;  // 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -415,6 +415,15 @@ function doGet(e) {
   // dentro de la app sin ir a Drive. Solo sirve ficheros de la carpeta
   // «Albaranes proveedor» (ver leerFotoAlbaran).
   // (2026-10-24) Recepciones de material (fotos de albarán) para Calidad.
+  // (2026-10-31) Historial de cambios de UN registro (pestaña CAMBIOS): quién lo
+  // dio de alta, quién lo corrigió y cuándo, y cómo estaba antes de cada cambio.
+  // Lo pide la versión de oficina al abrir la ficha de un registro. Solo lee.
+  if (tipo === 'historialRegistro') {
+    var json = JSON.stringify({ok: true, apiVer: API_VERSION, data: leerHistorialRegistro((e.parameter.id || '').toString().trim())});
+    if (callback) return ContentService.createTextOutput(callback + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
+    return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+  }
+
   if (tipo === 'recepciones') {
     var json = JSON.stringify({ok: true, apiVer: API_VERSION, data: leerRecepciones()});
     if (callback) return ContentService.createTextOutput(callback + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
@@ -651,6 +660,21 @@ function _hojaCambios(ss) {
     sh.appendRow([Date.now(), 'INICIO', '', '', _cuandoTxt(), '']);
   }
   return sh;
+}
+
+function leerHistorialRegistro(id) {
+  if (!id) return [];
+  var sh = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_CAMBIOS);
+  if (!sh || sh.getLastRow() < 2) return [];
+  var n = sh.getLastRow() - 1;
+  var ids = sh.getRange(2, 3, n, 1).getValues();          // solo la columna ID para buscar rápido
+  var out = [];
+  for (var i = 0; i < ids.length; i++) {
+    if (String(ids[i][0] || '').trim() !== id) continue;
+    var f = sh.getRange(i + 2, 1, 1, 6).getValues()[0];
+    out.push({marca: f[0], tipo: String(f[1] || ''), quien: String(f[3] || ''), cuando: String(f[4] || ''), antes: String(f[5] || '')});
+  }
+  return out;
 }
 
 function _cuandoTxt() {

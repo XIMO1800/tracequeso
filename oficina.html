@@ -268,7 +268,7 @@ tr.tz-vol td{color:var(--muted);background:#faf6f2}
 .tz-ph .btn{margin-left:auto}
 .tz-pg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:8px;font-size:14.5px}
 .tz-pg span{display:block;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-@media print{ #side,.filt,#velo,#panel,.top .who{display:none!important} #main{margin:0!important} .tbl-wrap{max-height:none!important;overflow:visible!important} body{background:#fff} }
+@media print{ #side,.filt,#velo,#panel,.top .who,.noprint,.tabs button:not(.on),.modos,.btn{display:none!important} .top .sub::after{content:"  ·  impreso desde TraceQueso Oficina"} #main{margin:0!important} .tbl-wrap{max-height:none!important;overflow:visible!important} body{background:#fff} }
 .kpis.mini{display:flex;gap:0;margin-bottom:12px;background:#fff;border:1px solid var(--line);border-radius:4px;align-items:stretch}
 .kpis.mini .kpi{flex:1 1 0;min-width:0;border:0;border-right:1px solid var(--line);border-radius:0;background:transparent;padding:5px 12px;box-shadow:none}
 .kpis.mini .kpi span{font-size:10.5px;line-height:1.25}
@@ -332,6 +332,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
     <div class="top">
       <div><h1 id="t-tit">Inicio</h1><div class="sub" id="t-sub"></div></div>
       <div class="sp"></div>
+      <button class="btn noprint" id="t-imp" title="Imprimir esta pantalla (sin el menú)">🖨 Imprimir</button>
       <div class="who" id="t-who">—</div>
     </div>
     <div class="cont" id="cont"></div>
@@ -340,7 +341,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 
 <div id="velo" hidden></div>
 <aside id="panel" hidden>
-  <div class="ph"><div><h2 id="p-tit">Registro</h2><div class="sub" id="p-sub" style="font-size:12.5px;color:var(--muted)"></div></div><button class="btn x" id="p-amp" title="Hacer el panel más ancho o más estrecho">⤢ Ampliar</button><button class="btn" id="p-x">✕ Cerrar</button></div>
+  <div class="ph"><div><h2 id="p-tit">Registro</h2><div class="sub" id="p-sub" style="font-size:12.5px;color:var(--muted)"></div></div><button class="btn x" id="p-imp" title="Imprimir lo que se ve en este panel">🖨 Imprimir</button><button class="btn" id="p-amp" title="Hacer el panel más ancho o más estrecho">⤢ Ampliar</button><button class="btn" id="p-x">✕ Cerrar</button></div>
   <div class="pb" id="p-body"></div>
 </aside>
 
@@ -349,7 +350,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v28';
+var VER = 'v29';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -818,6 +819,7 @@ function abrirFicha(r){
   h+='</div>'+(puedeGuardar()&&r['ID']?'<div style="margin-top:14px"><button class="btn pri" id="f-ed">✏️ Editar este registro</button></div>':'<p style="font-size:12.5px;color:var(--muted);margin-top:14px">Solo consulta.</p>');
   $('p-body').innerHTML=h;
   if($('f-ed')) $('f-ed').onclick=function(){ fichaEditar(r); };
+  if(r['ID']){ var hc=document.createElement('div'); $('p-body').appendChild(hc); historialCambios(r, hc); }
   $('panel').hidden=false; $('velo').hidden=false;
 }
 // ═══════════════════════════════════════════════════════════════════════════
@@ -924,6 +926,64 @@ function fichaGuardar(r, cs, btn){
 }
 
 function cerrarFicha(){ $('panel').hidden=true; $('velo').hidden=true; }
+// (v29) IMPRIMIR LO QUE SE VE EN EL PANEL (ficha de un registro, historial de
+// un palé, una acción de la trazabilidad, la ficha de un lote o de una
+// entrada…) en una hoja limpia, con cabecera de El Hidalgo y quién lo imprime.
+function imprimirPanel(){
+  var cuerpo=$('p-body').cloneNode(true);
+  cuerpo.querySelectorAll('button,input[type=checkbox],.noprint,#ed-err').forEach(function(x){ x.remove(); });
+  cuerpo.querySelectorAll('input,select,textarea').forEach(function(x){ var sp=document.createElement('span'); sp.textContent=x.tagName==='SELECT'?(x.options[x.selectedIndex]||{}).text||'':x.value; x.replaceWith(sp); });
+  var ahora=new Date();
+  var html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc($('p-tit').textContent)+'</title><style>'
+    +'@page{size:A4;margin:12mm}body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:12px;margin:0}'
+    +'.cab{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #7a1f1f;padding-bottom:6px;margin-bottom:10px}'
+    +'.cab .m{font-family:Georgia,serif;font-style:italic;font-weight:bold;color:#7a1f1f;font-size:18px}.cab .m small{display:block;font-style:normal;font-family:Arial;font-weight:normal;font-size:9px;letter-spacing:3px}'
+    +'.cab .i{text-align:right;font-size:10px;color:#555}h1{font-size:18px;margin:0 0 2px}.sub{color:#555;margin-bottom:10px}'
+    +'table{width:100%;border-collapse:collapse;margin:6px 0}th,td{border:1px solid #bbb;padding:4px 6px;text-align:left;vertical-align:top}th{background:#f1ece6;font-size:10px;text-transform:uppercase}'
+    +'.ficha{display:grid;grid-template-columns:180px 1fr;border-top:1px solid #ccc}.ficha div{padding:4px;border-bottom:1px solid #ddd}.ficha .k{font-size:10px;font-weight:bold;color:#555;text-transform:uppercase}'
+    +'h3{font-size:13px;color:#7a1f1f;text-transform:uppercase;margin:12px 0 4px}.kpis{display:flex;gap:0;border:1px solid #ccc}.kpi{flex:1;padding:4px 8px;border-right:1px solid #ccc}.kpi span{display:block;font-size:9px;text-transform:uppercase;color:#555}.kpi b{font-size:15px}'
+    +'.tag{border:1px solid #999;border-radius:8px;padding:0 5px;font-size:10px}.sinv{color:#888;font-style:italic}a{color:#111;text-decoration:none}img{max-width:100%}'
+    +'</style></head><body><div class="cab"><div class="m">el hidalgo<small>Q U E S O S</small></div><div class="i">TraceQueso Oficina<br>Impreso el '+fDia(ahora)+' a las '+fHora(ahora)+(CU&&CU.n?(' por '+esc(CU.n)):'')+'</div></div>'
+    +'<h1>'+esc($('p-tit').textContent)+'</h1><div class="sub">'+esc($('p-sub').textContent)+'</div>'+cuerpo.innerHTML+'</body></html>';
+  imprimirHTML(html);
+}
+$('p-imp').onclick=imprimirPanel;
+$('t-imp').onclick=function(){ window.print(); };
+
+// (v29) HISTORIAL DE CAMBIOS DE UN REGISTRO: quién lo dio de alta, quién lo
+// corrigió, cuándo y qué cambió (lo apunta el servidor en la pestaña CAMBIOS).
+function historialCambios(r, dest){
+  if(!r || !r['ID'] || !dest) return;
+  dest.innerHTML='<h3 class="pbt">🕘 Historial de cambios</h3><p class="sinv">Buscando quién lo ha tocado…</p>';
+  fetchJSON(API_URL+'?tipo=historialRegistro&id='+encodeURIComponent(r['ID'])+'&t='+Date.now()).then(function(j){
+    var l=(j&&j.ok&&j.data)||[];
+    if(!j || !j.ok){ throw new Error('el servidor no lo da todavía'); }
+    l.sort(function(a,b){ return (+a.marca||0)-(+b.marca||0); });
+    var h='<h3 class="pbt">🕘 Historial de cambios <small class="cnt">'+l.length+'</small></h3>';
+    if(!l.length){ dest.innerHTML=h+'<p class="sinv">Sin cambios apuntados (los registros anteriores al 8/10/2026 no tienen historial).</p>'; return; }
+    // Versión después de cada cambio = el «antes» del siguiente, o el registro actual.
+    function obj(t){ try{ return JSON.parse(t||'{}')||{}; }catch(e){ return {}; } }
+    var actual={}; Object.keys(r).forEach(function(k){ if(k.indexOf('__')!==0) actual[k]=r[k]; });
+    h+='<table class="ptab"><thead><tr><th>Cuándo</th><th>Quién</th><th>Qué</th><th>Cambios</th></tr></thead><tbody>';
+    l.forEach(function(c,i){
+      var tipo=c.tipo==='A'?'Alta':(c.tipo==='M'?'Corrección':(c.tipo==='B'?'Borrado':c.tipo));
+      var det='';
+      if(c.tipo==='M'){
+        var antes=obj(c.antes), despues=(i+1<l.length && l[i+1].antes)?obj(l[i+1].antes):actual, ks={};
+        Object.keys(antes).concat(Object.keys(despues)).forEach(function(k){ ks[k]=1; });
+        // Las fechas llegan en dos formatos (la hoja «dd/MM/yyyy HH:mm:ss», la app «d/m/aaaa, h:mm»): se comparan al minuto.
+        function igual(k,x,y){ x=String(x==null?'':x).trim().replace(/^'/,''); y=String(y==null?'':y).trim().replace(/^'/,''); if(x===y) return true;
+          if(k==='FECHA'){ var a=parseFecha(x), b=parseFecha(y); if(a&&b) return Math.floor(a.getTime()/60000)===Math.floor(b.getTime()/60000); }
+          if(/^-?[\d.,]+$/.test(x) && /^-?[\d.,]+$/.test(y)) return parseFloat(x.replace(',','.'))===parseFloat(y.replace(',','.'));
+          return false; }
+        det=Object.keys(ks).filter(function(k){ return k!=='ID' && k!=='ID_DISPOSITIVO' && k.indexOf('_')!==0 && !igual(k, antes[k], despues[k]); })
+          .map(function(k){ return '<b>'+esc(k)+'</b>: «'+esc(antes[k]==null?'':antes[k])+'» → «'+esc(despues[k]==null?'':despues[k])+'»'; }).join('<br>')||'<span class="sinv">sin diferencias visibles</span>';
+      }
+      h+='<tr class="nolink"><td>'+esc(c.cuando)+'</td><td>'+esc(c.quien||'—')+'</td><td>'+tipo+'</td><td style="white-space:normal">'+det+'</td></tr>';
+    });
+    dest.innerHTML=h+'</tbody></table>';
+  }).catch(function(e){ dest.innerHTML='<h3 class="pbt">🕘 Historial de cambios</h3><p class="sinv">No se ha podido traer ('+esc(e.message)+').</p>'; });
+}
 $('p-x').onclick=cerrarFicha; $('velo').onclick=cerrarFicha;
 // (v16) Panel ancho o estrecho, a gusto; se recuerda en este ordenador.
 function panelAncho(on){ $('panel').classList.toggle('ancho',!!on); $('p-amp').textContent=on?'⤡ Estrechar':'⤢ Ampliar'; try{ localStorage.setItem('tqof_panel_ancho',on?'1':''); }catch(e){} }
