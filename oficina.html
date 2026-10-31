@@ -345,7 +345,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v25';
+var VER = 'v26';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -690,7 +690,8 @@ var COLS=[
   {k:'hora', t:'Hora', v:function(r){ return r.__f?r.__f.getHours()*60+r.__f.getMinutes():0; }, h:function(r){ return fHora(r.__f); }},
   {k:'op', t:'Operario', v:function(r){ return String(r['OPERARIO']||''); }},
   {k:'sec', t:'Sección', v:function(r){ return String(r['SECCIÓN']||''); }, h:function(r){ return '<span class="sec">'+esc(r['SECCIÓN'])+'</span>'; }, raw:1},
-  {k:'pale', t:'ID palé', v:function(r){ return String(r['ID PALET']||''); }, c:'mono'},
+  // (v26) Sin QR no hay palé: se enseña el lote (largo · corto).
+  {k:'pale', t:'ID palé / lote', v:function(r){ var id=String(r['ID PALET']||'').trim(); if(id && !idInventado(id)) return id; var p=String(r['LOTE QUESO']||'').split('!'); return 'sin QR · lote '+(p[0]||'').trim()+(p[1]?(' · corto '+p[1].trim()):''); }, c:'mono'},
   {k:'tipo', t:'Tipo', v:function(r){ return String(r['TIPO DE QUESO']||''); }},
   {k:'var', t:'Variedad', v:function(r){ return String(r['VARIEDAD']||''); }},
   {k:'fmt', t:'Formato', v:function(r){ return String(r['FORMATO/PESO']||''); }},
