@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.479</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.480</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -9276,21 +9276,11 @@ function _svgGraficaEvolucion(p){
     niveles[i] = elegido;
     ultimoPorNivel[elegido] = {x:xx, w:w};
   });
-  // (v2.6.386) La salmuera manda en la fila de arriba. El reparto automático la
-  // mandaba a la segunda fila por chocar con "Desmoldeo fin", y quedaba la de
-  // dentro del proceso arriba y la de después abajo, al revés de como se lee.
-  // Quien choque con ella baja un escalón.
-  (function(){
-    var iSal = -1;
-    HITOS.forEach(function(h,i){ if(h.suelto) iSal=i; });
-    if(iSal<0) return;
-    niveles[iSal] = 0;
-    var xSal = x(_horaAMin(HITOS[iSal].hora)), wSal = _anchoEtiq(HITOS[iSal]);
-    HITOS.forEach(function(h,i){
-      if(i===iSal || niveles[i]!==0) return;
-      if(Math.abs(x(_horaAMin(h.hora)) - xSal) < (wSal/2 + _anchoEtiq(h)/2)) niveles[i] = 1;
-    });
-  })();
+  // (v2.6.480) Ya NO se fuerza la salmuera a la fila de arriba. Al subirla, lo
+  // que chocaba con ella bajaba a la segunda fila sin mirar si allí había otro,
+  // y «Desmoldeo inicio» quedaba encima de «Desmoldeo fin» (Joaquín, 31/10).
+  // Ahora va con el reparto normal, por orden de hora: desmoldeo inicio, debajo
+  // desmoldeo fin y debajo la salmuera, cada uno en su fila sin montarse.
   // Líneas de hito + nombre (escalonado por nivel) + hora + duración
   HITOS.forEach(function(h,i){
     var m=_horaAMin(h.hora); var xx=x(m);
