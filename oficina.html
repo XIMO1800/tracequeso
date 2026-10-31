@@ -345,7 +345,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v26';
+var VER = 'v27';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -2086,8 +2086,10 @@ function tzParte(lote, fk){
         +'<div><span>Piezas fabricadas</span>'+(pzs.length?esc(pzs.join(' · ')):'—')+'</div></div>';
       var ing=[];
       function add(tipo, a){ (a||[]).forEach(function(x){ if(x && (x.nombre||x.lote)) ing.push({t:tipo, n:x.nombre||'', l:x.lote||'', pr:x.proveedor||'', c:x.consumo_total, cad:x.caducidad||''}); }); }
-      add('Fermento', p.fermentos); add('Cuajo', p.cuajo?[p.cuajo]:[]); add('Cuajo', p.cuajos_extra); add('Auxiliar', p.auxiliares); add('Auxiliar', p.otrosAuxiliares);
+      // (v27) Orden del parte (Joaquín, 31/10): auxiliar (cloruro cálcico), CO2, fermentos y cuajo.
+      add('Auxiliar', p.auxiliares); add('Auxiliar', p.otrosAuxiliares);
       if(p.co2 && p.co2.lote) ing.push({t:'CO2', n:'CO2', l:p.co2.lote, pr:p.co2.proveedor||'', c:'', cad:p.co2.caducidad||''});
+      add('Fermento', p.fermentos); add('Cuajo', p.cuajo?[p.cuajo]:[]); add('Cuajo', p.cuajos_extra);
       if(ing.length){
         h+='<table class="ptab"><thead><tr><th>Ingrediente</th><th>Producto</th><th>Proveedor</th><th>Lote</th><th class="r">Cantidad</th><th>Caducidad</th></tr></thead><tbody>'
           +ing.map(function(x){ return '<tr class="nolink"><td>'+esc(x.t)+'</td><td><b>'+esc(x.n)+'</b></td><td>'+esc(x.pr)+'</td><td class="mono">'+(x.l?'<a href="#" class="lnk" data-mat="'+esc(x.n)+'|'+esc(x.l)+'">'+esc(x.l)+'</a>':'—')+'</td><td class="r">'+(x.c!==''&&x.c!=null?esc(x.c):'')+'</td><td>'+dmy(diaKey(x.cad))+'</td></tr>'; }).join('')+'</tbody></table>';
