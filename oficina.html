@@ -350,7 +350,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v29';
+var VER = 'v30';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -1647,6 +1647,54 @@ function reducirFoto(dataUrl){
 }
 
 // Ficha de UNA entrada (todos sus datos y la foto del albarán).
+// (v30) EDITAR UNA ENTRADA de material auxiliar (Joaquín, 31/10). Mismo envío
+// que TraceQueso (_SHEET:'ENTRADAS', _UPDATE): el servidor deja cambiar fecha de
+// entrada, proveedor, albarán, caducidad, cantidad, unidad y el control de
+// recepción, y recalcula el stock del lote. El ARTÍCULO y el LOTE no se cambian
+// aquí (romperían el enlace con sus consumos).
+function editarEntrada(e, lote){
+  var art=gEnt(e,['ARTICULO','ARTÍCULO','articulo']), lt=gEnt(e,['LOTE','lote']);
+  function v(ks){ return String(gEnt(e,ks)==null?'':gEnt(e,ks)).trim(); }
+  function ciSel(id, val){ val=String(val||'').toUpperCase(); return '<select id="'+id+'"><option value="">—</option><option value="C"'+(val==='C'?' selected':'')+'>Correcto</option><option value="I"'+(val==='I'?' selected':'')+'>Incorrecto</option></select>'; }
+  var unis=['g','kg','L','ml','unidades','cajas','rollos','bobinas','botellas'], u=v(['UNIDAD','unidad']); if(u && unis.indexOf(u)<0) unis.unshift(u);
+  var ops=operarios(), fi=v(['FIRMA','firma']); if(fi && ops.indexOf(fi)<0) ops.unshift(fi);
+  var h='<div class="aviso">Artículo <b>'+esc(art)+'</b> · lote <b>'+esc(lt)+'</b>. El artículo y el lote no se cambian aquí. Si cambias la cantidad, se recalcula el stock del lote.</div><div class="edf">'
+    +'<label class="k">Fecha de entrada</label><div><input type="date" id="ee-fe" value="'+esc(diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha'])))+'"></div>'
+    +'<label class="k">Proveedor</label><div><input id="ee-prov" value="'+esc(v(['PROVEEDOR','proveedor']))+'"></div>'
+    +'<label class="k">Nº albarán</label><div><input id="ee-alb" value="'+esc(v(['ALBARAN','albaran']))+'"></div>'
+    +'<label class="k">Caducidad</label><div><input type="date" id="ee-cad" value="'+esc(diaKey(gEnt(e,['CADUCIDAD','caducidad'])))+'"></div>'
+    +'<label class="k">Cantidad</label><div><input type="number" step="any" id="ee-cant" value="'+esc(v(['CANTIDAD','cantidad']))+'"></div>'
+    +'<label class="k">Unidad</label><div><select id="ee-uni">'+unis.map(function(x){ return '<option'+(x===u?' selected':'')+'>'+esc(x)+'</option>'; }).join('')+'</select></div>'
+    +'<label class="k">Estado</label><div>'+ciSel('ee-est', v(['ESTADO','estado']))+'</div>'
+    +'<label class="k">Etiqueta</label><div>'+ciSel('ee-etq', v(['ETIQUETA','etiqueta']))+'</div>'
+    +'<label class="k">Condiciones camión</label><div>'+ciSel('ee-cam', v(['CONDICIONES CAMION','camion']))+'</div>'
+    +'<label class="k">Tª camión (°C)</label><div><input type="number" step="any" id="ee-temp" value="'+esc(tempOk(v(['TEMP CAMION','temp'])).replace(',','.'))+'"></div>'
+    +'<label class="k">Acciones correctoras</label><div><textarea id="ee-acc" rows="2">'+esc(v(['ACCIONES CORRECTORAS','acciones']))+'</textarea></div>'
+    +'<label class="k">Firma</label><div><select id="ee-fir"><option value="">—</option>'+ops.map(function(o){ return '<option'+(o===fi?' selected':'')+'>'+esc(o)+'</option>'; }).join('')+'</select></div>'
+    +'<label class="k">Observaciones</label><div><textarea id="ee-obs" rows="2">'+esc(v(['OBSERVACIONES','OBSERVACION','OBS','obs']))+'</textarea></div>'
+    +'</div><div id="ed-err" class="aviso" style="display:none;background:var(--bad-soft);border-color:var(--bad);color:var(--bad)"></div>'
+    +'<div style="display:flex;gap:10px;margin-top:12px"><button class="btn pri" id="ee-ok">💾 Guardar cambios</button><button class="btn" id="ee-no">Cancelar</button></div>';
+  $('p-body').innerHTML=h;
+  $('ee-no').onclick=function(){ fichaEntrada(e, lote); };
+  $('ee-ok').onclick=function(){
+    if(soloMirar()) return;
+    var cant=String($('ee-cant').value).trim();
+    if(cant==='' || isNaN(parseFloat(cant))){ $('ed-err').textContent='La cantidad tiene que ser un número.'; $('ed-err').style.display='block'; return; }
+    if(($('ee-est').value==='I'||$('ee-etq').value==='I'||$('ee-cam').value==='I') && !$('ee-acc').value.trim()){ $('ed-err').textContent='Hay algo incorrecto en el control: escribe las acciones correctoras.'; $('ed-err').style.display='block'; return; }
+    var pay={_SHEET:'ENTRADAS', _UPDATE:true, id:String(gEnt(e,['ID ENTRADA','id'])),
+      fentrada:$('ee-fe').value, caducidad:$('ee-cad').value, proveedor:$('ee-prov').value.trim().toUpperCase(), albaran:$('ee-alb').value.trim(),
+      cantidad:parseFloat(cant), unidad:$('ee-uni').value,
+      categoria:String(gEnt(e,['CATEGORIA','CATEGORÍA','categoria'])), articulo:art, lote:lt,
+      estado:$('ee-est').value, etiqueta:$('ee-etq').value, camion:$('ee-cam').value, temp:$('ee-temp').value, acciones:$('ee-acc').value.trim(), firma:$('ee-fir').value, obs:$('ee-obs').value.trim(),
+      _QUIEN:(CU&&CU.n)||''};
+    if(!confirm('¿Guardar los cambios de esta entrada?\n\n'+art+' · lote '+lt+' · '+cant+' '+pay.unidad)) return;
+    var b=this; b.disabled=true; b.textContent='Guardando…';
+    fetch(API_URL,{method:'POST', body:JSON.stringify(pay)}).then(function(r){ return r.json(); }).then(function(j){
+      if(!j || !j.ok) throw new Error((j&&j.error)||'el servidor no lo ha confirmado');
+      alert('✅ Entrada actualizada.'); cerrarFicha(); MAT.cargado=false; cargarMat(true);
+    }).catch(function(err){ b.disabled=false; b.textContent='💾 Guardar cambios'; $('ed-err').textContent='⚠️ No se ha guardado: '+err.message; $('ed-err').style.display='block'; });
+  };
+}
 function fichaEntrada(e, lote){
   if(!e) return;
   var art=gEnt(e,['ARTICULO','ARTÍCULO','articulo']), lt=gEnt(e,['LOTE','lote']);
@@ -1677,8 +1725,11 @@ function fichaEntrada(e, lote){
     ['Observaciones', val(gEnt(e,['OBSERVACIONES','OBSERVACION','OBS','obs']))]]);
   var foto=String(gEnt(e,['FOTO ALBARAN','foto'])||'');
   h+='<h3 class="pbt">📄 Foto del albarán</h3>'+(fotoId(foto)?'<div id="p-foto"></div>':'<p class="sinv" style="margin:4px 0">Esta entrada no tiene foto del albarán.</p>');
-  h+='<p style="font-size:13px;color:var(--muted);margin-top:14px">ID '+esc(gEnt(e,['ID ENTRADA','id']))+' · Solo consulta. Para corregirla, de momento, desde TraceQueso.</p>';
+  var _idE=String(gEnt(e,['ID ENTRADA','id'])||'');
+  h+=(puedeGuardar()&&_idE?'<div style="margin-top:14px"><button class="btn pri" id="f-ed-ent">✏️ Editar esta entrada</button></div>':'')
+    +'<p style="font-size:13px;color:var(--muted);margin-top:10px">ID '+esc(_idE)+'</p>';
   $('p-body').innerHTML=h; $('panel').hidden=false; $('velo').hidden=false;
+  if($('f-ed-ent')) $('f-ed-ent').onclick=function(){ editarEntrada(e, lote); };
   if(fotoId(foto)) verFoto(foto, $('p-foto'));
   if(lote && $('p-volver')) $('p-volver').onclick=function(){ fichaLote(lote); };
 }
