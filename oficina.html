@@ -273,6 +273,7 @@ tr.tz-vol td{color:var(--muted);background:#faf6f2}
 .kpis.mini .kpi{flex:1 1 0;min-width:0;border:0;border-right:1px solid var(--line);border-radius:0;background:transparent;padding:5px 12px;box-shadow:none}
 .kpis.mini .kpi span{font-size:10.5px;line-height:1.25}
 .kpis.mini .kpi b{font-size:20px;display:block}
+.kpis.mini .kpi:last-child{border-right:0}
 .kpis.mini .kpi.alerta,.kpis.mini .kpi.aviso{background:transparent;border-color:var(--line)}
 .kpis.mini .kpi.alerta b,.kpis.mini .kpi.alerta span{color:var(--bad)}
 .kpis.mini .kpi.aviso b,.kpis.mini .kpi.aviso span{color:#9c5c00}
@@ -343,7 +344,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v21';
+var VER = 'v22';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // de momento, solo Joaquín
@@ -630,7 +631,7 @@ function vistaInicio(){
     nHoy++; ops[String(r['OPERARIO']||'').trim().toUpperCase()]=1;
     var s=String(r['SECCIÓN']||'').trim().toUpperCase(); porSec[s]=(porSec[s]||0)+1;
   });
-  var h='<div class="kpis">'
+  var h='<div class="kpis mini">'
     +'<div class="kpi"><span>Registros hoy</span><b>'+fmtN(nHoy)+'</b></div>'
     +'<div class="kpi"><span>Operarios hoy</span><b>'+Object.keys(ops).filter(Boolean).length+'</b></div>';
   ORDEN_SEC.forEach(function(s){ if(porSec[s]) h+='<div class="kpi"><span>'+esc(s)+'</span><b>'+fmtN(porSec[s])+'</b></div>'; });
@@ -722,7 +723,7 @@ function vistaRegistros(){
   if(minF && new Date(RF.desde+'T00:00:00')<minF){
     h+='<div class="aviso">⚠️ Este ordenador tiene registros desde el <b>'+fDia(minF)+'</b>. Lo anterior no sale.</div>';
   }
-  h+='<div class="kpis" id="r-kpis"></div><div class="tbl-wrap" id="r-tbl"></div>';
+  h+='<div class="kpis mini" id="r-kpis"></div><div class="tbl-wrap" id="r-tbl"></div>';
   $('cont').innerHTML=h;
 
   function cambio(){ RF.desde=$('f-desde').value||isoDia(new Date()); RF.hasta=$('f-hasta').value; RF.op=$('f-op').value; RF.sec=$('f-sec').value; RF.q=$('f-q').value; RF.ver=500; guardarRF(); pintarTabla(); }
@@ -1040,7 +1041,7 @@ function fichaLote(x){
   $('p-tit').textContent=x.art+' · lote '+x.lote;
   $('p-sub').textContent=x.cat+(x.prov?(' · '+x.prov):'')+(x.cad?(' · caduca '+dmy(x.cad)):'');
   var u=esc(x.uni);
-  var h='<div class="kpis" style="margin:4px 0 6px">'
+  var h='<div class="kpis mini" style="margin:4px 0 6px">'
     +'<div class="kpi"><span>Entró</span><b>'+fNum(tE)+'</b> '+u+'</div>'
     +'<div class="kpi"><span>Consumido</span><b>'+fNum(tS)+'</b> '+u+'</div>'
     +'<div class="kpi"><span>Queda</span><b>'+fNum(tE-tS)+'</b> '+u+'</div></div>';
@@ -1926,7 +1927,7 @@ function tzPintar(lote, pales){
     noApt+=parseInt(r['Nº PIEZAS NO APTAS']||r['PIEZAS NO APTAS']||0,10)||0; });
   var h='<div class="tz-cab"><div><div class="tz-lote">Lote '+esc(lote)+'</div>'+(fabTxt?'<div class="tz-fab">Fabricado el '+fabTxt+'</div>':'')+'</div>'
     +'<div class="tz-tipos">'+Object.keys(tipos).sort(ordenClave).map(function(t){ return '<span><b>'+esc(t)+'</b> ('+tipos[t]+' palé'+(tipos[t]>1?'s':'')+')</span>'; }).join('')+'</div>'
-    +'<div class="kpis" style="margin:0">'
+    +'<div class="kpis mini" style="margin:0">'
       +'<div class="kpi"><span>Palés</span><b>'+pales.length+'</b></div>'
       +'<div class="kpi"><span>Piezas (según palés)</span><b>'+fmtN(pzT)+'</b></div>'
       +'<div class="kpi"><span>Envasadas</span><b>'+fmtN(env)+'</b></div>'
