@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 10;  // 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
+const API_VERSION = 11;  // 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -1011,6 +1011,7 @@ function _doPostEscritura(payload) {
   if (payload['_SHEET'] === 'RECEPCION') return gestionarRecepcion(payload);       // (2026-10-24)
   if (payload['_SHEET'] === 'LOTE')      return gestionarLoteRegistros(payload);   // (2026-10-24)
   if (payload['_SHEET'] === 'STOCK')    return gestionarStock(payload);
+  if (payload['_SHEET'] === 'EQUIVALENCIA') return gestionarEquivalencia(payload);   // (2026-10-31) Equivalencias.gs
   if (payload['_SHEET'] === 'SALIDAS_ENVASADO') return gestionarSalidasEnvasado(payload);
   if (payload['_SHEET'] === 'CLIENTE_NUEVO') return gestionarClienteNuevo(payload);
   if (payload['_SHEET'] === 'SALADERO') return gestionarSaladero(payload);   // (2026-08-23)
@@ -2096,7 +2097,8 @@ function getMaterialAuxiliar() {
   return {
     stock:    leerHojaCompleta(SHEET_STOCK),
     entradas: leerHojaCompleta(SHEET_ENTRADAS),
-    salidas:  leerHojaCompleta(SHEET_SALIDAS)
+    salidas:  leerHojaCompleta(SHEET_SALIDAS),
+    equiv:    leerEquivalencias()   // (2026-10-31) relación unidades ↔ peso (Equivalencias.gs)
   };
 }
 
