@@ -266,6 +266,7 @@ tr.tz-vol td{color:var(--muted);background:#faf6f2}
 .tz-pg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:8px;font-size:14.5px}
 .tz-pg span{display:block;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 @media print{ #side,.filt,#velo,#panel,.top .who{display:none!important} #main{margin:0!important} .tbl-wrap{max-height:none!important;overflow:visible!important} body{background:#fff} }
+.kpi.kc{cursor:pointer}.kpi.kc:hover{border-color:var(--brand);box-shadow:0 1px 4px rgba(90,40,20,.15)}
 .minban{background:var(--bad-soft);border:1.5px solid var(--bad);color:var(--bad);border-radius:10px;padding:9px 14px;margin:0 0 12px;cursor:pointer;font-size:14.5px}
 .minban span{color:var(--ink);font-weight:500}.minban u{margin-left:6px;font-weight:700}
 .nav button .nb{margin-left:auto;background:var(--bad);color:#fff;border-radius:99px;font-size:11.5px;font-weight:800;padding:1px 7px}
@@ -320,7 +321,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v18';
+var VER = 'v19';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // de momento, solo Joaquín
@@ -904,12 +905,13 @@ function vistaMat(){
   var bajos={}; st.forEach(function(x){ if(x.bajo) bajos[x.art]=x; });
   var nCad=st.filter(function(x){ return x.caduca; }).length, nCdo=st.filter(function(x){ return x.caducado; }).length;
   var h='<div class="kpis">'
-    +'<div class="kpi"><span>Artículos con stock</span><b>'+Object.keys(arts).length+'</b></div>'
-    +'<div class="kpi"><span>Lotes con stock</span><b>'+st.filter(function(x){return x.stock>0;}).length+'</b></div>'
-    +'<div class="kpi'+(Object.keys(bajos).length?' alerta':'')+'" data-ir="min" style="cursor:pointer" title="Ver el control de mínimos"><span>Bajo mínimo</span><b>'+Object.keys(bajos).length+'</b></div>'
-    +'<div class="kpi'+(nCad?' aviso':'')+'"><span>Caducan en 30 días</span><b>'+nCad+'</b></div>'
-    +'<div class="kpi'+(nCdo?' alerta':'')+'"><span>Caducados con stock</span><b>'+nCdo+'</b></div>'
-    +'<div class="kpi'+(nRec?' aviso':'')+'"><span>Recepciones pendientes</span><b>'+nRec+'</b></div>'
+    // (v19) Todas las fichas se pueden pinchar (Joaquín, 31/10).
+    +'<div class="kpi kc" data-k="stock" title="Ver el stock"><span>Artículos con stock</span><b>'+Object.keys(arts).length+'</b></div>'
+    +'<div class="kpi kc" data-k="stock" title="Ver el stock"><span>Lotes con stock</span><b>'+st.filter(function(x){return x.stock>0;}).length+'</b></div>'
+    +'<div class="kpi kc'+(Object.keys(bajos).length?' alerta':'')+'" data-k="bajo" title="Ver los artículos bajo mínimo"><span>Bajo mínimo</span><b>'+Object.keys(bajos).length+'</b></div>'
+    +'<div class="kpi kc'+(nCad?' aviso':'')+'" data-k="caduca" title="Ver los lotes que caducan"><span>Caducan en 30 días</span><b>'+nCad+'</b></div>'
+    +'<div class="kpi kc'+(nCdo?' alerta':'')+'" data-k="caducado" title="Ver los lotes caducados"><span>Caducados con stock</span><b>'+nCdo+'</b></div>'
+    +'<div class="kpi kc'+(nRec?' aviso':'')+'" data-k="rec" title="Ver las recepciones"><span>Recepciones pendientes</span><b>'+nRec+'</b></div>'
     +'<div style="flex:1"></div><div style="align-self:center;text-align:right;font-size:13px;color:var(--muted)">Datos de las '+fHora(MAT.hora)+'<br><button class="btn" onclick="cargarMat(true);this.disabled=true;this.textContent=\'Cargando…\'">⟳ Recargar</button></div>'
     +'</div>';
   // (v17) Aviso rojo arriba si hay artículos bajo mínimo (Joaquín, 30/10).
@@ -925,6 +927,7 @@ function vistaMat(){
     +'</div><div id="mt-body"></div>';
   $('cont').innerHTML=h;
   document.querySelectorAll('#cont [data-ir="min"]').forEach(function(b){ b.onclick=function(){ MF.tab='min'; guardarMF(); vistaMat(); }; });
+  document.querySelectorAll('#cont .kpi.kc').forEach(function(b){ b.onclick=function(){ kpiMat(b.getAttribute('data-k'), st); }; });
   document.querySelectorAll('.tabs button').forEach(function(b){ b.onclick=function(){ MF.tab=b.getAttribute('data-mt'); guardarMF(); vistaMat(); }; });
   if(MF.tab==='entradas') matFormEntrada();
   else if(MF.tab==='salidas') matTabSalidas();
@@ -1613,6 +1616,29 @@ function imprimirHTML(html){
 // todos los lotes del artículo, igual que hace el móvil. El correo a Calidad
 // lo manda el servidor (AvisoMinimos.gs) cuando un artículo baja del mínimo.
 // ═══════════════════════════════════════════════════════════════════════════
+// (v19) Al pinchar una ficha de arriba: caducidades en el panel lateral (con su
+// lote pinchable); el resto lleva a su pestaña con el filtro puesto.
+function kpiMat(k, st){
+  if(k==='stock'){ MF.tab='stock'; MF.cat=''; MF.art=''; MF.q=''; MF.conStock=true; guardarMF(); vistaMat(); return; }
+  if(k==='bajo'){ MF.tab='min'; MF.cat=''; MF.art=''; MF.q=''; MF.minVer='bajo'; guardarMF(); vistaMat(); return; }
+  if(k==='rec'){ MF.tab='rec'; guardarMF(); vistaMat(); return; }
+  var hoy=isoDia(new Date());
+  var l=st.filter(function(x){ return k==='caduca'?x.caduca:x.caducado; }).sort(function(a,b){ return a.cad.localeCompare(b.cad); });
+  $('p-tit').textContent=k==='caduca'?'Caducan en los próximos 30 días':'Caducados con stock';
+  $('p-sub').textContent=l.length+' lote'+(l.length===1?'':'s')+' · pincha uno para ver su ficha';
+  if(!l.length){ $('p-body').innerHTML='<p class="sinv">Ninguno.</p>'; }
+  else {
+    var h='<table class="ptab"><thead><tr><th>Caducidad</th><th>Categoría</th><th>Artículo</th><th>Lote</th><th class="r">Stock</th></tr></thead><tbody>';
+    l.forEach(function(x,i){
+      var d=Math.round((new Date(x.cad+'T12:00')-new Date(hoy+'T12:00'))/864e5);
+      h+='<tr data-i="'+i+'"><td><b style="color:'+(d<0?'var(--bad)':'var(--warn)')+'">'+dmy(x.cad)+'</b><br>'+(d<0?'<span class="tag bad">hace '+(-d)+' día'+(d===-1?'':'s')+'</span>':'<span class="tag warn">'+(d===0?'hoy':'en '+d+' día'+(d===1?'':'s'))+'</span>')+'</td>'
+        +'<td style="white-space:normal">'+esc(x.cat)+'</td><td><b>'+esc(x.art)+'</b></td><td class="mono">'+esc(x.lote)+'</td><td class="r">'+fNum(x.stock)+' '+esc(x.uni)+'</td></tr>';
+    });
+    $('p-body').innerHTML=h+'</tbody></table>';
+    $('p-body').querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(tr) fichaLote(l[+tr.getAttribute('data-i')]); };
+  }
+  $('panel').hidden=false; $('velo').hidden=false;
+}
 function matArticulos(st){
   var m={};
   (st||matStock()).forEach(function(x){ var k=nrm(x.cat)+'|'+nrm(x.art); if(!m[k]) m[k]={cat:x.cat, art:x.art, tot:x.totArt, min:x.minArt, uni:x.uniArt, nl:x.nLotesArt, bajo:x.bajo}; });
