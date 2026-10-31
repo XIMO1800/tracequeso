@@ -341,7 +341,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 
 <div id="velo" hidden></div>
 <aside id="panel" hidden>
-  <div class="ph"><div><h2 id="p-tit">Registro</h2><div class="sub" id="p-sub" style="font-size:12.5px;color:var(--muted)"></div></div><button class="btn x" id="p-imp" title="Imprimir lo que se ve en este panel">🖨 Imprimir</button><button class="btn" id="p-amp" title="Hacer el panel más ancho o más estrecho">⤢ Ampliar</button><button class="btn" id="p-x">✕ Cerrar</button></div>
+  <div class="ph"><div><h2 id="p-tit">Registro</h2><div class="sub" id="p-sub" style="font-size:12.5px;color:var(--muted)"></div></div><button class="btn x" id="p-ed" hidden title="Editar lo que se ve en este panel">✏️ Editar</button><button class="btn" id="p-imp" title="Imprimir lo que se ve en este panel">🖨 Imprimir</button><button class="btn" id="p-x">✕ Cerrar</button></div>
   <div class="pb" id="p-body"></div>
 </aside>
 
@@ -350,7 +350,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v30';
+var VER = 'v31';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -816,9 +816,9 @@ function abrirFicha(r){
     if(k==='FECHA') v=fDia(r.__f);
     h+='<div class="k">'+esc(k)+'</div><div class="v">'+esc(v)+'</div>';
   });
-  h+='</div>'+(puedeGuardar()&&r['ID']?'<div style="margin-top:14px"><button class="btn pri" id="f-ed">✏️ Editar este registro</button></div>':'<p style="font-size:12.5px;color:var(--muted);margin-top:14px">Solo consulta.</p>');
+  h+='</div>';
   $('p-body').innerHTML=h;
-  if($('f-ed')) $('f-ed').onclick=function(){ fichaEditar(r); };
+  panelEditar(r['ID']?function(){ fichaEditar(r); }:null);
   if(r['ID']){ var hc=document.createElement('div'); $('p-body').appendChild(hc); historialCambios(r, hc); }
   $('panel').hidden=false; $('velo').hidden=false;
 }
@@ -986,9 +986,12 @@ function historialCambios(r, dest){
 }
 $('p-x').onclick=cerrarFicha; $('velo').onclick=cerrarFicha;
 // (v16) Panel ancho o estrecho, a gusto; se recuerda en este ordenador.
-function panelAncho(on){ $('panel').classList.toggle('ancho',!!on); $('p-amp').textContent=on?'⤡ Estrechar':'⤢ Ampliar'; try{ localStorage.setItem('tqof_panel_ancho',on?'1':''); }catch(e){} }
-$('p-amp').onclick=function(){ panelAncho(!$('panel').classList.contains('ancho')); };
-try{ panelAncho(localStorage.getItem('tqof_panel_ancho')==='1'); }catch(e){}
+// (v31) Joaquín (31/10): «Ampliar» fuera (con el ancho actual no hace falta) y
+// «Editar» arriba, junto a Imprimir y Cerrar, con el mismo tono. El botón solo
+// aparece en lo que se puede editar; al cambiar de ficha se esconde solo.
+var _edPend=false;
+function panelEditar(fn){ var b=$('p-ed'); if(!b) return; if(fn && puedeGuardar()){ b.onclick=function(){ b.hidden=true; fn(); }; b.hidden=false; _edPend=true; } else b.hidden=true; }
+try{ new MutationObserver(function(){ if(_edPend){ _edPend=false; return; } $('p-ed').hidden=true; }).observe($('p-tit'),{childList:true,characterData:true,subtree:true}); }catch(e){}
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') cerrarFicha(); });
 
 function exportarCSV(){
@@ -1726,10 +1729,9 @@ function fichaEntrada(e, lote){
   var foto=String(gEnt(e,['FOTO ALBARAN','foto'])||'');
   h+='<h3 class="pbt">📄 Foto del albarán</h3>'+(fotoId(foto)?'<div id="p-foto"></div>':'<p class="sinv" style="margin:4px 0">Esta entrada no tiene foto del albarán.</p>');
   var _idE=String(gEnt(e,['ID ENTRADA','id'])||'');
-  h+=(puedeGuardar()&&_idE?'<div style="margin-top:14px"><button class="btn pri" id="f-ed-ent">✏️ Editar esta entrada</button></div>':'')
-    +'<p style="font-size:13px;color:var(--muted);margin-top:10px">ID '+esc(_idE)+'</p>';
+  h+='<p style="font-size:13px;color:var(--muted);margin-top:10px">ID '+esc(_idE)+'</p>';
   $('p-body').innerHTML=h; $('panel').hidden=false; $('velo').hidden=false;
-  if($('f-ed-ent')) $('f-ed-ent').onclick=function(){ editarEntrada(e, lote); };
+  panelEditar(_idE?function(){ editarEntrada(e, lote); }:null);
   if(fotoId(foto)) verFoto(foto, $('p-foto'));
   if(lote && $('p-volver')) $('p-volver').onclick=function(){ fichaLote(lote); };
 }
