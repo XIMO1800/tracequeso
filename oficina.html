@@ -294,6 +294,10 @@ tr.tz-vol td{color:var(--muted);background:#faf6f2}
 .minban span{color:var(--ink);font-weight:500}.minban u{margin-left:6px;font-weight:700}
 .nav button .nb{margin-left:auto;background:var(--bad);color:#fff;border-radius:99px;font-size:11.5px;font-weight:800;padding:1px 7px}
 .rv-cd{display:inline-flex;align-items:center;gap:5px;margin:2px 10px 2px 0;font-size:14px;cursor:pointer}
+.edf{display:grid;grid-template-columns:200px 1fr;gap:6px 10px;align-items:center;margin-top:10px}
+.edf .k{font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.edf input,.edf select,.edf textarea{width:100%;border:1.5px solid var(--line);border-radius:7px;padding:6px 8px;font-size:15px;font-family:inherit;background:#fff;color:var(--ink);box-sizing:border-box}
+.edf input:focus,.edf select:focus,.edf textarea:focus{border-color:var(--brand);outline:none}
 a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 #sf-ok{font-size:16px!important;padding:9px 18px!important}
 #ef-ok{font-size:16px!important;padding:9px 18px!important}
@@ -345,7 +349,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v27';
+var VER = 'v28';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -353,7 +357,8 @@ var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
 // entra para ir viéndolo y proponer mejoras, pero de momento SOLO MIRA:
 // la salida a mano y el cambio de mínimos quedan bloqueados para ellos.
 function puedeEntrar(){ var n=CU?String(CU.n||'').toUpperCase():''; return PERMITIDOS.indexOf(n)>=0 || rolTiene(CU&&CU.rol,'CALIDAD') || rolTiene(CU&&CU.rol,'ADMIN'); }
-function puedeGuardar(){ return !!CU && PERMITIDOS.indexOf(String(CU.n||'').toUpperCase())>=0; }
+// (v28) Joaquín (31/10): Calidad también guarda ya desde la oficina.
+function puedeGuardar(){ return puedeEntrar(); }
 function soloMirar(){ if(puedeGuardar()) return false; alert('De momento la versión de oficina es solo para mirar: esto no se guarda.\n\nPara hacerlo de verdad, sigue usando TraceQueso. Apunta lo que eches en falta o lo que mejorarías y se lo dices a Joaquín.'); return true; }
 
 var SLBL={'1.SALADERO':'Saladero','2.GOLPE FRIO':'Golpe Frío','3.SECADERO 1':'Secadero 1','4.SECADERO 2':'Secadero 2','5.SECADERO 3':'Secadero 3','6.CAMARA FRIO':'Cámara Frío','7.CAMARA MADURACION':'C. Maduración','8.FABRICA VIEJA':'Fábrica Vieja','9.VENTA':'Venta'};
@@ -633,7 +638,7 @@ function refrescar(){
 // ═══════════════════════════════════════════════════════════════════════════
 function vistaInicio(){
   $('t-tit').textContent='Pantalla principal';
-  $('t-sub').textContent='TraceQueso Oficina · primera fase, solo consulta';
+  $('t-sub').textContent='TraceQueso Oficina · versión de escritorio';
   var hoy=isoDia(new Date()), nHoy=0, ops={}, porSec={};
   ROWS.forEach(function(r){
     if(!r.__f || isoDia(r.__f)!==hoy) return;
@@ -810,10 +815,114 @@ function abrirFicha(r){
     if(k==='FECHA') v=fDia(r.__f);
     h+='<div class="k">'+esc(k)+'</div><div class="v">'+esc(v)+'</div>';
   });
-  h+='</div><p style="font-size:12.5px;color:var(--muted);margin-top:14px">Solo consulta. Para corregir, de momento, desde TraceQueso.</p>';
+  h+='</div>'+(puedeGuardar()&&r['ID']?'<div style="margin-top:14px"><button class="btn pri" id="f-ed">✏️ Editar este registro</button></div>':'<p style="font-size:12.5px;color:var(--muted);margin-top:14px">Solo consulta.</p>');
   $('p-body').innerHTML=h;
+  if($('f-ed')) $('f-ed').onclick=function(){ fichaEditar(r); };
   $('panel').hidden=false; $('velo').hidden=false;
 }
+// ═══════════════════════════════════════════════════════════════════════════
+// (v28) EDITAR UN REGISTRO desde su ficha (Joaquín y Calidad, 31/10). Mismos
+// campos y reglas que la edición de Calidad en TraceQueso (CAMPOS_POR_SECCION,
+// _camposEdicionRegistro) y el mismo envío: ID + _UPDATE, solo las casillas que
+// cambian, y queda anotado quién lo hizo (pestaña CAMBIOS de la hoja).
+// ═══════════════════════════════════════════════════════════════════════════
+var CAMPOS_POR_SECCION={
+  '1ª CAPA':[{k:'LOTE QUESO',l:'Lote queso'},{k:'LOTE PRODUCTO',l:'Lote antifúngico'},{k:'PESO PALET',l:'Peso palet (kg)',type:'number'},{k:'Nº PIEZAS NO APTAS',l:'Piezas no aptas',type:'number'},{k:'SALA ORIGEN',l:'Sala origen',type:'sala'},{k:'SALA DESTINO',l:'Sala destino',type:'sala'},{k:'OBSERVACIONES',l:'Observaciones',type:'textarea'}],
+  '2ª CAPA':[{k:'LOTE QUESO',l:'Lote queso'},{k:'LOTE PRODUCTO',l:'Lote antifúngico'},{k:'OBSERVACIONES',l:'Observaciones',type:'textarea'}],
+  'VOLTEO':[{k:'LOTE QUESO',l:'Lote queso'},{k:'SALA DESTINO',l:'Sala volteo',type:'sala'},{k:'OBSERVACIONES',l:'Observaciones',type:'textarea'}],
+  'MOVIMIENTO':[{k:'LOTE QUESO',l:'Lote queso'},{k:'SALA ORIGEN',l:'Sala origen',type:'sala'},{k:'SALA DESTINO',l:'Sala destino',type:'sala'},{k:'OBSERVACIONES',l:'Observaciones',type:'textarea'}],
+  'PINTURA':[{k:'LOTE QUESO',l:'Lote queso'},{k:'ID PALET',l:'ID palé (vacío si es sin QR)'},{k:'PRODUCTO',l:'Producto'},{k:'LOTE PRODUCTO',l:'Lote pintura'},{k:'Nº DE PIEZAS',l:'Nº piezas',type:'number'},{k:'Nº PIEZAS NO APTAS',l:'Piezas no aptas',type:'number'},{k:'SALA ORIGEN',l:'Sala origen',type:'sala'},{k:'SALA DESTINO',l:'Sala destino',type:'sala'},{k:'OBSERVACIONES',l:'Observaciones',type:'textarea'}],
+  'ENVASADO':[{k:'LOTE QUESO',l:'Lote queso'},{k:'TIPO DE QUESO',l:'Tipo de queso',type:'tipo'},{k:'VARIEDAD',l:'Variedad',type:'variedad'},{k:'FORMATO/PESO',l:'Formato/peso',type:'fmt'},{k:'Nº DE PIEZAS',l:'Nº piezas',type:'number'},
+    {k:'SALA ORIGEN',l:'Sala origen',type:'sala'},{k:'SALA DESTINO',l:'Sala destino',type:'sala'},
+    {k:'MAQ.ENVASADO',l:'Máquina'},{k:'PROVEEDOR BOBINA FONDO',l:'Proveedor fondo'},{k:'REFERENCIA BOBINA FONDO',l:'Lote bobina fondo'},{k:'PROVEEDOR BOBINA TAPA',l:'Proveedor tapa'},{k:'REFERENCIA BOBINA TAPA',l:'Lote bobina tapa'},
+    {k:'¿SE PORCIONA EL QUESO?',l:'¿Se porciona?'},{k:'CUÑAS POR QUESO',l:'Cuñas por queso'},{k:'TOTAL UNIDADES (Cuñas)',l:'Total unidades cuñas',type:'number'},
+    {k:'¿SE ETIQUETA EL QUESO?',l:'¿Se etiqueta?'},{k:'DESCRIPCION ETIQUETA',l:'Descripción etiqueta'},{k:'Nº DE ETIQUETAS',l:'Nº etiquetas',type:'number'},{k:'Nº ETIQUETAS NO CONFORMES',l:'Etiquetas no conformes',type:'number'},
+    {k:'PRIMERA CONTRAETIQUETA',l:'Primera contraetiqueta'},{k:'ULTIMA CONTRAETIQUETA',l:'Última contraetiqueta'},{k:'CONFORME VACIO Y SELLADO',l:'Conforme vacío y sellado'},
+    {k:'LOTE MANTECA',l:'Lote manteca'},{k:'LOTE ROMERO',l:'Lote romero'},{k:'LOTE FINAS HIERBAS',l:'Lote finas hierbas'},{k:'LOTE PIMIENTA',l:'Lote pimienta'},
+    {k:'LOTE TRUFA',l:'Lote trufa'},{k:'CANTIDAD TRUFA',l:'Cantidad trufa (g)',type:'number'},{k:'LOTE ACEITE',l:'Lote aceite'},{k:'CANTIDAD ACEITE (g)',l:'Cantidad aceite (g)',type:'number'},
+    {k:'Nº PIEZAS NO APTAS',l:'Piezas no aptas',type:'number'},{k:'OBSERVACIONES',l:'Observaciones',type:'textarea'}]
+};
+// Lo que se puede añadir si el registro lo trae (como en TraceQueso).
+var TIPO_EDIT_CAMPO={'ID PALET':'text','TIPO DE QUESO':'tipo','VARIEDAD':'variedad','FORMATO/PESO':'fmt','Nº DE PIEZAS':'number','LOTE QUESO':'text','PRODUCTO':'text','LOTE PRODUCTO':'text','PESO PALET':'number','SALA ORIGEN':'sala','SALA DESTINO':'sala','Nº PIEZAS NO APTAS':'number'};
+var ED_ORDEN_BASE=['ID PALET','TIPO DE QUESO','VARIEDAD','FORMATO/PESO','Nº DE PIEZAS','LOTE QUESO','PRODUCTO','LOTE PRODUCTO','PESO PALET','SALA ORIGEN','SALA DESTINO','Nº PIEZAS NO APTAS'];
+var ED_LBL={'ID PALET':'ID palé','TIPO DE QUESO':'Tipo de queso','VARIEDAD':'Variedad','FORMATO/PESO':'Formato/peso','Nº DE PIEZAS':'Nº piezas','LOTE QUESO':'Lote queso','PRODUCTO':'Producto','LOTE PRODUCTO':'Lote producto','PESO PALET':'Peso palet (kg)','SALA ORIGEN':'Sala origen','SALA DESTINO':'Sala destino','Nº PIEZAS NO APTAS':'Piezas no aptas'};
+var ED_TIPOS=['MEZCLA','OVEJA','D.O. PAST.','D.O. CRUDA','CABRA','OVEJA CRUDA','FINOS','MESNERA'];
+var ED_VARS=['ACEITE','TIERNO','BAJO EN SAL','NEGRO','PRUEBA','TOSTADO','BOUQUET','SEMICURADO'];
+var ED_FMTS=['1 KG','2 KG','3 KG','BARRA','SUPERMINIS','1/2 KG'];
+function camposEdicion(r){
+  var sec=secDe(r);
+  var c=[{k:'OPERARIO',l:'Operario'},{k:'FECHA',l:'Fecha y hora',type:'fecha'}].concat(CAMPOS_POR_SECCION[sec]||[{k:'OBSERVACIONES',l:'Observaciones',type:'textarea'}]);
+  var ya={}; c.forEach(function(x){ ya[x.k]=1; });
+  var extra=[];
+  ED_ORDEN_BASE.forEach(function(k){ if(ya[k]) return; var v=r[k]; if(v===undefined||v===null||String(v).trim()==='') return; extra.push({k:k,l:ED_LBL[k],type:TIPO_EDIT_CAMPO[k]}); });
+  var iObs=-1; c.forEach(function(x,i){ if(x.k==='OBSERVACIONES') iObs=i; });
+  return iObs<0 ? c.concat(extra) : c.slice(0,iObs).concat(extra).concat(c.slice(iObs));
+}
+function calcPesoMedio(pesoBruto,piezas,fmtD){   // copia de index.html
+  if(!pesoBruto||!piezas) return null;
+  var pb=parseFloat(String(pesoBruto).replace(',','.')); if(isNaN(pb)) return null;
+  var ppb,tb; if(fmtD==='1'||fmtD==='5'){ ppb=12; tb=3.18; } else if(fmtD==='4'){ ppb=4; tb=3.12; } else { ppb=6; tb=3.12; }
+  var band=Math.ceil(piezas/ppb); if(band%2!==0) band++;
+  var neto=pb-(11.25+band*tb); if(neto<=0) return null;
+  return Math.round((neto/piezas)*1000)/1000;
+}
+function fichaEditar(r){
+  var cs=camposEdicion(r);
+  function opts(lista, v){ var l=lista.slice(); if(v && l.indexOf(v)<0) l.unshift(v); return '<option value="">—</option>'+l.map(function(x){ return '<option'+(x===v?' selected':'')+'>'+esc(x)+'</option>'; }).join(''); }
+  var h='<div class="aviso" style="margin-top:4px">Cambia lo que haga falta y pulsa <b>Guardar cambios</b>. Solo se envía lo que cambies, y queda anotado que lo has hecho tú.</div><div class="edf">';
+  cs.forEach(function(c,i){
+    var v=r[c.k]; v=(v===undefined||v===null)?'':String(v);
+    var inp;
+    if(c.type==='fecha'){ var d=r.__f; inp='<input type="datetime-local" data-i="'+i+'" value="'+(d?(isoDia(d)+'T'+pad(d.getHours())+':'+pad(d.getMinutes())):'')+'">'; }
+    else if(c.type==='sala') inp='<select data-i="'+i+'">'+opts(Object.keys(SLBL), v.trim())+'</select>';
+    else if(c.type==='tipo') inp='<select data-i="'+i+'">'+opts(ED_TIPOS, v.trim())+'</select>';
+    else if(c.type==='variedad') inp='<select data-i="'+i+'">'+opts(ED_VARS, v.trim())+'</select>';
+    else if(c.type==='fmt') inp='<select data-i="'+i+'">'+opts(ED_FMTS, v.trim())+'</select>';
+    else if(c.type==='textarea') inp='<textarea data-i="'+i+'" rows="2">'+esc(v)+'</textarea>';
+    else inp='<input type="'+(c.type==='number'?'number" step="any':'text')+'" data-i="'+i+'" value="'+esc(v.replace(/^'/,''))+'">';
+    h+='<label class="k">'+esc(c.l)+'</label><div>'+inp+'</div>';
+  });
+  h+='</div><div id="ed-err" class="aviso" style="display:none;background:var(--bad-soft);border-color:var(--bad);color:var(--bad)"></div>'
+    +'<div style="display:flex;gap:10px;margin-top:12px"><button class="btn pri" id="ed-ok">💾 Guardar cambios</button><button class="btn" id="ed-no">Cancelar</button></div>';
+  $('p-body').innerHTML=h;
+  $('ed-no').onclick=function(){ abrirFicha(r); };
+  $('ed-ok').onclick=function(){ fichaGuardar(r, cs, this); };
+}
+function fichaGuardar(r, cs, btn){
+  var set={}, err='';
+  document.querySelectorAll('#p-body .edf [data-i]').forEach(function(el){
+    var c=cs[+el.getAttribute('data-i')], nuevo=String(el.value||'').trim(), viejo;
+    if(c.type==='fecha'){
+      var d=r.__f; viejo=d?(isoDia(d)+'T'+pad(d.getHours())+':'+pad(d.getMinutes())):'';
+      if(nuevo===viejo) return;
+      var dn=new Date(nuevo); if(isNaN(dn)){ err='La fecha no es válida.'; return; }
+      set[c.k]=dn.getDate()+'/'+(dn.getMonth()+1)+'/'+dn.getFullYear()+', '+dn.getHours()+':'+pad(dn.getMinutes())+':00';
+      return;
+    }
+    viejo=String(r[c.k]==null?'':r[c.k]).trim().replace(/^'/,'');
+    if(nuevo===viejo) return;
+    if(c.k==='ID PALET' && nuevo){
+      // Nunca un ID inventado: o vacío (sin QR) o un ID con estructura de palé.
+      if(nuevo.indexOf('*')<0 || estructuraIdPale(nuevo)){ err='«'+nuevo+'» no es un ID de palé (12 cifras con el * y el !). Si es un queso sin QR, deja el ID vacío y pon el lote en «Lote queso».'; return; }
+    }
+    set[c.k]=(c.k==='ID PALET' && /^\d+$/.test(nuevo)) ? "'"+nuevo : nuevo;
+  });
+  if(err){ $('ed-err').textContent=err; $('ed-err').style.display='block'; return; }
+  if(set['PESO PALET']!==undefined){ var pm=calcPesoMedio(set['PESO PALET'], parseInt(r['Nº DE PIEZAS'],10)||parsearId(pidDe(r)).piezas, parsearId(pidDe(r)).fmtD); if(pm) set['PESO MEDIO']=pm; }
+  var ks=Object.keys(set);
+  if(!ks.length){ abrirFicha(r); return; }
+  if(!r['ID']){ alert('Este registro no tiene ID en la hoja y no se puede corregir desde aquí.'); return; }
+  if(!confirm('¿Guardar estos cambios en la hoja?\n\n'+ks.map(function(k){ return '· '+k+': «'+String(r[k]==null?'':r[k])+'» → «'+String(set[k]).replace(/^'/,'')+'»'; }).join('\n'))) return;
+  btn.disabled=true; btn.textContent='Guardando…';
+  fetch(API_URL,{method:'POST', body:JSON.stringify(Object.assign({ID:r['ID'], _UPDATE:true, _QUIEN:(CU&&CU.n)||''}, set))})
+    .then(function(x){ return x.json(); }).then(function(j){
+      if(!j || !j.ok) throw new Error('el servidor no ha encontrado el registro');
+      ks.forEach(function(k){ r[k]=String(set[k]).replace(/^'/,''); });
+      if(set['FECHA']!==undefined){ r.__f=undefined; prep([r]); }
+      _invC=null; guardarCopia(); abrirFicha(r); try{ refrescar(); }catch(e){}
+    }).catch(function(e){ btn.disabled=false; btn.textContent='💾 Guardar cambios'; $('ed-err').textContent='⚠️ No se ha guardado: '+e.message+'. Vuelve a intentarlo.'; $('ed-err').style.display='block'; });
+}
+
 function cerrarFicha(){ $('panel').hidden=true; $('velo').hidden=true; }
 $('p-x').onclick=cerrarFicha; $('velo').onclick=cerrarFicha;
 // (v16) Panel ancho o estrecho, a gusto; se recuerda en este ordenador.
@@ -1276,7 +1385,7 @@ function matFormEntrada(){
   }
   if(!EF) EF=efNuevo();
   var cat=catalogo(), ops2=operarios(), pend=recPend();
-  var h=modoSel('entModo',ops)+'<div class="pruebas">🧪 <b>En pruebas.</b> Puedes rellenarlo entero para ver cómo queda, pero <b>todavía no guarda</b>: las entradas se siguen dando en TraceQueso. Cuando lo des por bueno, se activa.</div>';
+  var h=modoSel('entModo',ops);   // (v28) ya guarda de verdad
   h+='<div class="ent-wrap"><div>';
   // ── De una recepción ──
   if(pend.length){
@@ -1415,19 +1524,66 @@ function efRegistrar(){
   var e=$('ef-err');
   if(err.length){ e.innerHTML=err.map(esc).join('<br>'); e.style.display='block'; e.scrollIntoView({block:'center',behavior:'smooth'}); return; }
   e.style.display='none';
-  // Lo que se grabaría: una fila de ENTRADAS MATERIAL AUXILIAR por línea.
-  var h='<div class="pruebas">🧪 En pruebas: esto es lo que se <b>grabaría</b>. Todavía no se ha guardado nada.</div>';
-  lineas.forEach(function(l,i){
-    var fila={'FECHA ENTRADA':dmy(EF.fecha),'CATEGORIA':l.cat,'ARTICULO':l.art,'PROVEEDOR':EF.prov,'LOTE':l.lote,'CADUCIDAD':l.cad?dmy(l.cad):'','CANTIDAD':l.cant,'UNIDAD':l.uni,'ALBARAN':EF.alb,
-      'ESTADO':EF.estado,'ETIQUETA':EF.etiqueta,'CONDICIONES CAMION':EF.camion,'TEMP CAMION':EF.temp,'ACCIONES CORRECTORAS':EF.acciones,'FIRMA':EF.firma,'OBSERVACIONES':EF.obs,
-      'FOTO ALBARAN':EF.foto?('(se subiría '+EF.fotoNombre+')'):(EF.rec!==''?'(fotos de la recepción)':'')};
-    h+='<h3 style="font-family:var(--display);margin:10px 0 6px">Línea '+(i+1)+' · '+esc(l.art)+'</h3><div class="ficha">';
-    Object.keys(fila).forEach(function(k){ if(fila[k]!=='' && fila[k]!=null) h+='<div class="k">'+esc(k)+'</div><div class="v">'+esc(fila[k])+'</div>'; });
-    h+='</div>';
+  // (v28) GUARDA DE VERDAD, con el mismo envío que TraceQueso: una fila de
+  // ENTRADAS MATERIAL AUXILIAR por línea (_SHEET:'ENTRADAS'), la foto del
+  // albarán a Drive (FOTO_ALBARAN) y, si viene de una recepción, se apunta en
+  // ella (RECEPCION · entrada). Verificado por Calidad = SI.
+  if(soloMirar()) return;
+  var rec=EF.rec!==''?recPend()[+EF.rec]:null;
+  if(!confirm('¿Registrar esta entrada?\n\n'+EF.prov+(EF.alb?(' · albarán '+EF.alb):'')+' · '+dmy(EF.fecha)+'\n'
+     +lineas.map(function(l){ return '· '+l.art+' · lote '+l.lote+' · '+l.cant+' '+l.uni; }).join('\n')
+     +'\n\nSe suma al stock de cada lote.')) return;
+  var b=$('ef-ok'); b.disabled=true;
+  function paso(t){ b.textContent=t; }
+  function subirFoto(){
+    if(!EF.foto) return Promise.resolve(rec?(String(rec.FOTOS||'').split('|').filter(function(x){return x.trim();})[0]||''):'');
+    paso('Subiendo la foto del albarán…');
+    return reducirFoto(EF.foto).then(function(f){
+      return fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'FOTO_ALBARAN', b64:f.b64, mime:f.mime, proveedor:EF.prov, albaran:EF.alb, operario:(CU&&CU.n)||''})})
+        .then(function(r){ return r.json(); }).then(function(d){ if(d&&d.ok&&d.url) return d.url; throw new Error((d&&d.error)||'sin respuesta'); });
+    }).catch(function(e){
+      if(!confirm('No se ha podido subir la foto ('+e.message+').\n\n¿Guardar la entrada SIN foto? (se podrá añadir después)')) throw new Error('cancelado');
+      return '';
+    });
+  }
+  var hechas=[], fallos=[];
+  subirFoto().then(function(foto){
+    var i=0;
+    return new Promise(function(fin){
+      (function sig(){
+        if(i>=lineas.length){ fin(foto); return; }
+        var l=lineas[i], idE='E-'+Date.now()+(lineas.length>1?('-'+(i+1)):''); i++;
+        paso('Guardando línea '+i+' de '+lineas.length+'…');
+        fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'ENTRADAS', id:idE, fecha:fechaHoraEspana(), albaran:EF.alb, proveedor:EF.prov,
+          categoria:l.cat, articulo:l.art, lote:String(l.lote).trim().toUpperCase(), cantidad:num(l.cant), unidad:l.uni, caducidad:l.cad||'', obs:EF.obs, operario:(CU&&CU.n)||'',
+          estado:EF.estado, etiqueta:EF.etiqueta, camion:EF.camion, temp:EF.temp, acciones:EF.acciones, firma:EF.firma, fentrada:EF.fecha,
+          recibido:rec?(rec['RECIBIDO POR']||(CU&&CU.n)||''):((CU&&CU.n)||''), foto:foto, verificado:'SI'})})
+          .then(function(r){ return r.json(); }).then(function(d){
+            if(d && d.ok){ hechas.push({l:l, id:idE}); if(rec) fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'RECEPCION', accion:'entrada', id:rec.ID, idEntrada:idE})}).catch(function(){}); }
+            else fallos.push(l);
+          }).catch(function(){ fallos.push(l); }).then(sig);
+      })();
+    });
+  }).then(function(){
+    b.disabled=false; b.textContent='💾 Registrar entrada';
+    if(hechas.length){ EF=efNuevo(); }
+    alert((hechas.length?('✅ Entrada registrada: '+hechas.length+' línea'+(hechas.length>1?'s':'')+'.'):'')
+      +(fallos.length?('\n\n⚠️ NO se han guardado '+fallos.length+' línea(s): '+fallos.map(function(l){ return l.art+' '+l.lote; }).join(', ')+'. Revisa la conexión y vuelve a darlas.'):'')
+      +(rec&&hechas.length?'\n\nQueda apuntada en la recepción. Cuando esté todo, márcala como terminada en TraceQueso.':''));
+    MAT.cargado=false; cargarMat(true);
+  }).catch(function(e){ b.disabled=false; b.textContent='💾 Registrar entrada'; if(e.message!=='cancelado') alert('⚠️ No se ha guardado: '+e.message); });
+}
+// Reduce la foto a 1800 px y JPEG 0,8 (como TraceQueso); un PDF va tal cual.
+function reducirFoto(dataUrl){
+  return new Promise(function(ok){
+    var m=String(dataUrl).match(/^data:([^;]+);base64,(.*)$/); if(!m){ ok({b64:'', mime:''}); return; }
+    if(/pdf/i.test(m[1])){ ok({b64:m[2], mime:'application/pdf'}); return; }
+    var img=new Image();
+    img.onload=function(){ try{ var M=1800, k=Math.min(1, M/Math.max(img.width,img.height)), c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height); ok({b64:c.toDataURL('image/jpeg',0.8).split(',')[1], mime:'image/jpeg'}); }catch(e){ ok({b64:m[2], mime:m[1]}); } };
+    img.onerror=function(){ ok({b64:m[2], mime:m[1]}); };
+    img.src=dataUrl;
   });
-  $('p-tit').textContent='Entrada de material · '+lineas.length+' línea'+(lineas.length>1?'s':'');
-  $('p-sub').textContent=EF.prov+(EF.alb?(' · albarán '+EF.alb):'')+' · '+dmy(EF.fecha);
-  $('p-body').innerHTML=h; $('panel').hidden=false; $('velo').hidden=false;
 }
 
 // Ficha de UNA entrada (todos sus datos y la foto del albarán).
