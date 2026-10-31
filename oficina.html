@@ -120,6 +120,10 @@ td.obs{white-space:normal;max-width:320px;color:var(--muted)}
 #panel .ph .x{margin-left:auto}
 #panel.ancho{width:min(1150px,94vw)}
 #panel .ph .btn{white-space:nowrap}
+/* (v32) Editar · Imprimir · Cerrar en azul marino muy oscuro, discreto: se
+   distinguen de la ficha (granate) y de los datos (negro). Joaquín, 31/10. */
+#panel .ph .btn{color:#1f2d4a;border-color:#b9c2d3;background:#fff}
+#panel .ph .btn:hover{color:#fff;background:#1f2d4a;border-color:#1f2d4a}
 #panel .pb{padding:10px 18px 24px;overflow:auto}
 .ficha{display:grid;grid-template-columns:200px 1fr;border-top:1px solid #eee7e8}
 .ficha div{padding:6px 4px;border-bottom:1px solid #eee7e8}
@@ -350,7 +354,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v31';
+var VER = 'v32';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
