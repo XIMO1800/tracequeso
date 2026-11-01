@@ -206,6 +206,10 @@ table.ub-t td.ub-c,table.ub-t tr:hover td.ub-c{text-align:center;vertical-align:
 table.ub-t tr{cursor:default}
 table.ub-t td.ub-z{text-align:center;font-size:12px;font-weight:800;color:var(--muted);padding-bottom:3px}table.ub-t td.ub-z.on{color:var(--brand)}
 table.ub-t td.ub-nf{font-size:11px;color:var(--muted);text-align:right;padding-right:5px}table.ub-t td.ub-nf.on{color:var(--brand);font-weight:800}
+table.ub-t td.ub-tt{font-size:10px;color:var(--muted);text-align:center;font-weight:700}
+table.ub-t td.ub-tf{font-size:11px;color:#9b8f80;text-align:center;font-variant-numeric:tabular-nums}table.ub-t td.ub-tf.con{color:var(--ink);font-weight:700}table.ub-t td.ub-tf[data-fila]{cursor:pointer;text-decoration:underline dotted}
+.ub-tc{text-align:center;font-size:14px;margin-top:4px}
+.ub-totf{font-size:14.5px;margin:4px 0 8px}table.ub-fila tr.ub-tot td{height:auto;font-weight:800;font-size:13px;color:var(--ink)}table.ub-fila tr.ub-tot th{font-size:14px}
 table.ub-t td.ub-ok{cursor:pointer}table.ub-t td.ub-ok:hover{filter:brightness(1.12)}
 table.ub-t td.ub-lib,table.ub-t tr:hover td.ub-lib{background:#fff}table.ub-t td.ub-lib[data-pie]{cursor:pointer}
 table.ub-t td.ub-no,table.ub-t tr:hover td.ub-no{background-color:#ece5da;background-image:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(0,0,0,.07) 3px,rgba(0,0,0,.07) 6px)}
@@ -213,7 +217,7 @@ table.ub-t td.ub-no,table.ub-t tr:hover td.ub-no{background-color:#ece5da;backgr
 .ub-dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
 table.ub-fila{border-collapse:separate;border-spacing:4px;margin:4px 0;width:auto}table.ub-fila tr{cursor:default}table.ub-fila td,table.ub-fila tr:hover td{padding:2px;border-bottom:0;white-space:normal;background:transparent}table.ub-fila th{font-size:12px;color:var(--muted);font-weight:800;padding:2px 4px;background:none;position:static}
 table.ub-fila td{width:96px;height:46px;border-radius:6px;text-align:center;vertical-align:middle;font-size:12px;line-height:1.2}
-table.ub-fila .ub-p{border:2px solid;cursor:pointer}table.ub-fila .ub-p b{font-size:15px;display:block}table.ub-fila .ub-p small{color:var(--muted);font-size:11px}
+table.ub-fila .ub-p{border:2px solid;cursor:pointer}table.ub-fila .ub-p b{font-size:16px;display:block;letter-spacing:.02em}table.ub-fila .ub-p small{color:var(--muted);font-size:11px}
 table.ub-fila .ub-p.yo{box-shadow:0 0 0 3px var(--brand)}table.ub-fila .ub-v{border:1px dashed #d8ccbc}
 table.ub-fila .ub-nc{font-size:10.5px;color:var(--muted);background:repeating-linear-gradient(45deg,#ece5da,#ece5da 3px,transparent 3px,transparent 6px);border:1px solid #e1d7c9}
 table.ub-fila .pas{width:30px;font-size:10px;color:var(--muted);font-style:italic;font-weight:400}
@@ -384,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v40';
+var VER = 'v41';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -3005,9 +3009,17 @@ function ubPlanoHTML(sala, op){
   function mayor(l,fn){ var c={}; l.forEach(function(x){ var k=fn(x); c[k]=(c[k]||0)+1; }); return Object.keys(c).sort(function(a,b){ return c[b]-c[a]; })[0]; }
   var cols=[]; pl.zonas.forEach(function(z){
     if(z==='P') cols.push({t:'pas'}); else if(z==='|') cols.push({t:'sep'});
-    else ubOrdenPies(z).forEach(function(p,k,a){ cols.push({t:'pie', z:z, p:p, primero:k===0, n:a.length}); });
+    else {
+      // (v41) Al lado de cada zona, en el lado del pasillo, las piezas de cada fila.
+      var izq=UB_ZONAS[z].pasillo==='izq';
+      if(izq) cols.push({t:'tot', z:z});
+      ubOrdenPies(z).forEach(function(p,k,a){ cols.push({t:'pie', z:z, p:p, primero:k===0, n:a.length}); });
+      if(!izq) cols.push({t:'tot', z:z});
+    }
   });
-  var W=0; cols.forEach(function(c){ W+= c.t==='pie'?1:(c.t==='pas'?UB_PASILLO:0.35); });
+  var totF={}, totZ={}, totC=0;
+  ub.forEach(function(u){ var pz=ubPz(u), k=u.zona+'|'+u.fila; totF[k]=(totF[k]||0)+pz; totZ[u.zona]=(totZ[u.zona]||0)+pz; totC+=pz; });
+  var W=0; cols.forEach(function(c){ W+= c.t==='pie'?1:(c.t==='pas'?UB_PASILLO:(c.t==='tot'?1.25:0.35)); });
   var disp=Math.max(420, Math.min(((($('cont')||{}).clientWidth)||900)-80, op.ancho||1100));
   var cw=Math.floor(Math.min(op.max||44, disp/W));
   // (v40) Que quepa la cámara entera en la pantalla, de arriba abajo (Joaquín,
@@ -3018,6 +3030,7 @@ function ubPlanoHTML(sala, op){
   var h='<div class="ub-plano"><div class="ub-eje">▲ fondo · ventiladores</div><div style="overflow-x:auto"><table class="ub-t">';
   h+='<tr><td></td>'; cols.forEach(function(c){
     if(c.t==='pie' && c.primero) h+='<td colspan="'+c.n+'" class="ub-z'+(mk&&mk.zona===c.z?' on':'')+'">'+c.z+'</td>';
+    else if(c.t==='tot') h+='<td class="ub-tt">pzas</td>';
     else if(c.t!=='pie') h+='<td></td>';
   }); h+='</tr>';
   for(var f=UB_FILAS; f>=1; f--){
@@ -3026,6 +3039,7 @@ function ubPlanoHTML(sala, op){
     cols.forEach(function(c){
       if(c.t==='pas'){ h+='<td style="width:'+Math.round(cw*UB_PASILLO)+'px"></td>'; return; }
       if(c.t==='sep'){ h+='<td style="width:'+Math.round(cw*0.35)+'px"></td>'; return; }
+      if(c.t==='tot'){ var tf=totF[c.z+'|'+f]||0; h+='<td class="ub-tf'+(tf?' con':'')+'"'+(tf&&op.click?' data-fila="'+c.z+'|'+f+'" title="Ver la fila '+ubCod(c.z,f)+'"':'')+' style="width:'+Math.round(cw*1.25)+'px">'+(tf?fmtN(tf):'')+'</td>'; return; }
       var e=ubEspecialHTML(c,f,cw,ch); if(e!==null){ h+=e; return; }
       var max=ubMax(c.z,f,c.p), l=pies[c.z+'|'+f+'|'+c.p]||[], es=mk&&mk.zona===c.z&&mk.fila===f&&mk.pie===c.p, enF=mk&&mk.zona===c.z&&mk.fila===f;
       var est='width:'+cw+'px;height:'+ch+'px;font-size:'+Math.max(9,Math.round(cw*0.42))+'px;';
@@ -3041,7 +3055,14 @@ function ubPlanoHTML(sala, op){
     });
     h+='</tr>';
   }
+  // Totales por zona y de la cámara
+  h+='<tr><td class="ub-nf">Σ</td>'; cols.forEach(function(c){
+    if(c.t==='tot') h+='<td class="ub-tf con" style="font-weight:800">'+(totZ[c.z]?fmtN(totZ[c.z]):'')+'</td>';
+    else if(c.t==='pie' && c.primero) h+='<td colspan="'+c.n+'"></td>';
+    else if(c.t!=='pie') h+='<td></td>';
+  }); h+='</tr>';
   h+='</table></div><div class="ub-eje">▼ puerta · entrada</div>';
+  h+='<div class="ub-tc">Total ubicado en la cámara: <b>'+fmtN(totC)+' piezas</b> en '+ub.length+' palés</div>';
   h+='<div class="ub-ley">'+Object.keys(tipos).sort(function(a,b){ return tipos[b]-tipos[a]; }).map(function(t){ return '<span><i style="background:'+ubCol(t)+'"></i>'+esc(t)+' ('+tipos[t]+')</span>'; }).join('')
     +(Object.keys(letra).length?'<span style="color:var(--muted)">'+Object.keys(letra).map(function(v){ return '<b>'+esc(letra[v])+'</b> '+esc(v); }).join(' · ')+'</span>':'')+'</div>';
   return h+'</div>';
@@ -3066,6 +3087,16 @@ function ubEspecialHTML(c,f,cw,ch){
   return '<td colspan="'+c.n+'" rowspan="'+rs+'" style="padding:0;vertical-align:top">'+h+'</td>';
 }
 // Rejilla de una fila vista desde la puerta: pies en columnas, alturas en filas.
+// (v41) Lo que se lee en grande de cada palé (Joaquín, 01/11): en el manchego
+// (D.O.) el LOTE CORTO; en oveja, mezcla y demás, la FECHA de fabricación. Las
+// piezas, debajo y más pequeñas.
+function ubEtiq(id){
+  var i=parsearId(id);
+  if(i.isDO && i.loteCorto) return i.loteCorto.replace(/^L-?/i,'');
+  var f=fechaFabKey(id); if(f){ var m=f.split('-'); return m[2]+'/'+m[1]+'/'+m[0].substring(2); }
+  return i.loteCorto||i.lote;
+}
+function ubPz(u){ var e=ubEstadoDe(u); return e?e.pz:(parsearId(u.id).piezas||0); }
 function ubFilaHTML(z,f,marcaId){
   var pies={}, nA=4;
   ubVigentes().filter(function(u){ return u.zona===z && u.fila===f; }).forEach(function(u){ if(u.altura<1) return; (pies[u.pie]=pies[u.pie]||{})[u.altura]=u; if(u.altura>nA) nA=u.altura; });
@@ -3076,13 +3107,18 @@ function ubFilaHTML(z,f,marcaId){
     orden.forEach(function(p){
       var u=(pies[p]||{})[a], max=ubMax(z,f,p);
       if(u){ var i=parsearId(u.id), e=ubEstadoDe(u), yo=marcaId && ubKey(marcaId)===ubKey(u.id);
-        h+='<td class="ub-p'+(yo?' yo':'')+'" data-id="'+esc(u.id)+'" style="border-color:'+ubCol(i.tipo)+';background:'+ubCol(i.tipo)+'1a" title="'+esc(u.id)+'"><b style="color:'+ubCol(i.tipo)+'">'+(e?e.pz:(i.piezas||'?'))+'</b><small>'+esc(i.loteCorto||i.lote)+' · #'+(i.nPale||'')+(ubVar(u.id)?' · '+esc(ubVar(u.id)):'')+'</small></td>';
+        h+='<td class="ub-p'+(yo?' yo':'')+'" data-id="'+esc(u.id)+'" style="border-color:'+ubCol(i.tipo)+';background:'+ubCol(i.tipo)+'1a" title="'+esc(u.id+' · '+clavePalet(u.id))+'"><b style="color:'+ubCol(i.tipo)+'">'+esc(ubEtiq(u.id))+'</b><small>'+fmtN(ubPz(u))+' pzas'+(ubVar(u.id)?' · '+esc(ubVar(u.id)):'')+'</small></td>';
       } else if(max===0 || a<=4-max) h+='<td class="ub-nc">no cabe</td>';
       else h+='<td class="ub-v"></td>';
     });
     h+=(pas==='der'?'<td class="pas"></td>':'')+'</tr>';
   }
-  return h+'</table>';
+  // (v41) Total de piezas de cada pie y de la fila entera.
+  var tot=0, nP=0;
+  h+='<tr class="ub-tot"><th>Σ</th>'+(pas==='izq'?'<td class="pas"></td>':'');
+  orden.forEach(function(p){ var t=0; Object.keys(pies[p]||{}).forEach(function(a){ t+=ubPz(pies[p][a]); nP++; }); tot+=t; h+='<td>'+(t?fmtN(t):'')+'</td>'; });
+  h+=(pas==='der'?'<td class="pas"></td>':'')+'</tr>';
+  return h+'</table><div class="ub-totf">Fila '+ubCod(z,f)+': <b>'+fmtN(tot)+' piezas</b> en '+nP+' palé'+(nP===1?'':'s')+' · caben '+ubCapFila(z,f)+'</div>';
 }
 function ubEnlFila(root){ root.querySelectorAll('.ub-p[data-id]').forEach(function(td){ td.onclick=function(){ verPale(ubIdReg(td.getAttribute('data-id'))); }; }); }
 // El ID tal como está en los registros (para el historial).
@@ -3095,6 +3131,14 @@ function ubTabPlano(){
   // La cámara entera a la vista: se sube la página hasta el plano (la cabecera queda arriba, fuera).
   setTimeout(function(){ try{ var c=$('ub-card'); c.style.scrollMarginTop=(_ubTopH()+4)+'px'; c.scrollIntoView({block:'start'}); }catch(e){} },30);
   $('ub-body').querySelectorAll('[data-pie]').forEach(function(td){ td.onclick=function(){ var p=td.getAttribute('data-pie').split('|'); ubPanelPie(p[0],+p[1],+p[2]); }; });
+  $('ub-body').querySelectorAll('[data-fila]').forEach(function(td){ td.onclick=function(){ var p=td.getAttribute('data-fila').split('|'); ubPanelFila(p[0],+p[1]); }; });
+}
+function ubPanelFila(z,f){
+  $('p-tit').textContent='Fila '+ubCod(z,f);
+  $('p-sub').textContent=UB_PLANOS[UB_ZONAS[z].sala].nombre+' · vista desde la puerta · pincha un palé para ver su historial';
+  $('p-body').innerHTML=ubFilaHTML(z,f);
+  ubEnlFila($('p-body'));
+  $('panel').hidden=false; $('velo').hidden=false;
 }
 function ubPanelPie(z,f,p){
   var l=ubVigentes().filter(function(u){ return u.zona===z && u.fila===f && u.pie===p; }).sort(function(a,b){ return a.altura-b.altura; });
@@ -3227,12 +3271,13 @@ function ubImprimirHojas(z, fs){
       orden.forEach(function(p){
         var u=(pies[p]||{})[a], max=ubMax(z,f,p);
         if(u){ var i=parsearId(u.id), e=ubEstadoDe(u), pz=e?e.pz:(i.piezas||0); tot++; pzT+=pz;
-          t+='<td><div class="lt">'+esc(i.loteCorto||i.lote)+'</div><div class="pz">'+pz+' pzas</div><div class="id">'+esc(String(u.id).split('!')[0].replace(/\*$/,''))+'</div><div class="tp">'+esc([i.tipo,ubVar(u.id)].filter(Boolean).join(' · '))+'</div></td>';
+          t+='<td><div class="lt">'+esc(ubEtiq(u.id))+'</div><div class="pz">'+pz+' pzas</div><div class="id">'+esc(String(u.id).split('!')[0].replace(/\*$/,''))+'</div><div class="tp">'+esc([i.tipo,ubVar(u.id)].filter(Boolean).join(' · '))+'</div></td>';
         } else if(max===0 || a<=4-max) t+='<td class="nc">no cabe</td>';
         else t+='<td></td>';
       });
       t+=(pas==='der'?'<td class="ps"></td>':'')+'</tr>';
     }
+    t+='<tr class="tt"><th class="a">TOTAL</th>'+(pas==='izq'?'<td class="ps"></td>':'')+orden.map(function(p){ var x=0; Object.keys(pies[p]||{}).forEach(function(a){ x+=ubPz(pies[p][a]); }); return '<td>'+(x?x.toLocaleString('es-ES')+' pzas':'')+'</td>'; }).join('')+(pas==='der'?'<td class="ps"></td>':'')+'</tr>';
     t+='</table>';
     return '<div class="pag"><div class="cab"><div class="logo"><div class="n1">el hidalgo</div><div class="n2">Q U E S O S</div></div><div class="tit">UBICACIÓN DE PALÉS · '+esc(UB_PLANOS[sala].nombre.toUpperCase())+'<br><span class="cod">FILA '+ubCod(z,f)+'</span></div><div class="hueco">Revisado:<br><br>Fecha:</div></div>'
       +'<div class="sub">Zona '+z+' · fila '+f+' de 17 (F01 puerta, F17 fondo) · vista desde la puerta · caben '+ubCapFila(z,f)+' palés · ubicados '+tot+' palés, '+pzT.toLocaleString('es-ES')+' piezas</div>'+t
@@ -3244,7 +3289,7 @@ function ubImprimirHojas(z, fs){
     +'.tit{flex:1;text-align:center;font-weight:bold;font-size:14px;padding:6px}.cod{font-size:22px;font-family:monospace}.hueco{width:150px;border-left:1px solid #000;font-size:10px;padding:6px}'
     +'.sub{font-size:11px;margin:3mm 0}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #000;text-align:center;vertical-align:middle;font-size:10px;padding:3px;height:22mm}'
     +'th{height:auto;padding:4px;background:#eee}th.a{width:16mm}.ps{width:12mm;background:#f6f6f6;font-size:8px}.nc{background:repeating-linear-gradient(45deg,#eee,#eee 3px,#fff 3px,#fff 6px);color:#888;font-size:9px}'
-    +'.lt{font-size:13px;font-weight:bold}.pz{font-size:12px;font-weight:bold;margin-top:1mm}.id{font-family:monospace;font-size:8.5px;margin-top:1mm;word-break:break-all}.tp{font-size:8.5px;color:#333}.pie{font-size:9px;margin-top:2mm}'
+    +'.lt{font-size:13px;font-weight:bold}.pz{font-size:12px;font-weight:bold;margin-top:1mm}.id{font-family:monospace;font-size:8.5px;margin-top:1mm;word-break:break-all}.tp{font-size:8.5px;color:#333}.pie{font-size:9px;margin-top:2mm}tr.tt td,tr.tt th{height:auto;font-weight:bold;font-size:11px;padding:5px}'
     +'</style></head><body>'+pags+'</body></html>';
   imprimirHTML(html);
 }
