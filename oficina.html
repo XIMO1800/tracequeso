@@ -209,7 +209,7 @@ table.ub-t td.ub-nf{font-size:11px;color:var(--muted);text-align:right;padding-r
 table.ub-t td.ub-tt{font-size:10px;color:var(--muted);text-align:center;font-weight:700}
 table.ub-t td.ub-tf{font-size:11px;color:#9b8f80;text-align:center;font-variant-numeric:tabular-nums}table.ub-t td.ub-tf.con{color:var(--ink);font-weight:700}table.ub-t td.ub-tf[data-fila]{cursor:pointer;text-decoration:underline dotted}
 .ub-tc{text-align:center;font-size:14px;margin-top:4px}
-.ub-totf{font-size:14.5px;margin:4px 0 8px}table.ub-fila tr.ub-tot td{height:auto;font-weight:800;font-size:13px;color:var(--ink)}table.ub-fila tr.ub-tot th{font-size:14px}
+.ub-totf{font-size:14.5px;margin:4px 0 8px}.ub-rg{margin-top:3px}table.ub-fila tr.ub-tot td{height:auto;font-weight:800;font-size:13px;color:var(--ink)}table.ub-fila tr.ub-tot th{font-size:14px}
 table.ub-t td.ub-ok{cursor:pointer}table.ub-t td.ub-ok:hover{filter:brightness(1.12)}
 table.ub-t td.ub-lib,table.ub-t tr:hover td.ub-lib{background:#fff}table.ub-t td.ub-lib[data-pie]{cursor:pointer}
 table.ub-t td.ub-no,table.ub-t tr:hover td.ub-no{background-color:#ece5da;background-image:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(0,0,0,.07) 3px,rgba(0,0,0,.07) 6px)}
@@ -388,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v41';
+var VER = 'v42';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -3039,7 +3039,7 @@ function ubPlanoHTML(sala, op){
     cols.forEach(function(c){
       if(c.t==='pas'){ h+='<td style="width:'+Math.round(cw*UB_PASILLO)+'px"></td>'; return; }
       if(c.t==='sep'){ h+='<td style="width:'+Math.round(cw*0.35)+'px"></td>'; return; }
-      if(c.t==='tot'){ var tf=totF[c.z+'|'+f]||0; h+='<td class="ub-tf'+(tf?' con':'')+'"'+(tf&&op.click?' data-fila="'+c.z+'|'+f+'" title="Ver la fila '+ubCod(c.z,f)+'"':'')+' style="width:'+Math.round(cw*1.25)+'px">'+(tf?fmtN(tf):'')+'</td>'; return; }
+      if(c.t==='tot'){ var tf=totF[c.z+'|'+f]||0; h+='<td class="ub-tf'+(tf?' con':'')+'"'+(tf&&op.click?' data-fila="'+c.z+'|'+f+'" title="'+esc(ubCod(c.z,f)+' · '+ubRango(ub.filter(function(u){ return u.zona===c.z && u.fila===f; })).map(function(r){ return r.t+': '+r.txt; }).join(' | '))+'"':'')+' style="width:'+Math.round(cw*1.25)+'px">'+(tf?fmtN(tf):'')+'</td>'; return; }
       var e=ubEspecialHTML(c,f,cw,ch); if(e!==null){ h+=e; return; }
       var max=ubMax(c.z,f,c.p), l=pies[c.z+'|'+f+'|'+c.p]||[], es=mk&&mk.zona===c.z&&mk.fila===f&&mk.pie===c.p, enF=mk&&mk.zona===c.z&&mk.fila===f;
       var est='width:'+cw+'px;height:'+ch+'px;font-size:'+Math.max(9,Math.round(cw*0.42))+'px;';
@@ -3096,6 +3096,22 @@ function ubEtiq(id){
   var f=fechaFabKey(id); if(f){ var m=f.split('-'); return m[2]+'/'+m[1]+'/'+m[0].substring(2); }
   return i.loteCorto||i.lote;
 }
+// (v42) Qué abarca una fila (Joaquín, 01/11): de qué fecha a qué fecha y, en
+// el manchego, de qué lote corto a cuál (con sus fechas). Uno por tipo de queso.
+function ubRango(lista){
+  var g={};
+  lista.forEach(function(u){ var i=parsearId(u.id), t=i.tipo||'?', x=g[t]||(g[t]={t:t, f1:'', f2:'', l1:'', l2:'', n:0, pz:0});
+    x.n++; x.pz+=ubPz(u);
+    var f=fechaFabKey(u.id); if(f){ if(!x.f1||f<x.f1) x.f1=f; if(!x.f2||f>x.f2) x.f2=f; }
+    if(i.isDO && i.loteCorto){ var l=i.loteCorto.replace(/^L-?/i,''), n=parseInt(l,10)||0; if(!x.l1||n<(parseInt(x.l1,10)||0)) x.l1=l; if(!x.l2||n>(parseInt(x.l2,10)||0)) x.l2=l; }
+  });
+  function fc(k){ var m=k.split('-'); return m[2]+'/'+m[1]+'/'+m[0].substring(2); }
+  return Object.keys(g).sort(function(a,b){ return g[b].pz-g[a].pz; }).map(function(t){ var x=g[t], txt='';
+    if(x.l1) txt+=(x.l1===x.l2?'lote '+x.l1:'lotes '+x.l1+' a '+x.l2)+' · ';
+    if(x.f1) txt+=(x.f1===x.f2?'del '+fc(x.f1):'del '+fc(x.f1)+' al '+fc(x.f2));
+    return {t:t, txt:txt, n:x.n, pz:x.pz};
+  });
+}
 function ubPz(u){ var e=ubEstadoDe(u); return e?e.pz:(parsearId(u.id).piezas||0); }
 function ubFilaHTML(z,f,marcaId){
   var pies={}, nA=4;
@@ -3118,7 +3134,9 @@ function ubFilaHTML(z,f,marcaId){
   h+='<tr class="ub-tot"><th>Σ</th>'+(pas==='izq'?'<td class="pas"></td>':'');
   orden.forEach(function(p){ var t=0; Object.keys(pies[p]||{}).forEach(function(a){ t+=ubPz(pies[p][a]); nP++; }); tot+=t; h+='<td>'+(t?fmtN(t):'')+'</td>'; });
   h+=(pas==='der'?'<td class="pas"></td>':'')+'</tr>';
-  return h+'</table><div class="ub-totf">Fila '+ubCod(z,f)+': <b>'+fmtN(tot)+' piezas</b> en '+nP+' palé'+(nP===1?'':'s')+' · caben '+ubCapFila(z,f)+'</div>';
+  var rg=ubRango(ubVigentes().filter(function(u){ return u.zona===z && u.fila===f; }));
+  return h+'</table><div class="ub-totf">Fila '+ubCod(z,f)+': <b>'+fmtN(tot)+' piezas</b> en '+nP+' palé'+(nP===1?'':'s')+' · caben '+ubCapFila(z,f)
+    +rg.map(function(r){ return '<div class="ub-rg"><i class="ub-dot" style="background:'+ubCol(r.t)+'"></i><b>'+esc(r.t)+'</b>'+(rg.length>1?' ('+fmtN(r.pz)+' pzas)':'')+': <b>'+esc(r.txt)+'</b></div>'; }).join('')+'</div>';
 }
 function ubEnlFila(root){ root.querySelectorAll('.ub-p[data-id]').forEach(function(td){ td.onclick=function(){ verPale(ubIdReg(td.getAttribute('data-id'))); }; }); }
 // El ID tal como está en los registros (para el historial).
@@ -3281,6 +3299,7 @@ function ubImprimirHojas(z, fs){
     t+='</table>';
     return '<div class="pag"><div class="cab"><div class="logo"><div class="n1">el hidalgo</div><div class="n2">Q U E S O S</div></div><div class="tit">UBICACIÓN DE PALÉS · '+esc(UB_PLANOS[sala].nombre.toUpperCase())+'<br><span class="cod">FILA '+ubCod(z,f)+'</span></div><div class="hueco">Revisado:<br><br>Fecha:</div></div>'
       +'<div class="sub">Zona '+z+' · fila '+f+' de 17 (F01 puerta, F17 fondo) · vista desde la puerta · caben '+ubCapFila(z,f)+' palés · ubicados '+tot+' palés, '+pzT.toLocaleString('es-ES')+' piezas</div>'+t
+      +ubRango(ubVigentes().filter(function(u){ return u.zona===z && u.fila===f; })).map(function(r){ return '<div class="rg"><b>'+esc(r.t)+'</b> ('+r.pz.toLocaleString('es-ES')+' pzas): '+esc(r.txt)+'</div>'; }).join('')
       +'<div class="pie">Impreso el '+fDia(hoy)+' a las '+fHora(hoy)+(quien?' por '+esc(quien):'')+' · TraceQueso Oficina · datos de ubicación de las '+fHora(UB.hora)+'</div></div>';
   }).join('');
   var html='<!doctype html><html><head><meta charset="utf-8"><title>Ubicación '+z+'</title><style>'
@@ -3289,7 +3308,7 @@ function ubImprimirHojas(z, fs){
     +'.tit{flex:1;text-align:center;font-weight:bold;font-size:14px;padding:6px}.cod{font-size:22px;font-family:monospace}.hueco{width:150px;border-left:1px solid #000;font-size:10px;padding:6px}'
     +'.sub{font-size:11px;margin:3mm 0}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #000;text-align:center;vertical-align:middle;font-size:10px;padding:3px;height:22mm}'
     +'th{height:auto;padding:4px;background:#eee}th.a{width:16mm}.ps{width:12mm;background:#f6f6f6;font-size:8px}.nc{background:repeating-linear-gradient(45deg,#eee,#eee 3px,#fff 3px,#fff 6px);color:#888;font-size:9px}'
-    +'.lt{font-size:13px;font-weight:bold}.pz{font-size:12px;font-weight:bold;margin-top:1mm}.id{font-family:monospace;font-size:8.5px;margin-top:1mm;word-break:break-all}.tp{font-size:8.5px;color:#333}.pie{font-size:9px;margin-top:2mm}tr.tt td,tr.tt th{height:auto;font-weight:bold;font-size:11px;padding:5px}'
+    +'.lt{font-size:13px;font-weight:bold}.pz{font-size:12px;font-weight:bold;margin-top:1mm}.id{font-family:monospace;font-size:8.5px;margin-top:1mm;word-break:break-all}.tp{font-size:8.5px;color:#333}.pie{font-size:9px;margin-top:2mm}tr.tt td,tr.tt th{height:auto;font-weight:bold;font-size:11px;padding:5px}.rg{font-size:12px;margin-top:2mm}'
     +'</style></head><body>'+pags+'</body></html>';
   imprimirHTML(html);
 }
