@@ -1,6 +1,6 @@
 # Ubicación de palés — móvil y escritorio (lo que hay que saber en cualquier conversación)
 
-Actualizado 01/11/2026 (móvil v527, API 13 + acción «poner», oficina v44). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
+Actualizado 01/11/2026 (móvil v528, API 14 + acciones «poner» y «mover», oficina v45). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
 
 **Acuerdo (01/11/2026):** la ubicación de palés la lleva UNA sola conversación, la de ubicación, tanto en el móvil (index.html) como en la oficina (oficina.html). La conversación de la oficina ya no la toca.
 
@@ -9,7 +9,7 @@ Actualizado 01/11/2026 (móvil v527, API 13 + acción «poner», oficina v44). E
 ## Dónde está cada cosa
 - **Móvil (index.html, bloque «UBICACIONES DE PALÉS EN CÁMARAS», desde v500).** Aquí se ubica: se escanea dentro del movimiento o desde «Ubicar / buscar». También tiene «Ver cámara», el plano del stock y el botón de ubicación en «Buscar palet».
 - **Escritorio (oficina.html, bloque «(v39) UBICACIÓN DE PALÉS EN CÁMARAS», menú Producción → Ubicación de palés).** Se mira y, desde v44, también se recoloca y se regulariza (dar hueco a palés antiguos), con el permiso de ubicación.
-- **Datos:** la hoja UBICACIONES (gas/Ubicaciones.gs). GET `?tipo=ubicaciones` devuelve la ubicación vigente de cada palé. Escriben el móvil y la oficina (`_SHEET:'UBICACION'`): `accion:'fila'` (la fila entera al llenar), `accion:'poner'` (un palé en un hueco concreto; si está ocupado devuelve `ocupado` y solo se cambia con `forzar:true`), `accion:'baja'`.
+- **Datos:** la hoja UBICACIONES (gas/Ubicaciones.gs). GET `?tipo=ubicaciones` devuelve la ubicación vigente de cada palé. Escriben el móvil y la oficina (`_SHEET:'UBICACION'`): `accion:'fila'` (la fila entera al llenar), `accion:'poner'` (un palé en un hueco concreto; si está ocupado devuelve `ocupado` y solo se cambia con `forzar:true`), `accion:'mover'` (varios palés a huecos concretos, todo o nada; si un destino lo tiene un palé que no se mueve devuelve `ocupados`), `accion:'baja'`.
 - **Versión de la oficina:** está en `var VER = 'vNN'` de oficina.html; hay que subirla en cada cambio.
 
 ## Quién lo ve (permiso)
@@ -44,7 +44,9 @@ Orden de las cámaras en pantalla: Maduración a la izquierda, Frío a la derech
 ## Escritorio: qué hace cada pestaña (oficina v44)
 Arriba hay una tira de cifras pinchables: ubicados en Frío y en Maduración, piezas ubicadas, en cámara sin ubicar y ubicados que ya no están.
 
-Orden de pestañas (Joaquín, 01/11): Buscar palé · Plano de la cámara · Recolocar · Cuadre con el stock · Hojas por fila.
+Orden de pestañas (Joaquín, 01/11): Buscar palé · Plano de la cámara · Recolocar · Mover entre filas · Cuadre con el stock · Hojas por fila.
+
+00. **Mover entre filas** (v45, con permiso; `ubTabMover`, estado `UBM`): arriba la fila de origen, abajo la de destino (puede ser la misma). Pinchar palé + hueco libre = mover; arrastrar con el ratón = mover; pinchar palé + otro palé = intercambiar; pinchar el número de un pie = seleccionar el pie; «Seleccionar la fila entera». Con varios: «Llevar abajo tal cual» (mismo pie y altura; para «he movido esta fila / estos pies tal cual») o «a los huecos libres desde el fondo». Se guarda con `accion:'mover'` y hay «Deshacer el último cambio». Idea de Joaquín: para corregir en segundos lo que un operario sabe que puso mal, sin mover físicamente 30 palés. En el móvil no se hace así: allí se recoloca escaneando.
 
 0. **Recolocar** (v44, con permiso): se escribe/pega/escanea el palé, se elige zona y fila y se pincha el hueco libre (+). Formulario común `ubFormPoner`; panel `ubPanelPoner(id)`.
 1. **Plano.** Cabe entero en la pantalla, porque el tamaño se calcula por el alto, y la página baja sola hasta el plano. Al pinchar un pie se ve su lista y la fila entera; pinchando el total de una fila, se abre esa fila.

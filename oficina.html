@@ -388,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v44';
+var VER = 'v45';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -2994,6 +2994,7 @@ function vistaUbic(){
     +'<button data-ut="buscar" class="'+(UBF.tab==='buscar'?'on':'')+'">🔎 Buscar palé</button>'
     +'<button data-ut="plano" class="'+(UBF.tab==='plano'?'on':'')+'">🗺️ Plano de la cámara</button>'
     +(ubPermitido()?'<button data-ut="recolocar" class="'+(UBF.tab==='recolocar'?'on':'')+'">🔁 Recolocar</button>':'')
+    +(ubPermitido()?'<button data-ut="mover" class="'+(UBF.tab==='mover'?'on':'')+'">⇄ Mover entre filas</button>':'')
     +'<button data-ut="cuadre" class="'+(UBF.tab==='cuadre'?'on':'')+'">⚖️ Cuadre con el stock'+(nCad?'<span class="n">'+nCad+'</span>':'')+'</button>'
     +'<button data-ut="hojas" class="'+(UBF.tab==='hojas'?'on':'')+'">🖨 Hojas por fila</button>'
     +'</div><div id="ub-body"></div>';
@@ -3004,8 +3005,8 @@ function vistaUbic(){
     if(k==='cf'||k==='cm'){ UBF.tab='plano'; UBF.sala=(k==='cf'?'6.CAMARA FRIO':'7.CAMARA MADURACION'); }
     else { UBF.tab='cuadre'; UBF.cuVer=(k==='sin'?'sin':'cad'); }
     ubGuardarF(); vistaUbic(); }; });
-  if(UBF.tab==='recolocar' && !ubPermitido()) UBF.tab='buscar';
-  if(UBF.tab==='buscar') ubBuscar(); else if(UBF.tab==='cuadre') ubTabCuadre(); else if(UBF.tab==='hojas') ubHojas(); else if(UBF.tab==='recolocar') ubTabRecolocar(); else ubTabPlano();
+  if((UBF.tab==='recolocar'||UBF.tab==='mover') && !ubPermitido()) UBF.tab='buscar';
+  if(UBF.tab==='buscar') ubBuscar(); else if(UBF.tab==='cuadre') ubTabCuadre(); else if(UBF.tab==='hojas') ubHojas(); else if(UBF.tab==='recolocar') ubTabRecolocar(); else if(UBF.tab==='mover') ubTabMover(); else ubTabPlano();
 }
 function ubSelSala(){
   return '<div class="modos">'+[['7.CAMARA MADURACION','🧀','Cámara de Maduración','CM1 · CM2 · CM3 · CM4'],['6.CAMARA FRIO','❄️','Cámara de Frío','CF1 · CF2']].map(function(o){
@@ -3340,6 +3341,128 @@ function ubTabRecolocar(){
   }
   $('rc-ok').onclick=ir3; $('rc-q').onkeydown=function(e){ if(e.key==='Enter') ir3(); };
   setTimeout(function(){ try{ $('rc-q').focus(); }catch(e){} },50);
+}
+
+// ── (v45) MOVER ENTRE FILAS (oficina, con permiso de ubicación) ──
+// Dos filas una encima de otra: arriba la de origen y abajo la de destino
+// (pueden ser la misma, para cambiar palés de pie). Se puede:
+//  · pinchar un palé y luego un hueco libre (+) → se mueve ahí;
+//  · arrastrar un palé con el ratón a un hueco libre;
+//  · pinchar un palé y luego otro palé → se intercambian;
+//  · seleccionar varios (un pie entero pinchando su número, o la fila entera) y
+//    «llevar a la fila de abajo»: tal cual (mismo pie y altura) o rellenando los
+//    huecos libres desde el fondo y de abajo arriba, como al llenar con la toro.
+// Todo se guarda de una vez (accion 'mover', todo o nada) y se puede deshacer.
+var UBM={zo:'', fo:0, zd:'', fd:0, sel:{}, ultimo:null};
+function ubTabMover(){
+  if(!UBM.zo){ UBM.zo=UB_ZONAS[UBF.zona]?UBF.zona:'CF1'; UBM.zd=UBM.zo; }
+  function selZF(pre, z, f){
+    var h='<label>Zona<select id="mv-'+pre+'z">'+Object.keys(UB_ZONAS).map(function(k){ return '<option'+(k===z?' selected':'')+'>'+k+'</option>'; }).join('')+'</select></label>';
+    h+='<label>Fila<select id="mv-'+pre+'f"><option value="">— fila —</option>';
+    for(var x=17;x>=1;x--){ if(!ubCapFila(z,x)) continue; var n=ubVigentes().filter(function(u){ return u.zona===z && u.fila===x; }).length;
+      h+='<option value="'+x+'"'+(x===f?' selected':'')+'>F'+pad(x)+(n?' · '+n+' de '+ubCapFila(z,x):' · libre')+'</option>'; }
+    return h+'</select></label>';
+  }
+  var nSel=Object.keys(UBM.sel).length;
+  var h='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)"><b>Pincha un palé</b> y luego un <b>hueco libre (+)</b> para moverlo, o <b>arrástralo</b> con el ratón. Pincha un palé y luego <b>otro palé</b> para <b>intercambiarlos</b>. Pinchando el número de un pie (P1, P2…) se selecciona el pie entero. Lo de abajo puede ser la misma fila, para cambiar de pie.</div>';
+  h+='<div class="card" style="padding:10px 16px"><h3 style="margin:0 0 6px">⬆ Fila de origen</h3><div class="filt" style="margin:0 0 6px">'+selZF('o',UBM.zo,UBM.fo)
+    +'<button class="btn" id="mv-todo-o">Seleccionar la fila entera</button><button class="btn" id="mv-swap">⇅ Cambiar origen y destino</button></div><div id="mv-gro"></div></div>';
+  h+='<div class="card" style="padding:10px 16px;margin-top:10px"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+    +'<b>'+nSel+' seleccionado'+(nSel===1?'':'s')+'</b>'
+    +'<button class="btn pri" id="mv-tal"'+(nSel?'':' disabled')+'>⬇ Llevar abajo tal cual (mismo pie y altura)</button>'
+    +'<button class="btn pri" id="mv-rell"'+(nSel?'':' disabled')+'>⬇ Llevar abajo a los huecos libres (desde el fondo)</button>'
+    +'<button class="btn" id="mv-nada"'+(nSel?'':' disabled')+'>Quitar selección</button>'
+    +'<button class="btn" id="mv-desh"'+(UBM.ultimo?'':' disabled')+'>↶ Deshacer el último cambio</button>'
+    +'</div><div id="mv-msg" style="margin-top:6px;font-size:14px"></div></div>';
+  h+='<div class="card" style="padding:10px 16px;margin-top:10px"><h3 style="margin:0 0 6px">⬇ Fila de destino</h3><div class="filt" style="margin:0 0 6px">'+selZF('d',UBM.zd,UBM.fd)+'</div><div id="mv-grd"></div></div>';
+  $('ub-body').innerHTML=h;
+  function rejilla(cont, z, f){
+    if(!z||!f){ cont.innerHTML='<p style="color:var(--muted)">Elige la fila.</p>'; return; }
+    cont.innerHTML=ubFilaHTML(z,f,null,'x');
+    cont.querySelectorAll('.ub-p[data-id]').forEach(function(td){
+      var id=td.getAttribute('data-id');
+      if(UBM.sel[id]) td.style.boxShadow='0 0 0 4px var(--brand)';
+      td.style.cursor='pointer'; td.setAttribute('draggable','true');
+      td.ondragstart=function(ev){ ev.dataTransfer.setData('text/plain', id); };
+      td.onclick=function(){ clicPale(id); };
+      td.ondragover=function(ev){ ev.preventDefault(); };
+      td.ondrop=function(ev){ ev.preventDefault(); var o=ev.dataTransfer.getData('text/plain'); if(o && o!==id) intercambiar(o, id); };
+    });
+    cont.querySelectorAll('[data-poner]').forEach(function(td){
+      var pa=td.getAttribute('data-poner').split('|');
+      td.onclick=function(){ var ids=Object.keys(UBM.sel); if(ids.length!==1){ msg(ids.length?'Con varios seleccionados usa los botones de «Llevar abajo».':'Primero pincha el palé que quieres mover.'); return; } mover([{id:ids[0], zona:z, fila:f, pie:+pa[0], altura:+pa[1]}]); };
+      td.ondragover=function(ev){ ev.preventDefault(); td.style.background='#f3d9d9'; };
+      td.ondragleave=function(){ td.style.background=''; };
+      td.ondrop=function(ev){ ev.preventDefault(); var id=ev.dataTransfer.getData('text/plain'); if(id) mover([{id:id, zona:z, fila:f, pie:+pa[0], altura:+pa[1]}]); };
+    });
+    // Pinchar el número de un pie selecciona todo el pie
+    var ths=cont.querySelectorAll('table.ub-fila tr:first-child th'), orden=ubOrdenPies(z), pas=UB_ZONAS[z].pasillo, k0=(pas==='izq'?2:1);
+    orden.forEach(function(p,i){ var th=ths[k0+i]; if(!th) return; th.style.cursor='pointer'; th.title='Seleccionar el pie '+p;
+      th.onclick=function(){ var l=ubVigentes().filter(function(u){ return u.zona===z && u.fila===f && u.pie===p; }); var todos=l.every(function(u){ return UBM.sel[u.id]; });
+        l.forEach(function(u){ if(todos) delete UBM.sel[u.id]; else UBM.sel[u.id]=true; }); ubTabMover(); }; });
+  }
+  function msg(t,ok){ $('mv-msg').innerHTML='<span style="color:'+(ok?'var(--ok,#2e7d32)':'var(--bad)')+';font-weight:700">'+esc(t)+'</span>'; }
+  function clicPale(id){
+    var ids=Object.keys(UBM.sel);
+    if(ids.length===1 && ids[0]!==id && !UBM.sel[id] && window._mvSwapListo){ intercambiar(ids[0], id); return; }
+    if(UBM.sel[id]) delete UBM.sel[id]; else UBM.sel[id]=true;
+    window._mvSwapListo=(Object.keys(UBM.sel).length===1);
+    ubTabMover();
+  }
+  function intercambiar(a, b){
+    var ua=ubVigentes().filter(function(u){ return u.id===a; })[0], ub=ubVigentes().filter(function(u){ return u.id===b; })[0];
+    if(!ua||!ub) return;
+    if(!confirm('¿Intercambiar?\n\n'+a+'  →  '+ub.codigo+'\n'+b+'  →  '+ua.codigo)) return;
+    mover([{id:a, zona:ub.zona, fila:ub.fila, pie:ub.pie, altura:ub.altura},{id:b, zona:ua.zona, fila:ua.fila, pie:ua.pie, altura:ua.altura}], true);
+  }
+  function mover(lista, sinConfirmar){
+    var antes=lista.map(function(m){ var u=ubVigentes().filter(function(x){ return x.id===m.id; })[0]; return u?{id:u.id, zona:u.zona, fila:u.fila, pie:u.pie, altura:u.altura}:null; }).filter(Boolean);
+    var res=lista.map(function(m){ return m.id+'  →  '+ubCod(m.zona,m.fila,m.pie,m.altura); });
+    if(!sinConfirmar && !confirm('¿Mover '+lista.length+' palé'+(lista.length===1?'':'s')+'?\n\n'+res.slice(0,12).join('\n')+(res.length>12?'\n… y '+(res.length-12)+' más':''))) return;
+    msg('Guardando…', true);
+    fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'UBICACION', accion:'mover', pales:lista, _QUIEN:(CU&&CU.n)||'', sesion:'OF'+Date.now()})})
+      .then(function(r){ return r.json(); }).then(function(j){
+        if(j && j.ocupados){ msg('No se ha movido nada: estos huecos los tiene otro palé → '+j.ocupados.map(function(o){ return o.codigo+' ('+o.id+')'; }).join(', ')); return; }
+        if(!(j && j.ok)){ msg('No se ha guardado: '+((j&&j.error)||'inténtalo otra vez')); return; }
+        var mov={}; lista.forEach(function(m){ mov[m.id]=true; });
+        UB.lista=UB.lista.filter(function(x){ return !mov[x.id]; });
+        lista.forEach(function(m){ UB.lista.push({id:m.id, codigo:ubCod(m.zona,m.fila,m.pie,m.altura), zona:m.zona, fila:m.fila, pie:m.pie, altura:m.altura, fecha:Date.now(), quien:(CU&&CU.n)||''}); });
+        UBM.ultimo=antes; UBM.sel={}; window._mvSwapListo=false;
+        ubTabMover(); msg('✓ Movido'+(lista.length>1?'s '+lista.length+' palés':' '+lista[0].id+' a '+ubCod(lista[0].zona,lista[0].fila,lista[0].pie,lista[0].altura)), true);
+      }).catch(function(){ msg('Sin conexión: no se ha guardado.'); });
+  }
+  function huecosLibres(z,f){   // del fondo al pasillo y de abajo arriba
+    var ocup={}; ubVigentes().forEach(function(u){ if(u.zona===z && u.fila===f && !UBM.sel[u.id]) ocup[u.pie+'|'+u.altura]=1; });
+    var l=[]; ubOrdenPies(z).slice().sort(function(a,b){ return b-a; }).forEach(function(p){ var max=ubMax(z,f,p); for(var a=4;a>4-max;a--) if(!ocup[p+'|'+a]) l.push({p:p,a:a}); });
+    return l;
+  }
+  function seleccionOrdenada(){   // como se cargaron: del fondo al pasillo y de abajo arriba
+    return ubVigentes().filter(function(u){ return UBM.sel[u.id]; }).sort(function(a,b){ return (b.pie-a.pie)||(b.altura-a.altura); });
+  }
+  rejilla($('mv-gro'), UBM.zo, UBM.fo); rejilla($('mv-grd'), UBM.zd, UBM.fd);
+  $('mv-oz').onchange=function(){ UBM.zo=this.value; UBM.fo=0; ubTabMover(); };
+  $('mv-of').onchange=function(){ UBM.fo=+this.value; ubTabMover(); };
+  $('mv-dz').onchange=function(){ UBM.zd=this.value; UBM.fd=0; ubTabMover(); };
+  $('mv-df').onchange=function(){ UBM.fd=+this.value; ubTabMover(); };
+  $('mv-swap').onclick=function(){ var z=UBM.zo, f=UBM.fo; UBM.zo=UBM.zd; UBM.fo=UBM.fd; UBM.zd=z; UBM.fd=f; ubTabMover(); };
+  $('mv-todo-o').onclick=function(){ if(!UBM.fo) return; ubVigentes().forEach(function(u){ if(u.zona===UBM.zo && u.fila===UBM.fo) UBM.sel[u.id]=true; }); ubTabMover(); };
+  $('mv-nada').onclick=function(){ UBM.sel={}; window._mvSwapListo=false; ubTabMover(); };
+  $('mv-tal').onclick=function(){
+    if(!UBM.fd){ msg('Elige la fila de destino.'); return; }
+    var l=seleccionOrdenada(), malos=[];
+    var lista=l.map(function(u){ if(u.altura<=4-ubMax(UBM.zd,UBM.fd,u.pie)) malos.push(ubCod(UBM.zd,UBM.fd,u.pie,u.altura)); return {id:u.id, zona:UBM.zd, fila:UBM.fd, pie:u.pie, altura:u.altura}; });
+    if(u0=l.filter(function(u){ return u.pie>UB_ZONAS[UBM.zd].pies; })[0]){ msg('La fila de destino no tiene el pie '+u0.pie+'.'); return; }
+    if(malos.length){ msg('En la fila de destino no caben en: '+malos.join(', ')+' (pies más bajos o sin sitio).'); return; }
+    mover(lista);
+  };
+  var u0;
+  $('mv-rell').onclick=function(){
+    if(!UBM.fd){ msg('Elige la fila de destino.'); return; }
+    var l=seleccionOrdenada(), hu=huecosLibres(UBM.zd,UBM.fd);
+    if(l.length>hu.length){ msg('En '+ubCod(UBM.zd,UBM.fd)+' solo quedan '+hu.length+' huecos libres y hay '+l.length+' palés seleccionados.'); return; }
+    mover(l.map(function(u,i){ return {id:u.id, zona:UBM.zd, fila:UBM.fd, pie:hu[i].p, altura:hu[i].a}; }));
+  };
+  $('mv-desh').onclick=function(){ if(!UBM.ultimo) return; var a=UBM.ultimo; if(confirm('¿Deshacer el último cambio? Vuelven a su sitio '+a.length+' palé'+(a.length===1?'':'s')+'.')){ mover(a, true); UBM.ultimo=null; } };
 }
 
 // ── Hojas por fila (como la de papel) ──

@@ -73,6 +73,8 @@ function leerUbicaciones() {
 //   estaban en esa fila y no vienen en la lista se dan de BAJA.
 // POST {_SHEET:'UBICACION', accion:'poner', id, zona, fila, pie, altura, forzar?, _QUIEN}
 //   Pone UN palé en un hueco concreto (si está ocupado, solo con forzar).
+// POST {_SHEET:'UBICACION', accion:'mover', pales:[{id, zona, fila, pie, altura}], forzar?, _QUIEN, sesion}
+//   Varios palés a la vez, todo o nada (si un destino está ocupado por otro, no hace nada).
 // POST {_SHEET:'UBICACION', accion:'baja', ids:[...], _QUIEN}
 //   Quita la ubicación de esos palés (sin ponerlos en otro sitio).
 function gestionarUbicacion(payload) {
@@ -124,6 +126,31 @@ function gestionarUbicacion(payload) {
     if (otro && !payload.forzar) return _ubicRespuesta({ok: false, ocupado: otro.id, codigo: codp});
     if (otro) filas.push([ahora, quien, otro.id, otro.codigo, otro.zona, otro.fila, otro.pie, otro.altura, 'BAJA', sesion]);
     if (!(vigentes[idp] && vigentes[idp].codigo === codp)) filas.push([ahora, quien, idp, codp, zp, fp, pp, ap, 'ALTA', sesion]);
+  } else if (accion === 'mover') {
+    // (01/11) Varios palés a la vez a huecos concretos (oficina, «Mover entre
+    // filas»). Todo o nada: si algún hueco de destino lo tiene un palé que NO se
+    // mueve, se devuelve la lista de choques y no se toca nada (salvo forzar).
+    var lst = payload.pales || [], mov = {}, destinos = {}, malos = [];
+    lst.forEach(function(p){ mov[String(p.id || '').trim()] = true; });
+    var ocup = {};
+    Object.keys(vigentes).forEach(function(id){ if (!mov[id]) ocup[vigentes[id].codigo] = id; });
+    var nuevas = [];
+    lst.forEach(function(p){
+      var id = String(p.id || '').trim(), z = String(p.zona || '').trim().toUpperCase(), f = Number(p.fila) || 0, pi = Number(p.pie) || 0, a = Number(p.altura) || 0;
+      if (!id || !/^C[MF]\d$/.test(z) || f < 1 || f > 17 || pi < 1 || a < 1) { malos.push(id || '?'); return; }
+      var cod = _ubicCodigo(z, f, pi, a);
+      if (destinos[cod]) { malos.push(cod + ' (repetido)'); return; }
+      destinos[cod] = id;
+      nuevas.push({id: id, z: z, f: f, p: pi, a: a, cod: cod});
+    });
+    if (malos.length) return _ubicRespuesta({ok: false, error: 'Datos no válidos: ' + malos.join(', ')});
+    var choques = Object.keys(destinos).filter(function(cod){ return ocup[cod]; });
+    if (choques.length && !payload.forzar) return _ubicRespuesta({ok: false, ocupados: choques.map(function(c){ return {codigo: c, id: ocup[c]}; })});
+    choques.forEach(function(cod){ var u = vigentes[ocup[cod]]; filas.push([ahora, quien, u.id, u.codigo, u.zona, u.fila, u.pie, u.altura, 'BAJA', sesion]); });
+    nuevas.forEach(function(n){
+      if (vigentes[n.id] && vigentes[n.id].codigo === n.cod) return;
+      filas.push([ahora, quien, n.id, n.cod, n.z, n.f, n.p, n.a, 'ALTA', sesion]);
+    });
   } else if (accion === 'baja') {
     (payload.ids || []).forEach(function(id) {
       id = String(id || '').trim();
