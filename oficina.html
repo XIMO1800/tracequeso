@@ -357,7 +357,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v36';
+var VER = 'v37';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -2225,12 +2225,15 @@ function parsearId(id){
 // (v25) ¿ID inventado? (lote + 00 + formato + piezas, o el lote tecleado como ID).
 // Misma regla que index v496: cifras sin estructura de palé y ese palé no tiene
 // registros fuera de envasado/selección.
+// (v37) Antes de 2026 no había QR: un ID del año 24/25 es inventado siempre (Joaquín, 01/11).
+function anioAntesQR(dig){ var aa=parseInt(String(dig||'').replace(/\D/g,'').substring(1,3),10); return !isNaN(aa) && aa<26; }
 function estructuraIdPale(id){
   id=String(id||'').trim(); var base=id.split('*')[0].split('!')[0];
   if(!/^[0-9 ]+$/.test(base)) return 'no son cifras';
   var dig=base.replace(/ /g,'');
   if(!(base.length===12||base.length===13) || dig.length<11 || dig.length>13) return 'no tiene 12 cifras';
   if(!TQMAP[dig.charAt(0)]) return 'tipo';
+  if(anioAntesQR(dig)) return 'año sin QR';
   var sem=parseInt(dig.substring(3,5),10), dia=parseInt(dig.charAt(5),10);
   if(!(sem>=1&&sem<=53)) return 'semana'; if(!(dia>=1&&dia<=7)) return 'día';
   if(!(parsearId(id).nPale>=1)) return 'palé 00';
@@ -2239,7 +2242,10 @@ function estructuraIdPale(id){
 var _invC=null;
 function idInventado(id){
   id=String(id||'').trim(); if(!/\d{6}/.test(id.replace(/\s/g,''))) return false;
-  if(!_invC){ _invC={buenos:{}}; ROWS.forEach(function(r){ var s=secDe(r); if(s!=='ENVASADO'&&s!=='SELECCIÓN'){ var d=pidDe(r).split('*')[0].replace(/\s/g,''); if(d) _invC.buenos[d]=1; } }); }
+  if(anioAntesQR(id.split('*')[0])) return true;
+  // (v37) PINTURA tampoco cuenta para «existe»: también se inventaba IDs y con
+  // su propio registro el palé falso parecía bueno.
+  if(!_invC){ _invC={buenos:{}}; ROWS.forEach(function(r){ var s=secDe(r); if(s!=='ENVASADO'&&s!=='SELECCIÓN'&&s!=='PINTURA'){ var d=pidDe(r).split('*')[0].replace(/\s/g,''); if(d) _invC.buenos[d]=1; } }); }
   return !!estructuraIdPale(id) && !_invC.buenos[id.split('*')[0].split('!')[0].replace(/\s/g,'')];
 }
 // Fecha de fabricación (aaaa-mm-dd) desde los dígitos: tipo·AA·SEMANA·DÍA(1=lunes)
@@ -2727,7 +2733,9 @@ function rvListas(){
   // Los IDs inventados salen también en PINTURA (el registro manual se los inventaba).
   var envPint=ROWS.filter(function(r){ var s=secDe(r); return (s==='ENVASADO'||s==='PINTURA') && enFecha(r); }).sort(function(a,b){ return b.__t-a.__t; });
   return {
-    ids: envPint.filter(function(r){ var id=pidDe(r); return id && /\d{4}/.test(id) && idInventado(id); }),
+    // (v37) Un ID del año 24/25 sale en CUALQUIER sección (si alguien lo movió o vendió).
+    ids: ROWS.filter(function(r){ var id=pidDe(r), s=secDe(r); if(!id || !/\d{4}/.test(id) || !enFecha(r)) return false;
+      return (s==='ENVASADO'||s==='PINTURA') ? idInventado(id) : (/^\d{6}/.test(id.replace(/\s/g,'')) && anioAntesQR(id.split('*')[0])); }).sort(function(a,b){ return b.__t-a.__t; }),
     sala: env.filter(function(r){ return esSinQR(r) && (String(r['SALA ORIGEN']||'').trim() || String(r['SALA DESTINO']||'').trim()); }),
     cond: env.filter(function(r){ return CONDS.some(function(c){ return String(r[c[0]]||'').trim(); }); })
   };
@@ -2740,7 +2748,7 @@ function vistaRevision(){
     +'<button data-rt="ids" class="'+(RV.tab==='ids'?'on':'')+'">IDs que no son de palé'+(L.ids.length?'<span class="n">'+L.ids.length+'</span>':'')+'</button>'
     +'<button data-rt="sala" class="'+(RV.tab==='sala'?'on':'')+'">Sin QR con sala'+(L.sala.length?'<span class="n">'+L.sala.length+'</span>':'')+'</button>'
     +'<button data-rt="cond" class="'+(RV.tab==='cond'?'on':'')+'">Condimentos'+(L.cond.length?'<span class="n">'+L.cond.length+'</span>':'')+'</button></div>';
-  var txt={ids:'Envasados y pinturas guardados con un número que <b>no es un palé</b> (el lote tecleado como ID, o lote + 00 + formato + piezas). Al corregir pasan a <b>sin QR</b>: se quita el ID y se deja el lote (largo y corto) en «Lote queso».',
+  var txt={ids:'Registros guardados con un número que <b>no es un palé</b>: el lote tecleado como ID, lote + 00 + formato + piezas, o <b>cualquier ID del año 24 o 25</b> (entonces no había QR). Al corregir pasan a <b>sin QR</b>: se quita el ID y se deja el lote (largo y corto) en «Lote queso».',
            sala:'Envasados de quesos <b>sin QR</b> que tienen sala puesta. Hasta la v494 esa sala se cogía de <b>otro queso</b>, así que no vale. Al corregir, la sala se queda en blanco.',
            cond:'Envasados con lote de <b>manteca, romero, finas hierbas o pimienta</b>. Hasta la v495 se ponían solos aunque el queso no los llevara. <b>Marca solo los que NO llevaba</b> ese queso: se borrará ese lote.'}[RV.tab];
   h+='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)">'+txt+'</div>'
