@@ -2986,7 +2986,7 @@ function vistaUbic(){
   if(UBF.tab==='buscar') ubBuscar(); else if(UBF.tab==='cuadre') ubTabCuadre(); else if(UBF.tab==='hojas') ubHojas(); else ubTabPlano();
 }
 function ubSelSala(){
-  return '<div class="modos">'+[['6.CAMARA FRIO','❄️','Cámara de Frío','CF1 · CF2'],['7.CAMARA MADURACION','🧀','Cámara de Maduración','CM1 · CM2 · CM3 · CM4']].map(function(o){
+  return '<div class="modos">'+[['7.CAMARA MADURACION','🧀','Cámara de Maduración','CM1 · CM2 · CM3 · CM4'],['6.CAMARA FRIO','❄️','Cámara de Frío','CF1 · CF2']].map(function(o){
     return '<button class="modo'+(UBF.sala===o[0]?' on':'')+'" data-sala="'+o[0]+'"><span class="mi">'+o[1]+'</span><span><b>'+o[2]+'</b><small>('+o[3]+')</small></span></button>'; }).join('')+'</div>';
 }
 function ubEnlSala(rep){ document.querySelectorAll('#ub-body [data-sala]').forEach(function(b){ b.onclick=function(){ UBF.sala=b.getAttribute('data-sala'); ubGuardarF(); rep(); }; }); }
