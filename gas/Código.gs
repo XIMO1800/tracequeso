@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 11;  // 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
+const API_VERSION = 12;  // 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -418,6 +418,13 @@ function doGet(e) {
   // (2026-10-31) Historial de cambios de UN registro (pestaña CAMBIOS): quién lo
   // dio de alta, quién lo corrigió y cuándo, y cómo estaba antes de cada cambio.
   // Lo pide la versión de oficina al abrir la ficha de un registro. Solo lee.
+  // (2026-11-01) Ubicaciones vigentes de palés en cámaras (Ubicaciones.gs). Solo lee.
+  if (tipo === 'ubicaciones') {
+    var json = JSON.stringify({ok: true, apiVer: API_VERSION, data: leerUbicaciones()});
+    if (callback) return ContentService.createTextOutput(callback + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
+    return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+  }
+
   if (tipo === 'historialRegistro') {
     var json = JSON.stringify({ok: true, apiVer: API_VERSION, data: leerHistorialRegistro((e.parameter.id || '').toString().trim())});
     if (callback) return ContentService.createTextOutput(callback + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
@@ -1016,6 +1023,7 @@ function _doPostEscritura(payload) {
   if (payload['_SHEET'] === 'CLIENTE_NUEVO') return gestionarClienteNuevo(payload);
   if (payload['_SHEET'] === 'SALADERO') return gestionarSaladero(payload);   // (2026-08-23)
   if (payload['_SHEET'] === 'VERIF_GRAFICA') return gestionarVerifGrafica(payload);   // (2026-10-13)
+  if (payload['_SHEET'] === 'UBICACION') return gestionarUbicacion(payload);   // (2026-11-01) Ubicaciones.gs
 
   var sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
   var data = sheet.getDataRange().getValues();
