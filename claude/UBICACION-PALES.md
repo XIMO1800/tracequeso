@@ -13,7 +13,7 @@ Actualizado 01/11/2026 (móvil v527, API 13 + acción «poner», oficina v44). E
 - **Versión de la oficina:** está en `var VER = 'vNN'` de oficina.html; hay que subirla en cada cambio.
 
 ## Quién lo ve (permiso)
-- Columna **ACCESO UBICACION** de la hoja LISTADO OPERARIOS (la añade sola el Apps Script la primera vez que se leen los operarios). Por defecto **nadie**; Joaquín marca a quién (previstos: Nico, Paco, Alberto). **Admin siempre**. **Calidad no**.
+- Columna **ACCESO UBICACION** de la hoja LISTADO OPERARIOS (la añade sola el Apps Script la primera vez que se leen los operarios). Desde API 14, ACCESO RECEPCION y ACCESO UBICACION son casillas de verificación (se convierten solas una vez) y la columna NOMBRE queda inmovilizada. Por defecto **nadie**; Joaquín marca a quién (previstos: Nico, Paco, Alberto). **Admin siempre**. **Calidad no**.
 - En el móvil, sin permiso no se ve nada: ni el botón «Ubicar / buscar», ni el apartado de Movimiento (el movimiento se registra igual, sin ubicar), ni la franja de «Buscar palet», ni «Ver en el plano» de Disponibilidad. Función: `ubicPermitido(u)`.
 - Oficina: `ubPermitido()` con la misma regla (Admin o ACCESO UBICACION): pestaña Recolocar, botón «Ubicar» del cuadre y bloque de ubicación del historial.
 

@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 13;  // 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
+const API_VERSION = 14;  // 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -2003,6 +2003,29 @@ function leerOperarios() {
         headers = data[0];
       }
     });
+    // (2026-11-01) Que esas dos columnas sean casillas de verificación, como
+    // ACCESO PLAN DE TRABAJO: Joaquín marca la casilla y da el permiso. Solo se
+    // hace una vez (si la fila 2 ya tiene casilla, no se toca). Lo que ya
+    // estuviera escrito (SI, X…) se convierte en casilla marcada.
+    ['ACCESO RECEPCION', 'ACCESO UBICACION'].forEach(function(nombreCol){
+      var c = -1;
+      headers.forEach(function(h, i){ if (_normTxt(h) === nombreCol) c = i + 1; });
+      if (c < 1) return;
+      var dv = sheet.getRange(2, c).getDataValidation();
+      if (dv && dv.getCriteriaType() === SpreadsheetApp.DataValidationCriteria.CHECKBOX) return;
+      var nFil = Math.max(sheet.getLastRow(), 41) - 1;
+      var rg = sheet.getRange(2, c, nFil, 1);
+      var antes = rg.getValues().map(function(r){ return [_boolCol(r[0])]; });
+      rg.insertCheckboxes();
+      rg.setValues(antes);
+    });
+    // (2026-11-01) Inmovilizar hasta la columna del NOMBRE, para ver siempre de
+    // quién es cada fila al desplazarse a la derecha por los permisos.
+    var cNom = 0;
+    headers.forEach(function(h, i){ if (!cNom && _normTxt(h) === 'NOMBRE') cNom = i + 1; });
+    if (cNom && sheet.getFrozenColumns() < cNom) sheet.setFrozenColumns(cNom);
+    data = sheet.getDataRange().getValues();
+    headers = data[0];
   } catch (eRec) {}
   var col = {};
   for (var i = 0; i < headers.length; i++) { col[_normTxt(headers[i])] = i; }
