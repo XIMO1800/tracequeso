@@ -388,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v43';
+var VER = 'v44';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -2569,9 +2569,23 @@ function verPale(pid){
     var s=secDe(r), det=s==='MOVIMIENTO'?(sl(r['SALA ORIGEN'])+' → '+sl(r['SALA DESTINO'])):[r['PRODUCTO'],r['LOTE PRODUCTO']?('lote '+r['LOTE PRODUCTO']):'',sl(r['SALA DESTINO'])].filter(Boolean).join(' · ');
     h+='<tr data-r="'+k+'"><td>'+fDia(r.__f)+'</td><td><b>'+esc((SEC_TXT[s]||s).replace(/^\S+\s/,''))+'</b></td><td style="white-space:normal">'+esc(det)+'</td><td class="r">'+piezasDe(r)+'</td><td>'+esc(r['OPERARIO'])+'</td></tr>';
   });
-  $('p-body').innerHTML=(regs.length?'<p style="font-size:13px;color:var(--muted);margin:4px 0 8px">'+regs.length+' registros. Pincha uno para verlo entero.</p>'+h+'</tbody></table>':'<p class="sinv">Este palé no tiene registros en este ordenador.</p>');
+  $('p-body').innerHTML='<div id="pv-ubic"></div>'+(regs.length?'<p style="font-size:13px;color:var(--muted);margin:4px 0 8px">'+regs.length+' registros. Pincha uno para verlo entero.</p>'+h+'</tbody></table>':'<p class="sinv">Este palé no tiene registros en este ordenador.</p>');
   if(regs.length) $('p-body').querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(tr) abrirFicha(regs[+tr.getAttribute('data-r')]); };
   $('panel').hidden=false; $('velo').hidden=false;
+  pvUbic(pid);
+}
+// (v44) En el historial del palé, su ubicación en cámara (o «Dar ubicación»)
+function pvUbic(pid){
+  var c=$('pv-ubic'); if(!c) return;
+  if(!ubPermitido()){ c.innerHTML=''; return; }
+  if(!UB.hora){ if(!UB.cargando) ubCargar(function(){ pvUbic(pid); }); c.innerHTML='<p style="font-size:13px;color:var(--muted)">Mirando su ubicación…</p>'; return; }
+  var u=ubDePale(pid);
+  c.innerHTML='<div class="card" style="padding:10px 14px;margin:4px 0 10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">'
+    +(u?'<div>📍 <b>Ubicación</b> <span class="mono" style="font-size:20px;font-weight:800;color:var(--brand)">'+esc(u.codigo)+'</span></div><button class="btn" id="pv-ver">🗺️ Ver en el plano</button><button class="btn" id="pv-cam">✏️ Cambiar</button>'
+       :'<div>📍 <b>Sin ubicación en cámara</b></div><button class="btn pri" id="pv-cam">📍 Dar ubicación</button>')
+    +'</div>';
+  $('pv-cam').onclick=function(){ ubPanelPoner(pid); };
+  if(u) $('pv-ver').onclick=function(){ UBF.tab='buscar'; UBF.q=pid; ubGuardarF(); $('panel').hidden=true; $('velo').hidden=true; ir('ubic'); };
 }
 function vistaPale(){
   $('t-tit').textContent='Historial de palé';
@@ -2955,12 +2969,12 @@ function ubVigente(u){
 function ubVigentes(sala){ return UB.lista.filter(function(u){ return (!sala || UB_ZONAS[u.zona].sala===sala) && ubVigente(u); }); }
 
 // ── Pantalla ──
-var UBF={tab:'plano', sala:'6.CAMARA FRIO', q:'', zona:'CF1', filas:{}, solo:true};
+var UBF={tab:'buscar', sala:'6.CAMARA FRIO', q:'', zona:'CF1', filas:{}, solo:true};
 try{ var _ubf=JSON.parse(sessionStorage.getItem('tqof_ubf')||'null'); if(_ubf) for(var _k in _ubf) UBF[_k]=_ubf[_k]; }catch(e){}
 function ubGuardarF(){ try{ sessionStorage.setItem('tqof_ubf', JSON.stringify(UBF)); }catch(e){} }
 function vistaUbic(){
   $('t-tit').textContent='Ubicación de palés';
-  $('t-sub').textContent='Cámara de Frío y de Maduración · zona, fila, pie y altura (se ubica desde el móvil)';
+  $('t-sub').textContent='Cámara de Frío y de Maduración · zona, fila, pie y altura (se ubica desde el móvil; desde aquí se recoloca y se regulariza)';
   if(!UB.hora){
     $('cont').innerHTML='<div class="vacio">'+(UB.err?('⚠️ No se han podido traer las ubicaciones ('+esc(UB.err)+').<br><br><button class="btn pri" onclick="ubCargar(vistaUbic)">Reintentar</button>'):'Cargando ubicaciones…')+'</div>';
     if(!UB.cargando && !UB.err) ubCargar(vistaUbic); return;
@@ -2977,8 +2991,9 @@ function vistaUbic(){
     +'<div class="kpi kc'+(nCad?' alerta':'')+'" data-k="cad"><span>Ubicados que ya no están</span><b>'+nCad+'</b></div>'
     +'<div class="kpi rec">Datos de las '+fHora(UB.hora)+' <button class="btn" id="ub-rec">⟳ Recargar</button></div></div>';
   h+='<div class="tabs">'
-    +'<button data-ut="plano" class="'+(UBF.tab==='plano'?'on':'')+'">🗺️ Plano de la cámara</button>'
     +'<button data-ut="buscar" class="'+(UBF.tab==='buscar'?'on':'')+'">🔎 Buscar palé</button>'
+    +'<button data-ut="plano" class="'+(UBF.tab==='plano'?'on':'')+'">🗺️ Plano de la cámara</button>'
+    +(ubPermitido()?'<button data-ut="recolocar" class="'+(UBF.tab==='recolocar'?'on':'')+'">🔁 Recolocar</button>':'')
     +'<button data-ut="cuadre" class="'+(UBF.tab==='cuadre'?'on':'')+'">⚖️ Cuadre con el stock'+(nCad?'<span class="n">'+nCad+'</span>':'')+'</button>'
     +'<button data-ut="hojas" class="'+(UBF.tab==='hojas'?'on':'')+'">🖨 Hojas por fila</button>'
     +'</div><div id="ub-body"></div>';
@@ -2989,7 +3004,8 @@ function vistaUbic(){
     if(k==='cf'||k==='cm'){ UBF.tab='plano'; UBF.sala=(k==='cf'?'6.CAMARA FRIO':'7.CAMARA MADURACION'); }
     else { UBF.tab='cuadre'; UBF.cuVer=(k==='sin'?'sin':'cad'); }
     ubGuardarF(); vistaUbic(); }; });
-  if(UBF.tab==='buscar') ubBuscar(); else if(UBF.tab==='cuadre') ubTabCuadre(); else if(UBF.tab==='hojas') ubHojas(); else ubTabPlano();
+  if(UBF.tab==='recolocar' && !ubPermitido()) UBF.tab='buscar';
+  if(UBF.tab==='buscar') ubBuscar(); else if(UBF.tab==='cuadre') ubTabCuadre(); else if(UBF.tab==='hojas') ubHojas(); else if(UBF.tab==='recolocar') ubTabRecolocar(); else ubTabPlano();
 }
 function ubSelSala(){
   return '<div class="modos">'+[['7.CAMARA MADURACION','🧀','Cámara de Maduración','CM1 · CM2 · CM3 · CM4'],['6.CAMARA FRIO','❄️','Cámara de Frío','CF1 · CF2']].map(function(o){
@@ -3113,7 +3129,8 @@ function ubRango(lista){
   });
 }
 function ubPz(u){ var e=ubEstadoDe(u); return e?e.pz:(parsearId(u.id).piezas||0); }
-function ubFilaHTML(z,f,marcaId){
+function ubFilaHTML(z,f,marcaId,poner){
+  // poner (v44): ID del palé al que se da hueco → los huecos libres se pueden pinchar (data-poner)
   var pies={}, nA=4;
   ubVigentes().filter(function(u){ return u.zona===z && u.fila===f; }).forEach(function(u){ if(u.altura<1) return; (pies[u.pie]=pies[u.pie]||{})[u.altura]=u; if(u.altura>nA) nA=u.altura; });
   var orden=ubOrdenPies(z), pas=UB_ZONAS[z].pasillo;
@@ -3125,6 +3142,7 @@ function ubFilaHTML(z,f,marcaId){
       if(u){ var i=parsearId(u.id), e=ubEstadoDe(u), yo=marcaId && ubKey(marcaId)===ubKey(u.id);
         h+='<td class="ub-p'+(yo?' yo':'')+'" data-id="'+esc(u.id)+'" style="border-color:'+ubCol(i.tipo)+';background:'+ubCol(i.tipo)+'1a" title="'+esc(u.id+' · '+clavePalet(u.id))+'"><b style="color:'+ubCol(i.tipo)+'">'+esc(ubEtiq(u.id))+'</b><small>('+fmtN(ubPz(u))+')'+(ubVar(u.id)?' · '+esc(ubVar(u.id)):'')+'</small></td>';
       } else if(max===0 || a<=4-max) h+='<td class="ub-nc">no cabe</td>';
+      else if(poner) h+='<td class="ub-v" data-poner="'+p+'|'+a+'" style="cursor:pointer;border:2px dashed var(--brand);color:var(--brand);font-weight:800;text-align:center">+</td>';
       else h+='<td class="ub-v"></td>';
     });
     h+=(pas==='der'?'<td class="pas"></td>':'')+'</tr>';
@@ -3239,8 +3257,8 @@ function ubTabCuadre(){
     if(!l.length) h+='<div class="vacio">Todos los palés que el stock pone en esta cámara están ubicados. 👍</div>';
     else { var pz=0; l.forEach(function(e){ pz+=e.pz; });
       h+='<p style="font-size:14px;color:var(--muted);margin:0 0 6px">'+l.length+' palés · '+fmtN(pz)+' piezas · del que lleva más tiempo en la cámara al último que entró.</p>'
-        +'<div class="tbl-wrap"><table id="cu-t"><thead><tr><th>Palé</th><th>Tipo · variedad · formato</th><th>Lote</th><th style="text-align:right">Pzas</th><th>Fabricado</th><th>En la cámara desde</th></tr></thead><tbody>'
-        +l.map(function(e,k){ var i=parsearId(e.id); return '<tr data-k="'+k+'"><td class="mono">'+esc(e.id)+'</td><td><i class="ub-dot" style="background:'+ubCol(i.tipo)+'"></i>'+esc(clavePalet(e.id))+'</td><td class="mono">'+esc(i.loteCorto||i.lote)+'</td><td class="num">'+fmtN(e.pz)+'</td><td>'+dmy(fechaFabKey(e.id))+'</td><td>'+(e.tSala>0?fDia(new Date(e.tSala)):'')+'</td></tr>'; }).join('')+'</tbody></table></div>';
+        +'<div class="tbl-wrap"><table id="cu-t"><thead><tr><th>Palé</th><th>Tipo · variedad · formato</th><th>Lote</th><th style="text-align:right">Pzas</th><th>Fabricado</th><th>En la cámara desde</th>'+(ubPermitido()?'<th></th>':'')+'</tr></thead><tbody>'
+        +l.map(function(e,k){ var i=parsearId(e.id); return '<tr data-k="'+k+'"><td class="mono">'+esc(e.id)+'</td><td><i class="ub-dot" style="background:'+ubCol(i.tipo)+'"></i>'+esc(clavePalet(e.id))+'</td><td class="mono">'+esc(i.loteCorto||i.lote)+'</td><td class="num">'+fmtN(e.pz)+'</td><td>'+dmy(fechaFabKey(e.id))+'</td><td>'+(e.tSala>0?fDia(new Date(e.tSala)):'')+'</td>'+(ubPermitido()?'<td><button class="btn" data-ubicar="'+k+'">📍 Ubicar</button></td>':'')+'</tr>'; }).join('')+'</tbody></table></div>';
     }
   } else {
     l=c.caducadas;
@@ -3250,7 +3268,78 @@ function ubTabCuadre(){
   }
   $('ub-body').innerHTML=h; ubEnlSala(ubTabCuadre);
   $('cu-ch').onclick=function(ev){ var b=ev.target.closest('[data-v]'); if(!b) return; UBF.cuVer=b.getAttribute('data-v'); ubGuardarF(); ubTabCuadre(); };
-  if($('cu-t')) $('cu-t').querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(!tr) return; var x=l[+tr.getAttribute('data-k')]; verPale(x.u?ubIdReg(x.u.id):x.id); };
+  if($('cu-t')) $('cu-t').querySelector('tbody').onclick=function(ev){ var b=ev.target.closest('[data-ubicar]'); if(b){ ubPanelPoner(l[+b.getAttribute('data-ubicar')].id); return; } var tr=ev.target.closest('tr'); if(!tr) return; var x=l[+tr.getAttribute('data-k')]; verPale(x.u?ubIdReg(x.u.id):x.id); };
+}
+
+// ── (v44) DAR UNA UBICACIÓN / RECOLOCAR DESDE LA OFICINA ──
+// Solo quien tenga ACCESO UBICACION en la hoja de operarios, y Admin.
+// Se elige zona y fila, sale la fila como en el papel y se pincha el hueco
+// libre (+). Si el hueco lo tiene otro palé, se avisa y solo se cambia si se
+// confirma. Escribe con la misma API que el móvil (accion 'poner').
+function ubPermitido(){ if(!CU) return false; var r=' '+String(CU.rol||'').toUpperCase().replace(/[\/,;|\.\-]+/g,' ')+' '; return r.indexOf(' ADMIN ')>=0 || !!CU.ubicacion; }
+function ubDePale(id){ var k=ubKey(id); return ubVigentes().filter(function(u){ return ubKey(u.id)===k; })[0]||null; }
+function ubPoner(id, z, f, p, a, forzar, hecho){
+  var cod=ubCod(z,f,p,a);
+  fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'UBICACION', accion:'poner', id:id, zona:z, fila:f, pie:p, altura:a, forzar:!!forzar, _QUIEN:(CU&&CU.n)||''})})
+    .then(function(r){ return r.json(); }).then(function(j){
+      if(j && j.ocupado){ if(confirm('El hueco '+cod+' lo tiene el palé '+j.ocupado+'.\n\n¿Quitarlo de ahí y poner '+id+'?')) ubPoner(id,z,f,p,a,true,hecho); return; }
+      if(!(j && j.ok)){ alert('No se ha guardado: '+((j&&j.error)||'inténtalo otra vez')); return; }
+      var k=ubKey(id);
+      UB.lista=UB.lista.filter(function(x){ return ubKey(x.id)!==k && (x.codigo||ubCod(x.zona,x.fila,x.pie,x.altura))!==cod; });
+      UB.lista.push({id:id, codigo:cod, zona:z, fila:f, pie:p, altura:a, fecha:Date.now(), quien:(CU&&CU.n)||''});
+      if(hecho) hecho(cod);
+    }).catch(function(){ alert('Sin conexión: no se ha guardado.'); });
+}
+// Formulario común: zona, fila y la fila con sus huecos. dest = contenedor.
+function ubFormPoner(dest, id, alHacer){
+  var u=ubDePale(id), e=ubEstados()[ubKey(id)], sala=(e&&e.sala)||'';
+  var zDef=u?u.zona:(Object.keys(UB_ZONAS).filter(function(z){ return UB_ZONAS[z].sala===sala; })[0]||UBF.zona||'CF1');
+  var fDef=u?u.fila:'';
+  function opF(z){ var h='<option value="">— fila —</option>'; for(var f=17;f>=1;f--){ if(!ubCapFila(z,f)) continue; var n=ubVigentes().filter(function(x){ return x.zona===z && x.fila===f; }).length; h+='<option value="'+f+'"'+(String(f)===String(fDef)?' selected':'')+'>F'+pad(f)+(n?' · '+n+' de '+ubCapFila(z,f):' · libre')+'</option>'; } return h; }
+  dest.innerHTML='<div class="filt" style="margin:6px 0"><label>Zona<select class="up-z">'+Object.keys(UB_ZONAS).map(function(z){ return '<option'+(z===zDef?' selected':'')+'>'+z+'</option>'; }).join('')+'</select></label>'
+    +'<label>Fila<select class="up-f">'+opF(zDef)+'</select></label></div>'
+    +(sala && !UB_PLANOS[sala]?'<p style="color:var(--bad);font-size:14px;margin:4px 0">Según los registros este palé está en '+esc(sl(sala)||'—')+'. Si está en una cámara, falta registrar el movimiento.</p>':'')
+    +'<div class="up-rej"></div><p style="font-size:13px;color:var(--muted);margin:4px 0">Pincha el hueco libre (+) donde está el palé.</p>';
+  var zs=dest.querySelector('.up-z'), fs=dest.querySelector('.up-f'), rj=dest.querySelector('.up-rej');
+  function pintar(){ var z=zs.value, f=+fs.value; rj.innerHTML=(z&&f)?ubFilaHTML(z,f,id,id):'';
+    rj.querySelectorAll('[data-poner]').forEach(function(td){ td.onclick=function(){ var pa=td.getAttribute('data-poner').split('|'), cod=ubCod(z,f,+pa[0],+pa[1]);
+      if(!confirm('¿Poner el palé '+id+' en '+cod+'?')) return;
+      td.textContent='…'; ubPoner(id, z, f, +pa[0], +pa[1], false, function(c){ pintar(); if(alHacer) alHacer(c); }); }; }); }
+  zs.onchange=function(){ fDef=''; fs.innerHTML=opF(zs.value); rj.innerHTML=''; };
+  fs.onchange=pintar; pintar();
+}
+// Panel lateral para un palé (desde el cuadre o el historial)
+function ubPanelPoner(id){
+  $('p-tit').textContent=(ubDePale(id)?'Cambiar ubicación · ':'Dar ubicación · ')+id;
+  $('p-sub').textContent=clavePalet(id)+(ubDePale(id)?' · ahora en '+ubDePale(id).codigo:' · sin ubicación');
+  $('p-body').innerHTML='<div id="up-box"></div><div id="up-ok"></div>';
+  ubFormPoner($('up-box'), id, function(cod){ $('p-sub').textContent=clavePalet(id)+' · ubicado en '+cod; $('up-ok').innerHTML='<p style="color:var(--ok,#2e7d32);font-weight:700">✓ Ubicado en '+esc(cod)+'</p>'; });
+  $('panel').hidden=false; $('velo').hidden=false;
+}
+// Pestaña Recolocar: se escribe o escanea el palé y se pincha su hueco
+function ubTabRecolocar(){
+  $('ub-body').innerHTML='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)">Para cambiar palés de hueco <b>dentro de la misma cámara</b>, o dar hueco a los palés antiguos que no lo tienen. Si el palé viene de otra sala, primero hay que registrar el movimiento.</div>'
+    +'<div class="filt"><label>Palé (escribe, pega o escanea el ID)<input type="search" id="rc-q" style="min-width:380px;font-size:18px" placeholder="Ej: 226191113108"></label><button class="btn pri" id="rc-ok">Buscar</button></div><div id="rc-res"></div>';
+  function ir3(){
+    var q=String($('rc-q').value||'').trim(), qd=q.split('!')[0].split('*')[0].replace(/\s/g,''), r=$('rc-res');
+    if(qd.length<5){ r.innerHTML='<div class="vacio">Pon al menos 5 cifras.</div>'; return; }
+    var est=Object.keys(ubEstados()).map(function(k){ return UBE.m[k]; }).filter(function(e){ return e.id.replace(/\s/g,'').indexOf(qd)>=0 && !e.salio; });
+    if(!est.length){ r.innerHTML='<div class="vacio">No hay ningún palé en stock con '+esc(qd)+'.</div>'; return; }
+    if(est.length>1 && !est.some(function(e){ return e.id.replace(/\s/g,'')===q.replace(/\s/g,''); })){
+      r.innerHTML='<div class="tbl-wrap" style="max-height:320px"><table><thead><tr><th>Palé</th><th>Tipo · variedad · formato</th><th>Ahora</th><th>Ubicación</th></tr></thead><tbody>'
+        +est.slice(0,50).map(function(e,k){ var u=ubDePale(e.id); return '<tr data-k="'+k+'"><td class="mono">'+esc(e.id)+'</td><td>'+esc(clavePalet(e.id))+'</td><td>'+esc(sl(e.sala)||'—')+'</td><td class="mono">'+(u?'<b>'+esc(u.codigo)+'</b>':'—')+'</td></tr>'; }).join('')+'</tbody></table></div>';
+      r.querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(tr) uno(est[+tr.getAttribute('data-k')].id); };
+      return;
+    }
+    uno((est.filter(function(e){ return e.id.replace(/\s/g,'')===q.replace(/\s/g,''); })[0]||est[0]).id);
+  }
+  function uno(id){
+    var u=ubDePale(id), r=$('rc-res');
+    r.innerHTML='<div class="card" style="padding:12px 16px"><div style="font-size:16px"><span class="mono"><b>'+esc(id)+'</b></span> · '+esc(clavePalet(id))+' · '+(u?'ahora en <b class="mono">'+esc(u.codigo)+'</b>':'<b style="color:var(--bad)">sin ubicación</b>')+'</div><div id="rc-form"></div><div id="rc-ok2"></div></div>';
+    ubFormPoner($('rc-form'), id, function(cod){ $('rc-ok2').innerHTML='<p style="color:var(--ok,#2e7d32);font-weight:700">✓ '+esc(id)+' ubicado en '+esc(cod)+'. Escanea el siguiente.</p>'; $('rc-q').value=''; setTimeout(function(){ try{ $('rc-q').focus(); }catch(e){} },50); });
+  }
+  $('rc-ok').onclick=ir3; $('rc-q').onkeydown=function(e){ if(e.key==='Enter') ir3(); };
+  setTimeout(function(){ try{ $('rc-q').focus(); }catch(e){} },50);
 }
 
 // ── Hojas por fila (como la de papel) ──
