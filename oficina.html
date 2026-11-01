@@ -217,7 +217,7 @@ table.ub-t td.ub-no,table.ub-t tr:hover td.ub-no{background-color:#ece5da;backgr
 .ub-dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
 table.ub-fila{border-collapse:separate;border-spacing:4px;margin:4px 0;width:auto}table.ub-fila tr{cursor:default}table.ub-fila td,table.ub-fila tr:hover td{padding:2px;border-bottom:0;white-space:normal;background:transparent}table.ub-fila th{font-size:12px;color:var(--muted);font-weight:800;padding:2px 4px;background:none;position:static}
 table.ub-fila td{width:96px;height:46px;border-radius:6px;text-align:center;vertical-align:middle;font-size:12px;line-height:1.2}
-table.ub-fila .ub-p{border:2px solid;cursor:pointer}table.ub-fila .ub-p b{font-size:16px;display:block;letter-spacing:.02em}table.ub-fila .ub-p small{color:var(--muted);font-size:11px}
+table.ub-fila .ub-p{border:2px solid;cursor:pointer}table.ub-fila .ub-p b{font-size:17px;display:block;letter-spacing:.02em}table.ub-fila .ub-p small{color:var(--ink);font-size:13.5px;font-weight:700}
 table.ub-fila .ub-p.yo{box-shadow:0 0 0 3px var(--brand)}table.ub-fila .ub-v{border:1px dashed #d8ccbc}
 table.ub-fila .ub-nc{font-size:10.5px;color:var(--muted);background:repeating-linear-gradient(45deg,#ece5da,#ece5da 3px,transparent 3px,transparent 6px);border:1px solid #e1d7c9}
 table.ub-fila .pas{width:30px;font-size:10px;color:var(--muted);font-style:italic;font-weight:400}
@@ -388,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v42';
+var VER = 'v43';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -3123,7 +3123,7 @@ function ubFilaHTML(z,f,marcaId){
     orden.forEach(function(p){
       var u=(pies[p]||{})[a], max=ubMax(z,f,p);
       if(u){ var i=parsearId(u.id), e=ubEstadoDe(u), yo=marcaId && ubKey(marcaId)===ubKey(u.id);
-        h+='<td class="ub-p'+(yo?' yo':'')+'" data-id="'+esc(u.id)+'" style="border-color:'+ubCol(i.tipo)+';background:'+ubCol(i.tipo)+'1a" title="'+esc(u.id+' · '+clavePalet(u.id))+'"><b style="color:'+ubCol(i.tipo)+'">'+esc(ubEtiq(u.id))+'</b><small>'+fmtN(ubPz(u))+' pzas'+(ubVar(u.id)?' · '+esc(ubVar(u.id)):'')+'</small></td>';
+        h+='<td class="ub-p'+(yo?' yo':'')+'" data-id="'+esc(u.id)+'" style="border-color:'+ubCol(i.tipo)+';background:'+ubCol(i.tipo)+'1a" title="'+esc(u.id+' · '+clavePalet(u.id))+'"><b style="color:'+ubCol(i.tipo)+'">'+esc(ubEtiq(u.id))+'</b><small>('+fmtN(ubPz(u))+')'+(ubVar(u.id)?' · '+esc(ubVar(u.id)):'')+'</small></td>';
       } else if(max===0 || a<=4-max) h+='<td class="ub-nc">no cabe</td>';
       else h+='<td class="ub-v"></td>';
     });
@@ -3289,7 +3289,7 @@ function ubImprimirHojas(z, fs){
       orden.forEach(function(p){
         var u=(pies[p]||{})[a], max=ubMax(z,f,p);
         if(u){ var i=parsearId(u.id), e=ubEstadoDe(u), pz=e?e.pz:(i.piezas||0); tot++; pzT+=pz;
-          t+='<td><div class="lt">'+esc(ubEtiq(u.id))+'</div><div class="pz">'+pz+' pzas</div><div class="id">'+esc(String(u.id).split('!')[0].replace(/\*$/,''))+'</div><div class="tp">'+esc([i.tipo,ubVar(u.id)].filter(Boolean).join(' · '))+'</div></td>';
+          t+='<td><div class="lt">'+esc(ubEtiq(u.id))+'</div><div class="pz">('+pz+')</div><div class="id">'+esc(String(u.id).split('!')[0].replace(/\*$/,''))+'</div><div class="tp">'+esc([i.tipo,ubVar(u.id)].filter(Boolean).join(' · '))+'</div></td>';
         } else if(max===0 || a<=4-max) t+='<td class="nc">no cabe</td>';
         else t+='<td></td>';
       });
