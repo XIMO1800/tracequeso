@@ -199,14 +199,16 @@ h3.pbt{font-family:var(--display);font-size:19px;color:var(--brand);margin:14px 
 /* (v39) Ubicación de palés */
 .ub-plano{margin-top:6px}.ub-eje{font-size:12px;color:var(--muted);text-align:center;margin:2px 0}
 table.ub-t{border-collapse:collapse;margin:2px auto;width:auto}
-table.ub-t td,table.ub-t tr:hover td{padding:0;border-bottom:0;white-space:normal;vertical-align:middle;background:transparent}
+table.ub-t td,table.ub-t tr:hover td{padding:0;border:0;white-space:normal;vertical-align:middle;background:transparent}
+/* (v40) Todas las casillas del plano con la MISMA línea: antes la regla de arriba
+   les quitaba el borde de abajo y solo volvía al pasar el ratón (Joaquín, 01/11). */
+table.ub-t td.ub-c,table.ub-t tr:hover td.ub-c{text-align:center;vertical-align:middle;font-weight:800;color:#fff;border:1px solid #d9cdbd}
 table.ub-t tr{cursor:default}
-.ub-z{text-align:center;font-size:12px;font-weight:800;color:var(--muted);padding-bottom:3px!important}.ub-z.on{color:var(--brand)}
-.ub-nf{font-size:11px;color:var(--muted);text-align:right;padding-right:5px!important}.ub-nf.on{color:var(--brand);font-weight:800}
-.ub-c{text-align:center;vertical-align:middle;font-weight:800;color:#fff;border:1px solid #fbf8f3}
-.ub-ok{cursor:pointer}.ub-ok:hover{filter:brightness(1.12)}
-.ub-lib,table.ub-t tr:hover td.ub-lib{background:#fff;border:1px solid #e1d7c9}.ub-lib[data-pie]{cursor:pointer}
-.ub-no,table.ub-t tr:hover td.ub-no{background-color:#ece5da;background-image:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(0,0,0,.07) 3px,rgba(0,0,0,.07) 6px)}
+table.ub-t td.ub-z{text-align:center;font-size:12px;font-weight:800;color:var(--muted);padding-bottom:3px}table.ub-t td.ub-z.on{color:var(--brand)}
+table.ub-t td.ub-nf{font-size:11px;color:var(--muted);text-align:right;padding-right:5px}table.ub-t td.ub-nf.on{color:var(--brand);font-weight:800}
+table.ub-t td.ub-ok{cursor:pointer}table.ub-t td.ub-ok:hover{filter:brightness(1.12)}
+table.ub-t td.ub-lib,table.ub-t tr:hover td.ub-lib{background:#fff}table.ub-t td.ub-lib[data-pie]{cursor:pointer}
+table.ub-t td.ub-no,table.ub-t tr:hover td.ub-no{background-color:#ece5da;background-image:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(0,0,0,.07) 3px,rgba(0,0,0,.07) 6px)}
 .ub-ley{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:13.5px;color:var(--ink);justify-content:center}.ub-ley i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 .ub-dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
 table.ub-fila{border-collapse:separate;border-spacing:4px;margin:4px 0;width:auto}table.ub-fila tr{cursor:default}table.ub-fila td,table.ub-fila tr:hover td{padding:2px;border-bottom:0;white-space:normal;background:transparent}table.ub-fila th{font-size:12px;color:var(--muted);font-weight:800;padding:2px 4px;background:none;position:static}
@@ -382,7 +384,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v39';
+var VER = 'v40';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -3007,7 +3009,11 @@ function ubPlanoHTML(sala, op){
   });
   var W=0; cols.forEach(function(c){ W+= c.t==='pie'?1:(c.t==='pas'?UB_PASILLO:0.35); });
   var disp=Math.max(420, Math.min(((($('cont')||{}).clientWidth)||900)-80, op.ancho||1100));
-  var cw=Math.floor(Math.min(op.max||44, disp/W)), ch=Math.round(cw*1.4);
+  var cw=Math.floor(Math.min(op.max||44, disp/W));
+  // (v40) Que quepa la cámara entera en la pantalla, de arriba abajo (Joaquín,
+  // 01/11): 17 filas de 1,4 × ancho, más rótulos y leyenda.
+  if(op.alto){ var cwH=Math.floor((op.alto-140)/(UB_FILAS*1.4)); if(cwH<cw) cw=Math.max(12,cwH); }
+  var ch=Math.round(cw*1.4);
   var mk=op.marca;
   var h='<div class="ub-plano"><div class="ub-eje">▲ fondo · ventiladores</div><div style="overflow-x:auto"><table class="ub-t">';
   h+='<tr><td></td>'; cols.forEach(function(c){
@@ -3045,7 +3051,7 @@ function ubEspecialHTML(c,f,cw,ch){
   var l=UB_ESPECIAL[c.z]; if(!l) return null;
   var b=l.filter(function(x){ return f>=x.desde && f<=x.hasta; })[0]; if(!b) return null;
   var celda='background:#e9e1d6;';
-  if(b.tipo==='celdas') return '<td title="Picking" style="width:'+cw+'px;height:'+ch+'px;padding:0;'+celda+'border:1px solid #d8ccbc"></td>';
+  if(b.tipo==='celdas') return '<td title="Picking" style="width:'+cw+'px;height:'+ch+'px;padding:0;'+celda+'border:1px solid #d9cdbd"></td>';
   if(f!==b.hasta || !c.primero) return '';
   var rs=b.hasta-b.desde+1, h='';
   b.partes.forEach(function(pt){
@@ -3082,9 +3088,12 @@ function ubEnlFila(root){ root.querySelectorAll('.ub-p[data-id]').forEach(functi
 // El ID tal como está en los registros (para el historial).
 function ubIdReg(id){ var e=ubEstados()[ubKey(id)]; return e?e.id:id; }
 
+function _ubTopH(){ var t=document.querySelector('.top'); return t?t.offsetHeight:70; }
 function ubTabPlano(){
-  var h=ubSelSala()+'<div class="card" style="padding:14px 16px"><h3>'+esc(UB_PLANOS[UBF.sala].nombre)+' <small>pincha un pie para ver sus palés · más claro = pie a medias · rayado = no se usa</small></h3>'+ubPlanoHTML(UBF.sala,{click:true})+'</div>';
+  var h=ubSelSala()+'<div class="card" id="ub-card" style="padding:8px 16px 10px"><h3 style="margin:0 0 2px">'+esc(UB_PLANOS[UBF.sala].nombre)+' <small>pincha un pie para ver sus palés · más claro = pie a medias · rayado = no se usa</small></h3>'+ubPlanoHTML(UBF.sala,{click:true, alto:(window.innerHeight||900)-_ubTopH()-14})+'</div>';
   $('ub-body').innerHTML=h; ubEnlSala(ubTabPlano);
+  // La cámara entera a la vista: se sube la página hasta el plano (la cabecera queda arriba, fuera).
+  setTimeout(function(){ try{ var c=$('ub-card'); c.style.scrollMarginTop=(_ubTopH()+4)+'px'; c.scrollIntoView({block:'start'}); }catch(e){} },30);
   $('ub-body').querySelectorAll('[data-pie]').forEach(function(td){ td.onclick=function(){ var p=td.getAttribute('data-pie').split('|'); ubPanelPie(p[0],+p[1],+p[2]); }; });
 }
 function ubPanelPie(z,f,p){
