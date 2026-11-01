@@ -118,6 +118,8 @@ td.obs{white-space:normal;max-width:320px;color:var(--muted)}
 #panel .ph{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:10px}
 #panel .ph h2{margin:0;font-family:var(--display);font-size:22px}
 #panel .ph .x{margin-left:auto}
+/* (v38) El título ocupa todo el hueco: los botones van SIEMPRE arriba a la derecha, haya o no «Editar» (antes, sin Editar, se pegaban al título). */
+#panel .ph>div:first-child{flex:1;min-width:0}
 #panel.ancho{width:min(1150px,94vw)}
 #panel .ph .btn{white-space:nowrap}
 /* (v32) Editar · Imprimir · Cerrar en azul marino muy oscuro, discreto: se
@@ -357,7 +359,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v37';
+var VER = 'v38';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
