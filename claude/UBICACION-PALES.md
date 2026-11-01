@@ -1,6 +1,6 @@
 # Ubicación de palés — móvil y escritorio (lo que hay que saber en cualquier conversación)
 
-Actualizado 01/11/2026 (móvil v531, API 14 + acciones «poner» y «mover», oficina v45). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
+Actualizado 01/11/2026 (móvil v532, API 15 + acciones «poner» y «mover», oficina v45). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
 
 **Acuerdo (01/11/2026):** la ubicación de palés la lleva UNA sola conversación, la de ubicación, tanto en el móvil (index.html) como en la oficina (oficina.html). La conversación de la oficina ya no la toca.
 
@@ -10,6 +10,7 @@ Actualizado 01/11/2026 (móvil v531, API 14 + acciones «poner» y «mover», of
 - **Móvil (index.html, bloque «UBICACIONES DE PALÉS EN CÁMARAS», desde v500).** Aquí se ubica: se escanea dentro del movimiento o desde «Ubicar / buscar». También tiene «Ver cámara», el plano del stock y el botón de ubicación en «Buscar palet».
 - **Escritorio (oficina.html, bloque «(v39) UBICACIÓN DE PALÉS EN CÁMARAS», menú Producción → Ubicación de palés).** Se mira y, desde v44, también se recoloca y se regulariza (dar hueco a palés antiguos), con el permiso de ubicación.
 - **Datos:** la hoja UBICACIONES (gas/Ubicaciones.gs). GET `?tipo=ubicaciones` devuelve la ubicación vigente de cada palé. Escriben el móvil y la oficina (`_SHEET:'UBICACION'`): `accion:'fila'` (la fila entera al llenar), `accion:'poner'` (un palé en un hueco concreto; si está ocupado devuelve `ocupado` y solo se cambia con `forzar:true`), `accion:'mover'` (varios palés a huecos concretos, todo o nada; si un destino lo tiene un palé que no se mueve devuelve `ocupados`), `accion:'baja'`.
+- **Un palé = una ubicación (API 15, móvil v532):** el mismo palé puede llegar escrito de varias formas (con o sin «!lote», con más o menos espacios). El servidor compara por `_ubicClave` (dígitos sin espacios + variedad, como `normPaleKey`) y el móvil deduplica en `_ubicIndexar` quedándose con la última. Antes, al cambiar de sitio un palé escrito distinto, salía en el hueco nuevo y seguía en el viejo (CF2-F17, 01/11). La oficina ya comparaba con `ubKey`.
 - **Versión de la oficina:** está en `var VER = 'vNN'` de oficina.html; hay que subirla en cada cambio.
 
 ## Quién lo ve (permiso)
@@ -63,7 +64,7 @@ Funciones comunes (bloque UBICACIONES de index.html): `ubicEtiq(id)` (lote corto
    - «¿Dónde está?»: palé o lote → código, plano de la cámara y torre del pie.
    - «Ver cámara» (Maduración a la izquierda, Frío a la derecha): cada pie del color de su tipo y con la inicial de la variedad. Arriba, el total de cada zona; en el pasillo, el total de cada fila (pinchable: abre la fila). Zoom − / +.
    - «Recolocar» dentro de la misma cámara, sin movimiento, y «Vaciar fila».
-3. **Buscar palet** (historial): franja «📍 Ubicación» con el plano y la torre, y «✏️ Cambiar ubicación»; si no tiene, «📍 Dar ubicación» (v527): zona, fila y se toca el hueco libre (+). `ubicDarForm`, `ubicPonerAqui`.
+3. **Buscar palet** (historial): franja «📍 Ubicación» con el plano y la torre, y «✏️ Cambiar ubicación»; si no tiene, «📍 Dar ubicación» (v527): zona, fila y se toca el hueco libre (+). El palé buscado sale con borde grueso; tocar el + y aceptar ya guarda (no hay botón de guardar) y se cierra el formulario con la ubicación nueva arriba. `ubicDarForm`, `ubicPonerAqui`.
 4. **Disponibilidad comercial**: en «Dónde está», «Ver en el plano» → pies con los palés del filtro, lista por filas (cada una abre su rejilla, con los del filtro resaltados) y aviso de los que no están ubicados.
 
 Reparto automático al escanear: pie del fondo primero, de abajo arriba; cada palé ocupa sus alturas de bandeja (3 kg: 12 quesos por altura, estándar 9; 1 kg: 24 por altura, estándar 11) y un pie de 4 admite 38/36 del estándar (2×120 + 2×108 caben). A4 = suelo siempre; en los pies de 3 (ventiladores) falta la A1.

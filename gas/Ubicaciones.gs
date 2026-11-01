@@ -35,8 +35,21 @@ function _ubicCodigo(zona, fila, pie, altura) {
   return zona + '-F' + f + '-P' + pie + '-A' + altura;
 }
 
-// Ubicación vigente de cada palé: { id: {id, codigo, zona, fila, pie, altura, fecha(ms), quien} }
-// Los palés cuya última fila es BAJA no aparecen.
+// (01/11, API 15) El mismo palé puede llegar escrito de varias formas: con o
+// sin el lote corto tras «!», con más o menos espacios. Para la ubicación es
+// el mismo palé: se compara por esta clave (dígitos sin espacios + variedad),
+// igual que normPaleKey/matchPaleId de la app. Antes se trataban como palés
+// distintos y un palé podía salir en dos huecos a la vez (CF2-F17, 01/11).
+function _ubicClave(id) {
+  var s = String(id || '').trim();
+  var base = s.split('!')[0];
+  var dig = base.split('*')[0].replace(/\s/g, '');
+  var v = base.indexOf('*') >= 0 ? base.substring(base.indexOf('*') + 1).trim() : '';
+  return dig + (v ? '*' + v : '');
+}
+
+// Ubicación vigente de cada palé: { clave: {id, codigo, zona, fila, pie, altura, fecha(ms), quien} }
+// Los palés cuya última fila es BAJA no aparecen. El id es el último con el que se escribió.
 function _ubicacionesVigentes() {
   var sh = _hojaUbicaciones();
   var n = sh.getLastRow();
@@ -47,8 +60,9 @@ function _ubicacionesVigentes() {
     var r = datos[i];
     var id = String(r[2] || '').trim();
     if (!id) continue;
-    if (String(r[8]) === 'BAJA') { delete out[id]; continue; }
-    out[id] = {
+    var k = _ubicClave(id);
+    if (String(r[8]) === 'BAJA') { delete out[k]; continue; }
+    out[k] = {
       id: id,
       codigo: String(r[3] || ''),
       zona: String(r[4] || ''),
@@ -95,21 +109,21 @@ function gestionarUbicacion(payload) {
     var pales = payload.pales || [];
     var nuevos = {};
     pales.forEach(function(p) {
-      var id = String(p.id || '').trim();
-      if (!id || nuevos[id]) return;
-      nuevos[id] = true;
+      var id = String(p.id || '').trim(), k = _ubicClave(id);
+      if (!id || nuevos[k]) return;
+      nuevos[k] = true;
       var pie = Number(p.pie) || 0, alt = Number(p.altura) || 0;
       var cod = _ubicCodigo(zona, fila, pie, alt);
       // La app manda la fila entera después de cada escaneo: solo se apunta lo
       // que cambia, para no llenar el histórico de filas repetidas.
-      if (vigentes[id] && vigentes[id].codigo === cod) return;
+      if (vigentes[k] && vigentes[k].codigo === cod) return;
       filas.push([ahora, quien, id, cod, zona, fila, pie, alt, 'ALTA', sesion]);
     });
     // Los que estaban en esta fila y ya no vienen: BAJA
-    Object.keys(vigentes).forEach(function(id) {
-      var u = vigentes[id];
-      if (u.zona === zona && u.fila === fila && !nuevos[id]) {
-        filas.push([ahora, quien, id, u.codigo, u.zona, u.fila, u.pie, u.altura, 'BAJA', sesion]);
+    Object.keys(vigentes).forEach(function(k) {
+      var u = vigentes[k];
+      if (u.zona === zona && u.fila === fila && !nuevos[k]) {
+        filas.push([ahora, quien, u.id, u.codigo, u.zona, u.fila, u.pie, u.altura, 'BAJA', sesion]);
       }
     });
   } else if (accion === 'poner') {
@@ -121,19 +135,19 @@ function gestionarUbicacion(payload) {
     if (!idp || !/^C[MF]\d$/.test(zp) || fp < 1 || fp > 17 || pp < 1 || ap < 1) {
       return _ubicRespuesta({ok: false, error: 'Datos de ubicación no válidos'});
     }
-    var codp = _ubicCodigo(zp, fp, pp, ap), otro = null;
-    Object.keys(vigentes).forEach(function(id) { if (id !== idp && vigentes[id].codigo === codp) otro = vigentes[id]; });
+    var codp = _ubicCodigo(zp, fp, pp, ap), otro = null, kp = _ubicClave(idp);
+    Object.keys(vigentes).forEach(function(k) { if (k !== kp && vigentes[k].codigo === codp) otro = vigentes[k]; });
     if (otro && !payload.forzar) return _ubicRespuesta({ok: false, ocupado: otro.id, codigo: codp});
     if (otro) filas.push([ahora, quien, otro.id, otro.codigo, otro.zona, otro.fila, otro.pie, otro.altura, 'BAJA', sesion]);
-    if (!(vigentes[idp] && vigentes[idp].codigo === codp)) filas.push([ahora, quien, idp, codp, zp, fp, pp, ap, 'ALTA', sesion]);
+    if (!(vigentes[kp] && vigentes[kp].codigo === codp)) filas.push([ahora, quien, idp, codp, zp, fp, pp, ap, 'ALTA', sesion]);
   } else if (accion === 'mover') {
     // (01/11) Varios palés a la vez a huecos concretos (oficina, «Mover entre
     // filas»). Todo o nada: si algún hueco de destino lo tiene un palé que NO se
     // mueve, se devuelve la lista de choques y no se toca nada (salvo forzar).
     var lst = payload.pales || [], mov = {}, destinos = {}, malos = [];
-    lst.forEach(function(p){ mov[String(p.id || '').trim()] = true; });
+    lst.forEach(function(p){ mov[_ubicClave(p.id)] = true; });
     var ocup = {};
-    Object.keys(vigentes).forEach(function(id){ if (!mov[id]) ocup[vigentes[id].codigo] = id; });
+    Object.keys(vigentes).forEach(function(k){ if (!mov[k]) ocup[vigentes[k].codigo] = vigentes[k].id; });
     var nuevas = [];
     lst.forEach(function(p){
       var id = String(p.id || '').trim(), z = String(p.zona || '').trim().toUpperCase(), f = Number(p.fila) || 0, pi = Number(p.pie) || 0, a = Number(p.altura) || 0;
@@ -146,16 +160,17 @@ function gestionarUbicacion(payload) {
     if (malos.length) return _ubicRespuesta({ok: false, error: 'Datos no válidos: ' + malos.join(', ')});
     var choques = Object.keys(destinos).filter(function(cod){ return ocup[cod]; });
     if (choques.length && !payload.forzar) return _ubicRespuesta({ok: false, ocupados: choques.map(function(c){ return {codigo: c, id: ocup[c]}; })});
-    choques.forEach(function(cod){ var u = vigentes[ocup[cod]]; filas.push([ahora, quien, u.id, u.codigo, u.zona, u.fila, u.pie, u.altura, 'BAJA', sesion]); });
+    choques.forEach(function(cod){ var u = vigentes[_ubicClave(ocup[cod])]; filas.push([ahora, quien, u.id, u.codigo, u.zona, u.fila, u.pie, u.altura, 'BAJA', sesion]); });
     nuevas.forEach(function(n){
-      if (vigentes[n.id] && vigentes[n.id].codigo === n.cod) return;
+      var kn = _ubicClave(n.id);
+      if (vigentes[kn] && vigentes[kn].codigo === n.cod) return;
       filas.push([ahora, quien, n.id, n.cod, n.z, n.f, n.p, n.a, 'ALTA', sesion]);
     });
   } else if (accion === 'baja') {
     (payload.ids || []).forEach(function(id) {
       id = String(id || '').trim();
-      var u = vigentes[id];
-      if (u) filas.push([ahora, quien, id, u.codigo, u.zona, u.fila, u.pie, u.altura, 'BAJA', sesion]);
+      var u = vigentes[_ubicClave(id)];
+      if (u) filas.push([ahora, quien, u.id, u.codigo, u.zona, u.fila, u.pie, u.altura, 'BAJA', sesion]);
     });
   } else {
     return _ubicRespuesta({ok: false, error: 'Acción desconocida: ' + accion});

@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 14;  // 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
+const API_VERSION = 15;  // 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
