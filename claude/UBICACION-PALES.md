@@ -1,6 +1,6 @@
 # Ubicación de palés — móvil y escritorio (lo que hay que saber en cualquier conversación)
 
-Actualizado 01/11/2026 (móvil v525, API 13, oficina v43). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
+Actualizado 01/11/2026 (móvil v526, API 13, oficina v43). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
 
 **Acuerdo (01/11/2026):** la ubicación de palés la lleva UNA sola conversación, la de ubicación, tanto en el móvil (index.html) como en la oficina (oficina.html). La conversación de la oficina ya no la toca.
 
@@ -57,7 +57,7 @@ Arriba hay una tira de cifras pinchables: ubicados en Frío y en Maduración, pi
 Funciones comunes (bloque UBICACIONES de index.html): `ubicEtiq(id)` (lote corto o fecha), `ubicPz(id)` (piezas actuales del palé, de la memoria de palés), `ubicRango(ids)`, `ubicRejillaHTML(z,f,marcar)` (la fila como la hoja: pies × alturas, fila Σ con el total de cada pie, total de la fila y su rango).
 
 1. **Movimiento** (destino Cámara de Frío o de Maduración): apartado «Ubicar en fila». El mismo escaneo mueve y ubica, y la cámara se reabre sola. Botones: «Cambiar fila», «Mover a otra fila» (se lleva lo escaneado a una fila libre, repartiendo de nuevo), flechas ◀ ▶ para el pie donde va el siguiente, tocar un palé y luego un pie para cambiarlo, «Quitar último», «Terminar fila». Se guarda palé a palé (POST `UBICACION` con la fila entera; el servidor solo apunta lo que cambia). Si se borra el movimiento, se quita su ubicación.
-2. **Ubicar / buscar** (menú principal):
+2. **Ubicar / buscar** (menú principal). Desde v526 primero sale un menú con tres opciones, cada una en su pantalla (`s-ubic-buscar`, `s-ubic-camara`, `s-ubic-recolocar`; función `ubicIrSub`), igual que las pestañas de la oficina:
    - «¿Dónde está?»: palé o lote → código, plano de la cámara y torre del pie.
    - «Ver cámara» (Maduración a la izquierda, Frío a la derecha): cada pie del color de su tipo y con la inicial de la variedad. Arriba, el total de cada zona; en el pasillo, el total de cada fila (pinchable: abre la fila). Zoom − / +.
    - «Recolocar» dentro de la misma cámara, sin movimiento, y «Vaciar fila».
