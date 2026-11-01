@@ -1,6 +1,6 @@
 # Ubicación de palés — móvil y escritorio (lo que hay que saber en cualquier conversación)
 
-Actualizado 01/11/2026 (móvil v524, oficina v43). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
+Actualizado 01/11/2026 (móvil v525, API 13, oficina v43). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
 
 **Acuerdo (01/11/2026):** la ubicación de palés la lleva UNA sola conversación, la de ubicación, tanto en el móvil (index.html) como en la oficina (oficina.html). La conversación de la oficina ya no la toca.
 
@@ -15,6 +15,11 @@ Actualizado 01/11/2026 (móvil v524, oficina v43). Este documento es el punto de
   - hojas por fila para imprimir.
 - **Datos:** la hoja UBICACIONES (gas/Ubicaciones.gs). GET `?tipo=ubicaciones` devuelve la ubicación vigente de cada palé. La escritura la hace solo el móvil (`_SHEET:'UBICACION'`).
 - **Versión de la oficina:** está en `var VER = 'vNN'` de oficina.html; hay que subirla en cada cambio.
+
+## Quién lo ve (permiso)
+- Columna **ACCESO UBICACION** de la hoja LISTADO OPERARIOS (la añade sola el Apps Script la primera vez que se leen los operarios). Por defecto **nadie**; Joaquín marca a quién (previstos: Nico, Paco, Alberto). **Admin siempre**. **Calidad no**.
+- En el móvil, sin permiso no se ve nada: ni el botón «Ubicar / buscar», ni el apartado de Movimiento (el movimiento se registra igual, sin ubicar), ni la franja de «Buscar palet», ni «Ver en el plano» de Disponibilidad. Función: `ubicPermitido(u)`.
+- Oficina: hoy entra solo Joaquín; si se abre a más gente, aplicar el mismo permiso.
 
 ## Plano de las cámaras (DUPLICADO en los dos ficheros)
 La geometría está copiada en los dos ficheros:

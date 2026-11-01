@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 12;  // 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
+const API_VERSION = 13;  // 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -1993,12 +1993,16 @@ function leerOperarios() {
   // desde el móvil). Si la hoja aún no la tiene, se añade vacía al final: así
   // Joaquín solo tiene que marcar a quién se la da.
   try {
-    var _tieneRec = headers.some(function(h){ return _normTxt(h) === 'ACCESO RECEPCION'; });
-    if (!_tieneRec) {
-      sheet.getRange(1, headers.length + 1).setValue('ACCESO RECEPCION');
-      data = sheet.getDataRange().getValues();
-      headers = data[0];
-    }
+    // (2026-11-01) Y ACCESO UBICACION: quién ve y hace ubicaciones de palés en
+    // cámaras. Por defecto nadie (solo Admin); Joaquín marca a quién se la da.
+    ['ACCESO RECEPCION', 'ACCESO UBICACION'].forEach(function(nombreCol){
+      var _tiene = headers.some(function(h){ return _normTxt(h) === nombreCol; });
+      if (!_tiene) {
+        sheet.getRange(1, headers.length + 1).setValue(nombreCol);
+        data = sheet.getDataRange().getValues();
+        headers = data[0];
+      }
+    });
   } catch (eRec) {}
   var col = {};
   for (var i = 0; i < headers.length; i++) { col[_normTxt(headers[i])] = i; }
@@ -2022,6 +2026,7 @@ function leerOperarios() {
       partes: gb(row, 'ACCESO PARTES'),
       planalmacen: gb(row, 'ACCESO PLAN ALMACEN'),
       recepcion: gb(row, 'ACCESO RECEPCION'),
+      ubicacion: gb(row, 'ACCESO UBICACION'),   // (2026-11-01)
       p: {
         capa1:      gb(row, 'ACCESO 1 CAPA')      ? 1 : 0,
         volteo:     gb(row, 'ACCESO VOLTEO')      ? 1 : 0,
