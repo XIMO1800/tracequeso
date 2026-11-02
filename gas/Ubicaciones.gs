@@ -132,11 +132,15 @@ function gestionarUbicacion(payload) {
     // no se toca salvo que venga forzar:true; entonces ese otro se da de BAJA.
     var zp = String(payload.zona || '').trim().toUpperCase(), fp = Number(payload.fila) || 0;
     var pp = Number(payload.pie) || 0, ap = Number(payload.altura) || 0, idp = String(payload.id || '').trim();
-    if (!idp || !/^C[MF]\d$/.test(zp) || fp < 1 || fp > 17 || pp < 1 || ap < 1) {
+    // (02/11, API 16) Zonas sin huecos: CF-PICKING, CF-PUERTA… (fila/pie/altura 0;
+    // caben los que sean, no hay «ocupado»).
+    var esp = /^C[MF]-[A-Z]+$/.test(zp);
+    if (esp) { fp = 0; pp = 0; ap = 0; }
+    if (!idp || (!esp && (!/^C[MF]\d$/.test(zp) || fp < 1 || fp > 17 || pp < 1 || ap < 1))) {
       return _ubicRespuesta({ok: false, error: 'Datos de ubicación no válidos'});
     }
-    var codp = _ubicCodigo(zp, fp, pp, ap), otro = null, kp = _ubicClave(idp);
-    Object.keys(vigentes).forEach(function(k) { if (k !== kp && vigentes[k].codigo === codp) otro = vigentes[k]; });
+    var codp = esp ? zp : _ubicCodigo(zp, fp, pp, ap), otro = null, kp = _ubicClave(idp);
+    if (!esp) Object.keys(vigentes).forEach(function(k) { if (k !== kp && vigentes[k].codigo === codp) otro = vigentes[k]; });
     if (otro && !payload.forzar) return _ubicRespuesta({ok: false, ocupado: otro.id, codigo: codp});
     if (otro) filas.push([ahora, quien, otro.id, otro.codigo, otro.zona, otro.fila, otro.pie, otro.altura, 'BAJA', sesion]);
     if (!(vigentes[kp] && vigentes[kp].codigo === codp)) filas.push([ahora, quien, idp, codp, zp, fp, pp, ap, 'ALTA', sesion]);
