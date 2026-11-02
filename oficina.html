@@ -388,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v46';
+var VER = 'v47';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -2973,7 +2973,7 @@ function ubVigente(u){
 // apunta que está en el picking (incluye la zona de la izquierda al entrar, donde
 // se deja lo que se va a envasar). Se pone desde el móvil (Movimiento / Recolocar)
 // o desde aquí (Recolocar, cuadre, historial).
-var UB_ESP={'CF-PICKING':{sala:'6.CAMARA FRIO', nom:'Picking', ico:'🧺'}}, UB_ESP_ALIAS={'CF-PUERTA':'CF-PICKING'};
+var UB_ESP={'CF-PICKING':{sala:'6.CAMARA FRIO', nom:'Picking', ico:'🧺'}, 'CM-PASO':{sala:'7.CAMARA MADURACION', nom:'Zona de paso', ico:'⏳'}}, UB_ESP_ALIAS={'CF-PUERTA':'CF-PICKING'};
 function ubEspVigente(u){
   if(!u || !UB_ESP[u.zona]) return false;
   if(u.fecha && Date.now()-u.fecha < 6*3600*1000) return true;
@@ -3014,6 +3014,7 @@ function vistaUbic(){
     +'<div class="kpi kc" data-k="cf"><span>Ubicados · C. Frío</span><b>'+cf.length+'</b></div>'
     +'<div class="kpi kc" data-k="cm"><span>Ubicados · C. Maduración</span><b>'+cm.length+'</b></div>'
     +'<div class="kpi kc" data-k="pk"><span>🧺 En picking · C. Frío</span><b>'+ubEnEsp('CF-PICKING').length+'</b></div>'
+    +'<div class="kpi kc" data-k="pa"><span>⏳ Zona de paso · C. Mad.</span><b>'+ubEnEsp('CM-PASO').length+'</b></div>'
     +'<div class="kpi"><span>Piezas ubicadas</span><b>'+fmtN(pz)+'</b></div>'
     +'<div class="kpi kc'+(nSin?' aviso':'')+'" data-k="sin"><span>En cámara sin ubicar</span><b>'+nSin+'</b></div>'
     +'<div class="kpi kc'+(nCad?' alerta':'')+'" data-k="cad"><span>Ubicados que ya no están</span><b>'+nCad+'</b></div>'
@@ -3030,7 +3031,7 @@ function vistaUbic(){
   $('ub-rec').onclick=function(){ this.disabled=true; this.textContent='Cargando…'; UBE.n=-1; ubCargar(vistaUbic); };
   document.querySelectorAll('#cont .tabs button').forEach(function(b){ b.onclick=function(){ UBF.tab=b.getAttribute('data-ut'); ubGuardarF(); vistaUbic(); }; });
   document.querySelectorAll('#cont .kpi.kc').forEach(function(b){ b.onclick=function(){ var k=b.getAttribute('data-k');
-    if(k==='cf'||k==='cm'||k==='pk'){ UBF.tab='plano'; UBF.sala=(k==='cm'?'7.CAMARA MADURACION':'6.CAMARA FRIO'); if(k==='pk') UBF.verPick=1; }
+    if(k==='cf'||k==='cm'||k==='pk'||k==='pa'){ UBF.tab='plano'; UBF.sala=((k==='cm'||k==='pa')?'7.CAMARA MADURACION':'6.CAMARA FRIO'); if(k==='pk') UBF.verPick='CF-PICKING'; if(k==='pa') UBF.verPick='CM-PASO'; }
     else { UBF.tab='cuadre'; UBF.cuVer=(k==='sin'?'sin':'cad'); }
     ubGuardarF(); vistaUbic(); }; });
   if((UBF.tab==='recolocar'||UBF.tab==='mover') && !ubPermitido()) UBF.tab='buscar';
@@ -3194,7 +3195,7 @@ function ubTabPlano(){
   var h=ubSelSala()+'<div class="card" id="ub-card" style="padding:8px 16px 10px"><h3 style="margin:0 0 2px">'+esc(UB_PLANOS[UBF.sala].nombre)+' <small>pincha un pie para ver sus palés · más claro = pie a medias · rayado = no se usa</small></h3>'+ubPlanoHTML(UBF.sala,{click:true, alto:(window.innerHeight||900)-_ubTopH()-14})+'</div>';
   ubEspDeSala(UBF.sala).forEach(function(z){ h+='<div id="ub-esp-'+z+'">'+ubEspHTML(z)+'</div>'; });
   $('ub-body').innerHTML=h; ubEnlSala(ubTabPlano); ubEnlEsp($('ub-body'));
-  if(UBF.verPick){ UBF.verPick=0; var _pk=$('ub-esp-CF-PICKING'); if(_pk){ setTimeout(function(){ try{ _pk.scrollIntoView({block:'start'}); }catch(e){} },60); return; } }
+  if(UBF.verPick){ var _pk=$('ub-esp-'+UBF.verPick); UBF.verPick=0; if(_pk){ setTimeout(function(){ try{ _pk.scrollIntoView({block:'start'}); }catch(e){} },60); return; } }
   // La cámara entera a la vista: se sube la página hasta el plano (la cabecera queda arriba, fuera).
   setTimeout(function(){ try{ var c=$('ub-card'); c.style.scrollMarginTop=(_ubTopH()+4)+'px'; c.scrollIntoView({block:'start'}); }catch(e){} },30);
   $('ub-body').querySelectorAll('[data-pie]').forEach(function(td){ td.onclick=function(){ var p=td.getAttribute('data-pie').split('|'); ubPanelPie(p[0],+p[1],+p[2]); }; });
