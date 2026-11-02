@@ -225,6 +225,13 @@ table.ub-fila .pas{width:30px;font-size:10px;color:var(--muted);font-style:itali
 .ub-hjl label{display:flex;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:15px}
 .ub-hjl label span{margin-left:auto;color:var(--muted);font-size:13px}.ub-hjl label.con{border-left:4px solid var(--brand)}
 tr.pt-dia td{background:#f3e9e3;color:var(--brand);font-weight:800;font-size:14px;text-transform:capitalize;border-top:2px solid var(--brand);padding:6px 10px}tr.pt-dia td small{color:var(--muted);font-weight:600;text-transform:none}tr.pt-dia:hover td{background:#f3e9e3}
+/* (v59) editor de partes */
+.pe-bar{display:flex;gap:8px;align-items:center;position:sticky;top:70px;z-index:3;background:var(--bg,#f6f1ec);padding:8px 0 10px;flex-wrap:wrap}
+.pe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:12px;align-items:start}
+.pe-card{margin:0}.pe-card.pe-ancha{grid-column:1/-1}
+.pe-f{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px}
+.pe-f .fld.full{grid-column:1/-1}.pe-f input,.pe-f textarea{width:100%}
+table.pe-lin td{padding:3px 4px}table.pe-lin input{width:100%;min-width:70px}
 table.lin{font-size:15px}
 table.lin tr.eqrow td{background:#f4f7fc;border-bottom:1px solid #dfe6f1;padding:6px 8px;font-size:14px;color:#24477a}
 table.lin tr.eqrow input,table.lin tr.eqrow select{width:auto;display:inline-block;padding:4px 6px}
@@ -389,7 +396,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v58';
+var VER = 'v59';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -663,7 +670,7 @@ document.addEventListener('click', function(e){
     var v=b.getAttribute('data-v'); if(v) ir(v);
   }
 });
-function ir(v){ VISTA=v; try{ localStorage.setItem('tqof_vista',v); }catch(_){} pintarMenu(); refrescar(); }
+function ir(v){ if(typeof VISTA_PE!=='undefined'){ VISTA_PE=false; PE=null; } VISTA=v; try{ localStorage.setItem('tqof_vista',v); }catch(_){} pintarMenu(); refrescar(); }
 function refrescar(){
   if(VISTA==='registros') vistaRegistros();
   else if(VISTA==='mat') vistaMat();
@@ -3878,6 +3885,7 @@ function ptLista(){
   }).sort(function(a,b){ return (b.fecha>a.fecha?1:(b.fecha<a.fecha?-1:0)) || ((parseInt(a.cuba,10)||0)-(parseInt(b.cuba,10)||0)); });
 }
 function vistaPartes(){
+  if(VISTA_PE && PE) return;   // editando un parte: no se repinta (se perdería lo escrito)
   $('t-tit').textContent='Partes de fabricación';
   $('t-sub').textContent='Producción · consulta, revisión de Calidad e impresión (FOR 08-01). Los partes se rellenan en la tablet del quesero.';
   if(!PT.cargado){
@@ -3949,14 +3957,242 @@ function ptAbrir(p, verRev){
   var h='<div class="noprint" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">';
   if(orig && rev && orig!==rev) h+='<div class="chips" id="pt-ver"><button data-v="o" class="'+(ver===orig?'on':'')+'">📋 Original</button><button data-v="r" class="'+(ver===rev?'on':'')+'">✅ Revisada'+(rev.revisado_calidad===true?'':' (sin firmar)')+'</button></div>';
   else if(!ptEsRev(ver)) h+='<span class="tag bad">Sin revisar por Calidad</span>';
-  h+='<div style="flex:1"></div><button class="btn pri" id="pt-revisar">✏️ Revisar en Partes ↗</button></div>';
+  h+='<div style="flex:1"></div><button class="btn" id="pt-revisar" title="Abrir este parte en la pantalla de la tablet">Pantalla de partes ↗</button></div>';
   h+='<iframe id="pt-doc" data-parte="1" style="width:100%;border:1px solid var(--line);border-radius:8px;background:#fff;height:600px"></iframe>';
   $('p-body').innerHTML=h; $('panel').hidden=false; $('velo').hidden=false;
+  // (v59) Editar / revisar aquí mismo, en formato escritorio (botón arriba, junto a Imprimir).
+  panelEditar(puedeGuardar()?function(){ ptEditar(ver); }:null);
   var html=PARTE_IMPR(ver), fr=$('pt-doc');
   fr.onload=function(){ try{ var d=fr.contentDocument; d.documentElement.style.zoom='0.82'; fr.style.height=(d.documentElement.scrollHeight+40)+'px'; }catch(e){} };
   fr.srcdoc=html;
   if($('pt-ver')) $('pt-ver').onclick=function(ev){ var b=ev.target.closest('[data-v]'); if(b) ptAbrir(orig, b.getAttribute('data-v')==='r'); };
   $('pt-revisar').onclick=function(){ var x=orig||ver; handoffPartes(); window.open('partes-fabricacion.html?parte='+encodeURIComponent(x.id)+'&fecha='+encodeURIComponent(x.fecha),'_blank'); };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// (v59) EDITOR DE PARTES EN ESCRITORIO (Joaquín, 02/11: «es todo lo que tenemos
+// en el otro lado, pintado de otra manera»). Mismas reglas que la pantalla de
+// partes (partes-fabricacion.html, guardarParteEditado / confirmarFirma /
+// eliminarVistoBueno):
+//  · Un ORIGINAL cerrado no se toca: lo que cambia Calidad va a su copia
+//    REVISADA (PR-…, version 'revisado', original_id), creándola si no existe.
+//  · ADMIN (Joaquín) puede elegir corregir el ORIGINAL (error real del registro).
+//  · La revisada NUNCA descuenta stock (lo hace solo el original, en el servidor).
+//  · Visto bueno de Calidad = firma manuscrita + nombre + fecha y hora en la
+//    revisada (revisado_calidad); el original se marca tiene_revision.
+//  · Quitar el visto bueno = borrar la revisada y dejar el original pendiente.
+// ═══════════════════════════════════════════════════════════════════════════
+var PE=null;   // {p: copia que se edita, orig: original, rev: revisada existente o null}
+function ptClon(o){ return JSON.parse(JSON.stringify(o||{})); }
+function ptEsAdmin(){ return CU && rolTiene(CU.rol,'ADMIN') && !rolTiene(CU.rol,'CALIDAD'); }
+function ptSello(){ try{ return new Intl.DateTimeFormat('es-ES',{timeZone:'Europe/Madrid',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date()).replace(',',''); }catch(e){ var d=new Date(); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes()); } }
+function ptGet(o,path){ return path.split('.').reduce(function(a,k){ return (a==null)?undefined:a[k]; }, o); }
+function ptSet(o,path,v){ var ks=path.split('.'), x=o; for(var i=0;i<ks.length-1;i++){ var k=ks[i]; if(x[k]==null||typeof x[k]!=='object') x[k]=/^\d+$/.test(ks[i+1])?[]:{}; x=x[k]; } x[ks[ks.length-1]]=v; }
+// Secciones del parte (las mismas del papel FOR 08-01)
+var PE_SEC=[
+  {t:'Datos generales', f:[['cuba','Cuajada nº'],['cuba_fisica','Cuba física'],['tipo','Tipo de queso'],['variedad','Variedad'],['lote_queso','Lote'],['operario','Quesero']]},
+  {t:'Leche', f:[['lvaca','Litros vaca','n'],['lcabra','Litros cabra','n'],['loveja','Litros oveja','n'],['litros','Litros total','n'],['tanque','Tanque'],['tanque_vaca','Tanque vaca'],['tanque_cabra','Tanque cabra'],['tanque_oveja','Tanque oveja'],['ph','pH','n'],['dornic_leche','ºD','n'],['temp','TºC','n']]},
+  {t:'Pasteurización', f:[['pasteurizacion.valvula','Válvula desvío (C/I)'],['pasteurizacion.fosfatasa','Fosfatasa (P/N)'],['pasteurizacion.temp','Temperatura ºC','n'],['pasteurizacion.tiempo','Tiempo (min)','n'],['pasteurizacion.cruda','Cruda','chk']]},
+  {t:'Auxiliares de fabricación', f:[['aux_meta.hadicion','Hora adición'],['aux_meta.ph','pH','n'],['aux_meta.temp','TºC','n']], lista:'auxiliares', cat:'AUXILIAR FABRICACION'},
+  {t:'CO2', f:[['co2.caudal_lh','Caudal (Nl/min)','n'],['co2.tiempo_seg','Tiempo (s)','n'],['co2.proveedor','Proveedor'],['co2.lote','Lote'],['co2.caducidad','Caducidad','d']]},
+  {t:'Fermentos lácticos', f:[['ferm_meta.hadicion','Hora adición'],['ferm_meta.ph','pH','n'],['ferm_meta.temp','TºC','n']], lista:'fermentos', cat:'FERMENTO'},
+  {t:'Coagulación', f:[['coag.hadicion','Hora adición'],['coag.ph','pH','n'],['coag.temp','TºC','n'],['coag.hc','Hora de corte'],['coag.total','Coag. total (min)','n'],
+     ['cuajo.nombre','Cuajo'],['cuajo.dosis_ml_1000L','Dosis/1000 L','n'],['cuajo.consumo_total','Dosis utilizada','n'],['cuajo.proveedor','Proveedor'],['cuajo.lote','Lote'],['cuajo.caducidad','Caducidad','d']]},
+  {t:'Desuerado en cuba', f:[['desuerado.rec_hi','Recal. hora inicial'],['desuerado.rec_ti','Recal. TºC inicial','n'],['desuerado.rec_ph','Recal. pH','n'],['desuerado.rec_dornic','ºD suero','n'],['desuerado.rec_hf','Recal. hora final'],['desuerado.rec_tf','Recal. TºC final','n'],
+     ['desuerado.lavado_metodo','Lavado · método'],['desuerado.lavado_hi','Lavado hora inicial'],['desuerado.lavado_hf','Lavado hora final'],['desuerado.lavado_temp','Lavado TºC','n'],['desuerado.lavado_cantidad','Lavado cantidad (L)','n'],
+     ['desuerado.agit_hi','Agitación hora inicial'],['desuerado.agit_hf','Agitación hora final'],['desuerado.agit_total','Agitación total (min)','n']]},
+  {t:'Moldeo', f:[['moldeo.hi','Hora inicial'],['moldeo.ph','pH','n'],['moldeo.temp','TºC','n'],['moldeo.hf','Hora final']]},
+  {t:'Prensado', f:[], lista:'prensados', cols:[['formato','Formato'],['programa','Programa'],['rampa_min','Rampa (min)','n'],['mantenimiento_min','Mantenim. (min)','n'],['bar_inicial','Bar inicial','n'],['bar_final','Bar final','n']]},
+  {t:'Desmoldeo', f:[], lista:'desmoldeos', cols:[['formato','Formato'],['hi','Hora inicial'],['temp','TºC','n'],['ph','pH','n'],['hf','Hora final'],['temp_final','TºC final','n'],['ph_final','pH final','n']]},
+  {t:'Salmuera', f:[], lista:'salmueras', cols:[['formato','Formato'],['hi','Hora inicial'],['hf','Hora final']]},
+  {t:'Piezas fabricadas', f:[['piezas.3kg','3 kg','n'],['piezas.2kg','2 kg','n'],['piezas.1kg','1 kg','n'],['piezas.05kg','½ kg','n'],['piezas.barra','Barras','n'],['piezas.gigante','Gigante','n']]},
+  {t:'Caseínas', f:[['caseinas.serie','Serie'],['caseinas.primera','Primera'],['caseinas.ultima','Última'],['caseinas.total','Total','n']]},
+  {t:'Acciones correctoras', f:[['observaciones','Acciones correctoras / observaciones','ta']]}
+];
+var PE_ING=[['nombre','Nombre'],['dosis_ml_1000L','Dosis/1000 L','n'],['consumo_total','Dosis utilizada','n'],['proveedor','Proveedor'],['lote','Lote'],['caducidad','Caducidad','d']];
+function ptEditar(ver){
+  if(soloMirar()) return;
+  var orig=ptEsRev(ver)?(PT.rows.filter(function(x){ return String(x.id)===String(ver.original_id||ver.id_original||''); })[0]||null):ver;
+  var rev=orig?ptRevDe(orig):ver;
+  function abrir(base, soloOriginal){ PE={p:ptClon(base), orig:orig, rev:rev, soloOrig:!!soloOriginal}; cerrarFicha(); VISTA_PE=true; pePintar(); }
+  // Si ya hay revisión de Calidad, se edita ESA (si no, se perderían sus cambios).
+  if(!ptEsRev(ver) && rev && ptEsRev(rev)){
+    if(ptEsAdmin()) return peElegir('¿Qué quieres editar?', 'Este parte ya tiene <b>revisión de Calidad</b>'+(rev.revisado_calidad===true?' (firmada por '+esc(rev.revisado_calidad_por||'')+')':' (sin firmar)')+'.',
+      [{t:'La revisión de Calidad', s:'Lo normal', v:'rev'},{t:'El ORIGINAL del quesero', s:'Solo para corregir un error real del registro', v:'orig'}],
+      function(v){ if(v==='orig') abrir(ver, true); else abrir(rev); });
+    return abrir(rev);
+  }
+  abrir(ver);
+}
+var VISTA_PE=false;
+function peInput(path, tipo, v){
+  v=(v==null)?'':v;
+  if(tipo==='chk') return '<input type="checkbox" data-k="'+path+'"'+(v===true||v==='true'||v==='SI'?' checked':'')+'>';
+  if(tipo==='ta') return '<textarea data-k="'+path+'" rows="2">'+esc(v)+'</textarea>';
+  if(tipo==='d'){ var dk=diaKey(v)||''; return '<input type="date" data-k="'+path+'" data-t="d" value="'+esc(dk)+'">'; }
+  return '<input data-k="'+path+'"'+(tipo==='n'?' data-t="n" inputmode="decimal"':'')+' value="'+esc(v)+'">';
+}
+function peLotes(cat){ var o={}; (MAT.stock||[]).forEach(function(s){ var c=nrm(s.CATEGORIA||s['CATEGORÍA']||s.categoria); if(!cat||c===cat){ var a=String(s.ARTICULO||s['ARTÍCULO']||s.articulo||'').trim(); if(a) o[a]=1; } }); return Object.keys(o).sort(); }
+function pePintar(){
+  var p=PE.p, esRev=ptEsRev(p), firm=esRev&&p.revisado_calidad===true;
+  $('t-tit').textContent='Parte '+ptFecha(p.fecha)+' · '+(p.tipo||'')+(p.cuba?' · cuajada '+p.cuba:'');
+  $('t-sub').textContent=esRev?('Editando la versión REVISADA por Calidad'+(firm?' · firmada por '+(p.revisado_calidad_por||'')+' '+(p.revisado_calidad_ts||''):' · sin firmar')):'Editando a partir del ORIGINAL del quesero (el original no se toca: los cambios van a la revisión de Calidad)';
+  var h='<div class="pe-bar"><button class="btn" id="pe-volver">← Volver a la lista</button><div style="flex:1"></div>'
+    +'<button class="btn" id="pe-imp">🖨 Imprimir</button>'
+    +(PE.rev&&PE.rev.revisado_calidad===true?'<button class="btn" id="pe-quitar">Quitar visto bueno</button>':'')
+    +'<button class="btn" id="pe-firmar">✅ Visto bueno de Calidad (firmar)</button>'
+    +'<button class="btn pri" id="pe-guardar">💾 Guardar cambios</button></div>'
+    +'<div id="pe-err" class="aviso" style="display:none;background:var(--bad-soft);border-color:var(--bad);color:var(--bad)"></div>'
+    +'<div class="pe-grid">';
+  PE_SEC.forEach(function(sc, si){
+    h+='<div class="card pe-card'+(sc.lista?' pe-ancha':'')+'"><h3>'+esc(sc.t)+'</h3>';
+    if(sc.f.length){ h+='<div class="pe-f">'; sc.f.forEach(function(f){ h+='<label class="fld'+(f[2]==='ta'?' full':'')+'">'+esc(f[1])+peInput(f[0],f[2],ptGet(p,f[0]))+'</label>'; }); h+='</div>'; }
+    if(sc.lista){
+      var cols=sc.cols||PE_ING, l=ptGet(p,sc.lista)||[];
+      h+='<table class="lin pe-lin"><thead><tr>'+cols.map(function(c){ return '<th>'+esc(c[1])+'</th>'; }).join('')+'<th></th></tr></thead><tbody>';
+      l.forEach(function(x,i){ h+='<tr>'+cols.map(function(c){ return '<td>'+peInput(sc.lista+'.'+i+'.'+c[0], c[2], (x||{})[c[0]])+'</td>'; }).join('')+'<td><button class="btn" data-quita="'+sc.lista+'|'+i+'" title="Quitar la fila">✕</button></td></tr>'; });
+      h+='</tbody></table><button class="btn" data-mas="'+sc.lista+'" style="margin-top:6px">➕ Añadir fila</button>';
+      if(sc.lista==='auxiliares' && (p.otrosAuxiliares||[]).length){
+        h+='<div style="font-size:13px;color:var(--muted);margin-top:8px">Otros auxiliares</div><table class="lin pe-lin"><tbody>';
+        p.otrosAuxiliares.forEach(function(x,i){ h+='<tr>'+PE_ING.map(function(c){ return '<td>'+peInput('otrosAuxiliares.'+i+'.'+c[0], c[2], (x||{})[c[0]])+'</td>'; }).join('')+'<td><button class="btn" data-quita="otrosAuxiliares|'+i+'">✕</button></td></tr>'; });
+        h+='</tbody></table>';
+      }
+    }
+    h+='</div>';
+  });
+  h+='</div><div class="pe-bar" style="margin-top:12px"><div style="flex:1"></div><button class="btn pri" id="pe-guardar2">💾 Guardar cambios</button></div>';
+  h+='<datalist id="dl-prov-pe">'+catalogo().provs.map(function(x){ return '<option value="'+esc(x)+'">'; }).join('')+'</datalist>';
+  $('cont').innerHTML=h;
+  if(!MAT.cargado) cargarMat();
+  $('cont').querySelectorAll('input[data-k$=".proveedor"]').forEach(function(i){ i.setAttribute('list','dl-prov-pe'); });
+  // Lotes: al entrar en la casilla, los lotes con stock de ese artículo
+  $('cont').querySelectorAll('input[data-k$=".lote"]').forEach(function(inp){ inp.onfocus=function(){
+    var base=inp.getAttribute('data-k').replace(/\.lote$/,''), nom=String(($('cont').querySelector('[data-k="'+base+'.nombre"]')||{}).value||'').trim();
+    var dl=document.getElementById('dl-lote-pe'); if(!dl){ dl=document.createElement('datalist'); dl.id='dl-lote-pe'; document.body.appendChild(dl); }
+    var ls=(MAT.stock||[]).filter(function(s){ return nom && nrm(s.ARTICULO||s['ARTÍCULO']||s.articulo)===nrm(nom); });
+    dl.innerHTML=ls.map(function(s){ var st=num(s['STOCK ACTUAL']); return '<option value="'+esc(String(s.LOTE||s.lote||''))+'">'+esc((s.PROVEEDOR||'')+' · queda '+fNum(st)+' '+(s.UNIDAD||''))+'</option>'; }).join('');
+    inp.setAttribute('list','dl-lote-pe'); }; });
+  $('pe-volver').onclick=function(){ dosBotones('¿Salir del parte?','Si has cambiado algo y no has pulsado <b>Guardar cambios</b>, se pierde.','Salir sin guardar','Seguir editando', function(){ PE=null; VISTA_PE=false; vistaPartes(); }); };
+  $('pe-imp').onclick=function(){ peRecoger(); imprimirHTML(PARTE_IMPR(PE.p)); };
+  $('pe-guardar').onclick=$('pe-guardar2').onclick=function(){ peGuardar(false); };
+  $('pe-firmar').onclick=function(){ peFirmar(); };
+  if($('pe-quitar')) $('pe-quitar').onclick=peQuitarVB;
+  $('cont').querySelectorAll('[data-quita]').forEach(function(b){ b.onclick=function(){ peRecoger(); var x=b.getAttribute('data-quita').split('|'); (PE.p[x[0]]||[]).splice(+x[1],1); pePintar(); }; });
+  $('cont').querySelectorAll('[data-mas]').forEach(function(b){ b.onclick=function(){ peRecoger(); var k=b.getAttribute('data-mas'); (PE.p[k]=PE.p[k]||[]).push({}); pePintar(); }; });
+}
+function peRecoger(){
+  $('cont').querySelectorAll('[data-k]').forEach(function(el){
+    var k=el.getAttribute('data-k'), viejo=ptGet(PE.p,k), v;
+    if(el.type==='checkbox') v=el.checked;
+    else { v=String(el.value||'').trim(); if(el.getAttribute('data-t')==='n' && v!=='' && !isNaN(parseFloat(v.replace(',','.'))) && /^-?[\d.,]+$/.test(v)) v=parseFloat(v.replace(',','.')); }
+    if((viejo==null||viejo==='') && v==='') return;
+    ptSet(PE.p,k,v);
+  });
+}
+function peValidar(p){
+  var f=[], fo=String((p.pasteurizacion||{}).fosfatasa===true?'P':((p.pasteurizacion||{}).fosfatasa||'')).toUpperCase().trim();
+  if(fo!=='P' && fo!=='N' && fo!=='POSITIVA' && fo!=='NEGATIVA') f.push('Fosfatasa alcalina: pon P (positiva) o N (negativa) en Pasteurización.');
+  function lista(l,et){ (l||[]).forEach(function(x,i){ var n=String((x&&x.nombre)||'').trim(), c=parseFloat(x&&x.consumo_total)||0;
+    if(!n){ f.push(et+' '+(i+1)+': sin nombre (rellénalo o quita la fila con ✕).'); return; }
+    if(c>0 && !String(x.lote||'').trim()) f.push(n+' ('+et.toLowerCase()+', dosis '+c+'): falta el LOTE.'); }); }
+  lista(p.auxiliares,'Auxiliar'); lista(p.fermentos,'Fermento');
+  if(p.cuajo && String(p.cuajo.nombre||'').trim() && (parseFloat(p.cuajo.consumo_total)||0)>0 && !String(p.cuajo.lote||'').trim()) f.push(p.cuajo.nombre+' (cuajo): falta el LOTE.');
+  var ex=(p.fermentos||[]).filter(function(x){ var s=String((x&&x.nombre)||'').toUpperCase().replace(/[\s-]/g,''); return (parseFloat(x&&x.consumo_total)||0)>0 && (/^R60[34]/.test(s)||/^CC0?8/.test(s)); }).map(function(x){ return x.nombre; });
+  ex=ex.filter(function(n,i){ return ex.indexOf(n)===i; });
+  if(ex.length>=2) f.push('Hay varios fermentos excluyentes con dosis ('+ex.join(', ')+'). Normalmente solo se usa uno.');
+  return f;
+}
+function ptPost(o){
+  return fetch(API_URL,{method:'POST', body:JSON.stringify(Object.assign({}, o, {_SHEET:'PARTES', _UPDATE:true, ID:o.id}))})
+    .then(function(r){ return r.json(); }).then(function(j){ if(!j||!j.ok) throw new Error((j&&j.error)||'el servidor no lo ha confirmado'); return j; });
+}
+function ptPonerLocal(o){ var i=-1; PT.rows.forEach(function(x,k){ if(String(x.id)===String(o.id)) i=k; }); if(i>=0) PT.rows[i]=o; else PT.rows.push(o); }
+// Construye/actualiza la REVISADA con lo que hay en el editor.
+function peRevisada(){
+  var e=PE.p, orig=PE.orig, prev=PE.rev && ptEsRev(PE.rev) ? PE.rev : null;
+  if(ptEsRev(e)) return e;
+  var r=ptClon(e);
+  r.version='revisado'; r.original_id=orig.id; r.id=prev?prev.id:('PR-'+Date.now());
+  ['firma_calidad','revisado_calidad','revisado_calidad_por','revisado_calidad_ts'].forEach(function(k){ r[k]=prev?prev[k]:(k==='revisado_calidad'?false:''); });
+  delete r.tiene_revision;
+  return r;
+}
+function peGuardar(trasFirma, cb){
+  peRecoger();
+  var e=PE.p, quien=(CU&&CU.n)||'';
+  function hecho(msg){ PE.p=ptClon(PE.p); var b=$('pe-guardar'); if(b){ b.disabled=false; b.textContent='💾 Guardar cambios'; } if(cb) cb(); else { pePintar(); setTimeout(function(){ alert(msg); },50); } }
+  function falla(err){ var b=$('pe-guardar'); if(b){ b.disabled=false; b.textContent='💾 Guardar cambios'; } $('pe-err').textContent='⚠️ No se ha guardado: '+err.message+'. Vuelve a intentarlo.'; $('pe-err').style.display='block'; window.scrollTo(0,0); }
+  function comoRevision(){
+    var r=peRevisada(); r.modificado_por=quien; r.fecha_modificado=new Date().toISOString();
+    var b=$('pe-guardar'); if(b){ b.disabled=true; b.textContent='Guardando…'; }
+    ptPost(r).then(function(){
+      ptPonerLocal(r); PE.rev=r; PE.p=r;
+      if(PE.orig && !PE.orig.tiene_revision){ PE.orig.tiene_revision=true; PE.orig.version=PE.orig.version||'original'; return ptPost(PE.orig).then(function(){ ptPonerLocal(PE.orig); }); }
+    }).then(function(){ hecho('✅ Guardado en la revisión de Calidad. El original queda como lo cerró el quesero.'); }).catch(falla);
+  }
+  function comoOriginal(){
+    e.modificado_por=quien; e.fecha_modificado=new Date().toISOString();
+    var b=$('pe-guardar'); if(b){ b.disabled=true; b.textContent='Guardando…'; }
+    ptPost(e).then(function(){ ptPonerLocal(e); PE.orig=e; hecho('✅ Original corregido.'); }).catch(falla);
+  }
+  if(ptEsRev(e)) return comoRevision();
+  if(PE.soloOrig && !trasFirma) return comoOriginal();
+  if(ptEsAdmin() && !trasFirma){
+    return peElegir('¿Dónde guardas los cambios?', 'Estás editando el <b>original</b> que cerró el quesero.',
+      [{t:'Guardar como revisión de Calidad', s:'El original no se toca (lo normal)', v:'rev'},
+       {t:'Corregir el ORIGINAL', s:'Solo si es un error real del registro. Cambia lo que cerró el quesero.', v:'orig'}],
+      function(v){ if(v==='orig') comoOriginal(); else comoRevision(); });
+  }
+  comoRevision();
+}
+function peElegir(titulo, texto, ops, cb){
+  var v=document.createElement('div');
+  v.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center';
+  v.innerHTML='<div style="background:#fff;border-radius:12px;padding:20px 22px;max-width:520px;box-shadow:0 10px 40px rgba(0,0,0,.3)"><h3 style="margin:0 0 8px;color:var(--brand)">'+titulo+'</h3><div style="font-size:15px;margin-bottom:14px">'+texto+'</div>'
+    +ops.map(function(o,i){ return '<button class="btn pri" data-i="'+i+'" style="display:block;width:100%;text-align:left;margin-bottom:8px;padding:10px 14px"><b>'+o.t+'</b>'+(o.s?'<br><small style="font-weight:500">'+o.s+'</small>':'')+'</button>'; }).join('')
+    +'<button class="btn" data-x="1" style="width:100%">Volver sin guardar</button></div>';
+  document.body.appendChild(v);
+  v.onclick=function(ev){ var b=ev.target.closest('button'); if(!b) return; v.remove(); if(b.getAttribute('data-x')) return; cb(ops[+b.getAttribute('data-i')].v); };
+}
+// Visto bueno de Calidad: firma manuscrita en un recuadro (ratón o dedo).
+function peFirmar(){
+  peRecoger();
+  var falt=peValidar(PE.p);
+  if(falt.length){ $('pe-err').innerHTML='No se puede firmar todavía. Revisa:<br>• '+falt.map(esc).join('<br>• '); $('pe-err').style.display='block'; window.scrollTo(0,0); return; }
+  var v=document.createElement('div');
+  v.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center';
+  v.innerHTML='<div style="background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 10px 40px rgba(0,0,0,.3)"><h3 style="margin:0 0 6px;color:var(--brand)">Visto bueno de Calidad</h3>'
+    +'<div style="font-size:14px;margin-bottom:8px">Firma dentro del recuadro con el ratón. Firma: <b>'+esc((CU&&CU.n)||'')+'</b> · '+esc(ptSello())+'</div>'
+    +'<canvas id="pe-cv" width="520" height="190" style="border:2px dashed #c9b9a6;border-radius:8px;touch-action:none;cursor:crosshair;display:block;background:#fff"></canvas>'
+    +'<div style="display:flex;gap:8px;margin-top:10px"><button class="btn" id="pe-cv-b">Borrar</button><div style="flex:1"></div><button class="btn" id="pe-cv-no">Volver sin firmar</button><button class="btn pri" id="pe-cv-ok">✅ Firmar y dar el visto bueno</button></div></div>';
+  document.body.appendChild(v);
+  var cv=$('pe-cv'), cx=cv.getContext('2d'), dib=false, hay=false;
+  cx.lineWidth=2.4; cx.lineCap='round'; cx.strokeStyle='#1a1a1a';
+  function pt(e){ var r=cv.getBoundingClientRect(); return {x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height}; }
+  cv.onpointerdown=function(e){ dib=true; var q=pt(e); cx.beginPath(); cx.moveTo(q.x,q.y); cv.setPointerCapture(e.pointerId); };
+  cv.onpointermove=function(e){ if(!dib) return; var q=pt(e); cx.lineTo(q.x,q.y); cx.stroke(); hay=true; };
+  cv.onpointerup=cv.onpointerleave=function(){ dib=false; };
+  $('pe-cv-b').onclick=function(){ cx.clearRect(0,0,cv.width,cv.height); hay=false; };
+  $('pe-cv-no').onclick=function(){ v.remove(); };
+  $('pe-cv-ok').onclick=function(){
+    if(!hay){ alert('Firma dentro del recuadro.'); return; }
+    var img=cv.toDataURL('image/png'); v.remove();
+    var r=peRevisada();
+    r.firma_calidad=img; r.revisado_calidad=true; r.revisado_calidad_por=(CU&&CU.n)||'Calidad'; r.revisado_calidad_ts=ptSello();
+    PE.p=r;
+    peGuardar(true, function(){ pePintar(); setTimeout(function(){ alert('✅ Visto bueno de Calidad firmado. Esta es ahora la versión oficial del parte.'); },50); });
+  };
+}
+function peQuitarVB(){
+  var rev=PE.rev; if(!rev || !ptEsRev(rev)) return;
+  dosBotones('¿Quitar el visto bueno de Calidad?','Se borra la versión revisada y el parte vuelve a quedar <b>pendiente de revisar</b>. El original del quesero no se toca.','Sí, quitar el visto bueno','No, dejarlo', function(){
+    fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'PARTES', _DELETE:true, ID:rev.id, id:rev.id})}).then(function(r){ return r.json(); }).then(function(j){
+      if(!j||!j.ok) throw new Error('el servidor no lo ha confirmado');
+      PT.rows=PT.rows.filter(function(x){ return String(x.id)!==String(rev.id); });
+      var o=PE.orig; if(o){ o.tiene_revision=false; o.revisado_calidad=false; o.revisado_calidad_por=''; o.revisado_calidad_ts=''; o.firma_calidad=''; if(o.version==='revisado') o.version='original'; return ptPost(o).then(function(){ ptPonerLocal(o); }); }
+    }).then(function(){ PE.rev=null; PE.p=ptClon(PE.orig); pePintar(); alert('Visto bueno quitado: el parte está pendiente de revisar.'); })
+      .catch(function(e){ alert('⚠️ No se ha podido quitar: '+e.message); });
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
