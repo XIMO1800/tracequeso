@@ -388,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v47';
+var VER = 'v48';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -2973,7 +2973,7 @@ function ubVigente(u){
 // apunta que está en el picking (incluye la zona de la izquierda al entrar, donde
 // se deja lo que se va a envasar). Se pone desde el móvil (Movimiento / Recolocar)
 // o desde aquí (Recolocar, cuadre, historial).
-var UB_ESP={'CF-PICKING':{sala:'6.CAMARA FRIO', nom:'Picking', ico:'🧺'}, 'CM-PASO':{sala:'7.CAMARA MADURACION', nom:'Zona de paso', ico:'⏳'}}, UB_ESP_ALIAS={'CF-PUERTA':'CF-PICKING'};
+var UB_ESP={'CF-PICKING':{sala:'6.CAMARA FRIO', nom:'Picking', ico:'🧺'}, 'CM-PASO':{sala:'7.CAMARA MADURACION', nom:'Zona de tránsito', ico:'⏳'}}, UB_ESP_ALIAS={'CF-PUERTA':'CF-PICKING'};
 function ubEspVigente(u){
   if(!u || !UB_ESP[u.zona]) return false;
   if(u.fecha && Date.now()-u.fecha < 6*3600*1000) return true;
@@ -3014,7 +3014,7 @@ function vistaUbic(){
     +'<div class="kpi kc" data-k="cf"><span>Ubicados · C. Frío</span><b>'+cf.length+'</b></div>'
     +'<div class="kpi kc" data-k="cm"><span>Ubicados · C. Maduración</span><b>'+cm.length+'</b></div>'
     +'<div class="kpi kc" data-k="pk"><span>🧺 En picking · C. Frío</span><b>'+ubEnEsp('CF-PICKING').length+'</b></div>'
-    +'<div class="kpi kc" data-k="pa"><span>⏳ Zona de paso · C. Mad.</span><b>'+ubEnEsp('CM-PASO').length+'</b></div>'
+    +'<div class="kpi kc" data-k="pa"><span>⏳ En tránsito · C. Mad.</span><b>'+ubEnEsp('CM-PASO').length+'</b></div>'
     +'<div class="kpi"><span>Piezas ubicadas</span><b>'+fmtN(pz)+'</b></div>'
     +'<div class="kpi kc'+(nSin?' aviso':'')+'" data-k="sin"><span>En cámara sin ubicar</span><b>'+nSin+'</b></div>'
     +'<div class="kpi kc'+(nCad?' alerta':'')+'" data-k="cad"><span>Ubicados que ya no están</span><b>'+nCad+'</b></div>'
