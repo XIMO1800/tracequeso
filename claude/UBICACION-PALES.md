@@ -1,6 +1,6 @@
 # Ubicación de palés — móvil y escritorio (lo que hay que saber en cualquier conversación)
 
-Actualizado 02/11/2026 (móvil v545, API 16 + acciones «poner» y «mover», oficina v49). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
+Actualizado 02/11/2026 (móvil v545, API 16 + acciones «poner» y «mover», oficina v50). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
 
 **Acuerdo (01/11/2026):** la ubicación de palés la lleva UNA sola conversación, la de ubicación, tanto en el móvil (index.html) como en la oficina (oficina.html). La conversación de la oficina ya no la toca.
 
@@ -50,7 +50,7 @@ Orden de pestañas (Joaquín, 01/11): Buscar palé · Plano de la cámara · Rec
 00. **Mover entre filas** (v45, con permiso; `ubTabMover`, estado `UBM`): arriba la fila de origen, abajo la de destino (puede ser la misma). Pinchar palé + hueco libre = mover; arrastrar con el ratón = mover; pinchar palé + otro palé = intercambiar; pinchar el número de un pie = seleccionar el pie; «Seleccionar la fila entera». Con varios: «Llevar abajo tal cual» (mismo pie y altura; para «he movido esta fila / estos pies tal cual») o «a los huecos libres desde el fondo». Se guarda con `accion:'mover'` y hay «Deshacer el último cambio». Idea de Joaquín: para corregir en segundos lo que un operario sabe que puso mal, sin mover físicamente 30 palés. En el móvil no se hace así: allí se recoloca escaneando.
 
 0. **Recolocar** (v44, con permiso): se escribe/pega/escanea el palé, se elige zona y fila y se pincha el hueco libre (+). Formulario común `ubFormPoner`; panel `ubPanelPoner(id)`.
-1. **Plano.** Cabe entero en la pantalla, porque el tamaño se calcula por el alto, y la página baja sola hasta el plano. Al pinchar un pie se ve su lista y la fila entera; pinchando el total de una fila, se abre esa fila.
+1. **Plano.** En el panel de un pie (v50), las cabeceras P1…Pn de la fila entera se pueden pinchar para ver otro pie sin cerrar (el pie abierto sale resaltado). Cabe entero en la pantalla, porque el tamaño se calcula por el alto, y la página baja sola hasta el plano. Al pinchar un pie se ve su lista y la fila entera; pinchando el total de una fila, se abre esa fila.
 2. **Buscar palé.** Muestra el código, la fila con el palé marcado y el plano con su pie resaltado. Si no está ubicado, dice en qué sala lo ponen los registros.
 3. **Cuadre con el stock.** Dos listas: «en cámara sin ubicar» (con botón «📍 Ubicar» en cada palé, v44) y «ubicados que ya no están». Muchos «sin ubicar» son palés antiguos con el historial incompleto (antes de octubre no se registraban todos los movimientos): se irán regularizando o saldrán al venderse.
 5. **Historial del palé** (`verPale`): arriba, su ubicación con «Ver en el plano» y «Cambiar», o «Dar ubicación» (`pvUbic`).

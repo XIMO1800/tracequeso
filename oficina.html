@@ -388,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v49';
+var VER = 'v50';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -3159,12 +3159,13 @@ function ubRango(lista){
   });
 }
 function ubPz(u){ var e=ubEstadoDe(u); return e?e.pz:(parsearId(u.id).piezas||0); }
-function ubFilaHTML(z,f,marcaId,poner){
+function ubFilaHTML(z,f,marcaId,poner,pieSel){
+  // pieSel (v50): en el panel de un pie, las cabeceras P1..Pn se pueden pinchar para ver otro pie
   // poner (v44): ID del palé al que se da hueco → los huecos libres se pueden pinchar (data-poner)
   var pies={}, nA=4;
   ubVigentes().filter(function(u){ return u.zona===z && u.fila===f; }).forEach(function(u){ if(u.altura<1) return; (pies[u.pie]=pies[u.pie]||{})[u.altura]=u; if(u.altura>nA) nA=u.altura; });
   var orden=ubOrdenPies(z), pas=UB_ZONAS[z].pasillo;
-  var h='<table class="ub-fila"><tr><th></th>'+(pas==='izq'?'<th class="pas">pasillo</th>':'')+orden.map(function(p){ return '<th>P'+p+'</th>'; }).join('')+(pas==='der'?'<th class="pas">pasillo</th>':'')+'</tr>';
+  var h='<table class="ub-fila"><tr><th></th>'+(pas==='izq'?'<th class="pas">pasillo</th>':'')+orden.map(function(p){ return pieSel===undefined?'<th>P'+p+'</th>':'<th data-ubpie="'+p+'" title="Ver los palés del pie '+p+'" style="cursor:pointer;text-decoration:underline dotted;'+(p===pieSel?'background:var(--brand);color:#fff;border-radius:6px;':'')+'">P'+p+'</th>'; }).join('')+(pas==='der'?'<th class="pas">pasillo</th>':'')+'</tr>';
   for(var a=1;a<=nA;a++){
     h+='<tr><th>A'+a+'</th>'+(pas==='izq'?'<td class="pas"></td>':'');
     orden.forEach(function(p){
@@ -3219,8 +3220,9 @@ function ubPanelPie(z,f,p){
     l.forEach(function(u,k){ var e=ubEstadoDe(u), fab=fechaFabKey(u.id);
       h+='<tr data-k="'+k+'"><td><b>A'+u.altura+'</b>'+(u.altura===1?' <small>arriba</small>':'')+'</td><td class="mono">'+esc(u.id)+'</td><td>'+esc(clavePalet(u.id))+'</td><td class="r">'+(e?e.pz:(parsearId(u.id).piezas||''))+'</td><td>'+(fab?dmy(fab):'')+'</td><td>'+(u.fecha?fDia(new Date(u.fecha)):'')+(u.quien?' · '+esc(u.quien):'')+'</td></tr>'; });
     h+='</tbody></table><p style="font-size:13px;color:var(--muted)">Pincha un palé para ver su historial.</p>'; }
-  h+='<h3 class="pbt">Fila '+ubCod(z,f)+' entera <small>vista desde la puerta</small></h3>'+ubFilaHTML(z,f);
+  h+='<h3 class="pbt">Fila '+ubCod(z,f)+' entera <small>vista desde la puerta · pincha P1, P2… para ver otro pie</small></h3>'+ubFilaHTML(z,f,null,null,p);
   $('p-body').innerHTML=h;
+  $('p-body').querySelectorAll('th[data-ubpie]').forEach(function(th){ th.onclick=function(){ ubPanelPie(z,f,+th.getAttribute('data-ubpie')); }; });
   var tb=$('p-body').querySelector('tbody'); if(tb) tb.onclick=function(ev){ var tr=ev.target.closest('tr'); if(tr) verPale(ubIdReg(l[+tr.getAttribute('data-k')].id)); };
   ubEnlFila($('p-body'));
   $('panel').hidden=false; $('velo').hidden=false;
