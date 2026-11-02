@@ -388,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v51';
+var VER = 'v52';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -1834,6 +1834,31 @@ function fichaEntrada(e, lote){
   if(fotoId(foto)) verFoto(foto, $('p-foto'));
   if(lote && $('p-volver')) $('p-volver').onclick=function(){ fichaLote(lote); };
 }
+function fichaSalida(s){
+  var lote=String(gEnt(s,['LOTE','lote'])||'').trim(), art=String(gEnt(s,['ARTICULO','ARTÍCULO','articulo'])||'').trim();
+  var mot=String(s.MOTIVO||s.motivo||''), partes=mot.split(' · ');
+  var st=MAT.stock.filter(function(x){ return nrm(x.ARTICULO||x['ARTÍCULO']||x.articulo)===nrm(art) && nrm(x.LOTE||x.lote)===nrm(lote); })[0]||{};
+  var u=String(gEnt(s,['UNIDAD','unidad'])||st.UNIDAD||st.unidad||'');
+  function val(v){ v=String(v==null?'':v).trim(); return v?esc(v):'<span class="sinv">—</span>'; }
+  $('p-tit').textContent='Salida manual · '+art;
+  $('p-sub').textContent='Lote '+lote+' · '+dmy(diaKey(s.FECHA||s.fecha));
+  var _vl=MAT._fichaLote;
+  var h=(_vl?'<p style="margin:0 0 8px"><button class="btn" id="p-volver">← Volver al lote '+esc(lote)+'</button></p>':'')
+    +'<div class="ficha">'
+    +[['Fecha', val(dmy(diaKey(s.FECHA||s.fecha)))],
+      ['Motivo', val(partes[1]||mot)],
+      ['Observaciones', val(partes.slice(2).join(' · '))],
+      ['Categoría', val(gEnt(s,['CATEGORIA','CATEGORÍA','categoria']))],
+      ['Artículo', val(art)],
+      ['Proveedor', val(gEnt(s,['PROVEEDOR','proveedor']))],
+      ['Lote', val(lote)],
+      ['Cantidad', '<b>−'+fNum(s.CANTIDAD||s.cantidad)+'</b> '+esc(u)],
+      ['Hecha por', val(gEnt(s,['OPERARIO','operario']))],
+      ['Registro', '<span class="mono">'+val(s['ID PARTE'])+'</span>']].map(function(x){ return '<div class="k">'+x[0]+'</div><div class="v">'+x[1]+'</div>'; }).join('')
+    +'</div><p style="font-size:13px;color:var(--muted);margin-top:10px">Salida dada a mano desde Material auxiliar → Salidas y consumos. Ya está descontada del stock del lote.</p>';
+  $('p-body').innerHTML=h; $('panel').hidden=false; $('velo').hidden=false;
+  if(_vl && $('p-volver')) $('p-volver').onclick=function(){ fichaLote(_vl); };
+}
 // Del consumo al registro que lo generó: un parte (P-…) abre el parte de
 // fabricación; un envasado u otro registro (ID-…) abre su ficha.
 function abrirOrigen(s){
@@ -1845,6 +1870,10 @@ function abrirOrigen(s){
     window.open('partes-fabricacion.html?parte='+encodeURIComponent(id)+(f?('&fecha='+encodeURIComponent(f)):''),'_blank');
     return;
   }
+  // (v52) Una SALIDA MANUAL (SM-…: regularización, merma, caducado…) no es un
+  // registro de la hoja de registros: es la propia salida de material. Se
+  // enseña su ficha aquí mismo (Joaquín, 02/11: salía «no está en este ordenador»).
+  if(id.indexOf('SM-')===0 || m.indexOf('SALIDA MANUAL')===0){ fichaSalida(s); return; }
   var r=ROWS.filter(function(x){ return String(x['ID']||'').trim()===id; })[0];
   if(r){ abrirFicha(r); return; }
   alert('Registro '+id+'\n\nNo está entre los datos de este ordenador. Pulsa "Actualizar datos" y vuelve a intentarlo.');
