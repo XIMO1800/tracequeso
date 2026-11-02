@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.480</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.481</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4801,6 +4801,10 @@ function _fechaEsp(v){
   return s;
 }
 
+// (v2.6.481) En las firmas del quesero y del operario de sala, solo el nombre y
+// el DÍA, sin la hora (Joaquín, 02/11: muchos partes los pasa él después desde
+// el papel y la hora de firma no es la real). La de Calidad sí lleva la hora.
+function _fFirmaDia(ts){ return String(ts||'').replace(/[ ,]+\d{1,2}:\d{2}(:\d{2})?\s*$/,'').trim(); }
 function _htmlParteImpresion(p){
   function e(x){ if(x===undefined||x===null) return ''; return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function n(x){ return (x===undefined||x===null||x==='')?'':e(x); }
@@ -4910,9 +4914,9 @@ function _htmlParteImpresion(p){
   H.push('<table><tr><td class="lft" style="width:192mm"><span class="lbl">Nº Caseínas:</span> '+casTxt+'</td></tr></table>');
   H.push('<table class="mt"><tr><td class="lft" style="width:192mm;height:34px"><span class="lbl">Acciones correctoras:</span> '+n(p.observaciones)+'</td></tr></table>');
   var firmaImg = p.firma_quesero ? ('<img src="'+p.firma_quesero+'">') : '';
-  var firmaNom = p.firma_quesero_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_quesero_nombre)+(p.firma_quesero_ts?(' · '+e(p.firma_quesero_ts)):'')+'</div>') : '';
+  var firmaNom = p.firma_quesero_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_quesero_nombre)+(p.firma_quesero_ts?(' · '+e(_fFirmaDia(p.firma_quesero_ts))):'')+'</div>') : '';
   var salaImg = p.firma_sala ? ('<img src="'+p.firma_sala+'">') : '';
-  var salaNom = p.firma_sala_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_sala_nombre)+(p.firma_sala_ts?(' · '+e(p.firma_sala_ts)):'')+'</div>') : '';
+  var salaNom = p.firma_sala_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_sala_nombre)+(p.firma_sala_ts?(' · '+e(_fFirmaDia(p.firma_sala_ts))):'')+'</div>') : '';
   var vbCalidad = p.revisado_calidad ? ((p.firma_calidad?('<img src="'+p.firma_calidad+'">'):'')+'<div class="vb"><b>✓ Revisado por Calidad</b><br>'+e(p.revisado_calidad_por||'Calidad')+(p.revisado_calidad_ts?(' · '+e(p.revisado_calidad_ts)):'')+'</div>') : '';
   H.push('<div class="firmas">');
   H.push('<div class="firmabox"><span class="lbl">FIRMA QUESERO:</span>'+firmaImg+firmaNom+'</div>');
@@ -8903,7 +8907,7 @@ function _verParteRender(id){
   if(p.firma_quesero){
     fb += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:4px">Firma del quesero'+(p.firma_quesero_nombre?(' · '+p.firma_quesero_nombre):'')+'</div>';
     fb += '<div style="border:1px solid var(--border);border-radius:8px;background:#fff;padding:6px;text-align:center"><img src="'+p.firma_quesero+'" alt="Firma" style="max-width:100%;max-height:120px"></div>';
-    if(p.firma_quesero_ts) fb += '<div style="font-size:0.72rem;color:var(--text3);margin-top:4px">Firmado: '+p.firma_quesero_ts+'</div>';
+    if(p.firma_quesero_ts) fb += '<div style="font-size:0.72rem;color:var(--text3);margin-top:4px">Firmado: '+_fFirmaDia(p.firma_quesero_ts)+'</div>';
     if(puedeEditarParte(p)) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="firmarQuesero(\''+p.id+'\')">✍️ Volver a firmar (quesero)</button>';
   } else {
     fb += '<div style="font-size:0.82rem;color:var(--text3);padding:8px;background:var(--bg2);border-radius:8px">Sin firma del quesero.</div>';
@@ -8913,7 +8917,7 @@ function _verParteRender(id){
   if(p.firma_sala){
     fb += '<div style="font-size:0.78rem;color:var(--text3);margin:10px 0 4px">Firma del operario de sala'+(p.firma_sala_nombre?(' · '+p.firma_sala_nombre):'')+'</div>';
     fb += '<div style="border:1px solid var(--border);border-radius:8px;background:#fff;padding:6px;text-align:center"><img src="'+p.firma_sala+'" alt="Firma sala" style="max-width:100%;max-height:120px"></div>';
-    if(p.firma_sala_ts) fb += '<div style="font-size:0.72rem;color:var(--text3);margin-top:4px">Firmado: '+p.firma_sala_ts+'</div>';
+    if(p.firma_sala_ts) fb += '<div style="font-size:0.72rem;color:var(--text3);margin-top:4px">Firmado: '+_fFirmaDia(p.firma_sala_ts)+'</div>';
     if(puedeEditarParte(p)) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="firmarSala(\''+p.id+'\')">✍️ Volver a firmar (operario de sala)</button>';
   } else {
     fb += '<div style="font-size:0.82rem;color:var(--text3);padding:8px;background:var(--bg2);border-radius:8px;margin-top:10px">Sin firma del operario de sala.</div>';
@@ -8958,7 +8962,7 @@ function _bloqueFirmasHTML(p, soloLectura){
   if(p.firma_quesero){
     fb += '<div style="font-size:0.78rem;color:var(--text3);margin-bottom:4px">Firma del quesero'+(p.firma_quesero_nombre?(' · '+p.firma_quesero_nombre):'')+'</div>';
     fb += '<div style="border:1px solid var(--border);border-radius:8px;background:#fff;padding:6px;text-align:center"><img src="'+p.firma_quesero+'" alt="Firma" style="max-width:100%;max-height:120px"></div>';
-    if(p.firma_quesero_ts) fb += '<div style="font-size:0.72rem;color:var(--text3);margin-top:4px">Firmado: '+p.firma_quesero_ts+'</div>';
+    if(p.firma_quesero_ts) fb += '<div style="font-size:0.72rem;color:var(--text3);margin-top:4px">Firmado: '+_fFirmaDia(p.firma_quesero_ts)+'</div>';
     if(!soloLectura && puedeEditarParte(p)) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="firmarQuesero(\''+p.id+'\')">✍️ Volver a firmar (quesero)</button>';
   } else {
     fb += '<div style="font-size:0.82rem;color:var(--text3);padding:8px;background:var(--bg2);border-radius:8px">Sin firma del quesero.</div>';
@@ -8968,7 +8972,7 @@ function _bloqueFirmasHTML(p, soloLectura){
   if(p.firma_sala){
     fb += '<div style="font-size:0.78rem;color:var(--text3);margin:10px 0 4px">Firma del operario de sala'+(p.firma_sala_nombre?(' · '+p.firma_sala_nombre):'')+'</div>';
     fb += '<div style="border:1px solid var(--border);border-radius:8px;background:#fff;padding:6px;text-align:center"><img src="'+p.firma_sala+'" alt="Firma sala" style="max-width:100%;max-height:120px"></div>';
-    if(p.firma_sala_ts) fb += '<div style="font-size:0.72rem;color:var(--text3);margin-top:4px">Firmado: '+p.firma_sala_ts+'</div>';
+    if(p.firma_sala_ts) fb += '<div style="font-size:0.72rem;color:var(--text3);margin-top:4px">Firmado: '+_fFirmaDia(p.firma_sala_ts)+'</div>';
     if(!soloLectura && puedeEditarParte(p)) fb += '<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="firmarSala(\''+p.id+'\')">✍️ Volver a firmar (operario de sala)</button>';
   } else {
     fb += '<div style="font-size:0.82rem;color:var(--text3);padding:8px;background:var(--bg2);border-radius:8px;margin-top:10px">Sin firma del operario de sala.</div>';
