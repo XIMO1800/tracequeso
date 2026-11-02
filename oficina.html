@@ -388,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v45';
+var VER = 'v46';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -2579,9 +2579,10 @@ function pvUbic(pid){
   var c=$('pv-ubic'); if(!c) return;
   if(!ubPermitido()){ c.innerHTML=''; return; }
   if(!UB.hora){ if(!UB.cargando) ubCargar(function(){ pvUbic(pid); }); c.innerHTML='<p style="font-size:13px;color:var(--muted)">Mirando su ubicación…</p>'; return; }
-  var u=ubDePale(pid);
+  var u=ubDePale(pid), upk=u?null:ubEspDePale(pid);
   c.innerHTML='<div class="card" style="padding:10px 14px;margin:4px 0 10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">'
-    +(u?'<div>📍 <b>Ubicación</b> <span class="mono" style="font-size:20px;font-weight:800;color:var(--brand)">'+esc(u.codigo)+'</span></div><button class="btn" id="pv-ver">🗺️ Ver en el plano</button><button class="btn" id="pv-cam">✏️ Cambiar</button>'
+    +(upk?'<div>📍 <b>Ubicación</b> <span style="font-size:20px;font-weight:800;color:var(--brand)">'+UB_ESP[upk.zona].ico+' '+UB_ESP[upk.zona].nom+'</span> <small style="color:var(--muted)">('+esc(sl(UB_ESP[upk.zona].sala))+')</small></div><button class="btn" id="pv-cam">✏️ Cambiar</button>':'')
+    +(upk?'':u?'<div>📍 <b>Ubicación</b> <span class="mono" style="font-size:20px;font-weight:800;color:var(--brand)">'+esc(u.codigo)+'</span></div><button class="btn" id="pv-ver">🗺️ Ver en el plano</button><button class="btn" id="pv-cam">✏️ Cambiar</button>'
        :'<div>📍 <b>Sin ubicación en cámara</b></div><button class="btn pri" id="pv-cam">📍 Dar ubicación</button>')
     +'</div>';
   $('pv-cam').onclick=function(){ ubPanelPoner(pid); };
@@ -2952,7 +2953,8 @@ function ubCargar(cb){
   if(UB.cargando) return; UB.cargando=true; UB.err='';
   fetchJSON(API_URL+'?tipo=ubicaciones&t='+Date.now()).then(function(j){
     if(!j||!j.ok) throw new Error('el servidor no ha dado las ubicaciones');
-    UB.lista=(j.data||[]).filter(function(u){ return UB_ZONAS[u.zona]; }); UB.hora=new Date();
+    var d=(j.data||[]); d.forEach(function(u){ if(UB_ESP_ALIAS[u.zona]){ u.zona=UB_ESP_ALIAS[u.zona]; u.codigo=u.zona; } });
+    UB.lista=d.filter(function(u){ return UB_ZONAS[u.zona]; }); UB.esp=d.filter(function(u){ return UB_ESP[u.zona]; }); UB.hora=new Date();
   }).catch(function(e){ UB.err=e.message||String(e); }).then(function(){ UB.cargando=false; if(cb) cb(); });
 }
 // ¿Sigue valiendo la ubicación? Como en el móvil: si los registros dicen que el
@@ -2966,6 +2968,31 @@ function ubVigente(u){
   if(!e.sala) return true;
   return e.sala===UB_ZONAS[u.zona].sala;
 }
+// (v46) PICKING: zona sin huecos DENTRO de la Cámara de Frío (Joaquín, 02/11).
+// El palé sigue en la sala 6.CAMARA FRIO (stock, avisos de tiernos…); solo se
+// apunta que está en el picking (incluye la zona de la izquierda al entrar, donde
+// se deja lo que se va a envasar). Se pone desde el móvil (Movimiento / Recolocar)
+// o desde aquí (Recolocar, cuadre, historial).
+var UB_ESP={'CF-PICKING':{sala:'6.CAMARA FRIO', nom:'Picking', ico:'🧺'}}, UB_ESP_ALIAS={'CF-PUERTA':'CF-PICKING'};
+function ubEspVigente(u){
+  if(!u || !UB_ESP[u.zona]) return false;
+  if(u.fecha && Date.now()-u.fecha < 6*3600*1000) return true;
+  var e=ubEstadoDe(u); if(!e) return true;
+  if(e.salio) return false;
+  return !e.sala || e.sala===UB_ESP[u.zona].sala;
+}
+function ubEnEsp(z){ return (UB.esp||[]).filter(function(u){ return (!z || u.zona===z) && ubEspVigente(u); }); }
+function ubEspDePale(id){ var k=ubKey(id); return ubEnEsp().filter(function(u){ return ubKey(u.id)===k; })[0]||null; }
+function ubEspDeSala(sala){ return Object.keys(UB_ESP).filter(function(z){ return UB_ESP[z].sala===sala; }); }
+function ubEspHTML(z){
+  var l=ubEnEsp(z).sort(function(a,b){ return String(fechaFabKey(a.id)||'').localeCompare(String(fechaFabKey(b.id)||'')); }), pz=0;
+  l.forEach(function(u){ pz+=ubPz(u); });
+  var h='<div class="card" style="padding:10px 16px;margin-top:10px"><h3 style="margin:0 0 6px">'+UB_ESP[z].ico+' '+UB_ESP[z].nom+' <small>'+l.length+' palé'+(l.length===1?'':'s')+' · '+fmtN(pz)+' piezas · dentro de la '+esc(UB_PLANOS[UB_ESP[z].sala].nombre)+', sin fila</small></h3>';
+  if(!l.length) return h+'<div class="vacio" style="padding:10px">No hay palés apuntados en '+UB_ESP[z].nom+'.</div></div>';
+  return h+'<div class="tbl-wrap" style="max-height:420px"><table class="ub-esp-t"><thead><tr><th>Palé</th><th>Tipo · variedad · formato</th><th>Lote</th><th style="text-align:right">Pzas</th><th>Fabricado</th><th>Apuntado</th></tr></thead><tbody>'
+    +l.map(function(u){ var i=parsearId(u.id); return '<tr data-id="'+esc(u.id)+'" style="cursor:pointer"><td class="mono">'+esc(u.id)+'</td><td><i class="ub-dot" style="background:'+ubCol(i.tipo)+'"></i>'+esc(clavePalet(u.id))+'</td><td class="mono">'+esc(i.loteCorto||i.lote||'')+'</td><td class="num">'+fmtN(ubPz(u))+'</td><td>'+dmy(fechaFabKey(u.id))+'</td><td>'+(u.fecha?fDia(new Date(u.fecha)):'')+(u.quien?' · '+esc(u.quien):'')+'</td></tr>'; }).join('')+'</tbody></table></div></div>';
+}
+function ubEnlEsp(root){ root.querySelectorAll('.ub-esp-t tbody tr[data-id]').forEach(function(tr){ tr.onclick=function(){ verPale(ubIdReg(tr.getAttribute('data-id'))); }; }); }
 function ubVigentes(sala){ return UB.lista.filter(function(u){ return (!sala || UB_ZONAS[u.zona].sala===sala) && ubVigente(u); }); }
 
 // ── Pantalla ──
@@ -2986,6 +3013,7 @@ function vistaUbic(){
   var h='<div class="kpis mini">'
     +'<div class="kpi kc" data-k="cf"><span>Ubicados · C. Frío</span><b>'+cf.length+'</b></div>'
     +'<div class="kpi kc" data-k="cm"><span>Ubicados · C. Maduración</span><b>'+cm.length+'</b></div>'
+    +'<div class="kpi kc" data-k="pk"><span>🧺 En picking · C. Frío</span><b>'+ubEnEsp('CF-PICKING').length+'</b></div>'
     +'<div class="kpi"><span>Piezas ubicadas</span><b>'+fmtN(pz)+'</b></div>'
     +'<div class="kpi kc'+(nSin?' aviso':'')+'" data-k="sin"><span>En cámara sin ubicar</span><b>'+nSin+'</b></div>'
     +'<div class="kpi kc'+(nCad?' alerta':'')+'" data-k="cad"><span>Ubicados que ya no están</span><b>'+nCad+'</b></div>'
@@ -3002,7 +3030,7 @@ function vistaUbic(){
   $('ub-rec').onclick=function(){ this.disabled=true; this.textContent='Cargando…'; UBE.n=-1; ubCargar(vistaUbic); };
   document.querySelectorAll('#cont .tabs button').forEach(function(b){ b.onclick=function(){ UBF.tab=b.getAttribute('data-ut'); ubGuardarF(); vistaUbic(); }; });
   document.querySelectorAll('#cont .kpi.kc').forEach(function(b){ b.onclick=function(){ var k=b.getAttribute('data-k');
-    if(k==='cf'||k==='cm'){ UBF.tab='plano'; UBF.sala=(k==='cf'?'6.CAMARA FRIO':'7.CAMARA MADURACION'); }
+    if(k==='cf'||k==='cm'||k==='pk'){ UBF.tab='plano'; UBF.sala=(k==='cm'?'7.CAMARA MADURACION':'6.CAMARA FRIO'); if(k==='pk') UBF.verPick=1; }
     else { UBF.tab='cuadre'; UBF.cuVer=(k==='sin'?'sin':'cad'); }
     ubGuardarF(); vistaUbic(); }; });
   if((UBF.tab==='recolocar'||UBF.tab==='mover') && !ubPermitido()) UBF.tab='buscar';
@@ -3164,7 +3192,9 @@ function ubIdReg(id){ var e=ubEstados()[ubKey(id)]; return e?e.id:id; }
 function _ubTopH(){ var t=document.querySelector('.top'); return t?t.offsetHeight:70; }
 function ubTabPlano(){
   var h=ubSelSala()+'<div class="card" id="ub-card" style="padding:8px 16px 10px"><h3 style="margin:0 0 2px">'+esc(UB_PLANOS[UBF.sala].nombre)+' <small>pincha un pie para ver sus palés · más claro = pie a medias · rayado = no se usa</small></h3>'+ubPlanoHTML(UBF.sala,{click:true, alto:(window.innerHeight||900)-_ubTopH()-14})+'</div>';
-  $('ub-body').innerHTML=h; ubEnlSala(ubTabPlano);
+  ubEspDeSala(UBF.sala).forEach(function(z){ h+='<div id="ub-esp-'+z+'">'+ubEspHTML(z)+'</div>'; });
+  $('ub-body').innerHTML=h; ubEnlSala(ubTabPlano); ubEnlEsp($('ub-body'));
+  if(UBF.verPick){ UBF.verPick=0; var _pk=$('ub-esp-CF-PICKING'); if(_pk){ setTimeout(function(){ try{ _pk.scrollIntoView({block:'start'}); }catch(e){} },60); return; } }
   // La cámara entera a la vista: se sube la página hasta el plano (la cabecera queda arriba, fuera).
   setTimeout(function(){ try{ var c=$('ub-card'); c.style.scrollMarginTop=(_ubTopH()+4)+'px'; c.scrollIntoView({block:'start'}); }catch(e){} },30);
   $('ub-body').querySelectorAll('[data-pie]').forEach(function(td){ td.onclick=function(){ var p=td.getAttribute('data-pie').split('|'); ubPanelPie(p[0],+p[1],+p[2]); }; });
@@ -3204,6 +3234,16 @@ function ubBuscar(){
     var q=UBF.q.split('!')[0].split('*')[0].replace(/\s/g,''), r=$('ub-res');
     if(q.length<5){ r.innerHTML='<div class="vacio">Pon al menos 5 cifras.</div>'; return; }
     var l=ubVigentes().filter(function(u){ return u.id.replace(/\s/g,'').indexOf(q)>=0; });
+    var lp=ubEnEsp().filter(function(u){ return u.id.replace(/\s/g,'').indexOf(q)>=0; });
+    if(!l.length && lp.length){
+      r.innerHTML=lp.map(function(u){ var e=ubEstadoDe(u); return '<div class="card" style="padding:14px 16px;margin-bottom:8px"><div style="font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Ubicación</div><div style="font-size:30px;font-weight:800;color:var(--brand)">'+UB_ESP[u.zona].ico+' '+UB_ESP[u.zona].nom+'</div>'
+        +'<div style="font-size:15px;margin-top:4px">Dentro de la '+esc(UB_PLANOS[UB_ESP[u.zona].sala].nombre)+', sin fila</div>'
+        +'<div style="font-size:14px;color:var(--muted);margin-top:4px"><span class="mono">'+esc(u.id)+'</span> · '+esc(clavePalet(u.id))+' · '+(e?e.pz:(parsearId(u.id).piezas||''))+' pzas'+(fechaFabKey(u.id)?' · fabricado '+dmy(fechaFabKey(u.id)):'')+'</div>'
+        +'<div style="font-size:13px;color:var(--muted);margin-top:2px">Apuntado '+(u.fecha?'el '+fDia(new Date(u.fecha)):'')+(u.quien?' por '+esc(u.quien):'')+'</div>'
+        +'<button class="btn" data-hist="'+esc(u.id)+'" style="margin-top:10px">📜 Historial del palé</button></div>'; }).join('');
+      r.querySelectorAll('[data-hist]').forEach(function(b){ b.onclick=function(){ verPale(ubIdReg(b.getAttribute('data-hist'))); }; });
+      return;
+    }
     if(!l.length){
       var est=Object.keys(ubEstados()).map(function(k){ return UBE.m[k]; }).filter(function(e){ return e.id.replace(/\s/g,'').indexOf(q)>=0; });
       r.innerHTML='<div class="vacio">Ningún palé con '+esc(q)+' tiene ubicación en cámara.'+(est.length?('<br><br>'+est.slice(0,8).map(function(e){ return '<span class="mono">'+esc(e.id)+'</span> · '+(e.salio?'vendido / salido':(e.sala?('ahora en <b>'+esc(sl(e.sala))+'</b>'):'sin sala'))+(UB_PLANOS[e.sala]?' · <b style="color:var(--bad)">sin ubicar</b>':''); }).join('<br>')):'')+'</div>';
@@ -3237,10 +3277,12 @@ function ubUno(u, dest){
 
 // ── Cuadre con el stock ──
 function ubCuadre(sala){
-  var est=ubEstados(), ubK={}, sin=[], caducadas=[];
+  var est=ubEstados(), ubK={}, pkK={}, sin=[], caducadas=[];
   UB.lista.forEach(function(u){ if(UB_ZONAS[u.zona].sala===sala) ubK[ubKey(u.id)]=u; });
+  ubEnEsp().forEach(function(u){ if(UB_ESP[u.zona].sala===sala) pkK[ubKey(u.id)]=u; });
   Object.keys(est).forEach(function(k){ var e=est[k];
     if(e.salio || e.sala!==sala || ubFalso(e.id)) return;
+    if(pkK[k]) return;                       // (v46) en picking: tiene sitio
     var u=ubK[k]; if(u && ubVigente(u)) return;
     sin.push(e);
   });
@@ -3250,7 +3292,7 @@ function ubCuadre(sala){
 function ubTabCuadre(){
   var c=ubCuadre(UBF.sala), ver=UBF.cuVer||'sin';
   var h=ubSelSala()+'<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)">Se compara dónde dicen los <b>registros</b> que está cada palé con lo que se ha <b>ubicado</b> en el móvil. '
-    +'<b>Sin ubicar</b>: el stock lo pone en esta cámara pero nadie lo ha colocado en una fila. <b>Ya no están</b>: tienen ubicación aquí, pero un registro posterior lo saca de la cámara (o se vendió); en el móvil ese hueco ya cuenta como libre. Si el palé sigue físicamente ahí, falta corregir un registro.</div>'
+    +'<b>Sin ubicar</b>: el stock lo pone en esta cámara pero nadie lo ha colocado en una fila ni en picking. <b>Ya no están</b>: tienen ubicación aquí, pero un registro posterior lo saca de la cámara (o se vendió); en el móvil ese hueco ya cuenta como libre. Si el palé sigue físicamente ahí, falta corregir un registro.</div>'
     +'<div class="chips" id="cu-ch" style="margin-bottom:10px"><button data-v="sin" class="'+(ver==='sin'?'on':'')+'">En cámara sin ubicar ('+c.sin.length+')</button><button data-v="cad" class="'+(ver==='cad'?'on':'')+'">Ubicados que ya no están ('+c.caducadas.length+')</button></div>';
   var l;
   if(ver==='sin'){
@@ -3280,15 +3322,17 @@ function ubTabCuadre(){
 function ubPermitido(){ if(!CU) return false; var r=' '+String(CU.rol||'').toUpperCase().replace(/[\/,;|\.\-]+/g,' ')+' '; return r.indexOf(' ADMIN ')>=0 || !!CU.ubicacion; }
 function ubDePale(id){ var k=ubKey(id); return ubVigentes().filter(function(u){ return ubKey(u.id)===k; })[0]||null; }
 function ubPoner(id, z, f, p, a, forzar, hecho){
-  var cod=ubCod(z,f,p,a);
+  var esp=!!UB_ESP[z]; if(esp){ f=0; p=0; a=0; }
+  var cod=esp?z:ubCod(z,f,p,a);
   fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'UBICACION', accion:'poner', id:id, zona:z, fila:f, pie:p, altura:a, forzar:!!forzar, _QUIEN:(CU&&CU.n)||''})})
     .then(function(r){ return r.json(); }).then(function(j){
       if(j && j.ocupado){ if(confirm('El hueco '+cod+' lo tiene el palé '+j.ocupado+'.\n\n¿Quitarlo de ahí y poner '+id+'?')) ubPoner(id,z,f,p,a,true,hecho); return; }
       if(!(j && j.ok)){ alert('No se ha guardado: '+((j&&j.error)||'inténtalo otra vez')); return; }
       var k=ubKey(id);
-      UB.lista=UB.lista.filter(function(x){ return ubKey(x.id)!==k && (x.codigo||ubCod(x.zona,x.fila,x.pie,x.altura))!==cod; });
-      UB.lista.push({id:id, codigo:cod, zona:z, fila:f, pie:p, altura:a, fecha:Date.now(), quien:(CU&&CU.n)||''});
-      if(hecho) hecho(cod);
+      UB.lista=UB.lista.filter(function(x){ return ubKey(x.id)!==k && (esp || (x.codigo||ubCod(x.zona,x.fila,x.pie,x.altura))!==cod); });
+      UB.esp=(UB.esp||[]).filter(function(x){ return ubKey(x.id)!==k; });
+      (esp?UB.esp:UB.lista).push({id:id, codigo:cod, zona:z, fila:f, pie:p, altura:a, fecha:Date.now(), quien:(CU&&CU.n)||''});
+      if(hecho) hecho(esp?UB_ESP[z].nom:cod);
     }).catch(function(){ alert('Sin conexión: no se ha guardado.'); });
 }
 // Formulario común: zona, fila y la fila con sus huecos. dest = contenedor.
@@ -3298,7 +3342,8 @@ function ubFormPoner(dest, id, alHacer){
   var fDef=u?u.fila:'';
   function opF(z){ var h='<option value="">— fila —</option>'; for(var f=17;f>=1;f--){ if(!ubCapFila(z,f)) continue; var n=ubVigentes().filter(function(x){ return x.zona===z && x.fila===f; }).length; h+='<option value="'+f+'"'+(String(f)===String(fDef)?' selected':'')+'>F'+pad(f)+(n?' · '+n+' de '+ubCapFila(z,f):' · libre')+'</option>'; } return h; }
   dest.innerHTML='<div class="filt" style="margin:6px 0"><label>Zona<select class="up-z">'+Object.keys(UB_ZONAS).map(function(z){ return '<option'+(z===zDef?' selected':'')+'>'+z+'</option>'; }).join('')+'</select></label>'
-    +'<label>Fila<select class="up-f">'+opF(zDef)+'</select></label></div>'
+    +'<label>Fila<select class="up-f">'+opF(zDef)+'</select></label>'
+    +Object.keys(UB_ESP).map(function(z){ return '<button class="btn up-esp" data-esp="'+z+'" style="align-self:flex-end">'+UB_ESP[z].ico+' Poner en '+UB_ESP[z].nom+'</button>'; }).join('')+'</div>'
     +(sala && !UB_PLANOS[sala]?'<p style="color:var(--bad);font-size:14px;margin:4px 0">Según los registros este palé está en '+esc(sl(sala)||'—')+'. Si está en una cámara, falta registrar el movimiento.</p>':'')
     +'<div class="up-rej"></div><p style="font-size:13px;color:var(--muted);margin:4px 0">Pincha el hueco libre (+) donde está el palé.</p>';
   var zs=dest.querySelector('.up-z'), fs=dest.querySelector('.up-f'), rj=dest.querySelector('.up-rej');
@@ -3307,12 +3352,16 @@ function ubFormPoner(dest, id, alHacer){
       if(!confirm('¿Poner el palé '+id+' en '+cod+'?')) return;
       td.textContent='…'; ubPoner(id, z, f, +pa[0], +pa[1], false, function(c){ pintar(); if(alHacer) alHacer(c); }); }; }); }
   zs.onchange=function(){ fDef=''; fs.innerHTML=opF(zs.value); rj.innerHTML=''; };
+  dest.querySelectorAll('.up-esp').forEach(function(b){ b.onclick=function(){ var z=b.getAttribute('data-esp');
+    if(!confirm('¿Poner el palé '+id+' en '+UB_ESP[z].nom+' ('+sl(UB_ESP[z].sala)+')?')) return;
+    b.disabled=true; ubPoner(id, z, 0, 0, 0, false, function(c){ b.disabled=false; pintar(); if(alHacer) alHacer(c); }); }; });
   fs.onchange=pintar; pintar();
 }
 // Panel lateral para un palé (desde el cuadre o el historial)
 function ubPanelPoner(id){
-  $('p-tit').textContent=(ubDePale(id)?'Cambiar ubicación · ':'Dar ubicación · ')+id;
-  $('p-sub').textContent=clavePalet(id)+(ubDePale(id)?' · ahora en '+ubDePale(id).codigo:' · sin ubicación');
+  var _u=ubDePale(id), _pk=_u?null:ubEspDePale(id);
+  $('p-tit').textContent=((_u||_pk)?'Cambiar ubicación · ':'Dar ubicación · ')+id;
+  $('p-sub').textContent=clavePalet(id)+(_u?' · ahora en '+_u.codigo:(_pk?' · ahora en '+UB_ESP[_pk.zona].nom:' · sin ubicación'));
   $('p-body').innerHTML='<div id="up-box"></div><div id="up-ok"></div>';
   ubFormPoner($('up-box'), id, function(cod){ $('p-sub').textContent=clavePalet(id)+' · ubicado en '+cod; $('up-ok').innerHTML='<p style="color:var(--ok,#2e7d32);font-weight:700">✓ Ubicado en '+esc(cod)+'</p>'; });
   $('panel').hidden=false; $('velo').hidden=false;
