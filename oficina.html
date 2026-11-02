@@ -388,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v53';
+var VER = 'v54';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -1870,7 +1870,7 @@ function abrirOrigen(s){
     window.open('partes-fabricacion.html?parte='+encodeURIComponent(id)+(f?('&fecha='+encodeURIComponent(f)):''),'_blank');
     return;
   }
-  // (v52) Una SALIDA MANUAL (SM-…: regularización, merma, caducado…) no es un
+  // (v54) Una SALIDA MANUAL (SM-…: regularización, merma, caducado…) no es un
   // registro de la hoja de registros: es la propia salida de material. Se
   // enseña su ficha aquí mismo (Joaquín, 02/11: salía «no está en este ordenador»).
   if(id.indexOf('SM-')===0 || m.indexOf('SALIDA MANUAL')===0){ fichaSalida(s); return; }
@@ -3259,9 +3259,10 @@ function ubPanelPie(z,f,p){
   $('p-sub').textContent=UB_PLANOS[UB_ZONAS[z].sala].nombre+' · caben '+ubMax(z,f,p)+' palés en este pie · fila: '+npF+' de '+ubCapFila(z,f);
   var h='';
   if(!l.length) h+='<p class="sinv">Este pie está libre.</p>';
-  else { h+='<table class="ptab"><thead><tr><th>Altura</th><th>Palé</th><th>Tipo · variedad · formato</th><th class="r">Pzas</th><th>Fabricado</th><th>Ubicado</th></tr></thead><tbody>';
+  else { h+='<table class="ptab"><thead><tr><th>Altura</th><th>Fabricado</th><th>Tipo · variedad · formato</th><th class="r">Pzas</th><th>Palé</th><th>Ubicado</th></tr></thead><tbody>';
     l.forEach(function(u,k){ var e=ubEstadoDe(u), fab=fechaFabKey(u.id);
-      h+='<tr data-k="'+k+'"><td><b>A'+u.altura+'</b>'+(u.altura===1?' <small>arriba</small>':'')+'</td><td class="mono">'+esc(u.id)+'</td><td>'+esc(clavePalet(u.id))+'</td><td class="r">'+(e?e.pz:(parsearId(u.id).piezas||''))+'</td><td>'+(fab?dmy(fab):'')+'</td><td>'+(u.fecha?fDia(new Date(u.fecha)):'')+(u.quien?' · '+esc(u.quien):'')+'</td></tr>'; });
+      // (v54) Orden de columnas de Joaquín: altura, fabricado, tipo, piezas, palé, ubicado
+      h+='<tr data-k="'+k+'"><td><b>A'+u.altura+'</b>'+(u.altura===1?' <small>arriba</small>':'')+'</td><td>'+(fab?dmy(fab):'')+'</td><td>'+esc(clavePalet(u.id))+'</td><td class="r"><b>'+(e?e.pz:(parsearId(u.id).piezas||''))+'</b></td><td class="mono">'+esc(u.id)+'</td><td>'+(u.fecha?fDia(new Date(u.fecha)):'')+(u.quien?' · '+esc(u.quien):'')+'</td></tr>'; });
     h+='</tbody></table><p style="font-size:13px;color:var(--muted)">Pincha un palé para ver su historial.</p>'; }
   h+='<h3 class="pbt">Fila '+ubCod(z,f)+' entera <small>vista desde la puerta · pincha P1, P2… para ver otro pie</small></h3>'+ubFilaHTML(z,f,null,null,p);
   $('p-body').innerHTML=h;
