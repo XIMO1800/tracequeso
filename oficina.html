@@ -388,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v50';
+var VER = 'v51';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -3164,6 +3164,8 @@ function ubFilaHTML(z,f,marcaId,poner,pieSel){
   // poner (v44): ID del palé al que se da hueco → los huecos libres se pueden pinchar (data-poner)
   var pies={}, nA=4;
   ubVigentes().filter(function(u){ return u.zona===z && u.fila===f; }).forEach(function(u){ if(u.altura<1) return; (pies[u.pie]=pies[u.pie]||{})[u.altura]=u; if(u.altura>nA) nA=u.altura; });
+  // (v51) En el aire: palé sin palés debajo hasta A4 (suelo). No son estanterías.
+  var aire={}, nAire=[]; Object.keys(pies).forEach(function(pp){ var m=pies[pp]; Object.keys(m).forEach(function(a){ a=+a; for(var b=a+1;b<=4;b++){ if(!m[b]){ aire[m[a].id]=1; nAire.push('P'+pp+'-A'+a); break; } } }); });
   var orden=ubOrdenPies(z), pas=UB_ZONAS[z].pasillo;
   var h='<table class="ub-fila"><tr><th></th>'+(pas==='izq'?'<th class="pas">pasillo</th>':'')+orden.map(function(p){ return pieSel===undefined?'<th>P'+p+'</th>':'<th data-ubpie="'+p+'" title="Ver los palés del pie '+p+'" style="cursor:pointer;text-decoration:underline dotted;'+(p===pieSel?'background:var(--brand);color:#fff;border-radius:6px;':'')+'">P'+p+'</th>'; }).join('')+(pas==='der'?'<th class="pas">pasillo</th>':'')+'</tr>';
   for(var a=1;a<=nA;a++){
@@ -3171,7 +3173,7 @@ function ubFilaHTML(z,f,marcaId,poner,pieSel){
     orden.forEach(function(p){
       var u=(pies[p]||{})[a], max=ubMax(z,f,p);
       if(u){ var i=parsearId(u.id), e=ubEstadoDe(u), yo=marcaId && ubKey(marcaId)===ubKey(u.id);
-        h+='<td class="ub-p'+(yo?' yo':'')+'" data-id="'+esc(u.id)+'" style="border-color:'+ubCol(i.tipo)+';background:'+ubCol(i.tipo)+'1a" title="'+esc(u.id+' · '+clavePalet(u.id))+'"><b style="color:'+ubCol(i.tipo)+'">'+esc(ubEtiq(u.id))+'</b><small>('+fmtN(ubPz(u))+')'+(ubVar(u.id)?' · '+esc(ubVar(u.id)):'')+'</small></td>';
+        h+='<td class="ub-p'+(yo?' yo':'')+'" data-id="'+esc(u.id)+'" style="'+(aire[u.id]?'outline:3px solid #c0392b;outline-offset:-1px;':'')+'border-color:'+ubCol(i.tipo)+';background:'+ubCol(i.tipo)+'1a" title="'+esc(u.id+' · '+clavePalet(u.id))+'"><b style="color:'+ubCol(i.tipo)+'">'+esc(ubEtiq(u.id))+'</b><small>('+fmtN(ubPz(u))+')'+(ubVar(u.id)?' · '+esc(ubVar(u.id)):'')+'</small></td>';
       } else if(max===0 || a<=4-max) h+='<td class="ub-nc">no cabe</td>';
       else if(poner) h+='<td class="ub-v" data-poner="'+p+'|'+a+'" style="cursor:pointer;border:2px dashed var(--brand);color:var(--brand);font-weight:800;text-align:center">+</td>';
       else h+='<td class="ub-v"></td>';
@@ -3184,6 +3186,7 @@ function ubFilaHTML(z,f,marcaId,poner,pieSel){
   orden.forEach(function(p){ var t=0; Object.keys(pies[p]||{}).forEach(function(a){ t+=ubPz(pies[p][a]); nP++; }); tot+=t; h+='<td>'+(t?fmtN(t):'')+'</td>'; });
   h+=(pas==='der'?'<td class="pas"></td>':'')+'</tr>';
   var rg=ubRango(ubVigentes().filter(function(u){ return u.zona===z && u.fila===f; }));
+  if(nAire.length) h+='</table><div style="color:#c0392b;font-weight:700;font-size:13px;margin:4px 0">⚠️ En el aire (sin palé debajo): '+nAire.join(', ')+'. No son estanterías: colócalo encima de otro o en el suelo (A4).</div><table style="display:none">';
   return h+'</table><div class="ub-totf">Fila '+ubCod(z,f)+': <b>'+fmtN(tot)+' piezas</b> en '+nP+' palé'+(nP===1?'':'s')+' · caben '+ubCapFila(z,f)
     +rg.map(function(r){ return '<div class="ub-rg"><i class="ub-dot" style="background:'+ubCol(r.t)+'"></i><b>'+esc(r.t)+'</b>'+(rg.length>1?' ('+fmtN(r.pz)+' pzas)':'')+': <b>'+esc(r.txt)+'</b></div>'; }).join('')+'</div>';
 }

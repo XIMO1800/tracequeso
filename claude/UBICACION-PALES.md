@@ -1,6 +1,6 @@
 # Ubicación de palés — móvil y escritorio (lo que hay que saber en cualquier conversación)
 
-Actualizado 02/11/2026 (móvil v554, API 17 + acciones «poner» y «mover», oficina v50). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
+Actualizado 02/11/2026 (móvil v555, API 17 + acciones «poner» y «mover», oficina v51). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
 
 **Acuerdo (01/11/2026):** la ubicación de palés la lleva UNA sola conversación, la de ubicación, tanto en el móvil (index.html) como en la oficina (oficina.html). La conversación de la oficina ya no la toca.
 
@@ -34,6 +34,7 @@ La geometría está copiada en los dos ficheros:
 Orden de las cámaras en pantalla: Maduración a la izquierda, Frío a la derecha.
 
 ## Reglas de presentación decididas por Joaquín (valen para móvil y escritorio)
+- **Palés en el aire (v555 / oficina v51):** no son estanterías; un palé en A3 o A2 necesita palés debajo hasta A4 (suelo). Al corregir se puede dejar uno en el aire un momento, pero sale marcado en rojo con aviso; en el móvil («Ver cámara») al salir de la fila (✕, otra fila, otra cámara, atrás) pregunta: Aceptar = quedarse a colocarlos, Cancelar = salir igualmente (p. ej. debajo hay un palé sin ubicar). Móvil `_ubicFlotantes`, `ubicSalirFilaOK`; oficina en `ubFilaHTML` (aviso bajo la fila).
 - **Cada palé, como en el papel:** arriba, en grande, el **lote corto** si es manchego D.O., o la **fecha de fabricación** (dd/mm/aa) si es oveja, mezcla o resto. Debajo, las piezas **entre paréntesis y sin la palabra «pzas»**: «26147» y debajo «(108)», bien legibles.
 - **Total de piezas** por pie, por fila, por zona y de la cámara. En el plano general, el total de cada fila va junto a la zona, en el lado del pasillo; pinchándolo se abre la fila.
 - **Rango de cada fila:** de qué fecha a qué fecha va y, en el manchego, de qué lote corto a cuál (con sus fechas). Va uno por tipo de queso si la fila está mezclada. Sale bajo el total de la fila y en la hoja impresa.
