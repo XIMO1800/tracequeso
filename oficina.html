@@ -388,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v48';
+var VER = 'v49';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -2901,7 +2901,7 @@ var UB_COLOR={'MEZCLA':'#2e8b2e','OVEJA':'#1f5fbf','D.O. PAST.':'#f07800','D.O. 
 function ubCol(t){ return UB_COLOR[String(t||'').trim().toUpperCase()]||'#6a6a6a'; }
 function ubOrdenPies(z){ var n=UB_ZONAS[z].pies, a=[]; for(var p=1;p<=n;p++) a.push(p); return UB_ZONAS[z].pasillo==='der'?a.reverse():a; }
 function ubMax(z,f,p){
-  if(z==='CM1' && f===17 && p<=3) return 3;
+  if(z==='CM1' && f===17 && p<=2) return 3;   // (02/11) bajo los ventiladores: P1 y P2 de 3; P3 admite 4 (Joaquín)
   if(z==='CM4' && f===17) return p>=4?0:3;
   if(z==='CF1'){ if(f<=2) return 0; if(f>=12 && p<=4) return 3; return 4; }
   if(z==='CF2'){ if(f<=9) return 0; if(f>=12 && p>=4 && p<=7) return 3; return 4; }

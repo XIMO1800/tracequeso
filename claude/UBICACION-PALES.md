@@ -1,6 +1,6 @@
 # Ubicación de palés — móvil y escritorio (lo que hay que saber en cualquier conversación)
 
-Actualizado 02/11/2026 (móvil v541, API 16 + acciones «poner» y «mover», oficina v48). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
+Actualizado 02/11/2026 (móvil v544, API 16 + acciones «poner» y «mover», oficina v49). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
 
 **Acuerdo (01/11/2026):** la ubicación de palés la lleva UNA sola conversación, la de ubicación, tanto en el móvil (index.html) como en la oficina (oficina.html). La conversación de la oficina ya no la toca.
 
@@ -66,6 +66,8 @@ Funciones comunes (bloque UBICACIONES de index.html): `ubicEtiq(id)` (lote corto
    - «Recolocar» dentro de la misma cámara, sin movimiento, y «Vaciar fila». Con la fila abierta hay botón «📷 Escanear el siguiente palé» (v541): antes la cámara solo se reabría sola tras cada escaneo y, si se cerraba, no había forma de seguir.
 3. **Buscar palet** (historial): franja «📍 Ubicación» con el plano y la torre, y «✏️ Cambiar ubicación»; si no tiene, «📍 Dar ubicación» (v527): zona, fila y se toca el hueco libre (+). El palé buscado sale con borde grueso; tocar el + y aceptar ya guarda (no hay botón de guardar) y se cierra el formulario con la ubicación nueva arriba. `ubicDarForm`, `ubicPonerAqui`.
 4. **Disponibilidad comercial**: en «Dónde está», «Ver en el plano» → pies con los palés del filtro, lista por filas (cada una abre su rejilla, con los del filtro resaltados) y aviso de los que no están ubicados.
+
+**CM1-F17 (bajo los ventiladores), corregido 02/11:** P1 y P2 llevan 3 palés; P3, P4 y P5 llevan 4 (antes P3 estaba en 3). Fila de 18.
 
 Reparto automático al escanear: pie del fondo primero, de abajo arriba; cada palé ocupa sus alturas de bandeja (3 kg: 12 quesos por altura, estándar 9; 1 kg: 24 por altura, estándar 11) y un pie de 4 admite 38/36 del estándar (2×120 + 2×108 caben). A4 = suelo siempre; en los pies de 3 (ventiladores) falta la A1.
 
