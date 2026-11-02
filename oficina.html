@@ -388,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v52';
+var VER = 'v53';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -1180,7 +1180,7 @@ function vistaMat(){
     +'<button data-mt="traz" class="'+(MF.tab==='traz'?'on':'')+'">🔎 Trazabilidad</button>'
     +'<button data-mt="rec" class="'+(MF.tab==='rec'?'on':'')+'">📷 Recepciones'+(nRec?'<span class="n">'+nRec+'</span>':'')+'</button>'
     +'<button data-mt="min" class="'+(MF.tab==='min'?'on':'')+'">⚠️ Mínimos'+(nb?'<span class="n">'+nb+'</span>':'')+'</button>'
-    +'<button data-mt="equiv" class="'+(MF.tab==='equiv'?'on':'')+'">⚖️ Unidades ↔ peso</button>'
+    +'<button data-mt="equiv" class="'+(MF.tab==='equiv'?'on':'')+'">⚖️ Equivalencias</button>'
     +'</div><div id="mt-body"></div>';
   $('cont').innerHTML=h;
   document.querySelectorAll('#cont [data-ir="min"]').forEach(function(b){ b.onclick=function(){ MF.tab='min'; guardarMF(); vistaMat(); }; });
@@ -1538,10 +1538,10 @@ function matFormEntrada(){
     var eqs=eqDe(l.cat, l.art);
     if(eqs.length){
       var e=eqElegida(l, eqs);
-      h+='<tr class="eqrow" data-l="'+i+'"><td colspan="7">⚖️ <b>Viene en unidades:</b> '
+      h+='<tr class="eqrow" data-l="'+i+'"><td colspan="7">⚖️ <b>El albarán viene en '+esc(e.uA)+':</b> '
         +(eqs.length>1?('<select data-f="eq">'+eqs.map(function(x){ return '<option value="'+esc(x.id)+'"'+(x.id===e.id?' selected':'')+'>'+eqTxt(x)+'</option>'; }).join('')+'</select>'):('<b>'+eqTxt(e)+'</b><input type="hidden" data-f="eq" value="'+esc(e.id)+'">'))
-        +' &nbsp;·&nbsp; Unidades del albarán <input type="number" step="any" data-f="uds" value="'+esc(l.uds)+'" style="width:110px" placeholder="Ej: 2000"> U'
-        +' &nbsp;→&nbsp; <span class="eqg">'+(num(l.uds)?(fNum(eqGramos(l.uds,e))+' g'):'—')+'</span> <small style="color:var(--muted)">(se registra en gramos)</small></td></tr>';
+        +' &nbsp;·&nbsp; Lo que pone el albarán <input type="number" step="any" data-f="uds" value="'+esc(l.uds)+'" style="width:110px"> '+esc(e.uA)
+        +' &nbsp;→&nbsp; <span class="eqg">'+(num(l.uds)?(fNum(eqGramos(l.uds,e))+' '+esc(e.uS)):'—')+'</span> <small style="color:var(--muted)">(se registra en '+esc(e.uS)+')</small></td></tr>';
     }
   });
   h+='</tbody></table><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">'
@@ -1601,7 +1601,7 @@ function efEnlazar(cat){
       if(v==='__NEW__'){ var n=prompt('Nombre del artículo nuevo:'); if(!n||!n.trim()){ matFormEntrada(); return; } v=n.trim().toUpperCase(); }
       l.art=v;
       if(cat.uniArt[v]) l.uni=cat.uniArt[v];
-      if(eqDe(l.cat,v).length){ l.uni='g'; } l.uds=''; l.eq='';
+      var _eq0=eqDe(l.cat,v)[0]; if(_eq0){ l.uni=_eq0.uS; } l.uds=''; l.eq='';
       if(!EF.prov && cat.provArt[v]) EF.prov=cat.provArt[v];
       matFormEntrada();
     };
@@ -1612,9 +1612,9 @@ function efEnlazar(cat){
       var l=EF.lineas[i], eqs=eqDe(l.cat,l.art), sel=tr.querySelector('[data-f="eq"]');
       l.eq=sel?sel.value:''; l.uds=tr.querySelector('[data-f="uds"]').value;
       var e=eqElegida(l,eqs), g=num(l.uds)?eqGramos(l.uds,e):0;
-      tr.querySelector('.eqg').textContent=g?(fNum(g)+' g'):'—';
+      tr.querySelector('.eqg').textContent=g?(fNum(g)+' '+e.uS):'—';
       var fila=document.querySelector('table.lin tbody tr[data-l="'+i+'"]:not(.eqrow)');
-      if(g && fila){ fila.querySelector('[data-f="cant"]').value=g; fila.querySelector('[data-f="uni"]').value='g'; l.cant=String(g); l.uni='g'; }
+      if(g && fila){ fila.querySelector('[data-f="cant"]').value=g; fila.querySelector('[data-f="uni"]').value=e.uS; l.cant=String(g); l.uni=e.uS; }
     }
     tr.querySelector('[data-f="uds"]').oninput=calc;
     var sel=tr.querySelector('select[data-f="eq"]'); if(sel) sel.onchange=calc;
@@ -1668,9 +1668,9 @@ function efRegistrar(){
     var eqs=eqDe(l.cat,l.art);
     if(eqs.length && l.art){
       var eL=eqElegida(l,eqs);
-      if(l.uni==='unidades') err.push(n+l.art+' se lleva en gramos: escribe las unidades del albarán en la casilla ⚖️ de debajo y la app pone los gramos.');
-      else if(num(l.uds) && !(l.uni==='g' && Math.abs(num(l.cant)-eqGramos(l.uds,eL))<0.05) && !(l.uni==='kg' && Math.abs(num(l.cant)*1000-eqGramos(l.uds,eL))<0.05))
-        avisos.push(n+'has cambiado los gramos a mano: '+l.uds+' U serían '+fNum(eqGramos(l.uds,eL))+' g y vas a registrar '+l.cant+' '+l.uni+'.');
+      if(eqClase(l.uni)!==eqClase(eL.uS)) err.push(n+l.art+' se lleva en '+eL.uS+': escribe lo que pone el albarán ('+eL.uA+') en la casilla ⚖️ de debajo y la app pone los '+eL.uS+'.');
+      else if(num(l.uds) && !(l.uni===eL.uS && Math.abs(num(l.cant)-eqGramos(l.uds,eL))<0.05))
+        avisos.push(n+'has cambiado la cantidad a mano: '+l.uds+' '+eL.uA+' serían '+fNum(eqGramos(l.uds,eL))+' '+eL.uS+' y vas a registrar '+l.cant+' '+l.uni+'.');
     }
     if(num(l.cant)<0 && !EF.obs.trim()) err.push(n+'es negativa (ajuste): explica el motivo en observaciones.');
     if(l.cad && l.cad<isoDia(new Date())) err.push(n+'la caducidad ya ha pasado ('+dmy(l.cad)+').');
@@ -1690,7 +1690,7 @@ function efRegistrar(){
   if(soloMirar()) return;
   var rec=EF.rec!==''?recPend()[+EF.rec]:null;
   if(!confirm('¿Registrar esta entrada?\n\n'+EF.prov+(EF.alb?(' · albarán '+EF.alb):'')+' · '+dmy(EF.fecha)+'\n'
-     +lineas.map(function(l){ return '· '+l.art+' · lote '+l.lote+' · '+l.cant+' '+l.uni+(num(l.uds)?(' ('+l.uds+' U del albarán)'):''); }).join('\n')
+     +lineas.map(function(l){ var _e=num(l.uds)?eqElegida(l,eqDe(l.cat,l.art)):null; return '· '+l.art+' · lote '+l.lote+' · '+l.cant+' '+l.uni+(_e?(' ('+l.uds+' '+_e.uA+' del albarán)'):''); }).join('\n')
      +(EF.regul?'\n\nREGULARIZACIÓN DE STOCK (sin albarán)':'')
      +(EF.obs.trim()?('\nObservaciones: '+EF.obs.trim()):'')
      +(avisos.length?('\n\n⚠️ OJO:\n'+avisos.join('\n')):'')
@@ -2161,29 +2161,37 @@ function guardarMinimo(a, v, btn){
 // ═══════════════════════════════════════════════════════════════════════════
 function eqLista(){
   return (MAT.equiv||[]).map(function(x){ return {id:String(x.ID||'').trim(), cat:String(x.CATEGORIA||'').trim(), art:String(x.ARTICULO||'').trim(),
-    u:num(x.UNIDADES), g:num(x.GRAMOS), obs:String(x.OBSERVACIONES||'').trim(), quien:String(x['ACTUALIZADO POR']||'').trim(), cuando:String(x.ACTUALIZADO||'').trim()}; })
+    u:num(x.UNIDADES), g:num(x.GRAMOS), uA:String(x['UNIDAD ALBARAN']||'').trim()||'U', uS:String(x['UNIDAD STOCK']||'').trim()||'g',
+    obs:String(x.OBSERVACIONES||'').trim(), quien:String(x['ACTUALIZADO POR']||'').trim(), cuando:String(x.ACTUALIZADO||'').trim()}; })
     .filter(function(x){ return x.art && x.u>0 && x.g>0; });
 }
 function eqDe(cat, art){ if(!art) return []; return eqLista().filter(function(x){ return nrm(x.art)===nrm(art) && (!x.cat || !cat || nrm(x.cat)===nrm(cat)); }).sort(function(a,b){ return a.u-b.u; }); }
 function eqElegida(l, eqs){ return eqs.filter(function(x){ return x.id===l.eq; })[0] || eqs[0]; }
 function eqGramos(uds, e){ return Math.round(num(uds)*e.g/e.u*10)/10; }
-function eqTxt(e){ return fNum(e.u)+' U = '+fNum(e.g)+' g'; }
+function eqTxt(e){ return fNum(e.u)+' '+e.uA+' = '+fNum(e.g)+' '+e.uS; }
+// (v53) Cualquier unidad (Joaquín, 02/11): U → g (fermentos), kg → ml (cloruro),
+// unidades → L… Unidades del albarán y del stock que se pueden elegir:
+var EQ_UALB=['U','unidades','kg','g','L','ml'], EQ_USTK=['g','kg','ml','L','unidades'];
+function eqClase(u){ u=String(u||'').toLowerCase(); return (u==='g'||u==='kg')?'peso':((u==='ml'||u==='l')?'vol':'uds'); }
 function obsLinea(l){
   var o=(EF.regul?'REGULARIZACIÓN DE STOCK: ':'')+String(EF.obs||'').trim();
-  if(num(l.uds)){ var e=eqElegida(l, eqDe(l.cat,l.art)); if(e) o=(o?o+' · ':'')+'Albarán: '+l.uds+' U ('+eqTxt(e)+')'; }
+  if(num(l.uds)){ var e=eqElegida(l, eqDe(l.cat,l.art)); if(e) o=(o?o+' · ':'')+'Albarán: '+l.uds+' '+e.uA+' ('+eqTxt(e)+')'; }
   return o;
 }
 var EQF=null;   // formulario de la pestaña
 function matEquiv(){
   var cat=catalogo(), L=eqLista();
-  if(!EQF) EQF={id:'', cat:'FERMENTO', art:'', u:'', g:'', obs:''};
+  if(!EQF) EQF={id:'', cat:'FERMENTO', art:'', u:'', uA:'U', g:'', uS:'g', obs:''};
   var arts=Object.keys(cat.arts[EQF.cat]||{}).sort();
-  var h='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)">Para los artículos que el proveedor manda en <b>unidades</b> (fermentos: U) pero que aquí se llevan <b>por peso</b>. Apunta cuánto pesa cada formato y, al registrar la entrada, solo hay que escribir las unidades del albarán: la app pone los gramos. Si un artículo viene en varios formatos, una línea por formato.</div>';
-  h+='<div class="card"><h3>'+(EQF.id?'✏️ Cambiar relación':'➕ Nueva relación')+'</h3><div class="g4" style="grid-template-columns:1.2fr 1.6fr .8fr .8fr 1.6fr auto;align-items:end">'
+  function sel(id, ops, v){ return '<select id="'+id+'" style="min-width:0">'+ops.map(function(o){ return '<option'+(o===v?' selected':'')+'>'+o+'</option>'; }).join('')+'</select>'; }
+  var h='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)">Para los artículos que el proveedor manda en una unidad y aquí se llevan en otra. Ejemplos: fermentos, el albarán en <b>U</b> y aquí en <b>gramos</b> (500 U = 485 g); cloruro cálcico, el albarán en <b>kg</b> y aquí en <b>ml</b>. Apunta la relación y, al registrar la entrada, solo hay que escribir lo que pone el albarán: la app pone la cantidad en la unidad del stock. Si un artículo viene en varios formatos, una línea por formato.</div>';
+  h+='<div class="card"><h3>'+(EQF.id?'✏️ Cambiar relación':'➕ Nueva relación')+'</h3><div class="g4" style="grid-template-columns:1.1fr 1.5fr .7fr .6fr .7fr .6fr 1.3fr auto;align-items:end">'
     +'<label class="fld">Categoría<select id="eq-cat">'+cat.cats.map(function(c){ return '<option'+(EQF.cat===c?' selected':'')+'>'+esc(c)+'</option>'; }).join('')+'</select></label>'
     +'<label class="fld">Artículo<select id="eq-art"><option value="">— Elige —</option>'+arts.map(function(a){ return '<option'+(EQF.art===a?' selected':'')+'>'+esc(a)+'</option>'; }).join('')+(EQF.art&&arts.indexOf(EQF.art)<0?'<option selected>'+esc(EQF.art)+'</option>':'')+'</select></label>'
-    +'<label class="fld">Unidades (U)<input type="number" step="any" id="eq-u" value="'+esc(EQF.u)+'" placeholder="Ej: 500"></label>'
-    +'<label class="fld">Pesan (g)<input type="number" step="any" id="eq-g" value="'+esc(EQF.g)+'" placeholder="Ej: 485"></label>'
+    +'<label class="fld">En el albarán<input type="number" step="any" id="eq-u" value="'+esc(EQF.u)+'" placeholder="Ej: 500"></label>'
+    +'<label class="fld">Unidad'+sel('eq-ua',EQ_UALB,EQF.uA)+'</label>'
+    +'<label class="fld">= En stock<input type="number" step="any" id="eq-g" value="'+esc(EQF.g)+'" placeholder="Ej: 485"></label>'
+    +'<label class="fld">Unidad'+sel('eq-us',EQ_USTK,EQF.uS)+'</label>'
     +'<label class="fld">Observaciones<input id="eq-obs" value="'+esc(EQF.obs)+'" placeholder="Ej: bolsa pequeña"></label>'
     +'<div style="display:flex;gap:6px"><button class="btn pri" id="eq-ok">💾 Guardar</button>'+(EQF.id?'<button class="btn" id="eq-can">Cancelar</button>':'')+'</div>'
     +'</div><div id="eq-prev" style="margin-top:8px;font-size:14px;color:#24477a"></div></div>';
@@ -2191,9 +2199,10 @@ function matEquiv(){
   if(!L.length) h+='<div class="vacio">Todavía no hay ninguna. Apunta la primera arriba.</div>';
   else {
     L.sort(function(a,b){ return a.cat.localeCompare(b.cat)||a.art.localeCompare(b.art)||a.u-b.u; });
-    h+='<div class="tbl-wrap"><table id="eq-t"><thead><tr><th>Categoría</th><th>Artículo</th><th style="text-align:right">Unidades</th><th style="text-align:right">Pesan</th><th style="text-align:right">g por cada 1.000 U</th><th>Observaciones</th><th>Apuntado</th><th></th></tr></thead><tbody>';
+    h+='<div class="tbl-wrap"><table id="eq-t"><thead><tr><th>Categoría</th><th>Artículo</th><th style="text-align:right">En el albarán</th><th style="text-align:right">En stock</th><th style="text-align:right">Equivale a</th><th>Observaciones</th><th>Apuntado</th><th></th></tr></thead><tbody>';
     L.forEach(function(x,i){
-      h+='<tr class="nolink" data-i="'+i+'"><td>'+esc(x.cat)+'</td><td><b>'+esc(x.art)+'</b></td><td class="num">'+fNum(x.u)+' U</td><td class="num"><b>'+fNum(x.g)+' g</b></td><td class="num">'+fNum(Math.round(x.g/x.u*1000*10)/10)+' g</td><td>'+esc(x.obs)+'</td><td style="font-size:13px;color:var(--muted)">'+esc(x.quien)+(x.cuando?' · '+esc(x.cuando):'')+'</td>'
+      var base=(x.uA==='U'||x.uA==='g'||x.uA==='ml')?1000:1;
+      h+='<tr class="nolink" data-i="'+i+'"><td>'+esc(x.cat)+'</td><td><b>'+esc(x.art)+'</b></td><td class="num">'+fNum(x.u)+' '+esc(x.uA)+'</td><td class="num"><b>'+fNum(x.g)+' '+esc(x.uS)+'</b></td><td class="num">'+fNum(base)+' '+esc(x.uA)+' = '+fNum(Math.round(x.g/x.u*base*1000)/1000)+' '+esc(x.uS)+'</td><td>'+esc(x.obs)+'</td><td style="font-size:13px;color:var(--muted)">'+esc(x.quien)+(x.cuando?' · '+esc(x.cuando):'')+'</td>'
         +'<td style="white-space:nowrap"><button class="btn eq-ed">✏️</button> <button class="btn eq-bo" title="Borrar">🗑</button></td></tr>';
     });
     h+='</tbody></table></div>';
@@ -2203,20 +2212,22 @@ function matEquiv(){
   var sin=Object.keys(cat.arts['FERMENTO']||{}).filter(function(a){ return !eqDe('FERMENTO',a).length; }).sort();
   if(sin.length) h+='<p style="font-size:13.5px;color:var(--muted);margin-top:10px">Fermentos sin relación apuntada ('+sin.length+'): '+sin.map(esc).join(', ')+'.</p>';
   $('mt-body').innerHTML=h;
-  function leer(){ EQF.cat=$('eq-cat').value; EQF.art=$('eq-art').value; EQF.u=$('eq-u').value; EQF.g=$('eq-g').value; EQF.obs=$('eq-obs').value; }
-  function prev(){ leer(); var u=num(EQF.u), g=num(EQF.g); $('eq-prev').innerHTML=(u>0&&g>0)?('Así, un albarán de <b>2.000 U</b> de '+esc(EQF.art||'este artículo')+' entraría como <b>'+fNum(Math.round(2000*g/u*10)/10)+' g</b>.'):''; }
+  function leer(){ EQF.cat=$('eq-cat').value; EQF.art=$('eq-art').value; EQF.u=$('eq-u').value; EQF.uA=$('eq-ua').value; EQF.g=$('eq-g').value; EQF.uS=$('eq-us').value; EQF.obs=$('eq-obs').value; }
+  function prev(){ leer(); var u=num(EQF.u), g=num(EQF.g), ej=(EQF.uA==='U'?2000:(EQF.uA==='g'||EQF.uA==='ml'?1000:10));
+    $('eq-prev').innerHTML=(u>0&&g>0)?('Así, un albarán de <b>'+fNum(ej)+' '+esc(EQF.uA)+'</b> de '+esc(EQF.art||'este artículo')+' entraría como <b>'+fNum(Math.round(ej*g/u*10)/10)+' '+esc(EQF.uS)+'</b>.'):''; }
   $('eq-cat').onchange=function(){ leer(); EQF.art=''; matEquiv(); };
-  $('eq-art').onchange=prev; $('eq-u').oninput=prev; $('eq-g').oninput=prev; prev();
+  $('eq-art').onchange=prev; $('eq-u').oninput=prev; $('eq-g').oninput=prev; $('eq-ua').onchange=prev; $('eq-us').onchange=prev; prev();
   if($('eq-can')) $('eq-can').onclick=function(){ EQF=null; matEquiv(); };
   $('eq-ok').onclick=function(){
     leer();
     if(!EQF.art){ alert('Elige el artículo.'); return; }
-    if(!(num(EQF.u)>0) || !(num(EQF.g)>0)){ alert('Escribe las unidades y lo que pesan (los dos mayores que 0).'); return; }
-    var dup=eqDe(EQF.cat,EQF.art).filter(function(x){ return x.id!==EQF.id && x.u===num(EQF.u); })[0];
-    if(dup && !confirm(EQF.art+' ya tiene una relación para '+fNum(dup.u)+' U ('+fNum(dup.g)+' g). ¿Guardar otra igualmente?')) return;
+    if(!(num(EQF.u)>0) || !(num(EQF.g)>0)){ alert('Escribe las dos cantidades: lo que pone el albarán y lo que es en stock (las dos mayores que 0).'); return; }
+    if(EQF.uA===EQF.uS){ alert('La unidad del albarán y la del stock son la misma ('+EQF.uS+'): no hace falta relación.'); return; }
+    var dup=eqDe(EQF.cat,EQF.art).filter(function(x){ return x.id!==EQF.id && x.u===num(EQF.u) && x.uA===EQF.uA; })[0];
+    if(dup && !confirm(EQF.art+' ya tiene una relación para '+eqTxt(dup)+'. ¿Guardar otra igualmente?')) return;
     if(soloMirar()) return;
     var b=this; b.disabled=true; b.textContent='Guardando…';
-    fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'EQUIVALENCIA', accion:'guardar', id:EQF.id, categoria:EQF.cat, articulo:EQF.art, unidades:num(EQF.u), gramos:num(EQF.g), obs:EQF.obs, quien:(CU&&CU.n)||''})})
+    fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'EQUIVALENCIA', accion:'guardar', id:EQF.id, categoria:EQF.cat, articulo:EQF.art, unidades:num(EQF.u), gramos:num(EQF.g), uAlb:EQF.uA, uStock:EQF.uS, obs:EQF.obs, quien:(CU&&CU.n)||''})})
       .then(function(r){ return r.json(); }).then(function(j){
         if(!j||!j.ok) throw new Error((j&&j.error)||'el servidor no lo ha confirmado');
         EQF=null; MAT.cargado=false; cargarMat(true);
@@ -2224,7 +2235,7 @@ function matEquiv(){
   };
   if($('eq-t')) $('eq-t').querySelector('tbody').onclick=function(ev){
     var tr=ev.target.closest('tr'); if(!tr) return; var x=MAT._eqL[+tr.getAttribute('data-i')];
-    if(ev.target.closest('.eq-ed')){ EQF={id:x.id, cat:x.cat||'FERMENTO', art:x.art, u:String(x.u), g:String(x.g), obs:x.obs}; matEquiv(); window.scrollTo(0,0); }
+    if(ev.target.closest('.eq-ed')){ EQF={id:x.id, cat:x.cat||'FERMENTO', art:x.art, u:String(x.u), uA:x.uA, g:String(x.g), uS:x.uS, obs:x.obs}; matEquiv(); window.scrollTo(0,0); }
     else if(ev.target.closest('.eq-bo')){
       if(!confirm('¿Borrar la relación '+x.art+' · '+eqTxt(x)+'?\n\nLas entradas ya registradas no cambian.')) return;
       if(soloMirar()) return;

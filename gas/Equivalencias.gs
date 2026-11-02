@@ -16,7 +16,9 @@
 //                  articulo, unidades, gramos, obs, quien}
 // ══════════════════════════════════════════════════════════════════════════
 var SHEET_EQUIV = 'EQUIVALENCIAS UNIDADES PESO';
-var EQUIV_CAB = ['ID','CATEGORIA','ARTICULO','UNIDADES','GRAMOS','OBSERVACIONES','ACTUALIZADO POR','ACTUALIZADO'];
+// (02/11) Cualquier unidad: UNIDADES = cantidad en el albarán (en UNIDAD ALBARAN),
+// GRAMOS = cantidad en el stock (en UNIDAD STOCK). Sin unidades = U → g (fermentos).
+var EQUIV_CAB = ['ID','CATEGORIA','ARTICULO','UNIDADES','GRAMOS','OBSERVACIONES','ACTUALIZADO POR','ACTUALIZADO','UNIDAD ALBARAN','UNIDAD STOCK'];
 
 function _hojaEquiv(crear){
   var ss = SpreadsheetApp.openById(SHEET_ID);
@@ -45,6 +47,9 @@ function leerEquivalencias(){
 function gestionarEquivalencia(p){
   function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
   var sh = _hojaEquiv(true);
+  // Hojas creadas antes del 02/11 no tienen las columnas de unidades: se añaden.
+  var h0 = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function(x){ return String(x||'').trim().toUpperCase(); });
+  EQUIV_CAB.forEach(function(c){ if(h0.indexOf(c) < 0){ sh.getRange(1, h0.length + 1).setValue(c).setFontWeight('bold'); h0.push(c); } });
   var d = sh.getDataRange().getValues();
   var h = d[0].map(function(x){ return String(x||'').trim().toUpperCase(); });
   var cId = h.indexOf('ID');
@@ -61,11 +66,12 @@ function gestionarEquivalencia(p){
   var g   = parseFloat(String(p.gramos||'').replace(',', '.')) || 0;
   var art = String(p.articulo||'').trim();
   if(!art)  return out({ok:false, error:'Falta el artículo'});
-  if(uds <= 0 || g <= 0) return out({ok:false, error:'Las unidades y los gramos tienen que ser mayores que 0'});
+  if(uds <= 0 || g <= 0) return out({ok:false, error:'Las dos cantidades tienen que ser mayores que 0'});
   if(!id) id = 'EQ-' + Date.now();
   var fecha = Utilities.formatDate(new Date(), 'Europe/Madrid', 'dd/MM/yyyy HH:mm');
   var val = {ID:id, CATEGORIA:String(p.categoria||'').trim(), ARTICULO:art, UNIDADES:uds, GRAMOS:g,
-             OBSERVACIONES:String(p.obs||'').trim(), 'ACTUALIZADO POR':String(p.quien||'').trim(), ACTUALIZADO:fecha};
+             OBSERVACIONES:String(p.obs||'').trim(), 'ACTUALIZADO POR':String(p.quien||'').trim(), ACTUALIZADO:fecha,
+             'UNIDAD ALBARAN':String(p.uAlb||'U').trim(), 'UNIDAD STOCK':String(p.uStock||'g').trim()};
   var fil = h.map(function(k){ return val.hasOwnProperty(k) ? val[k] : ''; });
   if(fila > 0) sh.getRange(fila, 1, 1, fil.length).setValues([fil]);
   else sh.appendRow(fil);
