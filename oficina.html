@@ -388,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v56';
+var VER = 'v57';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -612,7 +612,7 @@ var MENU=[
     {id:'traz', t:'Trazabilidad por lote'},
     {id:'pale', t:'Historial de palé'},
     {id:'ubic', t:'Ubicación de palés'},
-    {t:'Partes de fabricación', url:'partes-fabricacion.html'}
+    {id:'partes', t:'Partes de fabricación'}
   ]},
   // (v5) Joaquín 30/10: las gráficas del SCADA van con los partes de
   // fabricación, no aquí. Calidad ve los registros y los partes desde Producción.
@@ -669,6 +669,7 @@ function refrescar(){
   else if(VISTA==='traz' || VISTA==='trazq') vistaTraz();
   else if(VISTA==='trazinv') vistaTrazInv();
   else if(VISTA==='pale') vistaPale();
+  else if(VISTA==='partes') vistaPartes();
   else if(VISTA==='ubic') vistaUbic();
   else if(VISTA==='revision') vistaRevision();
   else vistaInicio();
@@ -1017,6 +1018,7 @@ function cerrarFicha(){ $('panel').hidden=true; $('velo').hidden=true; }
 // un palé, una acción de la trazabilidad, la ficha de un lote o de una
 // entrada…) en una hoja limpia, con cabecera de El Hidalgo y quién lo imprime.
 function imprimirPanel(){
+  if($('p-body').querySelector('iframe[data-parte]') && PT_ACT){ imprimirHTML(PARTE_IMPR(PT_ACT)); return; }
   var cuerpo=$('p-body').cloneNode(true);
   cuerpo.querySelectorAll('button,input[type=checkbox],.noprint,#ed-err').forEach(function(x){ x.remove(); });
   cuerpo.querySelectorAll('input,select,textarea').forEach(function(x){ var sp=document.createElement('span'); sp.textContent=x.tagName==='SELECT'?(x.options[x.selectedIndex]||{}).text||'':x.value; x.replaceWith(sp); });
@@ -3669,6 +3671,290 @@ function ubImprimirHojas(z, fs){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// (v57) PARTES DE FABRICACIÓN — versión de escritorio (Joaquín, 02/11)
+// Primera entrega: VER, REVISAR e IMPRIMIR. Rellenar el parte sigue en la
+// tablet del quesero (partes-fabricacion.html), y la revisión de Calidad (la
+// versión «revisada» y su firma) también se hace allí: el botón «Revisar en
+// Partes» abre ese mismo parte en la pantalla de partes.
+// La impresión es la OFICIAL (FOR 08-01): _htmlParteImpresion copiada de
+// partes-fabricacion.html (v2.6.481). Si allí cambia el formato del papel, hay
+// que volver a copiarla aquí (bloque PARTE_IMPR).
+// ═══════════════════════════════════════════════════════════════════════════
+var PARTE_IMPR=(function(){
+function formatearFecha(iso){if(!iso)return'—';var p=iso.toString().split('-');if(p.length<3)return iso;return p[2].slice(0,2)+'/'+p[1]+'/'+p[0].slice(2);}
+function _fechaEsp(v){
+  if(v===undefined||v===null||v==='') return '';
+  if(Object.prototype.toString.call(v)==='[object Date]'){
+    if(isNaN(v.getTime())) return '';
+    return ('0'+v.getDate()).slice(-2)+'/'+('0'+(v.getMonth()+1)).slice(-2)+'/'+v.getFullYear();
+  }
+  var s=String(v).trim();
+  var iso=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(iso) return ('0'+iso[3]).slice(-2)+'/'+('0'+iso[2]).slice(-2)+'/'+iso[1];
+  var dmy=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(dmy) return ('0'+dmy[1]).slice(-2)+'/'+('0'+dmy[2]).slice(-2)+'/'+dmy[3];
+  return s;
+}
+function _fosfatasaTxt(v){
+  if(v===true) return 'Positiva';
+  if(v===false || v===undefined || v===null || v==='') return '';
+  var s = String(v).toUpperCase().trim();
+  if(s==='P' || s==='POSITIVA') return 'Positiva';
+  if(s==='N' || s==='NEGATIVA') return 'Negativa';
+  return s;
+}
+function _fFirmaDia(ts){ return String(ts||'').replace(/[ ,]+\d{1,2}:\d{2}(:\d{2})?\s*$/,'').trim(); }
+function _htmlParteImpresion(p){
+  function e(x){ if(x===undefined||x===null) return ''; return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function n(x){ return (x===undefined||x===null||x==='')?'':e(x); }
+  function z(x){ return (!x||x==='0'||x===0)?'':e(x); }
+  var logo=''; try{ var im=document.querySelector('img[src^="data:image"]'); if(im) logo=im.src; }catch(_){}
+  var fecha = (typeof formatearFecha==='function') ? formatearFecha(p.fecha) : e(p.fecha);
+  var pa=p.pasteurizacion||{}, co=p.co2||{}, cg=p.coag||{}, ds=p.desuerado||{}, mo=p.moldeo||{}, cas=p.caseinas||{}, pz=p.piezas||{}, cu=p.cuajo||{};
+  var H=[];
+  var marcaRev = (p.version==='revisado') ? ' REVISADO CALIDAD' : '';
+  var tituloDoc = 'Parte '+fecha+' '+e(p.tipo)+(p.cuba?(' Cuba'+e(p.cuba)):'')+marcaRev;
+  H.push('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>'+tituloDoc+'</title><style>');
+  H.push('@page{size:A4;margin:8mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#000;margin:0}');
+  H.push('table,.sec{margin-top:-1px}');
+  H.push('table{border-collapse:collapse;table-layout:fixed;width:auto}td,th{border:1px solid #000;padding:2px 4px;vertical-align:middle;width:32mm;text-align:center;overflow:hidden}');
+  H.push('.sec{background:#e6e6e6;font-weight:bold;text-transform:uppercase;padding:3px 4px;border:2px solid #000;width:192mm;display:block}');
+  H.push('.lbl{font-weight:bold}.t{text-align:center}.lft{text-align:left}.mt{margin-top:6px}');
+  H.push('.hdr{display:flex;align-items:center;gap:12px;border:1px solid #000;padding:6px;width:192mm}.hdr img{height:42px}.hdr .ti{flex:1;text-align:center;font-size:17px;font-weight:bold;letter-spacing:1px}');
+  H.push('.firma{margin-top:18px;border:1px solid #000;height:64px;padding:4px}.foot{display:flex;justify-content:space-between;font-size:9px;margin-top:4px;color:#333}');
+  H.push('.firmas{display:flex;gap:8px;margin-top:14px;width:192mm}.firmabox{flex:1;border:1px solid #000;padding:4px;min-height:80px}.firmabox .lbl{display:block;margin-bottom:2px}.firmabox img{max-width:100%;max-height:58px;display:block;margin:2px auto 0}.firmabox .vb{font-size:10px;margin-top:4px}');
+  // Anchos fijos por nº de columnas para que las tablas NO se salgan del ancho útil (192mm).
+  // El desmoldeo tiene 7 columnas: 192/7 ≈ 27.4mm. Sin esto, cada celda usaba 32mm fijos
+  // (7x32=224mm) y la última columna se salía de la página.
+  H.push('table.grid7{width:192mm}table.grid7 td,table.grid7 th{width:27.4mm}');
+  // ── VARIANTE B: rejilla uniforme de 6 columnas de 32mm en todo el parte ──
+  // Cada fila usa las columnas que necesita (todas del mismo ancho); las columnas
+  // sobrantes son celdas .nob: sin borde, quedan en blanco (como el prensado).
+  // Excepción: el desmoldeo mantiene sus 7 columnas (grid7).
+  H.push('td.nob{border:none}');
+  H.push('table.sechd{width:192mm;border:2px solid #000}table.sechd td{background:#e6e6e6;border:none}table.sechd td.sectd{font-weight:bold;text-transform:uppercase;text-align:left}');
+  H.push('</style></head><body>');
+  H.push('<div class="hdr">'+(logo?'<img src="'+logo+'">':'')+'<div class="ti">PARTE DE FABRICACIÓN</div></div>');
+  H.push('<table class="mt"><tr><td class="lft" colspan="2"><span class="lbl">FECHA:</span> '+fecha+'</td><td class="lft" colspan="2"><span class="lbl">TIPO DE QUESO:</span> '+n(p.tipo)+(p.variedad?(' · '+e(p.variedad)):'')+'</td><td class="lft"><span class="lbl">LOTE:</span> '+n(p.lote_queso)+'</td><td class="lft"><span class="lbl">CUAJADA Nº:</span> '+(p.version==='revisado'?'':n(p.cuba))+'</td></tr></table>');   // (v2.6.476) en la versión de Calidad, en blanco
+  H.push('<table class="mt"><tr><td></td><td class="t lbl">VACA</td><td class="t lbl">CABRA</td><td class="t lbl">OVEJA</td><td class="t lbl">MEZCLA</td><td class="t lbl">TOTAL</td></tr>');
+  H.push('<tr><td class="lbl lft">LITROS DE LECHE</td><td class="t">'+z(p.lvaca)+'</td><td class="t">'+z(p.lcabra)+'</td><td class="t">'+z(p.loveja)+'</td><td class="t"></td><td class="t">'+n(p.litros)+'</td></tr>');
+  // (v2.6.475) CUBA Nº es la cuba FÍSICA tal como está guardada. Antes, si estaba
+  // vacía, se ponía el nº de orden de la cuajada (que ya sale en CUAJADA Nº), y al
+  // quitar la cuba en la revisada seguía imprimiéndose "2".
+  // (v2.6.474) Si cada leche lleva su tanque (lo pone Calidad en la revisada de
+  // las mezclas), el TOTAL no lleva tanque: la leche viene de varios sitios y el
+  // "2" general del original confunde. Si no hay tanques por especie, sale el general.
+  var _tqEsp = [p.tanque_vaca,p.tanque_cabra,p.tanque_oveja].some(function(x){ return String(x==null?'':x).trim()!==''; });
+  // (v2.6.477) Leche de varios tanques: "3: 3000 L · 5: 1855 L" en el total.
+  var _trp = (p.version==='revisado' && Array.isArray(p.tanques_reparto)?p.tanques_reparto:[]).filter(function(r){ return r && String(r.tanque||'').trim(); });
+  var _tqTot = _tqEsp ? '' : (_trp.length>1 ? _trp.map(function(r){ return e(r.tanque)+(r.litros!==''&&r.litros!=null?(': '+e(r.litros)+' L'):''); }).join('<br>') : z(p.tanque));
+  H.push('<tr><td class="lbl lft">TANQUE PROCEDENCIA</td><td class="t">'+z(p.tanque_vaca)+'</td><td class="t">'+z(p.tanque_cabra)+'</td><td class="t">'+z(p.tanque_oveja)+'</td><td class="t"></td><td class="t">'+_tqTot+'</td></tr></table>');
+  // Nº CUBA = la cuba FÍSICA donde se elaboró (la que aparece en el parte de papel).
+  // El nº cronológico (orden de cuajada del día) va arriba, al lado del LOTE.
+  H.push('<table><tr><td class="lbl lft">CUBA Nº: <span style="font-weight:normal">'+n(p.cuba_fisica)+'</span></td><td class="lbl t">pH: <span style="font-weight:normal">'+n(p.ph)+'</span></td><td class="lbl t">ºD: <span style="font-weight:normal">'+n(p.dornic_leche)+'</span></td><td class="lbl t">TºC: <span style="font-weight:normal">'+n(p.temp)+'</span></td><td class="nob" colspan="2"></td></tr></table>');
+  var pcond = pa.temp ? ('Tºc '+e(pa.temp)+(pa.tiempo?(' - '+e(pa.tiempo)+' min'):'')) : '';   // (v2.6.471) el tiempo va en MINUTOS (litros/15.000 L/h), no en segundos
+  H.push('<div class="sec">Pasteurización</div><table><tr><td class="t lbl">Válvula desvío (C/I)</td><td class="t lbl">Fosfatasa alcalina</td><td class="t lbl">Condiciones pasteurización</td><td class="t lbl">Cruda</td><td class="nob" colspan="2"></td></tr>');
+  H.push('<tr><td class="t">'+n(pa.valvula)+'</td><td class="t">'+_fosfatasaTxt(pa.fosfatasa)+'</td><td class="t">'+pcond+'</td><td class="t">'+(pa.cruda?'Sí':'')+'</td><td class="nob" colspan="2"></td></tr></table>');
+  var am = p.aux_meta || {};
+  var amPh = am.ph || (co.ph_leche!=null?co.ph_leche:'');
+  var amTemp = am.temp || (co.temp_leche!=null?co.temp_leche:'');
+  // Cabecera estilo papel: el título de la sección y (hora adición · pH · TºC) van en
+  // la MISMA fila, como en el parte de bolígrafo. Debajo, el desglose de productos.
+  H.push('<table class="mt sechd"><colgroup><col style="width:96mm"><col style="width:32mm"><col style="width:32mm"><col style="width:32mm"></colgroup><tr><td class="sectd">AUXILIARES DE FABRICACIÓN</td><td class="t">Hora adición: '+n(am.hadicion)+'</td><td class="t">pH: '+n(amPh)+'</td><td class="t">TºC: '+n(amTemp)+'</td></tr></table>');
+  H.push('<table><tr><td class="lbl">Auxiliar</td><td class="lbl t">ml/1000L</td><td class="lbl t">ml utilizados</td><td class="lbl t">Proveedor</td><td class="lbl t">Lote</td><td class="lbl t">Caducidad</td></tr>');
+  var auxList=(p.auxiliares||[]).concat(p.otrosAuxiliares||[]);
+  if(auxList.length){ auxList.forEach(function(a){ a=a||{}; H.push('<tr><td>'+n(a.nombre)+'</td><td class="t">'+n(a.dosis_ml_1000L)+'</td><td class="t">'+n(a.consumo_total)+'</td><td class="t">'+n(a.proveedor)+'</td><td class="t">'+n(a.lote)+'</td><td class="t">'+_fechaEsp(a.caducidad)+'</td></tr>'); }); }
+  else { H.push('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>'); }
+  // CO2 como fila más de la tabla de auxiliares: cada dato en su columna
+  // (caudal Nl/min bajo ml/1000L, tiempo bajo ml utilizados, y proveedor/lote/caducidad
+  // alineados con los del cloruro).
+  H.push('<tr><td class="t">CO2</td><td class="t">'+(co.caudal_lh?(e(co.caudal_lh)+' Nl/min'):'')+'</td><td class="t">'+(co.tiempo_seg?(e(co.tiempo_seg)+' s'):'')+'</td><td class="t">'+n(co.proveedor)+'</td><td class="t">'+n(co.lote)+'</td><td class="t">'+_fechaEsp(co.caducidad)+'</td></tr>');
+  H.push('</table>');
+  var fm = p.ferm_meta || {};
+  H.push('<table class="mt sechd"><colgroup><col style="width:96mm"><col style="width:32mm"><col style="width:32mm"><col style="width:32mm"></colgroup><tr><td class="sectd">FERMENTOS LÁCTICOS</td><td class="t">Hora adición: '+n(fm.hadicion)+'</td><td class="t">pH: '+n(fm.ph)+'</td><td class="t">TºC: '+n(fm.temp)+'</td></tr></table>');
+  H.push('<table><tr><td class="lbl">Nombre</td><td class="lbl t">Dosis/1000l</td><td class="lbl t">Dosis utili.</td><td class="lbl t">Proveedor</td><td class="lbl t">Lote</td><td class="lbl t">Caducidad</td></tr>');
+  var fer=p.fermentos||[];
+  if(fer.length){ fer.forEach(function(f){ f=f||{}; H.push('<tr><td>'+n(f.nombre)+'</td><td class="t">'+n(f.dosis_ml_1000L)+'</td><td class="t">'+n(f.consumo_total)+'</td><td class="t">'+n(f.proveedor)+'</td><td class="t">'+n(f.lote)+'</td><td class="t">'+_fechaEsp(f.caducidad)+'</td></tr>'); }); }
+  else { H.push('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>'); }
+  H.push('</table>');
+  H.push('<table class="mt sechd"><colgroup><col style="width:96mm"><col style="width:32mm"><col style="width:32mm"><col style="width:32mm"></colgroup><tr><td class="sectd">COAGULACIÓN</td><td class="t">Hora adición: '+n(cg.hadicion)+'</td><td class="t">pH: '+n(cg.ph)+'</td><td class="t">TºC: '+n(cg.temp)+'</td></tr></table>');
+  H.push('<table><tr><td class="nob"></td><td class="nob"></td><td class="nob"></td><td class="t">Hora de corte: '+n(cg.hc)+'</td><td class="t">Coag. Total: '+n(cg.total)+(cg.total?' min':'')+'</td><td class="nob"></td></tr>');
+  H.push('<tr><td class="lbl">Nombre</td><td class="lbl t">Dosis/1000l</td><td class="lbl t">Dosis utili.</td><td class="lbl t">Proveedor</td><td class="lbl t">Lote</td><td class="lbl t">Caducidad</td></tr>');
+  H.push('<tr><td>'+n(cu.nombre)+'</td><td class="t">'+n(cu.dosis_ml_1000L)+'</td><td class="t">'+n(cu.consumo_total)+'</td><td class="t">'+n(cu.proveedor)+'</td><td class="t">'+n(cu.lote)+'</td><td class="t">'+_fechaEsp(cu.caducidad)+'</td></tr></table>');
+  H.push('<div class="sec">Desuerado en cuba</div><table>');
+  H.push('<tr><td class="lbl lft nob" colspan="6">Recalentamiento</td></tr>');
+  H.push('<tr><td class="lft">Hora Inicial: '+n(ds.rec_hi)+'</td><td class="lft">TºC Inicial: '+n(ds.rec_ti)+'</td><td class="lft">pH: '+n(ds.rec_ph)+'</td><td class="lft">ºD(suero): '+n(ds.rec_dornic)+'</td><td class="nob" colspan="2"></td></tr>');
+  H.push('<tr><td class="lft">Hora Final: '+n(ds.rec_hf)+'</td><td class="lft">TºC Final: '+n(ds.rec_tf)+'</td><td class="nob" colspan="4"></td></tr>');
+  H.push('<tr><td class="lbl lft nob" colspan="6">Lavado cuajada'+(ds.lavado_metodo?(' · '+e(ds.lavado_metodo)):'')+'</td></tr>');
+  H.push('<tr><td class="lft">Hora Inicial: '+n(ds.lavado_hi)+'</td><td class="lft">Hora Final: '+n(ds.lavado_hf)+'</td><td class="lft">TºC: '+n(ds.lavado_temp)+'</td><td class="nob" colspan="3"></td></tr>');
+  if(ds.lavado_cantidad) H.push('<tr><td class="lft" colspan="2">Cantidad: '+n(ds.lavado_cantidad)+' L</td><td class="nob" colspan="4"></td></tr>');
+  H.push('<tr><td class="lbl lft nob" colspan="6">Agitación</td></tr>');
+  H.push('<tr><td class="lft">Hora Inicial: '+n(ds.agit_hi)+'</td><td class="lft">Hora Final: '+n(ds.agit_hf)+'</td><td class="lft">Total: '+n(ds.agit_total)+(ds.agit_total?' min':'')+'</td><td class="nob" colspan="3"></td></tr></table>');
+  H.push('<div class="sec">Moldeo</div><table><tr><td class="lft">Hora Inicial: '+n(mo.hi)+'</td><td class="lft">pH: '+n(mo.ph)+'</td><td class="lft">TºC: '+n(mo.temp)+'</td><td class="lft">Hora Final: '+n(mo.hf)+'</td><td class="nob" colspan="2"></td></tr></table>');
+  H.push('<div class="sec">Prensado</div><table><tr><td class="lbl t">Formato / Programa</td><td class="lbl t">Tiempo en min (rampa + mant.)</td><td class="lbl t">Bar</td></tr>');
+  var pre=p.prensados||[];
+  if(pre.length){ pre.forEach(function(x){ x=x||{}; var fp=(x.formato?e(x.formato):'')+(x.programa?(' · '+e(x.programa)):''); var ti=((x.rampa_min!==undefined&&x.rampa_min!=='')?e(x.rampa_min):'')+' + '+((x.mantenimiento_min!==undefined&&x.mantenimiento_min!=='')?e(x.mantenimiento_min):''); var bar=((x.bar_inicial!==undefined&&x.bar_inicial!=='')?e(x.bar_inicial):'')+' - '+((x.bar_final!==undefined&&x.bar_final!=='')?e(x.bar_final):''); H.push('<tr><td class="t">'+fp+'</td><td class="t">'+ti+'</td><td class="t">'+bar+'</td></tr>'); }); }
+  else { H.push('<tr><td>&nbsp;</td><td></td><td></td><td class="nob" colspan="3"></td></tr>'); }
+  H.push('</table>');
+  H.push('<div class="sec">Desmoldeo</div><table class="grid7"><tr><td class="lbl t">Formato</td><td class="lbl t">Hora Inicial</td><td class="lbl t">TºC</td><td class="lbl t">pH</td><td class="lbl t">Hora Final</td><td class="lbl t">TºC</td><td class="lbl t">pH</td></tr>');
+  var dml=p.desmoldeos||[];
+  if(dml.length){ dml.forEach(function(x){ x=x||{}; H.push('<tr><td class="t">'+n(x.formato)+'</td><td class="t">'+n(x.hi)+'</td><td class="t">'+n(x.temp)+'</td><td class="t">'+n(x.ph)+'</td><td class="t">'+n(x.hf)+'</td><td class="t">'+n(x.temp_final)+'</td><td class="t">'+n(x.ph_final)+'</td></tr>'); }); }
+  else { H.push('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>'); }
+  H.push('</table>');
+  H.push('<div class="sec">Salmuera</div><table><tr><td class="lbl t">Formato</td><td class="lbl t">Hora Inicial</td><td class="lbl t">Hora Final</td><td class="nob" colspan="3"></td></tr>');
+  var sa=p.salmueras||[];
+  if(sa.length){ sa.forEach(function(x){ x=x||{}; H.push('<tr><td class="t">'+n(x.formato)+'</td><td class="t">'+n(x.hi)+'</td><td class="t">'+n(x.hf)+'</td><td class="nob" colspan="3"></td></tr>'); }); }
+  else { H.push('<tr><td>&nbsp;</td><td></td><td></td><td class="nob" colspan="3"></td></tr>'); }
+  H.push('</table>');
+  H.push('<div class="sec">Piezas fabricadas</div><table><tr><td class="t lbl">3 Kgs.</td><td class="t lbl">2 Kgs.</td><td class="t lbl">1 Kg.</td><td class="t lbl">1/2 Kg.</td><td class="t lbl">Barras</td><td class="t lbl">Gigante</td></tr>');
+  H.push('<tr><td class="t">'+z(pz['3kg'])+'</td><td class="t">'+z(pz['2kg'])+'</td><td class="t">'+z(pz['1kg'])+'</td><td class="t">'+z(pz['05kg'])+'</td><td class="t">'+z(pz.barra)+'</td><td class="t">'+z(pz.gigante)+'</td></tr></table>');
+  var casVacio = (!cas.serie && !cas.primera && !cas.ultima);
+  var casTxt = casVacio ? '' : ((cas.serie?(e(cas.serie)+' · '):'')+n(cas.primera)+' → '+n(cas.ultima)+(cas.total?(' ('+e(cas.total)+')'):''));
+  H.push('<table><tr><td class="lft" style="width:192mm"><span class="lbl">Nº Caseínas:</span> '+casTxt+'</td></tr></table>');
+  H.push('<table class="mt"><tr><td class="lft" style="width:192mm;height:34px"><span class="lbl">Acciones correctoras:</span> '+n(p.observaciones)+'</td></tr></table>');
+  var firmaImg = p.firma_quesero ? ('<img src="'+p.firma_quesero+'">') : '';
+  var firmaNom = p.firma_quesero_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_quesero_nombre)+(p.firma_quesero_ts?(' · '+e(_fFirmaDia(p.firma_quesero_ts))):'')+'</div>') : '';
+  var salaImg = p.firma_sala ? ('<img src="'+p.firma_sala+'">') : '';
+  var salaNom = p.firma_sala_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_sala_nombre)+(p.firma_sala_ts?(' · '+e(_fFirmaDia(p.firma_sala_ts))):'')+'</div>') : '';
+  var vbCalidad = p.revisado_calidad ? ((p.firma_calidad?('<img src="'+p.firma_calidad+'">'):'')+'<div class="vb"><b>✓ Revisado por Calidad</b><br>'+e(p.revisado_calidad_por||'Calidad')+(p.revisado_calidad_ts?(' · '+e(p.revisado_calidad_ts)):'')+'</div>') : '';
+  H.push('<div class="firmas">');
+  H.push('<div class="firmabox"><span class="lbl">FIRMA QUESERO:</span>'+firmaImg+firmaNom+'</div>');
+  H.push('<div class="firmabox"><span class="lbl">FIRMA OPERARIO SALA:</span>'+salaImg+salaNom+'</div>');
+  H.push('<div class="firmabox"><span class="lbl">Vº Bº CALIDAD:</span>'+vbCalidad+'</div>');
+  H.push('</div>');
+  H.push('<div class="foot"><span>FOR 08-01 / diciembre 2024</span></div>');
+  H.push('</body></html>');
+  return H.join('');
+}
+return _htmlParteImpresion;
+})();
+var PT={rows:[], cargado:false, cargando:false, err:'', hora:null};
+var PF={desde:'', hasta:'', tipo:'', ques:'', rev:'todos', q:'', vista:'orig'};
+try{ var _pf=JSON.parse(sessionStorage.getItem('tqof_pf')||'null'); if(_pf) for(var _k2 in _pf) PF[_k2]=_pf[_k2]; }catch(e){}
+function ptGuardarF(){ try{ sessionStorage.setItem('tqof_pf', JSON.stringify(PF)); }catch(e){} }
+function ptCargar(cb){
+  if(PT.cargando) return; PT.cargando=true; PT.err='';
+  fetchJSON(API_URL+'?tipo=partes&t='+Date.now()).then(function(j){
+    if(!j||!j.ok) throw new Error('el servidor no ha dado los partes');
+    PT.rows=(j.data||[]).map(function(r){
+      var p=null;
+      if(r.JSON){ try{ p=JSON.parse(r.JSON); }catch(e){ p=null; } }
+      if(!p||typeof p!=='object') p={tipo:r['TIPO DE QUESO'], variedad:r.VARIEDAD, litros:r.LITROS, operario:r.OPERARIO, observaciones:r.OBSERVACIONES||'',
+        piezas:{'3kg':r['PZAS 3KG']||0,'2kg':r['PZAS 2KG']||0,'1kg':r['PZAS 1KG']||0,'05kg':r['PZAS 05KGS']||0,'barra':r['PZAS BARRA']||0,'gigante':r['PZAS GIGANTE']||0}};
+      p.id=p.id||r.ID; p.fecha=String(r.FECHA||p.fecha||'').slice(0,10);
+      if(r.CUBA!==undefined && String(r.CUBA).trim()!=='') p.cuba=r.CUBA;
+      var cf=(r['CUBA FISICA']!==undefined?r['CUBA FISICA']:r.CUBA_FISICA); if(cf!==undefined && String(cf).trim()!=='') p.cuba_fisica=cf;
+      return p;
+    });
+    PT.cargado=true; PT.hora=new Date();
+  }).catch(function(e){ PT.err=e.message||String(e); }).then(function(){ PT.cargando=false; if(cb) cb(); });
+}
+function ptEsRev(p){ return p && (p.version==='revisado' || String(p.id||'').indexOf('PR-')===0); }
+function ptRevDe(p){
+  var id=String(p.id||'').trim(), l=PT.rows.filter(function(x){ return ptEsRev(x) && String(x.original_id||x.id_original||x.idOriginal||'').trim()===id; });
+  return l.filter(function(x){ return x.revisado_calidad===true; })[0] || l[0] || null;
+}
+function ptPiezas(p){ var z=p.piezas||{}, t=0; ['3kg','2kg','1kg','05kg','barra','gigante'].forEach(function(k){ t+=parseInt(z[k],10)||0; }); return t; }
+function ptPiezasTxt(p){ var z=p.piezas||{}, n={'3kg':'3 kg','2kg':'2 kg','1kg':'1 kg','05kg':'½ kg','barra':'barra','gigante':'gigante'};
+  return Object.keys(n).filter(function(k){ return parseInt(z[k],10); }).map(function(k){ return n[k]+': '+z[k]; }).join(' · '); }
+function ptFecha(k){ var m=String(k||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[3]+'/'+m[2]+'/'+m[1].slice(2)):String(k||''); }
+function ptQuesero(p){ return String(p.firma_quesero_nombre||p.operario||'').trim(); }
+function ptLista(){
+  if(!PF.desde){ var d=new Date(); d.setDate(d.getDate()-7); PF.desde=isoDia(d); }
+  var fin=PF.hasta||'9999-12-31', q=nrm(PF.q);
+  return PT.rows.filter(function(p){
+    if(PF.vista==='rev'){ if(!ptEsRev(p)) return false; } else if(ptEsRev(p)) return false;
+    if(p.fecha<PF.desde || p.fecha>fin) return false;
+    if(PF.tipo && nrm(p.tipo)!==nrm(PF.tipo)) return false;
+    if(PF.ques && nrm(ptQuesero(p))!==nrm(PF.ques)) return false;
+    if(PF.vista!=='rev'){
+      var r=ptRevDe(p), firm=!!(r && r.revisado_calidad===true);
+      if(PF.rev==='pend' && firm) return false;
+      if(PF.rev==='firm' && !firm) return false;
+    }
+    if(q){ var t=[p.tipo,p.variedad,p.lote_queso,ptQuesero(p),(p.fermentos||[]).map(function(f){ return f&&f.nombre; }).join(' '),(p.cuajo||{}).nombre].join(' ').toUpperCase(); if(t.indexOf(q)<0) return false; }
+    return true;
+  }).sort(function(a,b){ return (b.fecha>a.fecha?1:(b.fecha<a.fecha?-1:0)) || ((parseInt(a.cuba,10)||0)-(parseInt(b.cuba,10)||0)); });
+}
+function vistaPartes(){
+  $('t-tit').textContent='Partes de fabricación';
+  $('t-sub').textContent='Producción · consulta, revisión de Calidad e impresión (FOR 08-01). Los partes se rellenan en la tablet del quesero.';
+  if(!PT.cargado){
+    $('cont').innerHTML='<div class="vacio">'+(PT.err?('⚠️ No se han podido traer los partes ('+esc(PT.err)+').<br><br><button class="btn pri" onclick="ptCargar(vistaPartes)">Reintentar</button>'):'Cargando partes de fabricación…')+'</div>';
+    if(!PT.cargando && !PT.err) ptCargar(vistaPartes); return;
+  }
+  var l=ptLista(), litros=0, pz=0, pend=0, firm=0;
+  l.forEach(function(p){ litros+=num(p.litros); pz+=ptPiezas(p); if(PF.vista!=='rev'){ var r=ptRevDe(p); if(r && r.revisado_calidad===true) firm++; else pend++; } });
+  var tipos={}, ques={}; PT.rows.forEach(function(p){ if(p.tipo) tipos[String(p.tipo).trim()]=1; var qq=ptQuesero(p); if(qq) ques[qq]=1; });
+  var h='<div class="kpis mini">'
+    +'<div class="kpi"><span>Partes</span><b>'+l.length+'</b></div>'
+    +'<div class="kpi"><span>Litros de leche</span><b>'+fmtN(Math.round(litros))+'</b></div>'
+    +'<div class="kpi"><span>Piezas fabricadas</span><b>'+fmtN(pz)+'</b></div>'
+    +(PF.vista!=='rev'?('<div class="kpi kc'+(pend?' aviso':'')+'" data-r="pend"><span>Pendientes de revisar</span><b>'+pend+'</b></div><div class="kpi kc" data-r="firm"><span>Revisados por Calidad</span><b>'+firm+'</b></div>'):'')
+    +'<div class="kpi rec">Datos de las '+fHora(PT.hora)+' <button class="btn" id="pt-rec">⟳ Recargar</button></div></div>';
+  h+='<div class="modos">'+[['orig','📋','Originales','lo que cerró el quesero'],['rev','✅','Revisadas por Calidad','la versión oficial']].map(function(o){ return '<button class="modo'+(PF.vista===o[0]?' on':'')+'" data-v="'+o[0]+'"><span class="mi">'+o[1]+'</span><span><b>'+o[2]+'</b><small>('+o[3]+')</small></span></button>'; }).join('')+'</div>';
+  h+='<div class="filt"><label>Desde<input type="date" id="pt-desde" value="'+esc(PF.desde)+'"></label><label>Hasta<input type="date" id="pt-hasta" value="'+esc(PF.hasta)+'"></label>'
+    +'<label>Tipo de queso<select id="pt-tipo"><option value="">Todos</option>'+Object.keys(tipos).sort().map(function(t){ return '<option'+(PF.tipo===t?' selected':'')+'>'+esc(t)+'</option>'; }).join('')+'</select></label>'
+    +'<label>Quesero<select id="pt-ques"><option value="">Todos</option>'+Object.keys(ques).sort().map(function(t){ return '<option'+(PF.ques===t?' selected':'')+'>'+esc(t)+'</option>'; }).join('')+'</select></label>'
+    +(PF.vista!=='rev'?'<label>Revisión<select id="pt-rev"><option value="todos">Todos</option><option value="pend"'+(PF.rev==='pend'?' selected':'')+'>Pendientes</option><option value="firm"'+(PF.rev==='firm'?' selected':'')+'>Revisados</option></select></label>':'')
+    +'<label>Buscar<input type="search" id="pt-q" value="'+esc(PF.q)+'" placeholder="lote, fermento, cuajo…"></label><div style="flex:1"></div>'
+    +'<button class="btn" id="pt-impl">🖨 Imprimir los de la lista</button><button class="btn" id="pt-abrir">Pantalla de partes ↗</button></div>';
+  if(!l.length){ $('cont').innerHTML=h+'<div class="vacio">No hay partes con estos filtros.</div>'; ptEnlazar(l); return; }
+  h+='<div class="tbl-wrap"><table id="pt-t"><thead><tr><th>Fecha</th><th>Cuajada</th><th>Cuba</th><th>Tipo · variedad</th><th>Lote</th><th style="text-align:right">Litros</th><th>Fermentos</th><th>Cuajo</th><th>Cuajo / corte</th><th style="text-align:right">pH moldeo</th><th style="text-align:right">Piezas</th><th>Quesero</th>'+(PF.vista!=='rev'?'<th>Revisión Calidad</th>':'<th>Firmada</th>')+'</tr></thead><tbody>';
+  l.forEach(function(p,i){
+    var cg=p.coag||{}, mo=p.moldeo||{}, rv=PF.vista!=='rev'?ptRevDe(p):p, est;
+    if(PF.vista!=='rev') est=(rv&&rv.revisado_calidad===true)?('<span class="tag ok">✓ '+esc(rv.revisado_calidad_por||'Calidad')+'</span> <small>'+esc(String(rv.revisado_calidad_ts||'').split(' ')[0])+'</small>'):(rv?'<span class="tag" style="color:#9c5c00">✏️ sin firmar</span>':'<span class="tag bad">Pendiente</span>');
+    else est=p.revisado_calidad===true?('✓ '+esc(p.revisado_calidad_por||'Calidad')):'<span class="sinv">sin firmar</span>';
+    h+='<tr data-i="'+i+'"><td>'+ptFecha(p.fecha)+'</td><td class="num">'+esc(p.cuba||'')+'</td><td class="num">'+esc(p.cuba_fisica||'')+'</td><td><b>'+esc(p.tipo||'')+'</b>'+(p.variedad?' · '+esc(p.variedad):'')+'</td><td class="mono">'+esc(p.lote_queso||'')+'</td>'
+      +'<td class="num">'+fmtN(num(p.litros))+'</td><td style="white-space:normal;max-width:260px">'+esc((p.fermentos||[]).map(function(f){ return f&&f.nombre; }).filter(Boolean).join(', '))+'</td><td>'+esc((p.cuajo||{}).nombre||'')+'</td>'
+      +'<td>'+esc(cg.hadicion||'')+(cg.hc?' → '+esc(cg.hc):'')+'</td><td class="num">'+esc(mo.ph||'')+'</td><td class="num" title="'+esc(ptPiezasTxt(p))+'"><b>'+fmtN(ptPiezas(p))+'</b></td><td>'+esc(ptQuesero(p))+'</td><td>'+est+'</td></tr>';
+  });
+  $('cont').innerHTML=h+'</tbody></table></div>';
+  ptEnlazar(l);
+}
+function ptEnlazar(l){
+  $('pt-rec').onclick=function(){ this.disabled=true; this.textContent='Cargando…'; ptCargar(vistaPartes); };
+  document.querySelectorAll('#cont .modo').forEach(function(b){ b.onclick=function(){ PF.vista=b.getAttribute('data-v'); ptGuardarF(); vistaPartes(); }; });
+  document.querySelectorAll('#cont .kpi.kc').forEach(function(b){ b.onclick=function(){ PF.rev=b.getAttribute('data-r'); ptGuardarF(); vistaPartes(); }; });
+  $('pt-desde').onchange=function(){ PF.desde=this.value; ptGuardarF(); vistaPartes(); };
+  $('pt-hasta').onchange=function(){ PF.hasta=this.value; ptGuardarF(); vistaPartes(); };
+  $('pt-tipo').onchange=function(){ PF.tipo=this.value; ptGuardarF(); vistaPartes(); };
+  $('pt-ques').onchange=function(){ PF.ques=this.value; ptGuardarF(); vistaPartes(); };
+  if($('pt-rev')) $('pt-rev').onchange=function(){ PF.rev=this.value; ptGuardarF(); vistaPartes(); };
+  var t=null; $('pt-q').oninput=function(){ var v=this.value; clearTimeout(t); t=setTimeout(function(){ PF.q=v; ptGuardarF(); vistaPartes(); setTimeout(function(){ var x=$('pt-q'); if(x){ x.focus(); x.setSelectionRange(x.value.length,x.value.length); } },0); },350); };
+  $('pt-abrir').onclick=function(){ handoffPartes(); window.open('partes-fabricacion.html','_blank'); };
+  $('pt-impl').onclick=function(){
+    if(!l.length){ alert('No hay partes en la lista.'); return; }
+    if(l.length>40 && !confirm('Vas a imprimir '+l.length+' partes. ¿Seguir?')) return;
+    var docs=l.map(function(p){ return PARTE_IMPR(p); });
+    var head=docs[0].split('<body>')[0], cuerpos=docs.map(function(d){ return d.split('<body>')[1].split('</body>')[0]; });
+    imprimirHTML(head.replace('</style>','div.pg{page-break-after:always}div.pg:last-child{page-break-after:auto}</style>')+'<body>'+cuerpos.map(function(c){ return '<div class="pg">'+c+'</div>'; }).join('')+'</body></html>');
+  };
+  if($('pt-t')) $('pt-t').querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(tr) ptAbrir(l[+tr.getAttribute('data-i')]); };
+}
+// Ficha: el parte tal cual sale en papel, dentro del panel.
+var PT_ACT=null;
+function ptAbrir(p, verRev){
+  var orig=ptEsRev(p)?(PT.rows.filter(function(x){ return String(x.id)===String(p.original_id||p.id_original||''); })[0]||null):p;
+  var rev=orig?ptRevDe(orig):p;
+  var ver=(verRev && rev)?rev:(ptEsRev(p)?p:(orig||p));
+  PT_ACT=ver;
+  $('p-tit').textContent='Parte '+ptFecha(ver.fecha)+' · '+(ver.tipo||'')+(ver.cuba?' · cuajada '+ver.cuba:'');
+  $('p-sub').textContent=(ptEsRev(ver)?'Versión revisada por Calidad'+(ver.revisado_calidad===true?' (firmada)':' (sin firmar)'):'Original del quesero')+(ver.cuba_fisica?' · cuba '+ver.cuba_fisica:'')+(ptQuesero(ver)?' · '+ptQuesero(ver):'');
+  var h='<div class="noprint" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">';
+  if(orig && rev && orig!==rev) h+='<div class="chips" id="pt-ver"><button data-v="o" class="'+(ver===orig?'on':'')+'">📋 Original</button><button data-v="r" class="'+(ver===rev?'on':'')+'">✅ Revisada'+(rev.revisado_calidad===true?'':' (sin firmar)')+'</button></div>';
+  else if(!ptEsRev(ver)) h+='<span class="tag bad">Sin revisar por Calidad</span>';
+  h+='<div style="flex:1"></div><button class="btn pri" id="pt-revisar">✏️ Revisar en Partes ↗</button></div>';
+  h+='<iframe id="pt-doc" data-parte="1" style="width:100%;border:1px solid var(--line);border-radius:8px;background:#fff;height:600px"></iframe>';
+  $('p-body').innerHTML=h; $('panel').hidden=false; $('velo').hidden=false;
+  var html=PARTE_IMPR(ver), fr=$('pt-doc');
+  fr.onload=function(){ try{ var d=fr.contentDocument; d.documentElement.style.zoom='0.82'; fr.style.height=(d.documentElement.scrollHeight+40)+'px'; }catch(e){} };
+  fr.srcdoc=html;
+  if($('pt-ver')) $('pt-ver').onclick=function(ev){ var b=ev.target.closest('[data-v]'); if(b) ptAbrir(orig, b.getAttribute('data-v')==='r'); };
+  $('pt-revisar').onclick=function(){ var x=orig||ver; handoffPartes(); window.open('partes-fabricacion.html?parte='+encodeURIComponent(x.id)+'&fecha='+encodeURIComponent(x.fecha),'_blank'); };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ARRANQUE
 // ═══════════════════════════════════════════════════════════════════════════
 (function(){
@@ -3685,7 +3971,7 @@ function ubImprimirHojas(z, fs){
   $('app').hidden=false;
   $('t-who').textContent=nombre;
   $('s-ver').textContent=VER+(puedeGuardar()?' · en pruebas':' · en pruebas · solo mirar');
-  try{ var v=localStorage.getItem('tqof_vista'); if(['registros','mat','traz','trazq','trazinv','pale','revision','ubic'].indexOf(v)>=0) VISTA=v; }catch(e){}
+  try{ var v=localStorage.getItem('tqof_vista'); if(['registros','mat','traz','trazq','trazinv','pale','revision','ubic','partes'].indexOf(v)>=0) VISTA=v; }catch(e){}
   pintarMenu();
   cargarMat();   // (v17) para el aviso de mínimos en el menú, se esté donde se esté
   $('b-act').onclick=function(){ ponerAlDia(); };
