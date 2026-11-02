@@ -388,7 +388,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v55';
+var VER = 'v56';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -737,7 +737,7 @@ var COLS=[
   {k:'op', t:'Operario', v:function(r){ return String(r['OPERARIO']||''); }},
   {k:'sec', t:'Sección', v:function(r){ return String(r['SECCIÓN']||''); }, h:function(r){ return '<span class="sec">'+esc(r['SECCIÓN'])+'</span>'; }, raw:1},
   // (v26) Sin QR no hay palé: se enseña el lote (largo · corto).
-  {k:'pale', t:'ID palé / lote', v:function(r){ var tr=String(r['TIPO REGISTRO']||'').trim(); if(tr) return '🔄 '+tr.charAt(0)+tr.slice(1).toLowerCase(); var id=String(r['ID PALET']||'').trim(); if(id && !idInventado(id)) return id; var p=String(r['LOTE QUESO']||'').split('!'); return 'sin QR · lote '+(p[0]||'').trim()+(p[1]?(' · corto '+p[1].trim()):''); }, c:'mono'},
+  {k:'pale', t:'ID palé / lote', v:function(r){ var tb=tipoBobina(r); if(tb) return '🔄 '+tb.charAt(0)+tb.slice(1).toLowerCase(); var id=String(r['ID PALET']||'').trim(); if(id && !idInventado(id)) return id; var p=String(r['LOTE QUESO']||'').split('!'); return 'sin QR · lote '+(p[0]||'').trim()+(p[1]?(' · corto '+p[1].trim()):''); }, c:'mono'},
   {k:'tipo', t:'Tipo', v:function(r){ return String(r['TIPO DE QUESO']||''); }},
   {k:'var', t:'Variedad', v:function(r){ return String(r['VARIEDAD']||''); }},
   {k:'fmt', t:'Formato', v:function(r){ return String(r['FORMATO/PESO']||''); }},
@@ -844,11 +844,26 @@ function pintarTabla(){
   if($('r-todos')) $('r-todos').onclick=function(){ RF.ver=lista.length; pintarTabla(); };
 }
 // Ficha de un registro (solo lectura): todos los campos que tenga.
+// (v56) ¿Es un CAMBIO DE BOBINA? El móvil lo guarda en ENVASADO, sin palé ni
+// lote, con el lote de la bobina nueva y «PALE: …» (el palé que se envasaba) en
+// observaciones. La columna TIPO REGISTRO no siempre llega, así que se reconoce
+// también por su forma. Devuelve 'CAMBIO DE BOBINA DE FONDO' / '… DE TAPA' o ''.
+function tipoBobina(r){
+  var tr=String(r['TIPO REGISTRO']||'').trim().toUpperCase();
+  if(/BOBINA/.test(tr)) return /TAPA/.test(tr)?'CAMBIO DE BOBINA DE TAPA':'CAMBIO DE BOBINA DE FONDO';
+  if(secDe(r)!=='ENVASADO' || pidDe(r) || String(r['LOTE QUESO']||'').trim()) return '';
+  var f=String(r['REFERENCIA BOBINA FONDO']||'').trim(), t=String(r['REFERENCIA BOBINA TAPA']||'').trim();
+  if(!f && !t) return '';
+  if(!/^PALE:/i.test(String(r['OBSERVACIONES']||'').trim()) && (parseInt(r['Nº DE PIEZAS'],10)||0)>0) return '';
+  return (t && !f)?'CAMBIO DE BOBINA DE TAPA':'CAMBIO DE BOBINA DE FONDO';
+}
 function abrirFicha(r){
   if(!r) return;
-  $('p-tit').textContent=String(r['SECCIÓN']||'Registro');
+  var _bob=tipoBobina(r);
+  $('p-tit').textContent=_bob?('🔄 '+_bob.charAt(0)+_bob.slice(1).toLowerCase()):String(r['SECCIÓN']||'Registro');
   $('p-sub').textContent=fDia(r.__f)+' · '+String(r['OPERARIO']||'');   // (v16) sin hora: lo que importa es la fecha
-  var h='<div class="ficha">';
+  var h=_bob?('<div class="aviso" style="background:#eef3fb;border-color:#a9bbd6;color:#24477a;margin-bottom:10px">Este registro es un <b>'+_bob.toLowerCase()+'</b>, no el envasado de un palé. Lo guarda el móvil de envasado para descontar la bobina del stock. «PALE: …» es el palé que se estaba envasando cuando se cambió. <b>No lo borres</b>: si lo eliminas, la bobina vuelve al stock como si no se hubiera gastado.</div>'):'';
+  h+='<div class="ficha">';
   Object.keys(r).forEach(function(k){
     if(k.indexOf('__')===0) return;
     var v=r[k]; if(v===''||v==null) return;
@@ -926,7 +941,7 @@ function fichaEditar(r){
   });
   h+='</div><div id="ed-err" class="aviso" style="display:none;background:var(--bad-soft);border-color:var(--bad);color:var(--bad)"></div>'
     +'<div style="display:flex;gap:10px;margin-top:12px"><button class="btn pri" id="ed-ok">💾 Guardar cambios</button><button class="btn" id="ed-no">Cancelar</button><div style="flex:1"></div>'
-    +(r['ID']?'<button class="btn" id="ed-del" style="color:var(--bad);border-color:#e3b3b6">🗑 Eliminar este registro</button>':'')+'</div>';
+    +(r['ID']?'<button class="btn pri" id="ed-del">🗑 Eliminar este registro</button>':'')+'</div>';
   $('p-body').innerHTML=h;
   $('ed-no').onclick=function(){ abrirFicha(r); };
   if($('ed-del')) $('ed-del').onclick=function(){ fichaEliminar(r, this); };
@@ -976,13 +991,13 @@ function dosBotones(titulo, texto, si, no, cb){
   var v=document.createElement('div');
   v.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center';
   v.innerHTML='<div style="background:#fff;border-radius:12px;padding:20px 22px;max-width:520px;box-shadow:0 10px 40px rgba(0,0,0,.3)"><h3 style="margin:0 0 8px;color:var(--brand)">'+titulo+'</h3><div style="font-size:15px;line-height:1.45;margin-bottom:16px">'+texto+'</div>'
-    +'<div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn" data-r="0">'+no+'</button><button class="btn" data-r="1" style="color:#fff;background:var(--bad);border-color:var(--bad)">'+si+'</button></div></div>';
+    +'<div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn" data-r="0">'+no+'</button><button class="btn pri" data-r="1">'+si+'</button></div></div>';
   document.body.appendChild(v);
   v.onclick=function(ev){ var b=ev.target.closest('[data-r]'); if(!b) return; v.remove(); if(b.getAttribute('data-r')==='1') cb(); };
 }
 function fichaEliminar(r, btn){
   if(soloMirar()) return;
-  var tr=String(r['TIPO REGISTRO']||'').trim(), sec=secDe(r);
+  var tr=tipoBobina(r), sec=secDe(r);
   var desc=esc(sec)+(tr?' · '+esc(tr):'')+' · '+fDia(r.__f)+' '+fHora(r.__f)+' · '+esc(r['OPERARIO']||'')+(pidDe(r)?' · <span class="mono">'+esc(pidDe(r))+'</span>':'');
   var aviso=tr?'<br><br><b>Ojo:</b> es un <b>cambio de bobina</b>, no un envasado de palé. Si lo eliminas, la bobina se <b>devuelve al stock</b> como si no se hubiera gastado.'
     :(sec==='ENVASADO'?'<br><br>Si consumió aceite, trufa u otro material, se <b>devuelve al stock</b>.':'');
