@@ -70,7 +70,8 @@ function _ubicacionesVigentes() {
       pie: Number(r[6]) || 0,
       altura: Number(r[7]) || 0,
       fecha: (r[0] instanceof Date) ? r[0].getTime() : 0,
-      quien: String(r[1] || '')
+      quien: String(r[1] || ''),
+      sesion: String(r[9] || '')
     };
   }
   return out;
@@ -119,10 +120,16 @@ function gestionarUbicacion(payload) {
       if (vigentes[k] && vigentes[k].codigo === cod) return;
       filas.push([ahora, quien, id, cod, zona, fila, pie, alt, 'ALTA', sesion]);
     });
-    // Los que estaban en esta fila y ya no vienen: BAJA
+    // Los que estaban en esta fila y ya no vienen: BAJA… pero SOLO si los puso
+    // esta misma sesión del móvil o vienen en «quitar» (Quitar último / Quitar de
+    // la fila). (02/11, API 17) Antes se daba de BAJA todo lo que no viniera en
+    // la lista, y una fila abierta en un móvil con datos viejos borró 3 palés
+    // colocados después desde la oficina (CM1-F17, Joaquín).
+    var quitar = {};
+    (payload.quitar || []).forEach(function(id) { quitar[_ubicClave(id)] = true; });
     Object.keys(vigentes).forEach(function(k) {
       var u = vigentes[k];
-      if (u.zona === zona && u.fila === fila && !nuevos[k]) {
+      if (u.zona === zona && u.fila === fila && !nuevos[k] && ((sesion && u.sesion === sesion) || quitar[k])) {
         filas.push([ahora, quien, u.id, u.codigo, u.zona, u.fila, u.pie, u.altura, 'BAJA', sesion]);
       }
     });

@@ -1,6 +1,6 @@
 # Ubicación de palés — móvil y escritorio (lo que hay que saber en cualquier conversación)
 
-Actualizado 02/11/2026 (móvil v546, API 16 + acciones «poner» y «mover», oficina v50). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
+Actualizado 02/11/2026 (móvil v547, API 17 + acciones «poner» y «mover», oficina v50). Este documento es el punto de encuentro: la conversación que toque la ubicación de palés lo lee antes de empezar y lo actualiza al terminar (aquí, en el repositorio: `claude/UBICACION-PALES.md`).
 
 **Acuerdo (01/11/2026):** la ubicación de palés la lleva UNA sola conversación, la de ubicación, tanto en el móvil (index.html) como en la oficina (oficina.html). La conversación de la oficina ya no la toca.
 
@@ -9,7 +9,7 @@ Actualizado 02/11/2026 (móvil v546, API 16 + acciones «poner» y «mover», of
 ## Dónde está cada cosa
 - **Móvil (index.html, bloque «UBICACIONES DE PALÉS EN CÁMARAS», desde v500).** Aquí se ubica: se escanea dentro del movimiento o desde «Ubicar / buscar». También tiene «Ver cámara», el plano del stock y el botón de ubicación en «Buscar palet».
 - **Escritorio (oficina.html, bloque «(v39) UBICACIÓN DE PALÉS EN CÁMARAS», menú Producción → Ubicación de palés).** Se mira y, desde v44, también se recoloca y se regulariza (dar hueco a palés antiguos), con el permiso de ubicación.
-- **Datos:** la hoja UBICACIONES (gas/Ubicaciones.gs). GET `?tipo=ubicaciones` devuelve la ubicación vigente de cada palé. Escriben el móvil y la oficina (`_SHEET:'UBICACION'`): `accion:'fila'` (la fila entera al llenar), `accion:'poner'` (un palé en un hueco concreto; si está ocupado devuelve `ocupado` y solo se cambia con `forzar:true`), `accion:'mover'` (varios palés a huecos concretos, todo o nada; si un destino lo tiene un palé que no se mueve devuelve `ocupados`), `accion:'baja'`.
+- **Datos:** la hoja UBICACIONES (gas/Ubicaciones.gs). GET `?tipo=ubicaciones` devuelve la ubicación vigente de cada palé. Escriben el móvil y la oficina (`_SHEET:'UBICACION'`): `accion:'fila'` (la fila entera al llenar; desde API 17 solo da de BAJA lo que puso esa misma sesión o viene en `quitar` — antes una fila abierta con datos viejos borró 3 palés de la CM1-F17, 02/11), `accion:'poner'` (un palé en un hueco concreto; si está ocupado devuelve `ocupado` y solo se cambia con `forzar:true`), `accion:'mover'` (varios palés a huecos concretos, todo o nada; si un destino lo tiene un palé que no se mueve devuelve `ocupados`), `accion:'baja'`.
 - **Un palé = una ubicación (API 15, móvil v532):** el mismo palé puede llegar escrito de varias formas (con o sin «!lote», con más o menos espacios). El servidor compara por `_ubicClave` (dígitos sin espacios + variedad, como `normPaleKey`) y el móvil deduplica en `_ubicIndexar` quedándose con la última. Antes, al cambiar de sitio un palé escrito distinto, salía en el hueco nuevo y seguía en el viejo (CF2-F17, 01/11). La oficina ya comparaba con `ubKey`.
 - **Versión de la oficina:** está en `var VER = 'vNN'` de oficina.html; hay que subirla en cada cambio.
 
