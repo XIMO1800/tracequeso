@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 18;  // 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
+const API_VERSION = 19;  // 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -2600,6 +2600,11 @@ function _borrarSalidasEnvasado(idEnvasado, devolverStock) {
 }
 
 function gestionarSalidasEnvasado(payload) {
+  // (03/11, API 19) Eliminar una SALIDA MANUAL (SM-…) hecha por error desde la
+  // oficina: se borra su fila y se DEVUELVE la cantidad al stock del lote. Solo
+  // SM-: los consumos de partes y envasados se quitan borrando su registro.
+  // Queda copia de lo borrado en la hoja SALIDAS MATERIAL ELIMINADAS.
+  if (payload.accion === 'borrar') return _borrarSalidaManual(payload);
   var sheetSal = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_SALIDAS);
   if (!sheetSal) return ContentService.createTextOutput(JSON.stringify({ok:false,error:'No existe la hoja SALIDAS MATERIAL AUXILIAR'})).setMimeType(ContentService.MimeType.JSON);
 
@@ -2648,6 +2653,39 @@ function gestionarSalidasEnvasado(payload) {
   });
 
   return ContentService.createTextOutput(JSON.stringify({ok:true, registradas:n})).setMimeType(ContentService.MimeType.JSON);
+}
+
+function _borrarSalidaManual(payload) {
+  function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+  var id = String(payload.idEnvasado || payload.id || '').trim();
+  if (id.indexOf('SM-') !== 0) return out({ok:false, error:'Solo se pueden eliminar aquí las salidas manuales (SM-)'});
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheetSal = ss.getSheetByName(SHEET_SALIDAS);
+  if (!sheetSal) return out({ok:false, error:'No existe la hoja de salidas'});
+  var data = sheetSal.getDataRange().getValues();
+  var headers = data[0], cParte = _colIdx(headers, 'ID PARTE'), copia = [];
+  for (var i = 1; i < data.length; i++) {
+    if (cParte >= 0 && String(data[i][cParte] || '').trim() === id) copia.push(data[i]);
+  }
+  if (!copia.length) return out({ok:false, error:'No encuentro esa salida (puede que ya esté eliminada)'});
+  try {
+    var shE = ss.getSheetByName('SALIDAS MATERIAL ELIMINADAS');
+    if (!shE) { shE = ss.insertSheet('SALIDAS MATERIAL ELIMINADAS'); shE.appendRow(['ELIMINADA EL','ELIMINADA POR'].concat(headers)); shE.setFrozenRows(1); }
+    var quien = String(payload.quien || '').trim();
+    copia.forEach(function(f){ shE.appendRow([_cuandoTxt(), quien].concat(f.map(function(v){ return (v instanceof Date) ? _cuandoDe(v) : v; }))); });
+  } catch (e) {}
+  // Se borra aquí mismo (no con _borrarSalidasEnvasado: aquel salta las filas
+  // cuyo motivo dice «PARTE», y una observación escrita a mano podría decirlo).
+  var cCat = _colIdx(headers, 'CATEGORIA'), cArt = _colIdx(headers, 'ARTICULO'), cLote = _colIdx(headers, 'LOTE');
+  var cCant = _colIdx(headers, 'CANTIDAD'), cUni = _colIdx(headers, 'UNIDAD'), n = 0;
+  for (var j = data.length - 1; j >= 1; j--) {
+    if (String(data[j][cParte] || '').trim() !== id) continue;
+    var cant = cCant >= 0 ? (parseFloat(data[j][cCant]) || 0) : 0;
+    if (cant) _aplicarConsumoStock(cCat >= 0 ? data[j][cCat] : '', cArt >= 0 ? data[j][cArt] : '', cLote >= 0 ? data[j][cLote] : '', -cant, cUni >= 0 ? data[j][cUni] : '');
+    sheetSal.deleteRow(j + 1);
+    n++;
+  }
+  return out({ok: n > 0, borradas: n});
 }
 
 // ══════════════════════════════════════════════════════════════════════════

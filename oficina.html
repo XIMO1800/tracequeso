@@ -396,7 +396,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v59';
+var VER = 'v60';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -1912,9 +1912,29 @@ function fichaSalida(s){
       ['Cantidad', '<b>−'+fNum(s.CANTIDAD||s.cantidad)+'</b> '+esc(u)],
       ['Hecha por', val(gEnt(s,['OPERARIO','operario']))],
       ['Registro', '<span class="mono">'+val(s['ID PARTE'])+'</span>']].map(function(x){ return '<div class="k">'+x[0]+'</div><div class="v">'+x[1]+'</div>'; }).join('')
-    +'</div><p style="font-size:13px;color:var(--muted);margin-top:10px">Salida dada a mano desde Material auxiliar → Salidas y consumos. Ya está descontada del stock del lote.</p>';
+    +'</div><p style="font-size:13px;color:var(--muted);margin-top:10px">Salida dada a mano desde Material auxiliar → Salidas y consumos. Ya está descontada del stock del lote.</p>'
+    +((puedeGuardar() && String(s['ID PARTE']||'').indexOf('SM-')===0)?'<p style="margin-top:14px"><button class="btn pri" id="p-elim-sal">🗑 Eliminar esta salida</button></p><div id="sal-err" style="display:none;color:#b00020;font-weight:700;margin-top:8px"></div>':'');
   $('p-body').innerHTML=h; $('panel').hidden=false; $('velo').hidden=false;
   if(_vl && $('p-volver')) $('p-volver').onclick=function(){ fichaLote(_vl); };
+  if($('p-elim-sal')) $('p-elim-sal').onclick=function(){ salidaEliminar(s, this, art, lote, u); };
+}
+// (v60) ELIMINAR UNA SALIDA MANUAL HECHA POR ERROR (Joaquín, 03/11: regularizó
+// el lote que sí tenía en vez del que faltaba). Se borra la salida y la
+// cantidad VUELVE al stock del lote. En el servidor queda copia en la hoja
+// SALIDAS MATERIAL ELIMINADAS (quién y cuándo). Solo salidas SM-.
+function salidaEliminar(s, btn, art, lote, u){
+  var id=String(s['ID PARTE']||'').trim();
+  dosBotones('¿Eliminar esta salida?', '<b>'+esc(art)+'</b> · lote <b>'+esc(lote)+'</b> · '+fNum(s.CANTIDAD||s.cantidad)+' '+esc(u)
+      +'<br><br>Las <b>'+fNum(s.CANTIDAD||s.cantidad)+' '+esc(u)+'</b> se <b>devuelven al stock</b> de este lote, como si la salida no se hubiera hecho.'
+      +'<br><br>Queda anotado que la has eliminado tú.', '🗑 Sí, eliminarla', 'No, dejarla', function(){
+    btn.disabled=true; btn.textContent='Eliminando…';
+    fetch(API_URL,{method:'POST', body:JSON.stringify({'_SHEET':'SALIDAS_ENVASADO', accion:'borrar', idEnvasado:id, quien:(CU&&CU.n)||''})})
+      .then(function(x){ return x.json(); }).then(function(j){
+        if(!j || !j.ok) throw new Error((j&&j.error)||'el servidor no ha confirmado');
+        cerrarFicha(); MAT._fichaLote=null; MAT.cargado=false; cargarMat(true);
+        alert('✅ Salida eliminada. Las '+fNum(s.CANTIDAD||s.cantidad)+' '+u+' han vuelto al lote '+lote+'.\n\nSi la regularización era de otro lote, hazla ahora en «Registrar salida a mano».');
+      }).catch(function(e){ btn.disabled=false; btn.textContent='🗑 Eliminar esta salida'; $('sal-err').textContent='⚠️ No se ha eliminado: '+e.message+'.'; $('sal-err').style.display='block'; });
+  });
 }
 // Del consumo al registro que lo generó: un parte (P-…) abre el parte de
 // fabricación; un envasado u otro registro (ID-…) abre su ficha.
