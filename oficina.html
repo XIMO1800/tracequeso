@@ -396,7 +396,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v62';
+var VER = 'v63';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -2370,7 +2370,7 @@ function matEquiv(){
     L.forEach(function(x,i){
       var base=(x.uA==='U'||x.uA==='g'||x.uA==='ml')?1000:1;
       h+='<tr class="nolink" data-i="'+i+'"><td>'+esc(x.cat)+'</td><td><b>'+esc(x.art)+'</b></td><td class="num">'+fNum(x.u)+' '+esc(x.uA)+'</td><td class="num"><b>'+fNum(x.g)+' '+esc(x.uS)+'</b></td><td class="num">'+fNum(base)+' '+esc(x.uA)+' = '+fNum(Math.round(x.g/x.u*base*1000)/1000)+' '+esc(x.uS)+'</td><td>'+esc(x.obs)+'</td><td style="font-size:13px;color:var(--muted)">'+esc(x.quien)+(x.cuando?' · '+esc(x.cuando):'')+'</td>'
-        +'<td style="white-space:nowrap"><button class="btn eq-ed">✏️</button> <button class="btn eq-bo" title="Borrar">🗑</button></td></tr>';
+        +'<td style="white-space:nowrap"><button class="btn eq-ed" title="Editar esta relación (sube arriba para cambiarla)">Editar</button> <button class="btn eq-bo" title="Borrar esta relación">Borrar</button></td></tr>';
     });
     h+='</tbody></table></div>';
     MAT._eqL=L;
