@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 19;  // 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
+const API_VERSION = 20;  // 20 (04/11): control de recepción (quien descarga) y REF PROVEEDOR en entradas. 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -2221,8 +2221,15 @@ function gestionarEntradas(payload) {
       'FECHA ENTRADA':        payload.fentrada,
       'PROVEEDOR':            payload.proveedor,
       'CANTIDAD':             payload.cantidad,
-      'UNIDAD':               payload.unidad
+      'UNIDAD':               payload.unidad,
+      'REF PROVEEDOR':        payload.refProv   // (04/11, API 20)
     };
+    // (04/11) La columna REF PROVEEDOR puede no existir aún: se crea al primer uso.
+    if (payload.refProv !== undefined && _colIdx(headersEnt, 'REF PROVEEDOR') < 0) {
+      sheetEnt.getRange(1, headersEnt.length + 1).setValue('REF PROVEEDOR');
+      headersEnt = sheetEnt.getRange(1, 1, 1, sheetEnt.getLastColumn()).getValues()[0];
+    }
+    if (payload.refProv !== undefined) editables['REF PROVEEDOR'] = String(payload.refProv || '').trim().toUpperCase();
     for (var c = 0; c < headersEnt.length; c++) {
       var key = String(headersEnt[c]).toUpperCase().trim();
       if (editables.hasOwnProperty(key) && editables[key] !== undefined) {
@@ -2290,7 +2297,10 @@ function gestionarEntradas(payload) {
   // (2026-10-22) RECEPCIÓN DESDE EL MÓVIL: quién descargó, la foto del albarán
   // y si Calidad lo ha verificado. Si la hoja no tiene esas columnas, se añaden
   // al final (las demás pantallas leen por nombre de cabecera, no por posición).
-  ['RECIBIDO POR', 'FOTO ALBARAN', 'VERIFICADO CALIDAD'].forEach(function(nc){
+  // (04/11, API 20) REF PROVEEDOR: el código con que el proveedor llama al
+  // artículo en su albarán (TOFILM «B016893» = nuestra TAPA 330). Con él, la
+  // siguiente entrada de ese proveedor y código sale ya con el artículo puesto.
+  ['RECIBIDO POR', 'FOTO ALBARAN', 'VERIFICADO CALIDAD', 'REF PROVEEDOR'].forEach(function(nc){
     if (_colIdx(headersEnt, nc) < 0) {
       sheetEnt.getRange(1, headersEnt.length + 1).setValue(nc);
       headersEnt = sheetEnt.getRange(1, 1, 1, sheetEnt.getLastColumn()).getValues()[0];
@@ -2321,7 +2331,8 @@ function gestionarEntradas(payload) {
     'TEMP CAMION':          payload.temp     || '',
     'ACCIONES CORRECTORAS': payload.acciones || '',
     'FIRMA':                payload.firma    || '',
-    'FECHA ENTRADA':        payload.fentrada || ''
+    'FECHA ENTRADA':        payload.fentrada || '',
+    'REF PROVEEDOR':        String(payload.refProv || '').trim().toUpperCase()
   };
   var fila = headersEnt.map(function(h) {
     var key = String(h).toUpperCase().trim();
@@ -3553,7 +3564,9 @@ function gestionarLoteRegistros(payload) {
 // Calidad da desde ahí la entrada o entradas (se apuntan en ENTRADAS) y la marca
 // TERMINADA o DESCARTADA. LECTURA IA queda para la lectura automática futura.
 // ══════════════════════════════════════════════════════════════════════════
-var REC_COLS = ['ID','FECHA','RECIBIDO POR','FOTOS','Nº FOTOS','ESTADO','ENTRADAS','LECTURA IA','CERRADA POR','FECHA CIERRE','OBSERVACIONES'];
+var REC_COLS = ['ID','FECHA','RECIBIDO POR','FOTOS','Nº FOTOS','ESTADO','ENTRADAS','LECTURA IA','CERRADA POR','FECHA CIERRE','OBSERVACIONES',
+                // (04/11, API 20) Control que rellena quien descarga
+                'CONTROL ESTADO','CONTROL ETIQUETA','CONTROL CAMION','TEMP CAMION','ACCIONES CORRECTORAS'];
 function _hojaRecepciones(){
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var sh = ss.getSheetByName(SHEET_RECEPCIONES);
@@ -3570,6 +3583,9 @@ function gestionarRecepcion(payload){
   var out = function(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); };
   try{
     var sh = _hojaRecepciones();
+    // (04/11) Hojas creadas antes del control de recepción: se añaden las columnas que falten.
+    var h0 = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function(x){ return String(x||'').trim(); });
+    REC_COLS.forEach(function(col){ if (h0.indexOf(col) < 0) { sh.getRange(1, h0.length + 1).setValue(col); h0.push(col); } });
     var data = sh.getDataRange().getValues();
     var h = data[0];
     var c = function(n){ return h.indexOf(n); };
@@ -3589,6 +3605,12 @@ function gestionarRecepcion(payload){
         if (col === 'FOTOS') return fotos.join(' | ');
         if (col === 'Nº FOTOS') return fotos.length;
         if (col === 'ESTADO') return 'PENDIENTE';
+        var ctl = payload.control || {};
+        if (col === 'CONTROL ESTADO') return String(ctl.estado || '');
+        if (col === 'CONTROL ETIQUETA') return String(ctl.etiqueta || '');
+        if (col === 'CONTROL CAMION') return String(ctl.camion || '');
+        if (col === 'TEMP CAMION') return String(ctl.temp || '');
+        if (col === 'ACCIONES CORRECTORAS') return String(ctl.acciones || '');
         return '';
       });
       // Si alguien ha movido columnas, se escribe por nombre

@@ -396,7 +396,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v60';
+var VER = 'v61';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -1475,7 +1475,7 @@ function matSalidas(soloTabla){
 function matRecepciones(){
   var lista=MAT.rec.slice().sort(function(a,b){ var fa=parseFecha(a.FECHA), fb=parseFecha(b.FECHA); return (fb?fb.getTime():0)-(fa?fa.getTime():0); });
   if(!lista.length){ $('mt-body').innerHTML='<div class="vacio">No hay recepciones en los últimos 30 días.</div>'; return; }
-  var h='<div class="aviso">Las recepciones las hace quien descarga (solo la foto del albarán). Dar la entrada se sigue haciendo en TraceQueso → Material auxiliar → Recepciones pendientes.</div>';
+  var h='<div class="aviso">Las recepciones las hace quien descarga: la foto del albarán y el control (estado, etiqueta, camión y temperatura). Pincha una pendiente para <b>dar la entrada</b> desde aquí o marcarla como terminada.</div>';
   h+='<div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Recibido por</th><th>Fotos</th><th>Estado</th><th>Entradas dadas</th><th>Cerrada por</th><th>Observaciones</th></tr></thead><tbody>';
   lista.forEach(function(r,i){
     var e=nrm(r.ESTADO), d=parseFecha(r.FECHA), fotos=String(r.FOTOS||'').split('|').filter(function(x){return x.trim();});
@@ -1489,11 +1489,37 @@ function matRecepciones(){
     var fotos=String(r.FOTOS||'').split('|').map(function(x){return x.trim();}).filter(Boolean), d=parseFecha(r.FECHA);
     $('p-tit').textContent='Recepción · '+(d?fDia(d)+' '+fHora(d):'');
     $('p-sub').textContent=String(r['RECIBIDO POR']||'')+' · '+String(r.ESTADO||'');
-    var h2='<div class="ficha">'; ['ID','ESTADO','RECIBIDO POR','ENTRADAS','CERRADA POR','FECHA CIERRE','OBSERVACIONES','LECTURA IA'].forEach(function(k){ if(r[k]) h2+='<div class="k">'+esc(k)+'</div><div class="v">'+esc(r[k])+'</div>'; }); h2+='</div>';
+    var _ci=function(v){ v=String(v||'').trim().toUpperCase(); return v==='C'?'✓ Correcto':(v==='I'?'✕ Incorrecto':v); };
+    var _pend=recPend(), _ip=_pend.indexOf(r), _ents=String(r.ENTRADAS||'').split(',').filter(function(x){ return x.trim(); }).length;
+    var h2=(_ip>=0 && puedeGuardar()?('<p style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px"><button class="btn pri" id="rc-ent">📥 '+(_ents?'Dar otra entrada':'Dar entrada')+'</button><button class="btn" id="rc-fin">✓ Terminada</button><button class="btn" id="rc-desc">🗑 Descartar</button></p>'):'');
+    h2+='<div class="ficha">'; [['ID','ID'],['ESTADO','Estado'],['RECIBIDO POR','Recibido por'],['CONTROL ESTADO','Estado mercancía'],['CONTROL ETIQUETA','Etiqueta'],['CONTROL CAMION','Condiciones camión'],['TEMP CAMION','Tª camión (°C)'],['ACCIONES CORRECTORAS','Observaciones de quien recibe'],['ENTRADAS','Entradas dadas'],['CERRADA POR','Cerrada por'],['FECHA CIERRE','Fecha cierre'],['OBSERVACIONES','Observaciones'],['LECTURA IA','Lectura IA']].forEach(function(k){ if(r[k[0]]) h2+='<div class="k">'+esc(k[1])+'</div><div class="v">'+esc(k[0].indexOf('CONTROL')===0?_ci(r[k[0]]):r[k[0]])+'</div>'; }); h2+='</div>';
     fotos.forEach(function(u,i){ h2+='<div style="margin-top:12px"><b>Foto '+(i+1)+'</b><div class="fotoh"></div></div>'; });
     $('p-body').innerHTML=h2; $('panel').hidden=false; $('velo').hidden=false;
     var hs=$('p-body').querySelectorAll('.fotoh'); fotos.forEach(function(u,i){ verFoto(u, hs[i]); });
+    if($('rc-ent')) $('rc-ent').onclick=function(){
+      EF=efNuevo(); EF.rec=String(_ip); efDeRecepcion(r);
+      MF.tab='entradas'; MF.entModo='nueva'; guardarMF(); cerrarFicha(); vistaMat();
+    };
+    if($('rc-fin')) $('rc-fin').onclick=function(){ recCerrarOf(r, 'TERMINADA', _ents, this); };
+    if($('rc-desc')) $('rc-desc').onclick=function(){ recCerrarOf(r, 'DESCARTADA', _ents, this); };
   };
+}
+// (v61) Terminar / descartar una recepción desde la oficina (antes solo en el móvil).
+function recCerrarOf(r, estado, nEnt, btn){
+  function enviar(obs){
+    btn.disabled=true;
+    fetch(API_URL,{method:'POST',body:JSON.stringify({_SHEET:'RECEPCION', accion:'cerrar', id:r.ID, estado:estado, quien:(CU&&CU.n)||'', obs:obs||''})})
+      .then(function(x){ return x.json(); }).then(function(d){
+        if(!d||!d.ok) throw new Error((d&&d.error)||'el servidor no ha confirmado');
+        r.ESTADO=estado; cerrarFicha(); MAT.cargado=false; cargarMat(true);
+      }).catch(function(e){ btn.disabled=false; alert('⚠️ No se ha guardado: '+e.message); });
+  }
+  if(estado==='DESCARTADA'){
+    var o=prompt('¿Por qué se descarta esta recepción? (foto repetida, no es material auxiliar…)','');
+    if(o===null) return; enviar(o); return;
+  }
+  if(!nEnt){ dosBotones('Esta recepción no tiene ninguna entrada dada', 'Si la marcas como terminada, desaparece de pendientes sin entrada en el stock.', '✓ Marcarla terminada', 'No, volver', function(){ enviar(''); }); return; }
+  enviar('');
 }
 
 
@@ -1520,7 +1546,31 @@ function efNuevo(){
           estado:'', etiqueta:'', camion:'', temp:'', acciones:'',
           foto:null, fotoNombre:'', lineas:[efLinea()]};
 }
-function efLinea(){ return {cat:'', art:'', lote:'', cad:'', cant:'', uni:'', uds:'', eq:''}; }
+function efLinea(){ return {cat:'', art:'', ref:'', lote:'', cad:'', cant:'', uni:'', uds:'', eq:''}; }
+// (v61) REFERENCIA DEL PROVEEDOR → NUESTRO ARTÍCULO (Joaquín, 04/11). El
+// proveedor llama al material a su manera («B016893 FILM FF 8000 330x500» de
+// TOFILM es nuestra TAPA 330). Se apunta una vez en la línea de la entrada
+// (columna REF PROVEEDOR) y la siguiente vez, al escribir ese código con ese
+// proveedor, la línea sale ya con categoría, artículo y unidad.
+function refBuscar(prov, ref){
+  prov=nrm(prov); ref=nrm(ref); if(!prov||!ref) return null;
+  var m=null, mt=0;
+  MAT.ent.forEach(function(e){
+    if(nrm(gEnt(e,['REF PROVEEDOR']))!==ref || nrm(gEnt(e,['PROVEEDOR','proveedor']))!==prov) return;
+    var d=parseFecha(gEnt(e,['FECHA','fecha'])), t=d?d.getTime():0;
+    if(!m || t>=mt){ m=e; mt=t; }
+  });
+  return m?{cat:String(gEnt(m,['CATEGORIA','CATEGORÍA','categoria'])).trim(), art:String(gEnt(m,['ARTICULO','ARTÍCULO','articulo'])).trim(), uni:String(gEnt(m,['UNIDAD','unidad'])).trim()}:null;
+}
+// Lo que rellenó en el móvil quien descargó (v61): se copia al control de la entrada.
+function efDeRecepcion(r){
+  if(!r) return;
+  var d=parseFecha(r.FECHA); if(d) EF.fecha=isoDia(d);
+  EF.foto=null; EF.fotoNombre='';
+  [['estado','CONTROL ESTADO'],['etiqueta','CONTROL ETIQUETA'],['camion','CONTROL CAMION'],['temp','TEMP CAMION'],['acciones','ACCIONES CORRECTORAS']].forEach(function(p){
+    var v=String(r[p[1]]||'').trim(); if(v) EF[p[0]]=v;
+  });
+}
 function catalogo(){
   var cats={}, arts={}, provs={}, uniArt={}, provArt={};
   CATS_FIJAS.forEach(function(c){ cats[c]=1; });
@@ -1578,10 +1628,13 @@ function matFormEntrada(){
     +'<datalist id="dl-prov">'+cat.provs.map(function(p){ return '<option value="'+esc(p)+'">'; }).join('')+'</datalist></div>';
   // ── Líneas ──
   h+='<div class="card"><h3>📦 Material recibido <small>una línea por artículo y lote</small></h3>'
-    +'<table class="lin" style="table-layout:fixed"><thead><tr><th style="width:17%">Categoría *</th><th style="width:24%">Artículo *</th><th style="width:13%">Lote *</th><th style="width:15%">Caducidad</th><th style="width:12%">Cantidad *</th><th style="width:13%">Unidad *</th><th style="width:6%"></th></tr></thead><tbody>';
+    +'<table class="lin" style="table-layout:fixed"><thead><tr><th style="width:12%" title="El código o nombre del artículo tal como viene en el albarán del proveedor">Ref. proveedor</th><th style="width:14%">Categoría *</th><th style="width:20%">Artículo *</th><th style="width:12%">Lote *</th><th style="width:14%">Caducidad</th><th style="width:10%">Cantidad *</th><th style="width:12%">Unidad *</th><th style="width:5%"></th></tr></thead><tbody>';
   EF.lineas.forEach(function(l,i){
     var artsCat=Object.keys((cat.arts[l.cat]||{})).sort();
+    var _rf=l.ref?refBuscar(EF.prov,l.ref):null;
     h+='<tr data-l="'+i+'">'
+      +'<td><input data-f="ref" value="'+esc(l.ref)+'" autocomplete="off" placeholder="Código albarán" style="text-transform:uppercase">'
+        +(l.ref?('<div style="font-size:11px;margin-top:2px;color:'+(_rf?'#2e7d32':'var(--muted)')+'">'+(_rf?'✓ conocido':(EF.prov?'nuevo: se recordará':'pon el proveedor'))+'</div>'):'')+'</td>'
       +'<td><select data-f="cat"><option value="">—</option>'+cat.cats.map(function(c){ return '<option'+(l.cat===c?' selected':'')+'>'+esc(c)+'</option>'; }).join('')+'</select></td>'
       +'<td><select data-f="art"><option value="">'+(l.cat?'— Elige —':'— Antes la categoría —')+'</option>'+artsCat.map(function(a){ return '<option'+(l.art===a?' selected':'')+'>'+esc(a)+'</option>'; }).join('')
         +(l.art && artsCat.indexOf(l.art)<0?'<option selected>'+esc(l.art)+'</option>':'')+(l.cat?'<option value="__NEW__">➕ Nuevo artículo…</option>':'')+'</select></td>'
@@ -1595,7 +1648,7 @@ function matFormEntrada(){
     var eqs=eqDe(l.cat, l.art);
     if(eqs.length){
       var e=eqElegida(l, eqs);
-      h+='<tr class="eqrow" data-l="'+i+'"><td colspan="7">⚖️ <b>El albarán viene en '+esc(e.uA)+':</b> '
+      h+='<tr class="eqrow" data-l="'+i+'"><td colspan="8">⚖️ <b>El albarán viene en '+esc(e.uA)+':</b> '
         +(eqs.length>1?('<select data-f="eq">'+eqs.map(function(x){ return '<option value="'+esc(x.id)+'"'+(x.id===e.id?' selected':'')+'>'+eqTxt(x)+'</option>'; }).join('')+'</select>'):('<b>'+eqTxt(e)+'</b><input type="hidden" data-f="eq" value="'+esc(e.id)+'">'))
         +' &nbsp;·&nbsp; Lo que pone el albarán <input type="number" step="any" data-f="uds" value="'+esc(l.uds)+'" style="width:110px"> '+esc(e.uA)
         +' &nbsp;→&nbsp; <span class="eqg">'+(num(l.uds)?(fNum(eqGramos(l.uds,e))+' '+esc(e.uS)):'—')+'</span> <small style="color:var(--muted)">(se registra en '+esc(e.uS)+')</small></td></tr>';
@@ -1647,12 +1700,19 @@ function efEnlazar(cat){
   if($('ef-rec')) $('ef-rec').onchange=function(){
     efLeer(); EF.rec=this.value;
     var r=EF.rec!==''?recPend()[+EF.rec]:null;
-    if(r){ var d=parseFecha(r.FECHA); if(d) EF.fecha=isoDia(d); EF.foto=null; EF.fotoNombre=''; }
+    if(r) efDeRecepcion(r);
     matFormEntrada();
   };
   document.querySelectorAll('table.lin tbody tr:not(.eqrow)').forEach(function(tr){
     var i=+tr.getAttribute('data-l');
     tr.querySelector('[data-f="cat"]').onchange=function(){ efLeer(); EF.lineas[i].cat=this.value; EF.lineas[i].art=''; matFormEntrada(); };
+    tr.querySelector('[data-f="ref"]').onchange=function(){
+      efLeer(); var l=EF.lineas[i]; l.ref=String(this.value||'').trim().toUpperCase();
+      var f=refBuscar(EF.prov, l.ref);
+      if(f){ l.cat=f.cat; l.art=f.art; if(f.uni) l.uni=f.uni; var _e=eqDe(l.cat,l.art)[0]; if(_e) l.uni=_e.uS; l.uds=''; l.eq=''; }
+      matFormEntrada();
+      if(f){ var nx=document.querySelector('table.lin tbody tr[data-l="'+i+'"]:not(.eqrow) [data-f="lote"]'); if(nx) nx.focus(); }
+    };
     tr.querySelector('[data-f="art"]').onchange=function(){
       efLeer(); var v=this.value, l=EF.lineas[i];
       if(v==='__NEW__'){ var n=prompt('Nombre del artículo nuevo:'); if(!n||!n.trim()){ matFormEntrada(); return; } v=n.trim().toUpperCase(); }
@@ -1774,7 +1834,7 @@ function efRegistrar(){
         var l=lineas[i], idE='E-'+Date.now()+(lineas.length>1?('-'+(i+1)):''); i++;
         paso('Guardando línea '+i+' de '+lineas.length+'…');
         fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'ENTRADAS', id:idE, fecha:fechaHoraEspana(), albaran:EF.alb, proveedor:EF.prov,
-          categoria:l.cat, articulo:l.art, lote:String(l.lote).trim().toUpperCase(), cantidad:num(l.cant), unidad:l.uni, caducidad:l.cad||'', obs:obsLinea(l), operario:(CU&&CU.n)||'',
+          categoria:l.cat, articulo:l.art, refProv:String(l.ref||'').trim().toUpperCase(), lote:String(l.lote).trim().toUpperCase(), cantidad:num(l.cant), unidad:l.uni, caducidad:l.cad||'', obs:obsLinea(l), operario:(CU&&CU.n)||'',
           estado:EF.estado, etiqueta:EF.etiqueta, camion:EF.camion, temp:EF.temp, acciones:EF.acciones, firma:EF.firma, fentrada:EF.fecha,
           recibido:rec?(rec['RECIBIDO POR']||(CU&&CU.n)||''):((CU&&CU.n)||''), foto:foto, verificado:'SI'})})
           .then(function(r){ return r.json(); }).then(function(d){
@@ -1788,7 +1848,7 @@ function efRegistrar(){
     if(hechas.length){ EF=efNuevo(); }
     alert((hechas.length?('✅ Entrada registrada: '+hechas.length+' línea'+(hechas.length>1?'s':'')+'.'):'')
       +(fallos.length?('\n\n⚠️ NO se han guardado '+fallos.length+' línea(s): '+fallos.map(function(l){ return l.art+' '+l.lote; }).join(', ')+'. Revisa la conexión y vuelve a darlas.'):'')
-      +(rec&&hechas.length?'\n\nQueda apuntada en la recepción. Cuando esté todo, márcala como terminada en TraceQueso.':''));
+      +(rec&&hechas.length?'\n\nQueda apuntada en la recepción. Cuando esté todo el albarán, márcala como terminada en la pestaña Recepciones.':''));
     MAT.cargado=false; cargarMat(true);
   }).catch(function(e){ b.disabled=false; b.textContent='💾 Registrar entrada'; if(e.message!=='cancelado') alert('⚠️ No se ha guardado: '+e.message); });
 }
@@ -1821,6 +1881,7 @@ function editarEntrada(e, lote){
     +'<label class="k">Fecha de entrada</label><div><input type="date" id="ee-fe" value="'+esc(diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha'])))+'"></div>'
     +'<label class="k">Proveedor</label><div><input id="ee-prov" value="'+esc(v(['PROVEEDOR','proveedor']))+'"></div>'
     +'<label class="k">Nº albarán</label><div><input id="ee-alb" value="'+esc(v(['ALBARAN','albaran']))+'"></div>'
+    +'<label class="k">Ref. del proveedor</label><div><input id="ee-ref" value="'+esc(v(['REF PROVEEDOR']))+'" placeholder="Código del artículo en el albarán del proveedor" style="text-transform:uppercase"></div>'
     +'<label class="k">Caducidad</label><div><input type="date" id="ee-cad" value="'+esc(diaKey(gEnt(e,['CADUCIDAD','caducidad'])))+'"></div>'
     +'<label class="k">Cantidad</label><div><input type="number" step="any" id="ee-cant" value="'+esc(v(['CANTIDAD','cantidad']))+'"></div>'
     +'<label class="k">Unidad</label><div><select id="ee-uni">'+unis.map(function(x){ return '<option'+(x===u?' selected':'')+'>'+esc(x)+'</option>'; }).join('')+'</select></div>'
@@ -1841,7 +1902,7 @@ function editarEntrada(e, lote){
     if(cant==='' || isNaN(parseFloat(cant))){ $('ed-err').textContent='La cantidad tiene que ser un número.'; $('ed-err').style.display='block'; return; }
     if(($('ee-est').value==='I'||$('ee-etq').value==='I'||$('ee-cam').value==='I') && !$('ee-acc').value.trim()){ $('ed-err').textContent='Hay algo incorrecto en el control: escribe las acciones correctoras.'; $('ed-err').style.display='block'; return; }
     var pay={_SHEET:'ENTRADAS', _UPDATE:true, id:String(gEnt(e,['ID ENTRADA','id'])),
-      fentrada:$('ee-fe').value, caducidad:$('ee-cad').value, proveedor:$('ee-prov').value.trim().toUpperCase(), albaran:$('ee-alb').value.trim(),
+      fentrada:$('ee-fe').value, caducidad:$('ee-cad').value, proveedor:$('ee-prov').value.trim().toUpperCase(), albaran:$('ee-alb').value.trim(), refProv:$('ee-ref').value.trim().toUpperCase(),
       cantidad:parseFloat(cant), unidad:$('ee-uni').value,
       categoria:String(gEnt(e,['CATEGORIA','CATEGORÍA','categoria'])), articulo:art, lote:lt,
       estado:$('ee-est').value, etiqueta:$('ee-etq').value, camion:$('ee-cam').value, temp:$('ee-temp').value, acciones:$('ee-acc').value.trim(), firma:$('ee-fir').value, obs:$('ee-obs').value.trim(),
@@ -1867,7 +1928,8 @@ function fichaEntrada(e, lote){
   h+=bloque('🧾 Albarán',[
     ['Fecha de entrada', val(dmy(diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha']))))],
     ['Proveedor', val(gEnt(e,['PROVEEDOR','proveedor']))],
-    ['Nº albarán', val(gEnt(e,['ALBARAN','albaran']))]]);
+    ['Nº albarán', val(gEnt(e,['ALBARAN','albaran']))],
+    ['Ref. del proveedor', val(gEnt(e,['REF PROVEEDOR']))]]);
   h+=bloque('📦 Material',[
     ['Categoría', val(gEnt(e,['CATEGORIA','CATEGORÍA','categoria']))],
     ['Artículo', '<b>'+val(art)+'</b>'],
