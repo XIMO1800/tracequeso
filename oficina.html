@@ -396,7 +396,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v61';
+var VER = 'v62';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -1794,7 +1794,7 @@ function efRegistrar(){
     var ya=MAT.ent.filter(function(e){ return nrm(gEnt(e,['ARTICULO','ARTÍCULO','articulo']))===nrm(l.art) && nrm(gEnt(e,['LOTE','lote']))===nrm(l.lote); }).length;
     // (v35) Antes esto era un ERROR y no dejaba guardar nunca (Joaquín, 31/10:
     // «no sé si se está guardando»). Es solo un aviso: se enseña al confirmar.
-    if(ya && l.art && l.lote) avisos.push(n+'ya hay '+ya+' entrada(s) de '+l.art+' con el lote '+l.lote+' (si es otra partida o una regularización, es correcto).');
+    // (v62) Las entradas iguales se enseñan con detalle antes de guardar (ver abajo).
   });
   if((EF.estado==='I'||EF.etiqueta==='I'||EF.camion==='I') && !EF.acciones.trim()) err.push('Hay algo incorrecto en el control: escribe las acciones correctoras.');
   var e=$('ef-err');
@@ -1805,6 +1805,34 @@ function efRegistrar(){
   // albarán a Drive (FOTO_ALBARAN) y, si viene de una recepción, se apunta en
   // ella (RECEPCION · entrada). Verificado por Calidad = SI.
   if(soloMirar()) return;
+  // (v62) ¿YA ESTÁ REGISTRADA? (Joaquín, 04/11): mismo artículo y lote que una
+  // entrada que ya existe → quién y cuándo, y se pregunta antes de seguir. Si es
+  // otra partida del mismo lote (llega días después), se registra igual.
+  if(!EF._dupOK && !EF.regul){
+    var dups=[];
+    lineas.forEach(function(l){ if(!(num(l.cant)>0) || !l.art || !l.lote) return;
+      MAT.ent.forEach(function(e){
+        if(nrm(gEnt(e,['ARTICULO','ARTÍCULO','articulo']))!==nrm(l.art) || nrm(gEnt(e,['LOTE','lote']))!==nrm(l.lote)) return;
+        dups.push({e:e, l:l});
+      });
+    });
+    if(dups.length){
+      var mismoAlb=EF.alb && dups.some(function(d){ return nrm(gEnt(d.e,['ALBARAN','albaran']))===nrm(EF.alb); });
+      dosBotones('⚠️ Esta entrada ya puede estar registrada',
+        (mismoAlb?'<b style="color:var(--bad)">Mismo nº de albarán ('+esc(EF.alb)+').</b><br>':'')
+        +'Ya hay entradas del mismo artículo y lote:<br><br>'
+        +dups.map(function(d){ var e=d.e, q=String(gEnt(e,['OPERARIO','operario'])||'').trim(), rc=String(gEnt(e,['RECIBIDO POR'])||'').trim();
+            return '• <b>'+esc(d.l.art)+'</b> · lote <b>'+esc(d.l.lote)+'</b> · <b>'+esc(dmy(diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha']))))+'</b> · registrada por <b>'+esc(q||'—')+'</b>'
+              +(rc&&rc!==q?(' (recibió '+esc(rc)+')'):'')+'<br>&nbsp;&nbsp;'+esc(gEnt(e,['PROVEEDOR','proveedor'])||'')
+              +(gEnt(e,['ALBARAN','albaran'])?(' · albarán '+esc(gEnt(e,['ALBARAN','albaran']))):'')
+              +(gEnt(e,['REF PROVEEDOR'])?(' · ref '+esc(gEnt(e,['REF PROVEEDOR']))):'')
+              +' · <b>'+fNum(gEnt(e,['CANTIDAD','cantidad']))+' '+esc(gEnt(e,['UNIDAD','unidad'])||'')+'</b>'; }).join('<br>')
+        +'<br><br>Si es el <b>mismo albarán</b>, no la registres otra vez: el stock se sumaría dos veces.',
+        'Es otra partida: seguir', 'No registrar', function(){ EF._dupOK=true; efRegistrar(); });
+      return;
+    }
+  }
+  EF._dupOK=false;
   var rec=EF.rec!==''?recPend()[+EF.rec]:null;
   if(!confirm('¿Registrar esta entrada?\n\n'+EF.prov+(EF.alb?(' · albarán '+EF.alb):'')+' · '+dmy(EF.fecha)+'\n'
      +lineas.map(function(l){ var _e=num(l.uds)?eqElegida(l,eqDe(l.cat,l.art)):null; return '· '+l.art+' · lote '+l.lote+' · '+l.cant+' '+l.uni+(_e?(' ('+l.uds+' '+_e.uA+' del albarán)'):''); }).join('\n')
