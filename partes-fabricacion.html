@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.481</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.482</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1146,6 +1146,15 @@ input[type="email"] {
         <input type="hidden" id="np-operario">
       </div>
       <input type="hidden" id="np-tipo">
+      <!-- (v2.6.482) Nº de cuajada (orden del día). Se podía equivocar de pestaña
+           y rellenar la 3 siendo la 1, sin forma de cambiarlo (Joaquín, 04/11). -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 2px;font-size:0.82rem;color:#7a6a5c">
+        <label for="np-cuajada-num" style="font-weight:700">Nº de cuajada del día</label>
+        <select id="np-cuajada-num" onchange="cambiarNumCuajada(this.value)" style="width:auto;min-width:64px;padding:4px 8px">
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+        </select>
+        <span style="font-size:0.74rem">(es el número de la pestaña; si te has equivocado de pestaña, cámbialo aquí)</span>
+      </div>
       <!-- Aviso de capacidad de cuba (se rellena al elegir cuba o cambiar litros) -->
       <div id="np-cuba-aviso" style="display:none;margin:4px 0 0;padding:6px 10px;border-radius:6px;font-size:0.76rem;font-weight:600"></div>
       <!-- Fila 1: Litros · pH · °D · Tª (orden igual que el parte de papel) -->
@@ -1898,7 +1907,17 @@ function nuevaCubaPestana(){
   var cubasHoy = PARTES.filter(function(p){
     return (p.fecha===hoy || (p.fecha&&p.fecha.toString().indexOf(hoy)>=0)) && !p.cerrado;
   });
-  var siguienteCuba = String((cubasHoy.length+1));
+  // (v2.6.482) El primer número LIBRE del día (contando también las cerradas).
+  // Antes era «cuántas hay abiertas + 1»: al borrar o cerrar una salían dos
+  // pestañas con el mismo número (Joaquín, 04/11: 2, 3, 3, 4).
+  var _usados = {};
+  PARTES.forEach(function(p){
+    if(!(p.fecha===hoy || (p.fecha&&p.fecha.toString().indexOf(hoy)>=0))) return;
+    if(p.version==='revisado' || String(p.id||'').indexOf('PR-')===0) return;
+    var n = parseInt(p.cuba,10); if(n>0) _usados[n]=1;
+  });
+  var _n = 1; while(_usados[_n]) _n++;
+  var siguienteCuba = String(_n);
   var nueva = {
     id: 'P-'+Date.now(),
     fecha: hoy,
@@ -1916,6 +1935,43 @@ function nuevaCubaPestana(){
   CUBA_ACTIVA_ID = nueva.id;
   renderPestanasCubas();
   cargarFormularioEnPanel(nueva);
+}
+
+// (v2.6.482) CAMBIAR EL Nº DE CUAJADA de la cuba abierta. Si otra cuba del mismo
+// día ya tiene ese número, se pregunta si se intercambian.
+function cambiarNumCuajada(v){
+  var p = PARTES.find(function(x){ return x.id===CUBA_ACTIVA_ID; });
+  var sel = document.getElementById('np-cuajada-num');
+  if(!p){ return; }
+  var nuevo = String(parseInt(v,10)||''), viejo = String(p.cuba||'');
+  if(!nuevo || nuevo===viejo) return;
+  var dia = String(p.fecha||'').slice(0,10);
+  var otro = PARTES.find(function(x){
+    return x.id!==p.id && String(x.fecha||'').slice(0,10)===dia && String(parseInt(x.cuba,10))===nuevo
+      && !(x.version==='revisado' || String(x.id||'').indexOf('PR-')===0);
+  });
+  function aplicar(){
+    p.cuba = nuevo;
+    if(otro) otro.cuba = viejo;
+    persistir();
+    try{ enviarParteSheets(p); }catch(e){}
+    if(otro){ try{ enviarParteSheets(otro); }catch(e){} }
+    try{ renderPestanasCubas(); }catch(e){}
+    try{ actualizarCubaStickyBar(p); }catch(e){}
+    toast('Ahora es la cuajada '+nuevo+(otro?(' · la otra pasa a ser la '+viejo):''));
+  }
+  if(!otro){ aplicar(); return; }
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;padding:16px';
+  var desc = (otro.tipo?(otro.tipo+(otro.variedad?(' · '+otro.variedad):'')):'vacía')+(otro.cerrado?' · cerrada':'');
+  ov.innerHTML='<div style="background:#fff;border-radius:14px;padding:18px;max-width:420px;width:100%">'
+    +'<div style="font-weight:800;font-size:1.1rem;margin-bottom:8px">Ya hay una cuajada '+nuevo+' hoy</div>'
+    +'<div style="font-size:0.92rem;line-height:1.4;margin-bottom:14px">La cuajada '+nuevo+' es <b>'+desc+'</b>. Si sigues, se cambian los números: esta pasa a ser la <b>'+nuevo+'</b> y aquella la <b>'+viejo+'</b>.</div>'
+    +'<button data-r="1" style="display:block;width:100%;padding:13px;margin-bottom:8px;border:none;border-radius:10px;background:#7a1f1f;color:#fff;font-weight:800;font-size:1rem">Intercambiar números</button>'
+    +'<button data-r="0" style="display:block;width:100%;padding:11px;border:1.5px solid #ccc;border-radius:10px;background:#fff;font-weight:700">Dejarlo como estaba</button></div>';
+  document.body.appendChild(ov);
+  ov.onclick=function(ev){ var b=ev.target.closest('[data-r]'); if(!b) return; ov.remove();
+    if(b.getAttribute('data-r')==='1') aplicar(); else if(sel) sel.value=viejo; };
 }
 
 function abrirCubaPestana(id){
@@ -2045,6 +2101,7 @@ function rellenarCampos(p){
   function v(id, val){var el=document.getElementById(id); if(el && val!==undefined && val!==null) el.value=val;}
   v('np-fecha', p.fecha);
   v('np-cuba-fisica', p.cuba_fisica || '');
+  try{ var _cn=document.getElementById('np-cuajada-num'); if(_cn){ var _x=String(parseInt(p.cuba,10)||''); if(_x && ![].some.call(_cn.options,function(o){return o.value===_x;})){ var _o=document.createElement('option'); _o.value=_x; _o.textContent=_x; _cn.appendChild(_o); } _cn.value=_x; } }catch(e){}
   v('np-litros', p.litros);
   // (v2.6.332) RECALCULAR LAS DOSIS AL ABRIR LA CUBA.
   // La dosis utilizada solo se calculaba al TECLEAR en el campo de litros
