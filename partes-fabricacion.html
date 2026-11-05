@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.482</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.483</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4623,16 +4623,12 @@ function cmpTarjeta(p, d){
        +  f.receta_cambios.map(function(r){ return cmpHora(r.t)+' '+r.nombre; }).join('  →  ')
        +  '</div>';
   }
+  // (v2.6.483) Cabecera corta (Joaquín, 05/11): solo la receta del SCADA. El
+  // «objetivo X °C» y la versión del archivo del conversor sobraban: mucho que
+  // leer en una pantalla que ya tiene mucho que mirar.
   var recetaTxt = (f.receta ? ('<div style="font-size:0.84rem;color:#7a6a5c;margin-top:4px;">'
-       + 'Receta del SCADA: <b>'+f.receta+'</b> · objetivo '+(f.objetivo_recal||'?')+' °C</div>') : '')
-       + _avisoCuajada
-       + (d.conversor
-            ? '<div style="font-size:0.72rem;color:#b09a86;margin-top:2px;">Archivo del conversor v'+d.conversor+'</div>'
-            // Sin sello = v1.6 o anterior. NO quiere decir que el dato esté mal:
-            // la v1.6 ya traía la coagulación corregida y las varias cuajadas.
-            // Por eso va en gris y no en ámbar: es información, no una alarma.
-            : '<div style="font-size:0.72rem;color:#b09a86;margin-top:2px;">'
-              + 'Archivo sin sellar (conversor v1.6 o anterior).</div>');
+       + 'Receta del SCADA: <b>'+f.receta+'</b></div>') : '')
+       + _avisoCuajada;
 
   // (v2.6.387) LAS OBSERVACIONES, DEBAJO DE LA TABLA.
   // Antes el aviso iba encima. Abajo se lee mejor: primero se repasa si los
