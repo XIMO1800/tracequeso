@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 20;  // 20 (04/11): control de recepción (quien descarga) y REF PROVEEDOR en entradas. 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
+const API_VERSION = 21;  // 21 (05/11): aviso de tiernos para el jefe de almacén (tipo=avisoTiernos). 20 (04/11): control de recepción (quien descarga) y REF PROVEEDOR en entradas. 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -431,6 +431,11 @@ function doGet(e) {
     return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
   }
 
+  if (tipo === 'avisoTiernos') {   // (05/11, API 21) AvisoTiernos.gs
+    var jsonAT = JSON.stringify({ok: true, apiVer: API_VERSION, data: leerAvisoTiernos()});
+    if (callback) return ContentService.createTextOutput(callback + '(' + jsonAT + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
+    return ContentService.createTextOutput(jsonAT).setMimeType(ContentService.MimeType.JSON);
+  }
   if (tipo === 'recepciones') {
     var json = JSON.stringify({ok: true, apiVer: API_VERSION, data: leerRecepciones()});
     if (callback) return ContentService.createTextOutput(callback + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);

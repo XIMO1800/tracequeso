@@ -53,18 +53,37 @@ function revisarTiernosCamara(){
   var est = _tiernosEstado();
   var avisos = {};   // ref → ms del último correo mientras le falta
   try{ avisos = JSON.parse(props.getProperty('TIERNOS_AVISOS') || '{}'); }catch(e){ avisos = {}; }
+  // (05/11, API 21) HISTORIA PARA EL JEFE DE ALMACÉN. Alberto quiere saber que
+  // Joaquín está enterado y cuándo se pone en marcha. Se guarda:
+  //   TIERNOS_DESDE      ref → {desde, n}: primer aviso y cuántos van
+  //   TIERNOS_FABRICADO  ref → {en, pale, sala, fab}: cuándo dejó de faltar (7 días)
+  var desde = {}, fabr = {};
+  try{ desde = JSON.parse(props.getProperty('TIERNOS_DESDE') || '{}'); }catch(e){ desde = {}; }
+  try{ fabr  = JSON.parse(props.getProperty('TIERNOS_FABRICADO') || '{}'); }catch(e){ fabr = {}; }
   var ahora = Date.now(), toca = [];
   est.forEach(function(x){
     var falta = (x.camara === 0 && x.proceso.length === 0);
-    if(!falta){ delete avisos[x.ref.n]; return; }                 // ya está fabricado o en cámara
+    if(!falta){
+      if(avisos[x.ref.n] || desde[x.ref.n]){
+        var pp = x.proceso.slice().sort(function(a,b){ return String(b.fab||'').localeCompare(String(a.fab||'')); })[0] || null;
+        fabr[x.ref.n] = {en: ahora, pale: pp ? pp.id : '', sala: pp ? pp.sala : (x.camara ? TIERNOS_SALA_FRIO : ''), fab: pp ? (pp.fab || '') : '',
+                         avisadoDesde: (desde[x.ref.n] || {}).desde || avisos[x.ref.n] || 0};
+      }
+      delete avisos[x.ref.n]; delete desde[x.ref.n]; return;       // ya está fabricado o en cámara
+    }
+    delete fabr[x.ref.n];
     var ult = avisos[x.ref.n] || 0;
     if(!ult || ahora - ult >= TIERNOS_REPETIR_H*3600*1000 - 15*60*1000){
       toca.push(x);
       avisos[x.ref.n] = ahora;
+      var d0 = desde[x.ref.n] || {desde: ahora, n: 0}; d0.n = (d0.n || 0) + 1; desde[x.ref.n] = d0;
     }
   });
+  Object.keys(fabr).forEach(function(k){ if(ahora - (fabr[k].en || 0) > 7*86400000) delete fabr[k]; });
   if(toca.length) _tiernosMandarCorreo(toca, est, avisos);
   props.setProperty('TIERNOS_AVISOS', JSON.stringify(avisos));
+  props.setProperty('TIERNOS_DESDE', JSON.stringify(desde));
+  props.setProperty('TIERNOS_FABRICADO', JSON.stringify(fabr));
   return est.map(function(x){ return x.ref.n + ': ' + x.camara + ' en cámara, ' + x.proceso.length + ' en proceso'; }).join('\n');
 }
 
@@ -212,4 +231,20 @@ function _tiernosFecha(v){
   if(m) return new Date(+m[3], +m[2]-1, +m[1], m[4] ? +m[4] : 0, m[5] ? +m[5] : 0);
   var d = new Date(s);
   return isNaN(d) ? null : d;
+}
+
+// (05/11, API 21) Para el aviso en la app (jefe de almacén): qué falta y desde
+// cuándo se avisa a Joaquín, y qué se ha puesto en marcha en los últimos 7 días.
+// No recalcula nada: lee lo que guardó la última revisión (va cada 30 min).
+function leerAvisoTiernos(){
+  var props = PropertiesService.getScriptProperties();
+  var avisos = {}, desde = {}, fabr = {};
+  try{ avisos = JSON.parse(props.getProperty('TIERNOS_AVISOS') || '{}'); }catch(e){}
+  try{ desde  = JSON.parse(props.getProperty('TIERNOS_DESDE') || '{}'); }catch(e){}
+  try{ fabr   = JSON.parse(props.getProperty('TIERNOS_FABRICADO') || '{}'); }catch(e){}
+  var faltan = Object.keys(avisos).map(function(k){
+    return {ref: k, ultimo: avisos[k], desde: (desde[k] || {}).desde || avisos[k], n: (desde[k] || {}).n || 1};
+  });
+  var fabricados = Object.keys(fabr).map(function(k){ var f = fabr[k]; f.ref = k; return f; });
+  return {faltan: faltan, fabricados: fabricados, revisado: parseInt(props.getProperty('TIERNOS_ULT_REVISION') || '0', 10) || 0, para: 'JOAQUIN'};
 }
