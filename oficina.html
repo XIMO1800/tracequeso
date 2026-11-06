@@ -396,7 +396,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v64';
+var VER = 'v65';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -866,6 +866,41 @@ function tipoBobina(r){
   if(!/^PALE:/i.test(String(r['OBSERVACIONES']||'').trim()) && (parseInt(r['Nº DE PIEZAS'],10)||0)>0) return '';
   return (t && !f)?'CAMBIO DE BOBINA DE TAPA':'CAMBIO DE BOBINA DE FONDO';
 }
+// (v65) Marcar (o desmarcar) «queso sin voltear» en la 1ª capa de varios palés a
+// la vez: los del mismo lote salen en la lista y se eligen.
+function marcarSinVoltear(r){
+  var quitar=String(r['TERCERA CAPA']||'').trim().toUpperCase()==='SI';
+  if(quitar){
+    dosBotones('¿Quitar la marca?', 'El palé <b>'+esc(pidDe(r))+'</b> dejará de salir para la 3ª capa.', 'Quitar la marca', 'No, dejarla', function(){ _m3Enviar([r], '', function(){ abrirFicha(r); }); });
+    return;
+  }
+  var lote=String(r['LOTE QUESO']||'').trim();
+  var otros=ROWS.filter(function(x){ return secDe(x)==='1ª CAPA' && x['ID'] && lote && String(x['LOTE QUESO']||'').trim()===lote; });
+  if(otros.indexOf(r)<0) otros.unshift(r);
+  otros.sort(function(a,b){ return String(pidDe(a)).localeCompare(String(pidDe(b))); });
+  var h='<div class="aviso">Marca los palés que se quedaron <b>sin volteo en prensa</b>. Saldrán en el plan de trabajo de los secaderos a los <b>45 días</b> con «Sin voltear · 3ª capa». Lote <b>'+esc(lote||'—')+'</b>:</div><div style="margin:10px 0">';
+  otros.forEach(function(x,i){ var ya=String(x['TERCERA CAPA']||'').trim().toUpperCase()==='SI';
+    h+='<label style="display:flex;gap:10px;align-items:center;padding:6px 4px;border-bottom:1px solid #eee"><input type="checkbox" data-m3="'+i+'"'+((x===r||ya)?' checked':'')+(ya?' disabled':'')+' style="width:18px;height:18px"> <span class="mono">'+esc(pidDe(x))+'</span> <span style="color:var(--muted)">· '+esc(fDia(x.__f))+(x['Nº DE PIEZAS']?(' · '+esc(x['Nº DE PIEZAS'])+' pzas'):'')+(ya?' · ya marcado':'')+'</span></label>'; });
+  h+='</div><div style="display:flex;gap:10px"><button class="btn pri" id="m3-ok">⚠️ Marcar los elegidos</button><button class="btn" id="m3-no">Volver</button></div><div id="m3-err" class="aviso" style="display:none;background:var(--bad-soft);border-color:var(--bad);color:var(--bad)"></div>';
+  $('p-body').innerHTML=h;
+  $('m3-no').onclick=function(){ abrirFicha(r); };
+  $('m3-ok').onclick=function(){
+    var sel=[]; document.querySelectorAll('[data-m3]').forEach(function(c){ if(c.checked && !c.disabled) sel.push(otros[+c.getAttribute('data-m3')]); });
+    if(!sel.length){ abrirFicha(r); return; }
+    this.disabled=true; this.textContent='Guardando…';
+    _m3Enviar(sel, 'SI', function(fallos){ if(fallos){ $('m3-err').textContent='⚠️ No se han podido marcar '+fallos+' palé(s). Vuelve a intentarlo.'; $('m3-err').style.display='block'; } else { alert('✅ Marcados '+sel.length+' palé(s) como «queso sin voltear».'); abrirFicha(r); } });
+  };
+}
+function _m3Enviar(lista, valor, fin){
+  var i=0, fallos=0;
+  (function sig(){
+    if(i>=lista.length){ _invC=null; try{ guardarCopia(); refrescar(); }catch(e){} fin(fallos); return; }
+    var x=lista[i++];
+    fetch(API_URL,{method:'POST', body:JSON.stringify({ID:x['ID'], _UPDATE:true, _QUIEN:(CU&&CU.n)||'', 'TERCERA CAPA':valor})})
+      .then(function(rr){ return rr.json(); }).then(function(j){ if(j&&j.ok) x['TERCERA CAPA']=valor; else fallos++; })
+      .catch(function(){ fallos++; }).then(sig);
+  })();
+}
 function abrirFicha(r){
   if(!r) return;
   var _bob=tipoBobina(r);
@@ -881,7 +916,18 @@ function abrirFicha(r){
     h+='<div class="k">'+esc(k)+'</div><div class="v">'+esc(v)+'</div>';
   });
   h+='</div>';
+  // (v65) QUESO SIN VOLTEAR → 3ª CAPA (Joaquín, 06/11): lo marca Calidad aquí,
+  // en la 1ª capa de cada palé; el operario no marca nada. En el plan de trabajo
+  // los palés salen a los 45 días con «Sin voltear · 3ª capa».
+  if(secDe(r)==='1ª CAPA' && r['ID'] && puedeGuardar()){
+    var _m3=String(r['TERCERA CAPA']||'').trim().toUpperCase()==='SI';
+    h+='<div class="aviso" style="margin-top:12px;'+(_m3?'background:#fdecea;border-color:#b8433a;color:#8b1a1a':'')+'">'
+      +(_m3?'<b>⚠️ Queso sin voltear:</b> lleva <b>3ª capa</b> de antifúngico a los 45 días. Saldrá en el plan de trabajo de los secaderos.'
+           :'¿Este queso se quedó <b>sin volteo en prensa</b>? Márcalo y saldrá en el plan de trabajo para darle una <b>3ª capa</b> a los 45 días.')
+      +'<div style="margin-top:8px"><button class="btn pri" id="m3-btn">'+(_m3?'Quitar la marca':'⚠️ Marcar «queso sin voltear»')+'</button></div></div>';
+  }
   $('p-body').innerHTML=h;
+  if($('m3-btn')) $('m3-btn').onclick=function(){ marcarSinVoltear(r); };
   panelEditar(r['ID']?function(){ fichaEditar(r); }:null);
   if(r['ID']){ var hc=document.createElement('div'); $('p-body').appendChild(hc); historialCambios(r, hc); }
   $('panel').hidden=false; $('velo').hidden=false;
@@ -893,7 +939,7 @@ function abrirFicha(r){
 // cambian, y queda anotado quién lo hizo (pestaña CAMBIOS de la hoja).
 // ═══════════════════════════════════════════════════════════════════════════
 var CAMPOS_POR_SECCION={
-  '1ª CAPA':[{k:'LOTE QUESO',l:'Lote queso'},{k:'LOTE PRODUCTO',l:'Lote antifúngico'},{k:'PESO PALET',l:'Peso palet (kg)',type:'number'},{k:'Nº PIEZAS NO APTAS',l:'Piezas no aptas',type:'number'},{k:'SALA ORIGEN',l:'Sala origen',type:'sala'},{k:'SALA DESTINO',l:'Sala destino',type:'sala'},{k:'OBSERVACIONES',l:'Observaciones',type:'textarea'}],
+  '1ª CAPA':[{k:'LOTE QUESO',l:'Lote queso'},{k:'LOTE PRODUCTO',l:'Lote antifúngico'},{k:'PESO PALET',l:'Peso palet (kg)',type:'number'},{k:'Nº PIEZAS NO APTAS',l:'Piezas no aptas',type:'number'},{k:'SALA ORIGEN',l:'Sala origen',type:'sala'},{k:'SALA DESTINO',l:'Sala destino',type:'sala'},{k:'TERCERA CAPA',l:'Queso sin voltear (3ª capa a los 45 días)',type:'sino'},{k:'OBSERVACIONES',l:'Observaciones',type:'textarea'}],
   '2ª CAPA':[{k:'LOTE QUESO',l:'Lote queso'},{k:'LOTE PRODUCTO',l:'Lote antifúngico'},{k:'OBSERVACIONES',l:'Observaciones',type:'textarea'}],
   'VOLTEO':[{k:'LOTE QUESO',l:'Lote queso'},{k:'SALA DESTINO',l:'Sala volteo',type:'sala'},{k:'OBSERVACIONES',l:'Observaciones',type:'textarea'}],
   'MOVIMIENTO':[{k:'LOTE QUESO',l:'Lote queso'},{k:'SALA ORIGEN',l:'Sala origen',type:'sala'},{k:'SALA DESTINO',l:'Sala destino',type:'sala'},{k:'OBSERVACIONES',l:'Observaciones',type:'textarea'}],
@@ -945,6 +991,7 @@ function fichaEditar(r){
     else if(c.type==='variedad') inp='<select data-i="'+i+'">'+opts(ED_VARS, v.trim())+'</select>';
     else if(c.type==='fmt') inp='<select data-i="'+i+'">'+opts(ED_FMTS, v.trim())+'</select>';
     else if(c.type==='textarea') inp='<textarea data-i="'+i+'" rows="2">'+esc(v)+'</textarea>';
+    else if(c.type==='sino') inp='<select data-i="'+i+'"><option value="">No</option><option value="SI"'+(v.trim().toUpperCase()==='SI'?' selected':'')+'>Sí</option></select>';
     else inp='<input type="'+(c.type==='number'?'number" step="any':'text')+'" data-i="'+i+'" value="'+esc(v.replace(/^'/,''))+'">';
     h+='<label class="k">'+esc(c.l)+'</label><div>'+inp+'</div>';
   });
