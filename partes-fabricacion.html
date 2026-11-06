@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.483</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.484</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4962,8 +4962,16 @@ function _htmlParteImpresion(p){
   H.push('</table>');
   H.push('<div class="sec">Piezas fabricadas</div><table><tr><td class="t lbl">3 Kgs.</td><td class="t lbl">2 Kgs.</td><td class="t lbl">1 Kg.</td><td class="t lbl">1/2 Kg.</td><td class="t lbl">Barras</td><td class="t lbl">Gigante</td></tr>');
   H.push('<tr><td class="t">'+z(pz['3kg'])+'</td><td class="t">'+z(pz['2kg'])+'</td><td class="t">'+z(pz['1kg'])+'</td><td class="t">'+z(pz['05kg'])+'</td><td class="t">'+z(pz.barra)+'</td><td class="t">'+z(pz.gigante)+'</td></tr></table>');
-  var casVacio = (!cas.serie && !cas.primera && !cas.ultima);
-  var casTxt = casVacio ? '' : ((cas.serie?(e(cas.serie)+' · '):'')+n(cas.primera)+' → '+n(cas.ultima)+(cas.total?(' ('+e(cas.total)+')'):''));
+  // (06/11) VARIOS RANGOS DE CASEÍNAS. Un parte puede llevar dos series (1.037
+  // piezas de 1 kg en dos tiras); en papel solo salía la primera (Calidad).
+  var _casR = (cas.rangos && cas.rangos.length) ? cas.rangos.filter(function(r){ return r && (r.serie||r.primera||r.ultima); }) : [];
+  if(!_casR.length && (cas.serie||cas.primera||cas.ultima)) _casR = [{serie:cas.serie, primera:cas.primera, ultima:cas.ultima}];
+  var casTxt = _casR.map(function(r){
+    var a=parseInt(String(r.primera||'').replace(/\D/g,''),10), b=parseInt(String(r.ultima||'').replace(/\D/g,''),10);
+    var cuenta=(r.total>0)?r.total:((a>=0 && b>=a)?(b-a+1):'');
+    return (r.serie?(e(r.serie)+' · '):'')+n(r.primera)+' → '+n(r.ultima)+(cuenta!==''?(' ('+cuenta+')'):'');
+  }).join(' &nbsp;|&nbsp; ') + ((_casR.length>1 && cas.total)?(' &nbsp;·&nbsp; <b>Total '+e(cas.total)+'</b>'):'')
+    + ((_casR.length===1 && cas.total && !(_casR[0].primera && _casR[0].ultima))?(' ('+e(cas.total)+')'):'');
   H.push('<table><tr><td class="lft" style="width:192mm"><span class="lbl">Nº Caseínas:</span> '+casTxt+'</td></tr></table>');
   H.push('<table class="mt"><tr><td class="lft" style="width:192mm;height:34px"><span class="lbl">Acciones correctoras:</span> '+n(p.observaciones)+'</td></tr></table>');
   var firmaImg = p.firma_quesero ? ('<img src="'+p.firma_quesero+'">') : '';
