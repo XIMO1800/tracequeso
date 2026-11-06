@@ -78,3 +78,4 @@ Funciones comunes (bloque UBICACIONES de index.html): `ubicEtiq(id)` (lote corto
 
 Reparto automático al escanear: pie del fondo primero, de abajo arriba; cada palé ocupa sus alturas de bandeja (3 kg: 12 quesos por altura, estándar 9; 1 kg: 24 por altura, estándar 11) y un pie de 4 admite 38/36 del estándar (2×120 + 2×108 caben). A4 = suelo siempre; en los pies de 3 (ventiladores) falta la A1.
 
+**Plan de carga por tipo y variedad** (v586, Joaquín 06/11): si en la sala de origen hay varios quesos (tipo · variedad: oveja, mezcla aceite, buque, tostado…), el plan pregunta «¿Qué queso te llevas?» con un botón por cada uno (sin opción «todos»), porque en la cámara cada tipo y variedad va en su sitio. Con un solo queso (Secadero 3, todo manchego) no pregunta. `_ubicPlanTipo`, `_ubicPlanVar` (vacío y «—» = sin variedad), `_ubicPlanGrupos`, `_ubicCandidatosPlan(orig,tipo,variedad)`; `ubicS.plan.variedad`.
