@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.485</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.486</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2206,6 +2206,8 @@ function rellenarCampos(p){
               if(p.dosis1000_override) parteActual.dosis1000_override = Object.assign({}, p.dosis1000_override);
               if(p.ferm_seleccionado) parteActual.ferm_seleccionado = p.ferm_seleccionado;
               if(p.reparto_lotes) parteActual.reparto_lotes = Object.assign({}, p.reparto_lotes);
+              // (v2.6.486) Si el reparto no venía en el parte, se saca de sus líneas.
+              try{ var _rl=_repartoDesdeLineas(p); Object.keys(_rl).forEach(function(n){ if(!parteActual.reparto_lotes) parteActual.reparto_lotes={}; if(!parteActual.reparto_lotes[n]) parteActual.reparto_lotes[n]=_rl[n]; }); }catch(e){}
               if(parteActual.receta){ renderFermentos(parteActual.receta); calcularDosis(); }
             }catch(e){}
           }, 60);
@@ -2974,6 +2976,31 @@ function _avisoStockInsuficiente(p){
 
 // Captura en el parte los auxiliares, fermentos y cuajo aplicados con sus lotes/proveedores/caducidades reales
 // para que queden auto-contenidos y se puedan ver/editar en el historial
+// (v2.6.486) REPARTO RECONSTRUIDO A PARTIR DE LAS LÍNEAS DEL PARTE (Joaquín, 07/11).
+// Un parte cerrado con un reparto (C-1050: 240 g del lote 3842821 + 120 g del
+// 3849780) guarda DOS líneas del mismo producto, cada una con su lote. Si al
+// reactivarlo no llega la ficha del reparto (reparto_lotes), la pantalla y el
+// cierre cogían la PRIMERA línea y cargaban los 360 g al lote viejo, que ya
+// estaba a cero: «necesita 360 g, hay −120 g». Con esto, dos líneas del mismo
+// producto con lotes distintos SON un reparto, y se respeta.
+function _repartoDesdeLineas(p){
+  var out={};
+  try{
+    [p.fermentos, p.auxiliares, (p.cuajo?[p.cuajo]:[]).concat(p.cuajos_extra||[])].forEach(function(L){
+      if(!L || !L.length) return;
+      var por={};
+      L.forEach(function(it){ if(!it||!it.nombre||!it.lote) return; (por[it.nombre]=por[it.nombre]||[]).push(it); });
+      Object.keys(por).forEach(function(n){
+        var ls=por[n], lotes={}; ls.forEach(function(it){ lotes[String(it.lote).trim()]=1; });
+        if(ls.length<2 || Object.keys(lotes).length<2) return;
+        out[n]=ls.map(function(it){ return {lote:it.lote, cantidad:parseFloat(it.consumo_total)||0, proveedor:it.proveedor||'', caducidad:it.caducidad||'', unidad:it.unidad||'', unidad_stock:it.unidad_stock||''}; })
+                 .filter(function(x){ return x.cantidad>0; });
+        if(out[n].length<2) delete out[n];
+      });
+    });
+  }catch(e){}
+  return out;
+}
 function _capturarAuxFermCuajoEnParte(p){
   if(!p) return;
   var receta = p.receta || (parteActual && parteActual.receta);
@@ -3142,6 +3169,7 @@ function _capturarAuxFermCuajoEnParte(p){
   var _rep = (_esActiva && parteActual.reparto_lotes) ? parteActual.reparto_lotes
            : ((p.reparto_lotes) ? p.reparto_lotes
            : ((parteActual && parteActual===p && parteActual.reparto_lotes) ? parteActual.reparto_lotes : {}));
+  try{ var _rl=_repartoDesdeLineas(p); Object.keys(_rl).forEach(function(n){ if(!_rep[n] || !_rep[n].length){ _rep=Object.assign({}, _rep); _rep[n]=_rl[n]; } }); }catch(e){}
   function _expandirReparto(base, nombre){
     var r = (_rep && _rep[nombre]) ? _rep[nombre] : null;
     if(!r || !r.length) return [base];
