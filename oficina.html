@@ -216,8 +216,8 @@ table.ub-t td.ub-no,table.ub-t tr:hover td.ub-no{background-color:#ece5da;backgr
 .ub-ley{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:13.5px;color:var(--ink);justify-content:center}.ub-ley i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 .ub-dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
 table.ub-fila{border-collapse:separate;border-spacing:4px;margin:4px 0;width:auto}table.ub-fila tr{cursor:default}table.ub-fila td,table.ub-fila tr:hover td{padding:2px;border-bottom:0;white-space:normal;background:transparent}table.ub-fila th{font-size:12px;color:var(--muted);font-weight:800;padding:2px 4px;background:none;position:static}
-table.ub-fila td{width:96px;height:46px;border-radius:6px;text-align:center;vertical-align:middle;font-size:12px;line-height:1.2}
-table.ub-fila .ub-p{border:2px solid;cursor:pointer}table.ub-fila .ub-p b{font-size:17px;display:block;letter-spacing:.02em}table.ub-fila .ub-p small{color:var(--ink);font-size:13.5px;font-weight:700}
+table.ub-fila td{width:var(--ubW,96px);height:var(--ubH,46px);border-radius:6px;text-align:center;vertical-align:middle;font-size:12px;line-height:1.2}
+table.ub-fila .ub-p{border:2px solid;cursor:pointer}table.ub-fila .ub-p b{font-size:var(--ubB,17px);display:block;letter-spacing:.02em}table.ub-fila .ub-p small{color:var(--ink);font-size:var(--ubS,13.5px);font-weight:700}
 table.ub-fila .ub-p.yo{box-shadow:0 0 0 3px var(--brand)}table.ub-fila .ub-v{border:1px dashed #d8ccbc}
 table.ub-fila .ub-nc{font-size:10.5px;color:var(--muted);background:repeating-linear-gradient(45deg,#ece5da,#ece5da 3px,transparent 3px,transparent 6px);border:1px solid #e1d7c9}
 table.ub-fila .pas{width:30px;font-size:10px;color:var(--muted);font-style:italic;font-weight:400}
@@ -396,7 +396,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v65';
+var VER = 'v66';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -1068,7 +1068,7 @@ function fichaEliminar(r, btn){
       }).catch(function(e){ btn.disabled=false; btn.textContent='🗑 Eliminar este registro'; $('ed-err').textContent='⚠️ No se ha eliminado: '+e.message+'.'; $('ed-err').style.display='block'; });
   });
 }
-function cerrarFicha(){ $('panel').hidden=true; $('velo').hidden=true; }
+function cerrarFicha(){ $('panel').hidden=true; $('velo').hidden=true; $('panel').style.width=''; }
 // (v29) IMPRIMIR LO QUE SE VE EN EL PANEL (ficha de un registro, historial de
 // un palé, una acción de la trazabilidad, la ficha de un lote o de una
 // entrada…) en una hoja limpia, con cabecera de El Hidalgo y quién lo imprime.
@@ -3459,12 +3459,34 @@ function ubTabPlano(){
   $('ub-body').querySelectorAll('[data-pie]').forEach(function(td){ td.onclick=function(){ var p=td.getAttribute('data-pie').split('|'); ubPanelPie(p[0],+p[1],+p[2]); }; });
   $('ub-body').querySelectorAll('[data-fila]').forEach(function(td){ td.onclick=function(){ var p=td.getAttribute('data-fila').split('|'); ubPanelFila(p[0],+p[1]); }; });
 }
+// (v66) LA FILA ENTERA CABE EN EL PANEL, SIN BARRA DE DESPLAZAMIENTO (Joaquín,
+// 07/11: la de 10 pies y la de 6 se cortaban por poco). El panel se ensancha lo
+// que haga falta (hasta el 94 % de la pantalla) y, si aun así no cabe, las
+// casillas y las letras se encogen a la medida. Lo mismo la tabla del pie.
+function ubAjustarPanel(){
+  var pb=$('p-body'), pn=$('panel'); if(!pb||!pn) return;
+  var t=pb.querySelector('table.ub-fila'); if(!t) return;
+  var cols=t.rows[0]?t.rows[0].cells.length:0; if(!cols) return;
+  var nPas=t.querySelectorAll('tr:first-child th.pas').length, nPies=cols-1-nPas;
+  var maxW=Math.floor((window.innerWidth||1300)*0.94);
+  var quiero=Math.max(660, 36+40+nPas*36+nPies*(96+8)+24);   // relleno + A1… + pasillo + pies
+  pn.style.width=Math.min(quiero, maxW)+'px';
+  var dispo=pb.clientWidth-8-40-nPas*36;                       // lo que queda para los pies
+  var w=Math.max(44, Math.min(96, Math.floor(dispo/nPies)-8));
+  var k=w/96;
+  t.style.setProperty('--ubW', w+'px');
+  t.style.setProperty('--ubH', Math.max(34, Math.round(46*Math.max(k,0.75)))+'px');
+  t.style.setProperty('--ubB', Math.max(11, Math.round(17*k))+'px');
+  t.style.setProperty('--ubS', Math.max(9, Math.round(13.5*k))+'px');
+  var tp=pb.querySelector('table.ptab'); if(tp){ tp.style.width='100%'; tp.style.tableLayout='auto'; tp.querySelectorAll('td,th').forEach(function(c){ c.style.whiteSpace='nowrap'; }); }
+}
 function ubPanelFila(z,f){
   $('p-tit').textContent='Fila '+ubCod(z,f);
   $('p-sub').textContent=UB_PLANOS[UB_ZONAS[z].sala].nombre+' · vista desde la puerta · pincha un palé para ver su historial';
   $('p-body').innerHTML=ubFilaHTML(z,f);
   ubEnlFila($('p-body'));
   $('panel').hidden=false; $('velo').hidden=false;
+  ubAjustarPanel();
 }
 function ubPanelPie(z,f,p){
   var l=ubVigentes().filter(function(u){ return u.zona===z && u.fila===f && u.pie===p; }).sort(function(a,b){ return a.altura-b.altura; });
@@ -3484,6 +3506,7 @@ function ubPanelPie(z,f,p){
   var tb=$('p-body').querySelector('tbody'); if(tb) tb.onclick=function(ev){ var tr=ev.target.closest('tr'); if(tr) verPale(ubIdReg(l[+tr.getAttribute('data-k')].id)); };
   ubEnlFila($('p-body'));
   $('panel').hidden=false; $('velo').hidden=false;
+  ubAjustarPanel();
 }
 
 // ── Buscar un palé ──
