@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.484</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.485</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -3132,8 +3132,16 @@ function _capturarAuxFermCuajoEnParte(p){
   // UNA LÍNEA POR LOTE, cada una con su lote y su cantidad real. El backend
   // descuenta línea a línea, así que cada lote pierde solo lo suyo.
   var ov1000 = (parteActual && parteActual.dosis1000_override) ? parteActual.dosis1000_override : {};
-  var _rep = (p.reparto_lotes) ? p.reparto_lotes
-           : ((parteActual && parteActual===p && parteActual.reparto_lotes) ? parteActual.reparto_lotes : {});
+  // (v2.6.485) EL REPARTO, DEL MISMO SITIO QUE LA PANTALLA (Joaquín, 07/11).
+  // La pantalla pinta el reparto de parteActual (lo que hay ahora en la cuba
+  // abierta), pero aquí se leía antes el p.reparto_lotes guardado, que puede ser
+  // viejo: al cerrar, esta captura va ANTES del autoguardado. Se veía el C-1050
+  // con el lote 3849780 y el aviso de stock hablaba del 3842821 de un reparto
+  // anterior. Para la cuba abierta manda lo que se ve.
+  var _esActiva = (typeof CUBA_ACTIVA_ID!=='undefined' && p && p.id===CUBA_ACTIVA_ID && parteActual);
+  var _rep = (_esActiva && parteActual.reparto_lotes) ? parteActual.reparto_lotes
+           : ((p.reparto_lotes) ? p.reparto_lotes
+           : ((parteActual && parteActual===p && parteActual.reparto_lotes) ? parteActual.reparto_lotes : {}));
   function _expandirReparto(base, nombre){
     var r = (_rep && _rep[nombre]) ? _rep[nombre] : null;
     if(!r || !r.length) return [base];
