@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v70';
+var VER = 'v71';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -748,7 +748,7 @@ var COLS=[
   {k:'fecha', t:'Fecha', v:function(r){ return r.__t; }, h:function(r){ return fDia(r.__f); }},
   {k:'hora', t:'Hora', v:function(r){ return r.__f?r.__f.getHours()*60+r.__f.getMinutes():0; }, h:function(r){ return fHora(r.__f); }},
   {k:'op', t:'Operario', v:function(r){ return String(r['OPERARIO']||''); }},
-  {k:'sec', t:'Sección', v:function(r){ return String(r['SECCIÓN']||''); }, h:function(r){ return '<span class="sec">'+esc(r['SECCIÓN'])+'</span>'; }, raw:1},
+  {k:'sec', t:'Sección', v:function(r){ return String(r['SECCIÓN']||''); }, h:function(r){ return '<span class="sec">'+esc(r['SECCIÓN'])+'</span>'+(String(r['TERCERA CAPA']||'').trim().toUpperCase()==='SI'?' <span class="tag bad" title="Queso sin voltear: 3ª capa a los 45 días">sin voltear</span>':''); }, raw:1},   // (v71)
   // (v26) Sin QR no hay palé: se enseña el lote (largo · corto).
   {k:'pale', t:'ID palé / lote', v:function(r){ var tb=tipoBobina(r); if(tb) return '🔄 '+tb.charAt(0)+tb.slice(1).toLowerCase(); var id=String(r['ID PALET']||'').trim(); if(id && !idInventado(id)) return id; var p=String(r['LOTE QUESO']||'').split('!'); return 'sin QR · lote '+(p[0]||'').trim()+(p[1]?(' · corto '+p[1].trim()):''); }, c:'mono'},
   {k:'tipo', t:'Tipo', v:function(r){ return String(r['TIPO DE QUESO']||''); }},
@@ -872,6 +872,9 @@ function tipoBobina(r){
 }
 // (v65) Marcar (o desmarcar) «queso sin voltear» en la 1ª capa de varios palés a
 // la vez: los del mismo lote salen en la lista y se eligen.
+// (v71) Los minis (1 kg, ½ kg, barras, superminis) no se voltean en prensa: no se marcan.
+function _m3Fmt(x){ var f=String(x['FORMATO/PESO']||'').trim().toUpperCase(); if(!f){ try{ f=String(parsearId(pidDe(x)).fmt||'').toUpperCase(); }catch(e){} } return f; }
+function _m3Mini(x){ var f=_m3Fmt(x); return !f || /^1 ?KG|1\/2|BARRA|SUPERMINI/.test(f); }
 function marcarSinVoltear(r, yaAlDia){
   // (v70) Antes de nada, lo último de la hoja: si otro ordenador ya lo marcó, que se vea.
   if(!yaAlDia){ $('p-body').innerHTML='<div class="vacio">Comprobando con la hoja…</div>'; ponerAlDia().then(function(){
@@ -882,10 +885,11 @@ function marcarSinVoltear(r, yaAlDia){
     return;
   }
   var lote=String(r['LOTE QUESO']||'').trim();
-  var otros=ROWS.filter(function(x){ return secDe(x)==='1ª CAPA' && x['ID'] && lote && String(x['LOTE QUESO']||'').trim()===lote; });
+  var _fr=_m3Fmt(r);
+  var otros=ROWS.filter(function(x){ return secDe(x)==='1ª CAPA' && x['ID'] && lote && String(x['LOTE QUESO']||'').trim()===lote && !_m3Mini(x) && _m3Fmt(x)===_fr; });
   if(otros.indexOf(r)<0) otros.unshift(r);
   otros.sort(function(a,b){ return String(pidDe(a)).localeCompare(String(pidDe(b))); });
-  var h='<div class="aviso">Marca los palés que se quedaron <b>sin volteo en prensa</b>. Saldrán en el plan de trabajo de los secaderos a los <b>45 días</b> con «Sin voltear · 3ª capa». Lote <b>'+esc(lote||'—')+'</b>:</div><div style="margin:10px 0">';
+  var h='<div class="aviso">Palés de <b>'+esc(_fr)+'</b> del lote <b>'+esc(lote||'—')+'</b>. Marca los que se quedaron <b>sin volteo en prensa</b>.</div><div style="margin:10px 0">';
   otros.forEach(function(x,i){ var ya=String(x['TERCERA CAPA']||'').trim().toUpperCase()==='SI';
     h+='<label style="display:flex;gap:10px;align-items:center;padding:6px 4px;border-bottom:1px solid #eee"><input type="checkbox" data-m3="'+i+'"'+((x===r||ya)?' checked':'')+(ya?' disabled':'')+' style="width:18px;height:18px"> <span class="mono">'+esc(pidDe(x))+'</span> <span style="color:var(--muted)">· '+esc(fDia(x.__f))+(x['Nº DE PIEZAS']?(' · '+esc(x['Nº DE PIEZAS'])+' pzas'):'')+(ya?' · ya marcado':'')+'</span></label>'; });
   h+='</div><div style="display:flex;gap:10px"><button class="btn pri" id="m3-ok">⚠️ Marcar los elegidos</button><button class="btn" id="m3-no">Volver</button></div><div id="m3-err" class="aviso" style="display:none;background:var(--bad-soft);border-color:var(--bad);color:var(--bad)"></div>';
@@ -929,7 +933,7 @@ function abrirFicha(r){
   // (v65) QUESO SIN VOLTEAR → 3ª CAPA (Joaquín, 06/11): lo marca Calidad aquí,
   // en la 1ª capa de cada palé; el operario no marca nada. En el plan de trabajo
   // los palés salen a los 45 días con «Sin voltear · 3ª capa».
-  if(secDe(r)==='1ª CAPA' && r['ID'] && puedeGuardar()){
+  if(secDe(r)==='1ª CAPA' && r['ID'] && puedeGuardar() && !_m3Mini(r)){
     var _m3=String(r['TERCERA CAPA']||'').trim().toUpperCase()==='SI';
     h+='<div class="aviso" style="margin-top:12px;'+(_m3?'background:#fdecea;border-color:#b8433a;color:#8b1a1a':'')+'">'
       +(_m3?'<b>⚠️ Queso sin voltear:</b> lleva <b>3ª capa</b> de antifúngico a los 45 días. Saldrá en el plan de trabajo de los secaderos.'
