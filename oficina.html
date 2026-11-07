@@ -217,8 +217,11 @@ table.ub-t td.ub-no,table.ub-t tr:hover td.ub-no{background-color:#ece5da;backgr
 .ub-dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
 table.ub-fila{border-collapse:separate;border-spacing:4px;margin:4px 0;width:auto}table.ub-fila tr{cursor:default}table.ub-fila td,table.ub-fila tr:hover td{padding:2px;border-bottom:0;white-space:normal;background:transparent}table.ub-fila th{font-size:12px;color:var(--muted);font-weight:800;padding:2px 4px;background:none;position:static}
 .ub-sel{outline:3px solid #7a1f1f !important;outline-offset:-1px;box-shadow:0 0 0 2px #fff inset}
-table.ub-fila td{width:var(--ubW,96px);height:var(--ubH,46px);border-radius:6px;text-align:center;vertical-align:middle;font-size:12px;line-height:1.2}
+table.ub-fila td{width:var(--ubW,96px);height:var(--ubH,62px);border-radius:6px;text-align:center;vertical-align:middle;font-size:12px;line-height:1.2}
 table.ub-fila .ub-p{border:2px solid;cursor:pointer}table.ub-fila .ub-p b{font-size:var(--ubB,17px);display:block;letter-spacing:.02em}table.ub-fila .ub-p small{color:var(--ink);font-size:var(--ubS,13.5px);font-weight:700}
+/* (v68) Todas las casillas iguales (Joaquín, 07/11): siempre tres líneas —fecha, variedad, piezas—, cada una en una sola línea; si la variedad no cabe se corta con «…» */
+table.ub-fila .ub-p b,table.ub-fila .ub-p small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:var(--ubW,96px);line-height:1.2}
+table.ub-fila .ub-p small.ub-var{font-weight:800;font-size:calc(var(--ubS,13.5px)*0.92)}
 table.ub-fila .ub-p.yo{box-shadow:0 0 0 3px var(--brand)}table.ub-fila .ub-v{border:1px dashed #d8ccbc}
 table.ub-fila .ub-nc{font-size:10.5px;color:var(--muted);background:repeating-linear-gradient(45deg,#ece5da,#ece5da 3px,transparent 3px,transparent 6px);border:1px solid #e1d7c9}
 table.ub-fila .pas{width:30px;font-size:10px;color:var(--muted);font-style:italic;font-weight:400}
@@ -397,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v67';
+var VER = 'v68';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -3428,7 +3431,7 @@ function ubFilaHTML(z,f,marcaId,poner,pieSel){
     orden.forEach(function(p){
       var u=(pies[p]||{})[a], max=ubMax(z,f,p);
       if(u){ var i=parsearId(u.id), e=ubEstadoDe(u), yo=marcaId && ubKey(marcaId)===ubKey(u.id);
-        h+='<td class="ub-p'+(yo?' yo':'')+'" data-id="'+esc(u.id)+'" style="'+(aire[u.id]?'outline:3px solid #c0392b;outline-offset:-1px;':'')+'border-color:'+ubCol(i.tipo)+';background:'+ubCol(i.tipo)+'1a" title="'+esc(u.id+' · '+clavePalet(u.id))+'"><b style="color:'+ubCol(i.tipo)+'">'+esc(ubEtiq(u.id))+'</b><small>('+fmtN(ubPz(u))+')'+(ubVar(u.id)?' · '+esc(ubVar(u.id)):'')+'</small></td>';
+        h+='<td class="ub-p'+(yo?' yo':'')+'" data-id="'+esc(u.id)+'" style="'+(aire[u.id]?'outline:3px solid #c0392b;outline-offset:-1px;':'')+'border-color:'+ubCol(i.tipo)+';background:'+ubCol(i.tipo)+'1a" title="'+esc(u.id+' · '+clavePalet(u.id))+'"><b style="color:'+ubCol(i.tipo)+'">'+esc(ubEtiq(u.id))+'</b><small class="ub-var">'+(ubVar(u.id)?esc(ubVar(u.id)):'&nbsp;')+'</small><small>('+fmtN(ubPz(u))+')</small></td>';
       } else if(max===0 || a<=4-max) h+='<td class="ub-nc">no cabe</td>';
       else if(poner) h+='<td class="ub-v" data-poner="'+p+'|'+a+'" style="cursor:pointer;border:2px dashed var(--brand);color:var(--brand);font-weight:800;text-align:center">+</td>';
       else h+='<td class="ub-v"></td>';
@@ -3476,7 +3479,7 @@ function ubAjustarPanel(z,f){
   var w=Math.max(40, Math.min(96, Math.floor(dispo/nPies)-8));
   var k=w/96;
   t.style.setProperty('--ubW', w+'px');
-  t.style.setProperty('--ubH', Math.max(32, Math.round(46*Math.max(k,0.72)))+'px');
+  t.style.setProperty('--ubH', Math.max(44, Math.round(62*Math.max(k,0.72)))+'px');   // (v68) tres líneas
   t.style.setProperty('--ubB', Math.max(10, Math.round(17*k))+'px');
   t.style.setProperty('--ubS', Math.max(9, Math.round(13.5*k))+'px');
   var tp=pb.querySelector('table.ptab'); if(tp){ tp.style.width='100%'; tp.style.fontSize='13px'; }
