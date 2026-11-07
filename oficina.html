@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v71';
+var VER = 'v72';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -933,7 +933,8 @@ function abrirFicha(r){
   // (v65) QUESO SIN VOLTEAR → 3ª CAPA (Joaquín, 06/11): lo marca Calidad aquí,
   // en la 1ª capa de cada palé; el operario no marca nada. En el plan de trabajo
   // los palés salen a los 45 días con «Sin voltear · 3ª capa».
-  if(secDe(r)==='1ª CAPA' && r['ID'] && puedeGuardar() && !_m3Mini(r)){
+  // (v72) Un mini marcado por error sí enseña «Quitar la marca»; sin marcar, nada.
+  if(secDe(r)==='1ª CAPA' && r['ID'] && puedeGuardar() && (!_m3Mini(r) || String(r['TERCERA CAPA']||'').trim().toUpperCase()==='SI')){
     var _m3=String(r['TERCERA CAPA']||'').trim().toUpperCase()==='SI';
     h+='<div class="aviso" style="margin-top:12px;'+(_m3?'background:#fdecea;border-color:#b8433a;color:#8b1a1a':'')+'">'
       +(_m3?'<b>⚠️ Queso sin voltear:</b> lleva <b>3ª capa</b> de antifúngico a los 45 días. Saldrá en el plan de trabajo de los secaderos.'
