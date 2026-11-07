@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v68';
+var VER = 'v69';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -1956,7 +1956,8 @@ function editarEntrada(e, lote){
   function ciSel(id, val){ val=String(val||'').toUpperCase(); return '<select id="'+id+'"><option value="">—</option><option value="C"'+(val==='C'?' selected':'')+'>Correcto</option><option value="I"'+(val==='I'?' selected':'')+'>Incorrecto</option></select>'; }
   var unis=['g','kg','L','ml','unidades','cajas','rollos','bobinas','botellas'], u=v(['UNIDAD','unidad']); if(u && unis.indexOf(u)<0) unis.unshift(u);
   var ops=operarios(), fi=v(['FIRMA','firma']); if(fi && ops.indexOf(fi)<0) ops.unshift(fi);
-  var h='<div class="aviso">Artículo <b>'+esc(art)+'</b> · lote <b>'+esc(lt)+'</b>. El artículo y el lote no se cambian aquí. Si cambias la cantidad, se recalcula el stock del lote.</div><div class="edf">'
+  // (v69) Texto que no lleve a engaño (Joaquín, 07/11): lo demás se guarda aquí.
+  var h='<div class="aviso"><b>'+esc(art)+'</b> · lote <b>'+esc(lt)+'</b>. Si el artículo o el lote están mal, elimina esta entrada y dala de nuevo.</div><div class="edf">'
     +'<label class="k">Fecha de entrada</label><div><input type="date" id="ee-fe" value="'+esc(diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha'])))+'"></div>'
     +'<label class="k">Proveedor</label><div><input id="ee-prov" value="'+esc(v(['PROVEEDOR','proveedor']))+'"></div>'
     +'<label class="k">Nº albarán</label><div><input id="ee-alb" value="'+esc(v(['ALBARAN','albaran']))+'"></div>'
@@ -1972,9 +1973,26 @@ function editarEntrada(e, lote){
     +'<label class="k">Firma</label><div><select id="ee-fir"><option value="">—</option>'+ops.map(function(o){ return '<option'+(o===fi?' selected':'')+'>'+esc(o)+'</option>'; }).join('')+'</select></div>'
     +'<label class="k">Observaciones</label><div><textarea id="ee-obs" rows="2">'+esc(v(['OBSERVACIONES','OBSERVACION','OBS','obs']))+'</textarea></div>'
     +'</div><div id="ed-err" class="aviso" style="display:none;background:var(--bad-soft);border-color:var(--bad);color:var(--bad)"></div>'
-    +'<div style="display:flex;gap:10px;margin-top:12px"><button class="btn pri" id="ee-ok">💾 Guardar cambios</button><button class="btn" id="ee-no">Cancelar</button></div>';
+    +'<div style="display:flex;gap:10px;margin-top:12px"><button class="btn pri" id="ee-ok">💾 Guardar cambios</button><button class="btn" id="ee-no">Cancelar</button><div style="flex:1"></div><button class="btn pri" id="ee-del">🗑 Eliminar esta entrada</button></div>';
   $('p-body').innerHTML=h;
   $('ee-no').onclick=function(){ fichaEntrada(e, lote); };
+  // (v69) ELIMINAR UNA ENTRADA (para dar de nuevo una con el artículo o el lote mal).
+  // El servidor borra la fila y recalcula el stock del lote.
+  $('ee-del').onclick=function(){
+    if(soloMirar()) return;
+    var b=this, cant=v(['CANTIDAD','cantidad']), u2=v(['UNIDAD','unidad']);
+    var nCons=(MAT.sal||[]).filter(function(x){ return nrm(gEnt(x,['ARTICULO','ARTÍCULO','articulo']))===nrm(art) && nrm(gEnt(x,['LOTE','lote']))===nrm(lt); }).length;
+    dosBotones('¿Eliminar esta entrada?', '<b>'+esc(art)+'</b> · lote <b>'+esc(lt)+'</b> · '+esc(cant)+' '+esc(u2)
+      +'<br><br>Se quita del stock de ese lote.'+(nCons?('<br><br><b>Ojo:</b> este lote tiene '+nCons+' consumo(s) apuntados; seguirán contando en él.'):''),
+      '🗑 Sí, eliminarla', 'No, dejarla', function(){
+        b.disabled=true; b.textContent='Eliminando…';
+        fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'ENTRADAS', _DELETE:true, id:String(gEnt(e,['ID ENTRADA','id'])), _QUIEN:(CU&&CU.n)||''})})
+          .then(function(r){ return r.json(); }).then(function(j){
+            if(!j || !j.ok) throw new Error((j&&j.error)||'el servidor no lo ha confirmado');
+            alert('✅ Entrada eliminada.'); cerrarFicha(); MAT.cargado=false; cargarMat(true);
+          }).catch(function(err){ b.disabled=false; b.textContent='🗑 Eliminar esta entrada'; $('ed-err').textContent='⚠️ No se ha eliminado: '+err.message; $('ed-err').style.display='block'; });
+      });
+  };
   $('ee-ok').onclick=function(){
     if(soloMirar()) return;
     var cant=String($('ee-cant').value).trim();
