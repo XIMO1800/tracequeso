@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v69';
+var VER = 'v70';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -872,7 +872,10 @@ function tipoBobina(r){
 }
 // (v65) Marcar (o desmarcar) «queso sin voltear» en la 1ª capa de varios palés a
 // la vez: los del mismo lote salen en la lista y se eligen.
-function marcarSinVoltear(r){
+function marcarSinVoltear(r, yaAlDia){
+  // (v70) Antes de nada, lo último de la hoja: si otro ordenador ya lo marcó, que se vea.
+  if(!yaAlDia){ $('p-body').innerHTML='<div class="vacio">Comprobando con la hoja…</div>'; ponerAlDia().then(function(){
+    var r2=ROWS.filter(function(x){ return String(x['ID']||'')===String(r['ID']); })[0]||r; marcarSinVoltear(r2, true); }); return; }
   var quitar=String(r['TERCERA CAPA']||'').trim().toUpperCase()==='SI';
   if(quitar){
     dosBotones('¿Quitar la marca?', 'El palé <b>'+esc(pidDe(r))+'</b> dejará de salir para la 3ª capa.', 'Quitar la marca', 'No, dejarla', function(){ _m3Enviar([r], '', function(){ abrirFicha(r); }); });
@@ -892,16 +895,19 @@ function marcarSinVoltear(r){
     var sel=[]; document.querySelectorAll('[data-m3]').forEach(function(c){ if(c.checked && !c.disabled) sel.push(otros[+c.getAttribute('data-m3')]); });
     if(!sel.length){ abrirFicha(r); return; }
     this.disabled=true; this.textContent='Guardando…';
-    _m3Enviar(sel, 'SI', function(fallos){ if(fallos){ $('m3-err').textContent='⚠️ No se han podido marcar '+fallos+' palé(s). Vuelve a intentarlo.'; $('m3-err').style.display='block'; } else { alert('✅ Marcados '+sel.length+' palé(s) como «queso sin voltear».'); abrirFicha(r); } });
+    _m3Enviar(sel, 'SI', function(fallos, ya){ if(fallos){ $('m3-err').textContent='⚠️ No se han podido marcar '+fallos+' palé(s). Vuelve a intentarlo.'; $('m3-err').style.display='block'; } else {
+      var n=sel.length-ya.length;
+      alert((n?('✅ Marcados '+n+' palé(s) como «queso sin voltear».'):'')+(ya.length?((n?'\n\n':'')+'Ya estaban marcados (otro ordenador lo hizo antes; no se ha tocado nada):\n'+ya.map(function(x){ return '· '+pidDe(x); }).join('\n')):''));
+      abrirFicha(r); } });
   };
 }
 function _m3Enviar(lista, valor, fin){
-  var i=0, fallos=0;
+  var i=0, fallos=0, ya=[];
   (function sig(){
-    if(i>=lista.length){ _invC=null; try{ guardarCopia(); refrescar(); }catch(e){} fin(fallos); return; }
+    if(i>=lista.length){ _invC=null; try{ guardarCopia(); refrescar(); }catch(e){} fin(fallos, ya); return; }
     var x=lista[i++];
-    fetch(API_URL,{method:'POST', body:JSON.stringify({ID:x['ID'], _UPDATE:true, _QUIEN:(CU&&CU.n)||'', 'TERCERA CAPA':valor})})
-      .then(function(rr){ return rr.json(); }).then(function(j){ if(j&&j.ok) x['TERCERA CAPA']=valor; else fallos++; })
+    fetch(API_URL,{method:'POST', body:JSON.stringify({ID:x['ID'], _UPDATE:true, _SOLO_SI_CAMBIA:true, _QUIEN:(CU&&CU.n)||'', 'TERCERA CAPA':valor})})
+      .then(function(rr){ return rr.json(); }).then(function(j){ if(j&&j.ok){ if(j.sinCambios) ya.push(x); x['TERCERA CAPA']=valor; } else fallos++; })
       .catch(function(){ fallos++; }).then(sig);
   })();
 }

@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 22;  // 22 (06/11): una corrección (_UPDATE) puede crear columna nueva (TERCERA CAPA). 21 (05/11): aviso de tiernos para el jefe de almacén (tipo=avisoTiernos). 20 (04/11): control de recepción (quien descarga) y REF PROVEEDOR en entradas. 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
+const API_VERSION = 23;  // 23 (07/11): _UPDATE con _SOLO_SI_CAMBIA no escribe si ya estaba igual (marca «queso sin voltear» doble). 22 (06/11): una corrección (_UPDATE) puede crear columna nueva (TERCERA CAPA). 21 (05/11): aviso de tiernos para el jefe de almacén (tipo=avisoTiernos). 20 (04/11): control de recepción (quien descarga) y REF PROVEEDOR en entradas. 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -1062,6 +1062,18 @@ function _doPostEscritura(payload) {
     if (filaEncontrada > -1) {
       // (06/11, API 22) Una corrección puede traer una columna nueva (TERCERA CAPA):
       // se crea, como al insertar. Antes se ignoraba sin avisar.
+      // (07/11, API 23) _SOLO_SI_CAMBIA: si lo que se manda ya está así en la hoja
+      // (otro ordenador lo hizo antes), no se escribe ni se anota nada y se avisa.
+      if (payload['_SOLO_SI_CAMBIA']) {
+        var _igual = true;
+        Object.keys(payload).forEach(function(k){
+          if (k.charAt(0) === '_' || k === 'ID') return;
+          var ci = headers.indexOf(k);
+          var actual = ci >= 0 ? String(data[filaEncontrada - 1][ci] == null ? '' : data[filaEncontrada - 1][ci]).trim().toUpperCase() : '';
+          if (actual !== String(payload[k] == null ? '' : payload[k]).trim().toUpperCase()) _igual = false;
+        });
+        if (_igual) return ContentService.createTextOutput(JSON.stringify({ok: true, sinCambios: true})).setMimeType(ContentService.MimeType.JSON);
+      }
       headers = _asegurarColumnasRegistroTotal(sheet, headers, payload);
       if (payload['FECHA'] !== undefined) payload['FECHA'] = _fechaAppSheet(payload['FECHA']);
       headers.forEach(function(h, col) {
