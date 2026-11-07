@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v73';
+var VER = 'v74';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -810,9 +810,42 @@ function vistaRegistros(){
   $('f-csv').addEventListener('click', exportarCSV);
   pintarTabla();
 }
+// Mismo orden que «Mis registros de hoy» del móvil (renderRegs), que es el de la
+// hoja de pesos del programa de gestión.
+var _SEC_ORD=['1ª CAPA','VOLTEO','2ª CAPA','MOVIMIENTO','PINTURA','ENVASADO'];
+var _FMT_ORD={'3 KG':0,'2 KG':1,'1 KG':2,'BARRA':3,'SUPERMINIS':4};
+function _ordenPapel(a,b){
+  var sa=_SEC_ORD.indexOf(secDe(a)), sb=_SEC_ORD.indexOf(secDe(b)); if(sa<0) sa=99; if(sb<0) sb=99;
+  if(sa!==sb) return sa-sb;
+  var ia=parsearId(pidDe(a)), ib=parsearId(pidDe(b));
+  var ta=String(a['TIPO DE QUESO']||ia.tipo||''), tb=String(b['TIPO DE QUESO']||ib.tipo||'');
+  if(ta!==tb) return ta.localeCompare(tb);
+  var va=String(a['VARIEDAD']||''), vb=String(b['VARIEDAD']||'');
+  if(va!==vb) return va.localeCompare(vb);
+  // (igual que el móvil: el «||9» deja el 3 kg detrás del 1 kg, como en el papel)
+  var fa=(_FMT_ORD[String(a['FORMATO/PESO']||ia.fmt||'')]||9), fb=(_FMT_ORD[String(b['FORMATO/PESO']||ib.fmt||'')]||9);
+  if(fa!==fb) return fa-fb;
+  function lote(i,r){ return String((i.isDO?(i.loteCorto||i.lote):i.lote)||r['LOTE QUESO']||''); }
+  var la=lote(ia,a), lb=lote(ib,b);
+  if(la!==lb) return la.localeCompare(lb);
+  function dig(r){ var n=parseInt(String(pidDe(r)||'').split('*')[0].split('!')[0].replace(/\s/g,''),10); return isNaN(n)?0:n; }
+  var na=dig(a), nb=dig(b);
+  if(na!==nb) return na-nb;
+  return (a.__t||0)-(b.__t||0);
+}
 function pintarTabla(){
   var lista=filtrarRegistros();
   var col=COLS.filter(function(c){ return c.k===RF.ord; })[0]||COLS[0];
+  // (v74) ORDENADO POR FECHA = EL ORDEN DE LA HOJA DE PESOS (Joaquín, 07/11):
+  // dentro de cada día, igual que «Mis registros de hoy» del móvil — sección,
+  // tipo, variedad, formato, lote y nº de palé. Así se revisa contra el papel.
+  if(RF.ord==='fecha'){
+    lista.sort(function(a,b){
+      var da=a.__f?isoDia(a.__f):'', db=b.__f?isoDia(b.__f):'';
+      if(da!==db) return (da<db?-1:1)*RF.dir;
+      return _ordenPapel(a,b);
+    });
+  } else
   lista.sort(function(a,b){
     var va=col.v(a), vb=col.v(b);
     if(va<vb) return -1*RF.dir; if(va>vb) return 1*RF.dir;
