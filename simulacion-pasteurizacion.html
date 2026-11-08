@@ -42,7 +42,7 @@ body{margin:0}</style></head><body>
 <label for="cloruro">Cloruro 1ª cuba<input id="cloruro" type="time" value="05:48"></label>
 <label for="caudal">Caudal (L/h)<input id="caudal" type="number" value="15000" step="100"></label>
 <label for="previa">Calentamiento (min)<input id="previa" type="number" value="20" step="1"></label>
-<label for="arr">Arrastre con agua (min)<input id="arr" type="number" value="3" step="0.5"></label>
+<label for="arr">Arrastre con agua (min)<input id="arr" type="number" value="4" step="0.5"></label>
 <label for="sosa">Sosa (min)<input id="sosa" type="number" value="40" step="1"></label>
 <label for="acido">Ácido (min)<input id="acido" type="number" value="30" step="1"></label>
 <label class="check" for="limp"><input id="limp" type="checkbox" checked>Limpieza al final</label>
@@ -99,10 +99,11 @@ function simula(){
  const tL=INI?INI.tL:tC-60, tA=INI?INI.t0:tL-previa;
  const tramos=[];let t=tL;
  CUBAS.forEach((c,i)=>{const hc=i?hs(c.h):null;let a=t,nueva=false,arrA=null;
-  // cada cuba entra 1 min antes de su cloruro, pero nunca antes de que acabe la anterior;
-  // si hay más de 20 min de hueco es otra tanda (se para y vuelve a calentar)
-  if(hc){const w=hc-60;if(w>t+20*60){a=w;nueva=true}else if(w>t){arrA=t;a=w}}
-  if(!nueva&&i&&c.le!==CUBAS[i-1].le&&arr&&a-t<arr){arrA=t;a=t+arr}
+  // Dentro de una hornada las cubas van SEGUIDAS (el cloruro de la 2ª, 3ª… no retrasa el pasteurizador).
+  // Solo si el cloruro llega más de 45 min después de acabar la anterior es otra hornada (se para y recalienta).
+  // Al cambiar de tipo de leche, arrastre con agua de unos 4 min (cerrar un depósito y abrir el otro).
+  if(hc){const w=hc-60;if(w>t+45*60){a=w;nueva=true}}
+  if(!nueva&&i&&c.le!==CUBAS[i-1].le&&arr){arrA=t;a=t+arr}
   const d=(c.l||0)/Q*3600;tramos.push({a,b:a+d,c,nueva,arrA});t=a+d});
  const limp=$('limp').checked, sosa=(parseFloat($('sosa').value)||0)*60, acido=(parseFloat($('acido').value)||0)*60;
  const tE=t, tF=tE+14*60, t0=tA-12*60;
@@ -136,7 +137,9 @@ function simula(){
    const sl=salto(cum/60,sube); agua=tp+0.3+sl; if(sIni===null&&cum>=600)sIni=sl; sFin=sl;
    bacto=50+(ini&&u<600?16*Math.exp(-u/120):0);
    cuba=(tr.c.c||28)+(ini&&u<300?15*Math.exp(-u/60):0);
-   if(!ini&&u<80){past+=0.9;cuba-=0.8;bacto+=0.6}
+   if(!ini&&tr.arrA){// vuelve la leche tras el arrastre: la bacto baja de 58 a 50 y la salida a cuba de 36 a 28
+    bacto+=8.3*Math.exp(-u/70);cuba+=7.5*Math.exp(-u/35);agua-=0.8*Math.exp(-u/200)}
+   else if(!ini&&u<80){past+=0.9;cuba-=0.8;bacto+=0.6}
    // descarga de la bactofugadora cada 15 min: pico en todas las líneas (como en el SCADA)
    const ud=(cum-60)%900; if(cum>=60){ if(ud<20){past+=2;agua+=1.5;bacto-=2.6;cuba-=2.8} else if(ud<40){past-=1.4;agua-=0.4;desv+=0.6;bacto+=0.3;cuba+=0.4} else if(ud<60){desv+=1.2;past+=0.3;bacto+=0.6} }
   }
@@ -147,7 +150,13 @@ function simula(){
    else if(v<0){rec=false;past=26+(74.7-26)*fr;desv=26+(74.5-26)*fr;agua=27+(76.5-27)*fr;bacto=30+(57.4-30)*fr;cuba=25+(35.2-25)*fr}
    else{const sb=Math.min(1,v/100);past=26+(75-26)*sb;desv=26+(74.7-26)*Math.min(1,v/150);agua=27+(75.5-27)*sb+(v>40&&v<240?3*Math.sin((v-40)/200*Math.PI):0);bacto=30+3*(v/pre2);cuba=25+8*(v/pre2)}
   }
-  else if(x<tF||(x<tE)){// agua empujando al terminar o arrastre entre cubas
+  else if(x<tE&&tramos.some(k=>k.arrA!==null&&x>=k.arrA&&x<k.a)){// ARRASTRE con agua entre leches (como el 02/11 a las 06:47)
+   const fin=Math.max(...tramos.filter(k=>k.b<=x).map(k=>k.b));const u=x-fin;const sl=salto(cum/60,sube);
+   past=74.8+(u<110?1.2*Math.sin(u/25):0);desv=74.7+(u>50&&u<110?1.1:0);
+   agua=74.7+sl-(u<70?3*(u/70):3-1.5*Math.min(1,(u-70)/60));
+   bacto=u<110?49.4:49.4+8.9*ease((u-110)/45);
+   cuba=u<20?28.5-2*(u/20):(u<110?26.5+3.5*((u-20)/90):30+6*ease((u-110)/35));}
+  else if(x<tF||(x<tE)){// agua empujando al terminar
    const fin=Math.max(...tramos.filter(k=>k.b<=x).map(k=>k.b));const u=x-fin;
    past=74.7;desv=74.5;agua=74.7+Math.max(0.6,salto(cum/60,sube)-1.2*ease(u/300));bacto=50+7.4*ease(u/90);cuba=28+7.2*ease(u/60)}
   else if(limp&&x>=tF&&x<tS){// esperando a que acaben los lavados para empezar la limpieza
