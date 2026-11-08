@@ -171,7 +171,9 @@ function simula(){
   else if(limp&&x<tAE){// ÁCIDO ~81 °C
    const u=x-tA2,k=u/Math.max(acido,1);const sb=Math.min(1,u/150);past=37+(80.8-37)*sb+0.5*k;desv=40+(81-40)*Math.min(1,u/170)+0.5*k;agua=40+(81.3-40)*sb+(u>60&&u<300?1.8*Math.sin((u-60)/240*Math.PI):0)+0.5*k;bacto=u<480?33+(79.8-33)*ease(u/170):79.8+1.2*k;cuba=24.7+9*k}
   else{const u=x-(limp?tAE:tF);if(u>240)rec=false;const f=Math.exp(-u/150),A=limp?81:74.7;past=24+(A-24)*f;desv=25+(A+0.3-25)*f;agua=25.5+(A+0.5-25.5)*f;bacto=30+((limp?80.8:57.4)-30)*Math.exp(-u/200);cuba=21.5+((limp?33.7:35.2)-21.5)*Math.exp(-u/150)}
-  if(lv){// envío de agua del lavado: la salida a cuba toma la temperatura del agua del lavado
+  // El lavado solo cambia la gráfica si el pasteurizador estaba PARADO (arranca para el lavado).
+  // Si estaba en marcha (leche o empuje con agua), el agua ya está pasando y no se toca nada.
+  if(lv&&!rec){// envío de agua del lavado: la salida a cuba toma la temperatura del agua del lavado
    let k=Math.min(1,(x-(lv.a-90))/90), q=x>lv.b?Math.max(0,1-(x-lv.b)/60):1;
    if(!rec){// el pasteurizador estaba parado y frío: arranca para el lavado (el primer dato es la
     // temperatura a la que se ha enfriado, sube en 1-2 min), manda el agua y vuelve a parar
