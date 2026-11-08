@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v78';
+var VER = 'v79';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -4099,6 +4099,10 @@ function _htmlParteImpresion(p){
   H.push('<div class="firmabox"><span class="lbl">Vº Bº CALIDAD:</span>'+vbCalidad+'</div>');
   H.push('</div>');
   H.push('<div class="foot"><span>FOR 08-01 / diciembre 2024</span></div>');
+  // (08/11) Siempre en UNA hoja: si el parte es más alto que el A4 (muchos fermentos, firmas…),
+  // se encoge solo lo justo para que quepa. Si cabe, se imprime a tamaño real.
+  H.push('<script>(function(){function aj(){var b=document.body;b.style.zoom=1;var mm=document.createElement("div");mm.style.height="100mm";b.appendChild(mm);var px=mm.offsetHeight/100;b.removeChild(mm);'
+        +'var max=279*px,h=b.scrollHeight;if(h>max)b.style.zoom=(max/h).toFixed(3);}aj();window.addEventListener("load",aj);window.addEventListener("beforeprint",aj);})();<'+'/script>');
   H.push('</body></html>');
   // (08/11) Rejilla fija de 6 columnas de 32mm en las tablas normales: así los huecos con borde
   // ocupan su sitio exacto y cada bloque queda como un cuadro cerrado del mismo ancho.
