@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pasteurización simulada</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: arriba los datos de los partes (editables), debajo la hoja estilo SCADA con la gráfica simulada */
+:root{--bg:#f6f2f2;--panel:#ffffff;--fg:#2a1e1f;--mut:#76666a;--line:#e3d8d9;--gran:#7a1f2b;--in:#fbf8f8;--warn:#b5651d;--fs:'IBM Plex Sans',system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1416;--panel:#241b1d;--fg:#f1e9ea;--mut:#b3a3a6;--line:#3a2e31;--gran:#e07a88;--in:#2c2124;--warn:#e6a15a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1b1416;--panel:#241b1d;--fg:#f1e9ea;--mut:#b3a3a6;--line:#3a2e31;--gran:#e07a88;--in:#2c2124;--warn:#e6a15a;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--fs);font-size:15px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+h1{font-size:1.4rem;margin:0;color:var(--gran)}
+.sub{color:var(--mut);margin:2px 0 0;max-width:75ch}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+.datos{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:flex-end}
+label{display:flex;flex-direction:column;gap:3px;font-size:.8rem;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+input,select{font:inherit;font-size:.95rem;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--in);color:var(--fg);width:120px}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--gran);outline-offset:1px}
+input.nom{width:170px}
+.cubas{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.cuba{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.cuba .n{font-weight:700;color:var(--gran);min-width:56px;padding-bottom:8px}
+button{font:inherit;font-size:.9rem;padding:7px 12px;border-radius:6px;border:1px solid var(--gran);background:transparent;color:var(--gran);cursor:pointer}
+button.prim{background:var(--gran);color:var(--panel)}
+.check{flex-direction:row;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font-size:.9rem;color:var(--fg);font-weight:400}
+.check input{width:auto}
+.hoja{overflow-x:auto;background:#fff;border:1px solid #cfcfcf;border-radius:4px}
+.hoja svg{display:block;min-width:900px;width:100%;height:auto}
+.res{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:.92rem}
+.res b{font-variant-numeric:tabular-nums}
+.nota{color:var(--mut);font-size:.86rem;margin:0}
+body{margin:0}</style></head><body>
+<div class="wrap">
+<header>
+<h1>Pasteurización simulada a partir de los partes</h1>
+<p class="sub">Con los litros de cada cuba (versión Calidad) y la hora del cloruro de cada parte. Antes va el calentamiento con agua, como en las gráficas del SCADA. Las cubas que se pueden cambiar aquí no se guardan en el parte.</p>
+</header>
+
+<section class="panel">
+<div class="datos">
+<label for="fecha">Fecha<input id="fecha" type="date" value="2026-11-05"></label>
+<label for="cloruro">Cloruro 1ª cuba<input id="cloruro" type="time" value="05:48"></label>
+<label for="caudal">Caudal (L/h)<input id="caudal" type="number" value="15000" step="100"></label>
+<label for="previa">Calentamiento (min)<input id="previa" type="number" value="28" step="1"></label>
+<label for="arr">Arrastre con agua (min)<input id="arr" type="number" value="3" step="0.5"></label>
+<label for="sosa">Sosa (min)<input id="sosa" type="number" value="40" step="1"></label>
+<label for="acido">Ácido (min)<input id="acido" type="number" value="30" step="1"></label>
+<label class="check" for="limp"><input id="limp" type="checkbox" checked>Limpieza al final</label>
+<label for="sube">Salto sube (°C/h)<input id="sube" type="number" value="1.2" step="0.1"></label>
+<label class="check" for="real"><input id="real" type="checkbox" checked>Superponer el SCADA real</label>
+
+</div>
+<div class="cubas" id="cubas"></div>
+<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+<button type="button" id="mas">Añadir cuba</button>
+<button type="button" id="menos">Quitar la última</button>
+</div>
+</section>
+
+<section class="res panel" id="res"></section>
+
+<div class="hoja"><svg id="g" viewBox="0 0 1160 640" role="img" aria-label="Gráfica de pasteurización simulada, estilo SCADA"></svg></div>
+<p class="nota">Caudal nominal del pasteurizador: 15.000 L/h. La leche entra 1 min antes del cloruro de la 1ª cuba y, si cambia el tipo de leche, entre cubas va un arrastre con agua. Ojo: el 05/11 el SCADA real salió a unos 11.400 L/h (25 y 29 min). El salto térmico sale de los PASTO INFO del 02 al 06/11: empieza en unos 1,6 °C, a los 10 min está en 3,2 °C y luego sube unos 1,2 °C por hora de leche pasada, sin reiniciarse entre tandas. Las formas de las curvas (subidas, picos al arrancar, agua al final, descargas de la bactofugadora cada 15 min, limpieza con sosa y ácido a unos 81 °C) imitan las del SCADA. Es una simulación: no sustituye al registro del pasteurizador.</p>
+</div>
+<script>
+let REAL=null; const LOGO="data:image/jpeg;base64,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";
+let CUBAS=[];
+const $=id=>document.getElementById(id);
+function pintaCubas(){
+ $('cubas').innerHTML=CUBAS.map((c,i)=>`<div class="cuba"><span class="n">Cuba ${i+1}</span>
+ <label for="n${i}">Queso<input class="nom" id="n${i}" value="${c.nom}"></label>
+ <label for="le${i}">Leche<select id="le${i}">${['OVEJA','VACA','CABRA','MEZCLA'].map(o=>`<option${o==c.le?' selected':''}>${o}</option>`).join('')}</select></label>
+ <label for="l${i}">Litros<input id="l${i}" type="number" value="${c.l}"></label>
+ <label for="t${i}">Tª pasteur. °C<input id="t${i}" type="number" step="0.1" value="${c.t}"></label>
+ <label for="c${i}">Tª a cuba °C<input id="c${i}" type="number" step="0.1" value="${c.c}"></label>
+ ${i?`<label for="h${i}">Cloruro<input id="h${i}" type="time" value="${c.h||''}"></label>`:''}</div>`).join('');
+ CUBAS.forEach((c,i)=>['n','le','l','t','c','h'].forEach(k=>{const el=$(k+i);if(!el)return;el.addEventListener('input',e=>{const v=e.target.value;if(k=='n')c.nom=v;else if(k=='h'||k=='le')c[k]=v;else c[k]=parseFloat(v)||0;dibuja()})}));
+}
+$('mas').onclick=()=>{CUBAS.push({nom:'',le:'OVEJA',l:5000,t:74.5,c:28,h:''});pintaCubas();dibuja()};
+$('menos').onclick=()=>{if(CUBAS.length>1){CUBAS.pop();pintaCubas();dibuja()}};
+['fecha','cloruro','caudal','previa','arr','sosa','acido','limp','sube','real'].forEach(id=>$(id).addEventListener('input',dibuja));
+
+// ruido repetible
+function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+const hm=(t,seg)=>{t=Math.round(t);const h=String(Math.floor(t/3600)).padStart(2,'0'),m=String(Math.floor(t%3600/60)).padStart(2,'0'),s=String(t%60).padStart(2,'0');return seg?h+':'+m+':'+s:h+':'+m};
+const ease=(x)=>1-Math.exp(-x);
+
+// Salto térmico (agua caliente − leche), sacado de los PASTO INFO del 02 al 06/11:
+// arranca en ~1,6 °C, en 10 min llega a ~3,2 °C y luego sube ~1,2 °C por hora de leche pasada.
+// No se reinicia entre tandas: la 2ª tanda sigue donde lo dejó la 1ª (sale +1 a +1,5 °C).
+function salto(cmin,sube){ if(cmin<10) return 1.6+1.6*(cmin/10); return 3.2+sube/60*(cmin-10); }
+const hs=v=>{if(!v)return null;const [h,m]=v.split(':').map(Number);return h*3600+m*60};
+function simula(){
+ const tC=hs($('cloruro').value||'05:48'), Q=parseFloat($('caudal').value)||11400, previa=(parseFloat($('previa').value)||28)*60, sube=parseFloat($('sube').value)||0;
+ const arr=(parseFloat($('arr').value)||0)*60;
+ const tL=tC-60, tA=tL-previa;   // la leche entra ~1 min antes del cloruro
+ const tramos=[];let t=tL;
+ CUBAS.forEach((c,i)=>{const hc=i?hs(c.h):null;let a=t,nueva=false,arrA=null;
+  // cada cuba entra 1 min antes de su cloruro, pero nunca antes de que acabe la anterior;
+  // si hay más de 20 min de hueco es otra tanda (se para y vuelve a calentar)
+  if(hc){const w=hc-60;if(w>t+20*60){a=w;nueva=true}else if(w>t){arrA=t;a=w}}
+  if(!nueva&&i&&c.le!==CUBAS[i-1].le&&arr&&a-t<arr){arrA=t;a=t+arr}
+  const d=(c.l||0)/Q*3600;tramos.push({a,b:a+d,c,nueva,arrA});t=a+d});
+ const limp=$('limp').checked, sosa=(parseFloat($('sosa').value)||0)*60, acido=(parseFloat($('acido').value)||0)*60;
+ const tE=t, tF=tE+14*60, t0=tA-12*60;
+ const tS=tF, tSE=tS+sosa, tA2=tSE+5*60, tAE=tA2+acido, t1=limp?tAE+25*60:tF+40*60;
+ let ultD=-1;
+ const r=rnd(Math.round(tC+Q));const P=[];let cum=0,last=null,sIni=null,sFin=null;
+ for(let x=t0;x<=t1;x+=20){
+  let past,desv,agua,bacto,cuba;const n=()=>r()-0.5;
+  const tr=tramos.find(k=>x>=k.a&&x<k.b);
+  if(x<tA){past=18.9;desv=17.2;agua=18.4;bacto=16.8;cuba=18.1}
+  else if(x<tL){const u=(x-tA);const sub=Math.min(1,u/100);
+   past=18.9+(75-18.9)*sub+(u>60&&u<200?1.2*Math.sin((u-60)/140*Math.PI):0);
+   desv=17.2+(74.7-17.2)*Math.min(1,u/150);
+   agua=18.4+(74.9-18.4)*sub+(u>40&&u<240?3.8*Math.sin((u-40)/200*Math.PI):0);
+   bacto=16.8+(30-16.8)*(u/previa)+n()*1.2;
+   cuba=18.1+(37.5-18.1)*ease(u/previa*2.2)+n()*1.0;}
+  else if(tr){cum+=20;const u=x-tr.a;const tp=tr.c.t||74.5;
+   const ini=tr===tramos[0]||tr.nueva;
+   past=tp+0.3+(ini&&u<120?-1.1*Math.sin(u/120*Math.PI):0);
+   desv=tp+0.1;
+   const sl=salto(cum/60,sube); agua=tp+0.3+sl; if(sIni===null&&cum>=600)sIni=sl; sFin=sl;
+   bacto=50+(ini&&u<600?16*Math.exp(-u/120):0);
+   cuba=(tr.c.c||28)+(ini&&u<300?15*Math.exp(-u/60):0);
+   if(!ini&&u<80){past+=0.9;cuba-=0.8;bacto+=0.6}
+   // descarga de la bactofugadora cada 15 min: pico en todas las líneas (como en el SCADA)
+   const ud=(cum-60)%900; if(cum>=60){ if(ud<20){past+=2;agua+=1.5;bacto-=2.6;cuba-=2.8} else if(ud<40){past-=1.4;agua-=0.4;desv+=0.6;bacto+=0.3;cuba+=0.4} else if(ud<60){desv+=1.2;past+=0.3;bacto+=0.6} }
+  }
+  else if(x<tE && (()=>{const nx=tramos.find(k=>k.a>x);return nx&&nx.nueva})()){// entre tandas: empuje, se enfría y calienta otra vez antes de la siguiente
+   const fin=Math.max(...tramos.filter(k=>k.b<=x).map(k=>k.b)),nx=tramos.find(k=>k.a>x),u=x-fin,pre2=6*60,v=x-(nx.a-pre2);
+   const fr=Math.exp(-Math.max(0,u-600)/240);
+   if(u<600){past=74.7;desv=74.5;agua=74.7+Math.max(0.6,salto(cum/60,sube)-1.2*ease(u/300));bacto=50+7.4*ease(u/90);cuba=28+7.2*ease(u/60)}
+   else if(v<0){past=26+(74.7-26)*fr;desv=26+(74.5-26)*fr;agua=27+(76.5-27)*fr;bacto=30+(57.4-30)*fr;cuba=25+(35.2-25)*fr}
+   else{const sb=Math.min(1,v/100);past=26+(75-26)*sb;desv=26+(74.7-26)*Math.min(1,v/150);agua=27+(75.5-27)*sb+(v>40&&v<240?3*Math.sin((v-40)/200*Math.PI):0);bacto=30+3*(v/pre2);cuba=25+8*(v/pre2)}
+  }
+  else if(x<tF||(x<tE)){// agua empujando al terminar o arrastre entre cubas
+   const fin=Math.max(...tramos.filter(k=>k.b<=x).map(k=>k.b));const u=x-fin;
+   past=74.7;desv=74.5;agua=74.7+Math.max(0.6,salto(cum/60,sube)-1.2*ease(u/300));bacto=50+7.4*ease(u/90);cuba=28+7.2*ease(u/60)}
+  else if(limp&&x<tSE){// SOSA ~81 °C
+   const u=x-tS,k=u/Math.max(sosa,1);const sb=Math.min(1,u/120);past=74.7+(80.8-74.7)*sb+1.2*k;desv=74.5+(80.9-74.5)*Math.min(1,u/90)+1.1*k;agua=77.3+(81.2-77.3)*sb+(u>40&&u<300?2*Math.sin((u-40)/260*Math.PI):0)+1.2*k;bacto=u<420?57.8+(79.5-57.8)*ease(u/150):79.5+2*k;cuba=34.7+7.4*k}
+  else if(limp&&x<tA2){// aclarado entre sosa y ácido
+   const u=x-tSE;const f=Math.exp(-u/50);past=36+(82-36)*f;desv=40+(82-40)*Math.exp(-u/80);agua=39+(82.4-39)*f;bacto=33+(81.5-33)*Math.exp(-u/70);cuba=u<40?47:31-3*(u/300)}
+  else if(limp&&x<tAE){// ÁCIDO ~81 °C
+   const u=x-tA2,k=u/Math.max(acido,1);const sb=Math.min(1,u/150);past=37+(80.8-37)*sb+0.5*k;desv=40+(81-40)*Math.min(1,u/170)+0.5*k;agua=40+(81.3-40)*sb+(u>60&&u<300?1.8*Math.sin((u-60)/240*Math.PI):0)+0.5*k;bacto=u<480?33+(79.8-33)*ease(u/170):79.8+1.2*k;cuba=24.7+9*k}
+  else{const u=x-(limp?tAE:tF);const f=Math.exp(-u/150),A=limp?81:74.7;past=24+(A-24)*f;desv=25+(A+0.3-25)*f;agua=25.5+(A+0.5-25.5)*f;bacto=30+((limp?80.8:57.4)-30)*Math.exp(-u/200);cuba=21.5+((limp?33.7:35.2)-21.5)*Math.exp(-u/150)}
+  P.push([x,past+n()*0.18,desv+n()*0.15,bacto+n()*0.25,cuba+n()*0.2,agua+n()*0.2]);
+ }
+ return {P,tA,tL,tC,tE,tF,t0,t1,tramos,Q,sIni,sFin,limp,tS,tSE,tA2,tAE};
+}
+
+function dibuja(){
+ const S=simula();const g=$('g');
+ const W=1160,H=640,L=118,R=40,T=118,B=96;
+ const t0=Math.floor(S.t0/1800)*1800, t1=Math.ceil(S.t1/1800)*1800;
+ const X=t=>L+(t-t0)/(t1-t0)*(W-L-R), Y=v=>T+(100-v)/100*(H-T-B);
+ let s=`<rect width="${W}" height="${H}" fill="#fff"/>`;
+ s+=`<image href="${LOGO}" x="60" y="22" height="62" width="230" preserveAspectRatio="xMinYMid meet"/>`;
+ s+=`<text x="${W/2+40}" y="62" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="22" font-style="italic" fill="#111">Control Pasteurización</text>`;
+ s+=`<rect x="${W-292}" y="34" width="250" height="40" rx="3" fill="none" stroke="#b5651d" stroke-width="2"/><text x="${W-167}" y="52" text-anchor="middle" font-family="Arial" font-size="13" font-weight="700" fill="#b5651d">SIMULADA CON LOS PARTES</text><text x="${W-167}" y="67" text-anchor="middle" font-family="Arial" font-size="11" fill="#b5651d">no es el registro del SCADA</text>`;
+ // marco y rejilla fina como el SCADA
+ s+=`<rect x="${L-36}" y="${T-6}" width="${W-L-R+36}" height="${H-T-B+58}" fill="none" stroke="#555" stroke-width="1.2"/>`;
+ for(let v=0;v<=100;v+=2){s+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v%10?'#d6d6d6':'#9a9a9a'}" stroke-width="${v%10?0.6:0.9}"/>`}
+ for(let t=t0;t<=t1;t+=300){s+=`<line x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${H-B}" stroke="${t%1800?'#d6d6d6':'#9a9a9a'}" stroke-width="${t%1800?0.6:0.9}"/>`}
+ s+=`<line x1="${L}" x2="${L}" y1="${T}" y2="${H-B}" stroke="#333"/><line x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}" stroke="#333"/>`;
+ for(let v=0;v<=100;v+=10)s+=`<text x="${L-6}" y="${Y(v)+4}" text-anchor="end" font-family="Arial" font-size="11" fill="#111">${v}</text>`;
+ const f=$('fecha').value.split('-');const fd=f.length==3?f[2]+'/'+f[1]+'/'+f[0].slice(2):'';
+ for(let t=t0;t<=t1;t+=1800){s+=`<line x1="${X(t)}" x2="${X(t)}" y1="${H-B}" y2="${H-B+6}" stroke="#333"/><text x="${X(t)}" y="${H-B+20}" text-anchor="middle" font-family="Arial" font-size="11" fill="#111">${hm(t,1)}</text><text x="${X(t)}" y="${H-B+33}" text-anchor="middle" font-family="Arial" font-size="11" fill="#111">${fd}</text>`}
+ const col={past:'#1f3fd1',desv:'#c43bd1',agua:'#d81b1b',bacto:'#111',cuba:'#111'};
+ const linea=(D,k,c,w,op)=>{let d='',prev=null;D.forEach(p=>{if(p[0]<t0||p[0]>t1)return;const gap=prev&&p[0]-prev>200;d+=(d===''||gap?'M':'L')+X(p[0]).toFixed(1)+' '+Y(Math.max(0,Math.min(100,p[k]))).toFixed(1)+' ';prev=p[0]});return `<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-opacity="${op}" stroke-linejoin="round"/>`};
+ const RR=REAL;
+ if($('real').checked && RR){
+  [[5,'#d81b1b'],[1,'#1f3fd1'],[2,'#c43bd1'],[3,'#111'],[4,'#111']].forEach(([k,c])=>s+=linea(RR,k,c,3,0.18));
+ }
+ [[5,col.agua],[3,col.bacto],[4,col.cuba],[2,col.desv],[1,col.past]].forEach(([k,c])=>s+=linea(S.P,k,c,1.3,1));
+ // marcas de cada cuba
+ S.tramos.forEach((k,i)=>{s+=`<line x1="${X(k.a)}" x2="${X(k.a)}" y1="${Y(96)}" y2="${Y(84)}" stroke="#7a1f2b" stroke-width="1.2"/><text x="${X(k.a)+4}" y="${Y(i%2?89:93)}" font-family="Arial" font-size="11" fill="#7a1f2b">C${i+1} ${k.c.le} ${Math.round(k.c.l)} L</text>`;if(k.arrA)s+=`<text x="${X(k.arrA)}" y="${Y(85)}" font-family="Arial" font-size="10" fill="#4a6fa5">agua ${Math.round((k.a-k.arrA)/60)}′</text>`});
+ s+=`<line x1="${X(S.tC)}" x2="${X(S.tC)}" y1="${Y(12)}" y2="${Y(4)}" stroke="#b5651d" stroke-width="1.5"/><text x="${X(S.tC)+4}" y="${Y(6)}" font-family="Arial" font-size="11" fill="#b5651d">Cloruro ${hm(S.tC)}</text>`;
+ if(S.limp){[[S.tS,S.tSE,'SOSA'],[S.tA2,S.tAE,'ÁCIDO']].forEach(([a,b,n])=>s+=`<text x="${(X(a)+X(b))/2}" y="${Y(88)}" text-anchor="middle" font-family="Arial" font-size="11" fill="#7a1f2b">${n} ${Math.round((b-a)/60)}′</text>`)}
+ // leyenda y pie
+ const ley=[['Agua caliente',col.agua],['Pasteurización',col.past],['Desvío',col.desv],['Bacto',col.bacto],['Cubas',col.cuba]];
+ ley.forEach(([n,c],i)=>{const x=L+i*150;s+=`<line x1="${x}" x2="${x+22}" y1="${H-26}" y2="${H-26}" stroke="${c}" stroke-width="2.5"/><text x="${x+28}" y="${H-22}" font-family="Arial" font-size="12" fill="#111">${n}</text>`});
+ if($('real').checked && RR) s+=`<line x1="${L+760}" x2="${L+782}" y1="${H-26}" y2="${H-26}" stroke="#444" stroke-width="6" stroke-opacity=".18"/><text x="${L+788}" y="${H-22}" font-family="Arial" font-size="12" fill="#111">SCADA real (sombreado)</text>`;
+ g.innerHTML=s;
+ const tot=CUBAS.reduce((a,c)=>a+(c.l||0),0);
+ $('res').innerHTML=`<span>Calentamiento con agua: <b>${hm(S.tA)}–${hm(S.tL)}</b></span>`+S.tramos.map((k,i)=>(k.arrA?`<span>Arrastre con agua: <b>${hm(k.arrA)}–${hm(k.a)}</b></span>`:'')+`<span>Cuba ${i+1} (${k.c.le.toLowerCase()}): <b>${hm(k.a)}–${hm(k.b)}</b> (${Math.round((k.b-k.a)/60)} min)</span>`).join('')+`<span>Fin de leche: <b>${hm(S.tE)}</b> · ${tot.toLocaleString('es-ES')} L</span>`+(S.limp?`<span>Sosa: <b>${hm(S.tS)}–${hm(S.tSE)}</b></span><span>Ácido: <b>${hm(S.tA2)}–${hm(S.tAE)}</b></span>`:'')+`<span>Salto agua − leche: <b>${(S.sIni||0).toFixed(1).replace('.',',')} → ${(S.sFin||0).toFixed(1).replace('.',',')} °C</b></span>`;
+}
+// Datos que manda la app de partes (misma web): cubas de la versión Calidad y SCADA real si hay
+function cargarDeLaApp(){
+ let D=null;try{D=window.opener&&window.opener._SIM_DATOS}catch(e){}
+ if(!D){pintaCubas();dibuja();return false}
+ $('fecha').value=D.fecha||'';if(D.cloruro)$('cloruro').value=D.cloruro;
+ CUBAS=D.cubas||[];REAL=D.real||null;pintaCubas();dibuja();
+ if(D.aviso){const a=document.createElement('p');a.className='nota';a.style.color='var(--warn)';a.textContent=D.aviso;document.querySelector('header').appendChild(a)}
+ return !!REAL;
+}
+if(!cargarDeLaApp()){let n=0;const iv=setInterval(()=>{let D=null;try{D=window.opener&&window.opener._SIM_DATOS}catch(e){};if(D&&D.real){REAL=D.real;dibuja();clearInterval(iv)}if(++n>40)clearInterval(iv)},500)}
+</script>
+
+</body></html>

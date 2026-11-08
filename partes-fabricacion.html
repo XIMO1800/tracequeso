@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.499</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.500</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -1504,6 +1504,7 @@ input[type="email"] {
   </div>
   <div class="card" id="lista-partes"></div>
   <div id="grafica-pasteur-cont" style="margin-top:14px"></div>
+  <div id="grafica-sim-cont"></div>
 </div>
 
 <div id="screen-recetas" class="screen">
@@ -7637,6 +7638,7 @@ function cargarGraficaPasteurizacion(fecha){
   if(!cont) return;
   // Solo Calidad o Admin
   var esCalAdm = _rolContiene(ROL_ACTUAL,'CALIDAD') || _rolContiene(ROL_ACTUAL,'ADMIN');
+  try{ _botonGraficaSimulada(esCalAdm?fecha:''); }catch(_){}
   if(!esCalAdm){ cont.innerHTML=''; return; }
   if(!fecha){ cont.innerHTML=''; return; }
   cont.innerHTML='<div style="font-size:0.8rem;color:var(--text3);padding:4px 2px">Buscando gráfica de pasteurización…</div>';
@@ -7663,6 +7665,66 @@ function cargarGraficaPasteurizacion(fecha){
     return;
   }
   _botonGraficaPDF(cont, fecha);
+}
+
+// ── GRÁFICA SIMULADA CON LOS PARTES (08/11) ──
+// Joaquín: junto a la gráfica del SCADA, otra hecha con los litros de las cubas
+// (versión Calidad) y la hora del cloruro de cada parte: calentamiento previo,
+// cubas a 15.000 L/h, arrastre con agua al cambiar de leche, descargas de la
+// bactofugadora cada 15 min y limpieza (sosa + ácido). Lleva un sello de
+// «SIMULADA»: es para comparar, no sustituye al registro del SCADA.
+function _cubasParaSimular(fecha){
+  var porCuba={};
+  (PARTES||[]).forEach(function(p){
+    if(!p || _fechaKeyLocal(p.fecha)!==_fechaKeyLocal(fecha)) return;
+    var k=String(p.cuba||p.id||'');
+    var rev=(p.version==='revisado');
+    // Se queda la versión de Calidad si existe; si no, el original
+    if(!porCuba[k] || (rev && porCuba[k].version!=='revisado')) porCuba[k]=p;
+  });
+  var lista=[];
+  Object.keys(porCuba).forEach(function(k){
+    var p=porCuba[k], pa=p.pasteurizacion||{}, am=p.aux_meta||{};
+    if(pa.cruda) return;   // leche cruda: no pasa por el pasteurizador
+    var tipo=String(p.tipo||'').toUpperCase();
+    var le = tipo.indexOf('MEZCLA')>=0?'MEZCLA':(tipo.indexOf('VACA')>=0?'VACA':(tipo.indexOf('CABRA')>=0?'CABRA':'OVEJA'));
+    var l=parseFloat(String(p.litros||'').replace(',','.'))||0;
+    var t=parseFloat(String(pa.temp||'').replace(',','.'))||74.5;
+    lista.push({nom:String(p.tipo||'')+(p.variedad?(' '+p.variedad):''), le:le, l:l, t:t, c:28, h:String(am.hadicion||'').trim().slice(0,5)});
+  });
+  lista.sort(function(a,b){ return (a.h||'99:99')<(b.h||'99:99')?-1:1; });
+  return lista;
+}
+function _botonGraficaSimulada(fecha){
+  var cont=document.getElementById('grafica-sim-cont');
+  if(!cont) return;
+  if(!fecha || !_cubasParaSimular(fecha).length){ cont.innerHTML=''; return; }
+  cont.innerHTML='<div onclick="abrirGraficaSimulada(\''+fecha+'\')" '
+    + 'style="display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;'
+    + 'background:#fff;color:var(--brand);border:2px solid var(--brand);font-weight:800;font-size:0.88rem;'
+    + 'border-radius:9px;padding:6px 12px;margin-bottom:7px">'
+    + '<svg width="26" height="18" viewBox="0 0 26 18" xmlns="http://www.w3.org/2000/svg"><polyline points="2,15 8,9 13,12 24,2" fill="none" stroke="#c0392b" stroke-width="2.5" stroke-dasharray="4 3" stroke-linecap="round"/></svg>'
+    + '<span>Ver gráfica simulada con los partes</span></div>';
+}
+function abrirGraficaSimulada(fecha){
+  var cubas=_cubasParaSimular(fecha);
+  if(!cubas.length){ toast('No hay partes pasteurizados ese día','err'); return; }
+  var sinHora=cubas.filter(function(c){ return !c.h; }).length;
+  window._SIM_DATOS={ fecha:_fechaKeyLocal(fecha), cloruro:cubas[0].h||'05:45', cubas:cubas, real:null,
+    aviso: sinHora ? (sinHora+' parte(s) sin hora de cloruro: van seguidos de la cuba anterior.') : '' };
+  var w=window.open('simulacion-pasteurizacion.html','_blank');
+  if(!w){ toast('Permite las ventanas emergentes para ver la gráfica','err'); return; }
+  // Datos reales del SCADA para superponerlos (si el conversor los dejó en Drive)
+  var pasar=function(d){
+    var pts=(d&&d.puntos)||[]; var out=[], last=-999;
+    pts.forEach(function(q){ if(q.t-last>=40){ out.push([q.t,q.past,q.desvio,q.bacto,q.cuba,q.agua]); last=q.t; } });
+    if(window._SIM_DATOS && out.length) window._SIM_DATOS.real=out;
+  };
+  if(_PASTEUR_DATOS && _fechaKeyLocal(_PASTEUR_DATOS.fecha)===_fechaKeyLocal(fecha)){ pasar(_PASTEUR_DATOS); return; }
+  fetch(API_URL+'?tipo=pasteurizacion&fecha='+encodeURIComponent(fecha))
+    .then(function(r){ return r.json(); })
+    .then(function(d){ pasar(d && d.data); })
+    .catch(function(){});
 }
 
 // Guarda los datos del día para poder abrir la gráfica sin volver a pedirlos
