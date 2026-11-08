@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.503</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.504</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -7702,7 +7702,10 @@ function _cubasParaSimular(fecha){
 function _botonGraficaSimulada(fecha){
   var cont=document.getElementById('grafica-sim-cont');
   if(!cont) return;
-  if(!fecha || !_cubasParaSimular(fecha).length){ cont.innerHTML=''; return; }
+  // (v2.6.504) El botón sale siempre (Calidad/Admin). Antes solo salía si los partes del día
+  // ya estaban cargados; en días pasados (p. ej. el lunes 02/11) llegan después de Sheets y
+  // el botón no aparecía. Los partes se miran al pulsar.
+  if(!fecha){ cont.innerHTML=''; return; }
   cont.innerHTML='<div onclick="abrirGraficaSimulada(\''+fecha+'\')" '
     + 'style="display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;'
     + 'background:#fff;color:var(--brand);border:2px solid var(--brand);font-weight:800;font-size:0.88rem;'
@@ -7734,8 +7737,10 @@ function abrirGraficaSimulada(fecha){
     }
     if(window._SIM_DATOS && out.length) window._SIM_DATOS.real=out;
   };
-  if(_PASTEUR_DATOS && _fechaKeyLocal(_PASTEUR_DATOS.fecha)===_fechaKeyLocal(fecha)){ pasar(_PASTEUR_DATOS); return; }
-  fetch(API_URL+'?tipo=pasteurizacion&fecha='+encodeURIComponent(fecha))
+  if(_PASTEUR_DATOS && _fechaKeyLocal(_PASTEUR_DATOS.fecha)===_fechaKeyLocal(fecha) && !/\dB[\. ]/i.test(String(_PASTEUR_DATOS._archivo||''))){ pasar(_PASTEUR_DATOS); return; }
+  // Solo la gráfica normal del día, nunca la B (los lunes el SCADA saca dos; la B era para una
+  // tercera jornada que hoy no se hace)
+  fetch(API_URL+'?tipo=pasteurizacion&sufijo=&fecha='+encodeURIComponent(fecha))
     .then(function(r){ return r.json(); })
     .then(function(d){ pasar(d && d.data); })
     .catch(function(){});
