@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.495</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.496</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4909,7 +4909,7 @@ function _htmlParteImpresion(p){
   H.push('table,.sec{margin-top:-1px}');
   H.push('.sec.mt{margin-top:6px}');   // (08/11) hueco entre bloques, como en auxiliares y fermentos
   H.push('table{border-collapse:collapse;table-layout:fixed;width:auto}td,th{border:1px solid #000;padding:2px 4px;vertical-align:middle;width:31.96mm;text-align:center;overflow:hidden}');
-  H.push('.sec{background:#e6e6e6;font-weight:bold;text-transform:uppercase;padding:3px 4px;border:2px solid #000;width:192mm;display:block}');
+  H.push('.sec{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#e6e6e6;font-weight:bold;text-transform:uppercase;padding:3px 4px;border:2px solid #000;width:192mm;display:block}');
   H.push('.lbl{font-weight:bold}.t{text-align:center}.lft{text-align:left}.mt{margin-top:6px}');
   H.push('.hdr{display:flex;align-items:center;gap:12px;border:1px solid #000;padding:6px;width:192mm}.hdr img{height:42px}.hdr .ti{flex:1;text-align:center;font-size:17px;font-weight:bold;letter-spacing:1px}');
   H.push('.firma{margin-top:18px;border:1px solid #000;height:64px;padding:4px}.foot{display:flex;justify-content:space-between;font-size:9px;line-height:1;margin-top:3px;color:#333}');
@@ -4925,8 +4925,8 @@ function _htmlParteImpresion(p){
   H.push('td.nob{border:1px solid #000}table{width:191.76mm;margin-left:0}table.sechd{width:192mm;margin-left:0}');   // (08/11) mismo ancho exterior que la cabecera: las líneas van en línea, ni dentro ni fuera   // (08/11) huecos con borde: cada bloque queda como un cuadro cerrado
   H.push('table.sechd{width:192mm;margin-left:0;border:2px solid #000}table.sechd td{background:#e6e6e6;border:none}table.sechd td.sectd{font-weight:bold;text-transform:uppercase;text-align:left}');
   H.push('.shd{display:flex;align-items:center}.shd .shl{flex:1}.shd .shc{width:31.96mm;text-align:center;text-transform:none;font-weight:normal;margin-right:-4px}');   // (08/11) cabeceras con hora/pH/TºC: mismo tipo de caja que las demás, para que todas tengan el mismo borde
-  H.push('.pag{width:192mm;margin:0 auto;display:flex;flex-direction:column}.acc{flex:1 1 auto;border:1px solid #000;padding:2px 4px;min-height:34px;margin-top:6px}'
-    +'.apr td,.apr th{padding:1px 4px}.apr .mt,.apr .sec.mt{margin-top:3px}.apr .acc{margin-top:3px;min-height:24px}.apr .firmas{margin-top:6px}.apr .firmabox{height:25mm}.apr .firmabox img{max-height:40px}');   // (08/11) versión «apretada» si no cabe: antes de encoger, se quita aire vertical
+  H.push('.pag{width:192mm;margin:0 auto;display:flex;flex-direction:column}.acc{border:1px solid #000;padding:2px 4px;min-height:30px;margin-top:6px}.cas{border:2px solid #000;margin-top:6px;padding:5px 6px;font-size:13px;line-height:1.35}'
+    +'.apr td,.apr th{padding:1px 4px}.apr .mt,.apr .sec.mt{margin-top:3px}.apr .acc,.apr .cas{margin-top:3px}.apr .acc{min-height:24px}.apr .firmas{margin-top:6px}.apr .firmabox{height:25mm}.apr .firmabox img{max-height:40px}');   // (08/11) versión «apretada» si no cabe: antes de encoger, se quita aire vertical
   H.push('</style></head><body><div class="pag" id="pag">');
   H.push('<div class="hdr">'+(logo?'<img src="'+logo+'">':'')+'<div class="ti">PARTE DE FABRICACIÓN</div></div>');
   // (v2.6.487) En la versión de Calidad: sin «Cuajada Nº», y fecha, tipo y lote a
@@ -5019,7 +5019,7 @@ function _htmlParteImpresion(p){
     return (r.serie?(e(r.serie)+' · '):'')+n(r.primera)+' → '+n(r.ultima)+(cuenta!==''?(' ('+cuenta+')'):'');
   }).join(' &nbsp;|&nbsp; ') + ((_casR.length>1 && cas.total)?(' &nbsp;·&nbsp; <b>Total '+e(cas.total)+'</b>'):'')
     + ((_casR.length===1 && cas.total && !(_casR[0].primera && _casR[0].ultima))?(' ('+e(cas.total)+')'):'');
-  H.push('<table class="uno"><tr><td class="lft" style="width:191.76mm"><span class="lbl">Nº Caseínas:</span> '+casTxt+'</td></tr></table>');
+  H.push('<div class="cas"><span class="lbl">Nº CASEÍNAS:</span> '+casTxt+'</div>');   // (08/11) separado de las piezas y con letra más grande
   H.push('<div class="acc"><span class="lbl">Acciones correctoras:</span> '+n(p.observaciones)+'</div>');   // (08/11) crece para llenar la hoja hasta abajo
   var firmaImg = p.firma_quesero ? ('<img src="'+p.firma_quesero+'">') : '';
   var firmaNom = p.firma_quesero_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_quesero_nombre)+(p.firma_quesero_ts?(' · '+e(_fFirmaDia(p.firma_quesero_ts))):'')+'</div>') : '';
@@ -5036,9 +5036,12 @@ function _htmlParteImpresion(p){
   // (08/11) Ajuste a la hoja A4: el parte ocupa toda la hoja, centrado.
   // - Si cabe: el recuadro de «Acciones correctoras» crece hasta llenar la hoja por abajo.
   // - Si no cabe: se encoge lo justo (con un pelín de margen de seguridad) y se centra.
-  H.push('<script>(function(){function aj(){var g=document.getElementById("pag");if(!g)return;g.style.zoom=1;g.style.minHeight="";g.className="pag";'
+  // (08/11) Ajuste a la hoja A4. Si sobra sitio, se reparte como altura de las filas (todo más
+  // aireado, llega hasta abajo). Si no cabe: primero versión «apretada» y, si aún no, se encoge.
+  H.push('<style id="ajst"></style><script>(function(){function aj(){var g=document.getElementById("pag"),st=document.getElementById("ajst");if(!g)return;g.style.zoom=1;g.className="pag";st.textContent="";'
         +'var mm=document.createElement("div");mm.style.height="100mm";document.body.appendChild(mm);var px=mm.offsetHeight/100;document.body.removeChild(mm);'
-        +'var max=275*px;if(g.scrollHeight>max)g.className="pag apr";var h=g.scrollHeight,z=h>max?max/h:1;g.style.zoom=z.toFixed(3);g.style.minHeight=(278/z).toFixed(1)+"mm";}'
+        +'var max=278*px,h=g.scrollHeight;var b0=2;if(h>max){g.className="pag apr";b0=1;h=g.scrollHeight;}if(h>max)g.style.zoom=(max/h).toFixed(3);'
+        +'else{var n=g.querySelectorAll("tr").length||1,ad=Math.min(5,(max-h)/(2*n));st.textContent="#pag td,#pag th{padding-top:"+(b0+ad).toFixed(2)+"px;padding-bottom:"+(b0+ad).toFixed(2)+"px}";}}'
         +'aj();window.addEventListener("load",aj);window.addEventListener("beforeprint",aj);})();<'+'/script>');
   H.push('</body></html>');
   // (08/11) Rejilla fija de 6 columnas de 32mm en las tablas normales: así los huecos con borde
