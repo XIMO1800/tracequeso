@@ -103,12 +103,17 @@ function simula(){
   const d=(c.l||0)/Q*3600;tramos.push({a,b:a+d,c,nueva,arrA});t=a+d});
  const limp=$('limp').checked, sosa=(parseFloat($('sosa').value)||0)*60, acido=(parseFloat($('acido').value)||0)*60;
  const tE=t, tF=tE+14*60, t0=tA-12*60;
- const tS=tF, tSE=tS+sosa, tA2=tSE+5*60, tAE=tA2+acido, t1=limp?tAE+25*60:tF+40*60;
+ // Lavados de cuajada hechos CON EL PASTEURIZADOR (según el parte): el pasteurizador manda agua
+ // caliente a la cuba. La limpieza no puede empezar hasta que acaben.
+ const LAVS=CUBAS.map((c,i)=>c.lav&&hs(c.lav.hi)?{a:hs(c.lav.hi),b:hs(c.lav.hf)||hs(c.lav.hi)+300,temp:parseFloat(c.lav.temp)||36,cuba:i+1}:null).filter(Boolean).map(L=>({...L,b:Math.max(L.b,L.a+60)}));
+ const finLav=LAVS.length?Math.max(...LAVS.map(L=>L.b)):0;
+ const tS=Math.max(tF,finLav+120), tSE=tS+sosa, tA2=tSE+5*60, tAE=tA2+acido, t1=limp?tAE+25*60:tF+40*60;
  let ultD=-1;
  const r=rnd(Math.round(tC+Q));const P=[];let cum=0,last=null,sIni=null,sFin=null;
  for(let x=t0;x<=t1;x+=20){
   let past,desv,agua,bacto,cuba;const n=()=>r()-0.5;
   const tr=tramos.find(k=>x>=k.a&&x<k.b);
+  const lv=!tr&&x>=tL?LAVS.find(L=>x>=L.a-90&&x<=L.b+60):null;
   if(x<tA){past=18.9;desv=17.2;agua=18.4;bacto=16.8;cuba=18.1}
   else if(x<tL){const u=(x-tA);const sub=Math.min(1,u/100);
    past=18.9+(75-18.9)*sub+(u>60&&u<200?1.2*Math.sin((u-60)/140*Math.PI):0);
@@ -137,6 +142,8 @@ function simula(){
   else if(x<tF||(x<tE)){// agua empujando al terminar o arrastre entre cubas
    const fin=Math.max(...tramos.filter(k=>k.b<=x).map(k=>k.b));const u=x-fin;
    past=74.7;desv=74.5;agua=74.7+Math.max(0.6,salto(cum/60,sube)-1.2*ease(u/300));bacto=50+7.4*ease(u/90);cuba=28+7.2*ease(u/60)}
+  else if(limp&&x>=tF&&x<tS){// esperando a que acaben los lavados para empezar la limpieza
+   past=74.7;desv=74.5;agua=77.2;bacto=57.8;cuba=35.2}
   else if(limp&&x<tSE){// SOSA ~81 °C
    const u=x-tS,k=u/Math.max(sosa,1);const sb=Math.min(1,u/120);past=74.7+(80.8-74.7)*sb+1.2*k;desv=74.5+(80.9-74.5)*Math.min(1,u/90)+1.1*k;agua=77.3+(81.2-77.3)*sb+(u>40&&u<300?2*Math.sin((u-40)/260*Math.PI):0)+1.2*k;bacto=u<420?57.8+(79.5-57.8)*ease(u/150):79.5+2*k;cuba=34.7+7.4*k}
   else if(limp&&x<tA2){// aclarado entre sosa y ácido
@@ -144,9 +151,13 @@ function simula(){
   else if(limp&&x<tAE){// ÁCIDO ~81 °C
    const u=x-tA2,k=u/Math.max(acido,1);const sb=Math.min(1,u/150);past=37+(80.8-37)*sb+0.5*k;desv=40+(81-40)*Math.min(1,u/170)+0.5*k;agua=40+(81.3-40)*sb+(u>60&&u<300?1.8*Math.sin((u-60)/240*Math.PI):0)+0.5*k;bacto=u<480?33+(79.8-33)*ease(u/170):79.8+1.2*k;cuba=24.7+9*k}
   else{const u=x-(limp?tAE:tF);const f=Math.exp(-u/150),A=limp?81:74.7;past=24+(A-24)*f;desv=25+(A+0.3-25)*f;agua=25.5+(A+0.5-25.5)*f;bacto=30+((limp?80.8:57.4)-30)*Math.exp(-u/200);cuba=21.5+((limp?33.7:35.2)-21.5)*Math.exp(-u/150)}
+  if(lv){// envío de agua del lavado: la salida a cuba toma la temperatura del agua del lavado
+   const k=Math.min(1,(x-(lv.a-90))/90), q=x>lv.b?Math.max(0,1-(x-lv.b)/60):1, w=k*q;
+   past=past+(74.7-past)*w;desv=desv+(74.5-desv)*w;agua=agua+(77.2-agua)*w;bacto=bacto+(57.8-bacto)*w;cuba=cuba+(lv.temp-cuba)*w;
+  }
   P.push([x,past+n()*0.18,desv+n()*0.15,bacto+n()*0.25,cuba+n()*0.2,agua+n()*0.2]);
  }
- return {P,tA,tL,tC,tE,tF,t0,t1,tramos,Q,sIni,sFin,limp,tS,tSE,tA2,tAE};
+ return {P,tA,tL,tC,tE,tF,t0,t1,tramos,Q,sIni,sFin,limp,tS,tSE,tA2,tAE,LAVS};
 }
 
 function dibuja(){
@@ -177,13 +188,14 @@ function dibuja(){
  S.tramos.forEach((k,i)=>{s+=`<line x1="${X(k.a)}" x2="${X(k.a)}" y1="${Y(96)}" y2="${Y(84)}" stroke="#7a1f2b" stroke-width="1.2"/><text x="${X(k.a)+4}" y="${Y(i%2?89:93)}" font-family="Arial" font-size="11" fill="#7a1f2b">C${i+1} ${k.c.le} ${Math.round(k.c.l)} L</text>`;if(k.arrA)s+=`<text x="${X(k.arrA)}" y="${Y(85)}" font-family="Arial" font-size="10" fill="#4a6fa5">agua ${Math.round((k.a-k.arrA)/60)}′</text>`});
  s+=`<line x1="${X(S.tC)}" x2="${X(S.tC)}" y1="${Y(12)}" y2="${Y(4)}" stroke="#b5651d" stroke-width="1.5"/><text x="${X(S.tC)+4}" y="${Y(6)}" font-family="Arial" font-size="11" fill="#b5651d">Cloruro ${hm(S.tC)}</text>`;
  if(S.limp){[[S.tS,S.tSE,'SOSA'],[S.tA2,S.tAE,'ÁCIDO']].forEach(([a,b,n])=>s+=`<text x="${(X(a)+X(b))/2}" y="${Y(88)}" text-anchor="middle" font-family="Arial" font-size="11" fill="#7a1f2b">${n} ${Math.round((b-a)/60)}′</text>`)}
+ (S.LAVS||[]).forEach(L=>{const y=Y(L.temp)+14;s+=`<path d="M${X(L.a)} ${y-6} L${X(L.a)} ${y} L${X(L.b)} ${y} L${X(L.b)} ${y-6}" fill="none" stroke="#1a7f8e" stroke-width="1.5"/><text x="${(X(L.a)+X(L.b))/2}" y="${y+12}" text-anchor="middle" font-family="Arial" font-size="10" fill="#1a7f8e">Lavado C${L.cuba} ${hm(L.a)}–${hm(L.b)}</text>`});
  // leyenda y pie
  const ley=[['Agua caliente',col.agua],['Pasteurización',col.past],['Desvío',col.desv],['Bacto',col.bacto],['Cubas',col.cuba]];
  ley.forEach(([n,c],i)=>{const x=L+i*150;s+=`<line x1="${x}" x2="${x+22}" y1="${H-26}" y2="${H-26}" stroke="${c}" stroke-width="2.5"/><text x="${x+28}" y="${H-22}" font-family="Arial" font-size="12" fill="#111">${n}</text>`});
  if($('real').checked && RR) s+=`<line x1="${L+760}" x2="${L+782}" y1="${H-26}" y2="${H-26}" stroke="#444" stroke-width="6" stroke-opacity=".18"/><text x="${L+788}" y="${H-22}" font-family="Arial" font-size="12" fill="#111">SCADA real (sombreado)</text>`;
  g.innerHTML=s;
  const tot=CUBAS.reduce((a,c)=>a+(c.l||0),0);
- $('res').innerHTML=`<span>Calentamiento con agua: <b>${hm(S.tA)}–${hm(S.tL)}</b></span>`+S.tramos.map((k,i)=>(k.arrA?`<span>Arrastre con agua: <b>${hm(k.arrA)}–${hm(k.a)}</b></span>`:'')+`<span>Cuba ${i+1} (${k.c.le.toLowerCase()}): <b>${hm(k.a)}–${hm(k.b)}</b> (${Math.round((k.b-k.a)/60)} min)</span>`).join('')+`<span>Fin de leche: <b>${hm(S.tE)}</b> · ${tot.toLocaleString('es-ES')} L</span>`+(S.limp?`<span>Sosa: <b>${hm(S.tS)}–${hm(S.tSE)}</b></span><span>Ácido: <b>${hm(S.tA2)}–${hm(S.tAE)}</b></span>`:'')+`<span>Salto agua − leche: <b>${(S.sIni||0).toFixed(1).replace('.',',')} → ${(S.sFin||0).toFixed(1).replace('.',',')} °C</b></span>`;
+ $('res').innerHTML=`<span>Calentamiento con agua: <b>${hm(S.tA)}–${hm(S.tL)}</b></span>`+S.tramos.map((k,i)=>(k.arrA?`<span>Arrastre con agua: <b>${hm(k.arrA)}–${hm(k.a)}</b></span>`:'')+`<span>Cuba ${i+1} (${k.c.le.toLowerCase()}): <b>${hm(k.a)}–${hm(k.b)}</b> (${Math.round((k.b-k.a)/60)} min)</span>`).join('')+`<span>Fin de leche: <b>${hm(S.tE)}</b> · ${tot.toLocaleString('es-ES')} L</span>`+(S.LAVS||[]).map(L=>`<span>Lavado cuba ${L.cuba}: <b>${hm(L.a)}–${hm(L.b)}</b> (${L.temp} °C)</span>`).join('')+(S.limp?`<span>Sosa: <b>${hm(S.tS)}–${hm(S.tSE)}</b></span><span>Ácido: <b>${hm(S.tA2)}–${hm(S.tAE)}</b></span>`:'')+`<span>Salto agua − leche: <b>${(S.sIni||0).toFixed(1).replace('.',',')} → ${(S.sFin||0).toFixed(1).replace('.',',')} °C</b></span>`;
 }
 // Datos que manda la app de partes (misma web): cubas de la versión Calidad y SCADA real si hay
 function cargarDeLaApp(){

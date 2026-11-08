@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.500</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.501</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -7690,7 +7690,11 @@ function _cubasParaSimular(fecha){
     var le = tipo.indexOf('MEZCLA')>=0?'MEZCLA':(tipo.indexOf('VACA')>=0?'VACA':(tipo.indexOf('CABRA')>=0?'CABRA':'OVEJA'));
     var l=parseFloat(String(p.litros||'').replace(',','.'))||0;
     var t=parseFloat(String(pa.temp||'').replace(',','.'))||74.5;
-    lista.push({nom:String(p.tipo||'')+(p.variedad?(' '+p.variedad):''), le:le, l:l, t:t, c:28, h:String(am.hadicion||'').trim().slice(0,5)});
+    // Lavado de cuajada con el PASTEURIZADOR (no con manguera): sale en la gráfica como envío de agua
+    var ds=p.desuerado||{}, lav=null;
+    if(String(ds.lavado_metodo||'').toLowerCase().indexOf('pasteur')>=0 && String(ds.lavado_hi||'').trim())
+      lav={hi:String(ds.lavado_hi).trim().slice(0,5), hf:String(ds.lavado_hf||'').trim().slice(0,5), temp:parseFloat(String(ds.lavado_temp||'').replace(',','.'))||36};
+    lista.push({nom:String(p.tipo||'')+(p.variedad?(' '+p.variedad):''), le:le, l:l, t:t, c:28, h:String(am.hadicion||'').trim().slice(0,5), lav:lav});
   });
   lista.sort(function(a,b){ return (a.h||'99:99')<(b.h||'99:99')?-1:1; });
   return lista;
