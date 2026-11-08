@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.497</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.498</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4925,8 +4925,8 @@ function _htmlParteImpresion(p){
   H.push('td.nob{border:1px solid #000}table{width:191.76mm;margin-left:0}table.sechd{width:192mm;margin-left:0}');   // (08/11) mismo ancho exterior que la cabecera: las líneas van en línea, ni dentro ni fuera   // (08/11) huecos con borde: cada bloque queda como un cuadro cerrado
   H.push('table.sechd{width:192mm;margin-left:0;border:2px solid #000}table.sechd td{background:#e6e6e6;border:none}table.sechd td.sectd{font-weight:bold;text-transform:uppercase;text-align:left}');
   H.push('.shd{display:flex;align-items:center}.shd .shl{flex:1}.shd .shc{width:31.96mm;text-align:center;text-transform:none;font-weight:normal;margin-right:-4px}');   // (08/11) cabeceras con hora/pH/TºC: mismo tipo de caja que las demás, para que todas tengan el mismo borde
-  H.push('.pag{width:192mm;margin:0 auto;display:flex;flex-direction:column}.acc{border:1px solid #000;padding:2px 4px;min-height:30px;margin-top:6px}.cas{border:2px solid #000;margin-top:6px;padding:5px 6px;font-size:13px;line-height:1.35}'
-    +'.apr td,.apr th{padding:1px 4px}.apr .mt,.apr .sec.mt{margin-top:7px}.apr .acc,.apr .cas{margin-top:3px}.apr .acc{min-height:24px}.apr .firmas{margin-top:6px}.apr .firmabox{height:25mm}.apr .firmabox img{max-height:40px}');   // (08/11) versión «apretada» si no cabe: antes de encoger, se quita aire vertical
+  H.push('.pag{width:192mm;margin:0 auto;display:flex;flex-direction:column}.acc{border:1px solid #000;padding:2px 4px;min-height:16mm;margin-top:6px}.cas{border:2px solid #000;margin-top:6px;padding:5px 6px;font-size:13px;line-height:1.35}'
+    +'.apr td,.apr th{padding:1px 4px}.apr .mt,.apr .sec.mt{margin-top:7px}.apr .acc,.apr .cas{margin-top:3px}.apr .acc{min-height:12mm}.apr .firmas{margin-top:6px}.apr .firmabox{height:25mm}.apr .firmabox img{max-height:40px}');   // (08/11) versión «apretada» si no cabe: antes de encoger, se quita aire vertical
   H.push('</style></head><body><div class="pag" id="pag">');
   H.push('<div class="hdr">'+(logo?'<img src="'+logo+'">':'')+'<div class="ti">PARTE DE FABRICACIÓN</div></div>');
   // (v2.6.487) En la versión de Calidad: sin «Cuajada Nº», y fecha, tipo y lote a
