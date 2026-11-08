@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.507</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.508</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -7702,27 +7702,26 @@ function _cubasParaSimular(fecha){
 function _botonGraficaSimulada(fecha){
   var cont=document.getElementById('grafica-sim-cont');
   if(!cont) return;
-  // (v2.6.504) El botón sale siempre (Calidad/Admin). Antes solo salía si los partes del día
-  // ya estaban cargados; en días pasados (p. ej. el lunes 02/11) llegan después de Sheets y
-  // el botón no aparecía. Los partes se miran al pulsar.
-  if(!fecha){ cont.innerHTML=''; return; }
-  cont.innerHTML='<div onclick="abrirGraficaSimulada(\''+fecha+'\')" '
-    + 'style="display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;'
+  // (v2.6.508) SOLO EN ORIGINALES (Joaquín, 08/11). En Calidad (revisadas) todo sigue como
+  // siempre: partes revisados y la gráfica del SCADA, nada de simuladas.
+  // En originales, dos botones: la comparativa (simulada + SCADA real) y la simulada limpia.
+  if(!fecha || window._modoHistorial!=='originales'){ cont.innerHTML=''; return; }
+  var est='display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;'
     + 'background:#fff;color:var(--brand);border:2px solid var(--brand);font-weight:800;font-size:0.88rem;'
-    + 'border-radius:9px;padding:6px 12px;margin-bottom:7px">'
-    + '<svg width="26" height="18" viewBox="0 0 26 18" xmlns="http://www.w3.org/2000/svg"><polyline points="2,15 8,9 13,12 24,2" fill="none" stroke="#c0392b" stroke-width="2.5" stroke-dasharray="4 3" stroke-linecap="round"/></svg>'
-    + '<span>'+(window._modoHistorial==='originales'?'Comparar SCADA con la simulada':'Ver gráfica simulada con los partes')+'</span></div>';
+    + 'border-radius:9px;padding:6px 12px;margin-bottom:7px';
+  var ico='<svg width="26" height="18" viewBox="0 0 26 18" xmlns="http://www.w3.org/2000/svg"><polyline points="2,15 8,9 13,12 24,2" fill="none" stroke="#c0392b" stroke-width="2.5" stroke-dasharray="4 3" stroke-linecap="round"/></svg>';
+  cont.innerHTML='<div onclick="abrirGraficaSimulada(\''+fecha+'\',false)" style="'+est+'">'+ico+'<span>Comparar SCADA con la simulada</span></div>'
+    + '<div onclick="abrirGraficaSimulada(\''+fecha+'\',true)" style="'+est+'">'+ico+'<span>Ver gráfica simulada</span></div>';
 }
-function abrirGraficaSimulada(fecha){
+function abrirGraficaSimulada(fecha, limpia){
   var cubas=_cubasParaSimular(fecha);
   if(!cubas.length){ toast('No hay partes pasteurizados ese día','err'); return; }
   var sinHora=cubas.filter(function(c){ return !c.h; }).length;
   window._SIM_DATOS={ fecha:_fechaKeyLocal(fecha), cloruro:cubas[0].h||'05:45', cubas:cubas, real:null,
     aviso: sinHora ? (sinHora+' parte(s) sin hora de cloruro: van seguidos de la cuba anterior.') : '' };
   // ?v=… para que el navegador no use una copia vieja de la página de la simulada
-  // ORIGINALES → comparativa completa (simulada + SCADA real sombreado + datos).
-  // CALIDAD (revisadas) → solo la gráfica limpia para imprimir.
-  var _limpia = (window._modoHistorial !== 'originales');
+  // limpia=false → comparativa completa (simulada + SCADA real sombreado + datos); true → solo la gráfica.
+  var _limpia = !!limpia;
   var w=window.open('simulacion-pasteurizacion.html?'+(_limpia?'limpia=1&':'')+'v='+Date.now(),'_blank');
   if(!w){ toast('Permite las ventanas emergentes para ver la gráfica','err'); return; }
   // Datos reales del SCADA para superponerlos (si el conversor los dejó en Drive)
