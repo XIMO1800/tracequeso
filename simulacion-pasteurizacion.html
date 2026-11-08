@@ -41,7 +41,7 @@ body{margin:0}</style></head><body>
 <label for="fecha">Fecha<input id="fecha" type="date" value="2026-11-05"></label>
 <label for="cloruro">Cloruro 1ª cuba<input id="cloruro" type="time" value="05:48"></label>
 <label for="caudal">Caudal (L/h)<input id="caudal" type="number" value="15000" step="100"></label>
-<label for="previa">Calentamiento (min)<input id="previa" type="number" value="28" step="1"></label>
+<label for="previa">Calentamiento (min)<input id="previa" type="number" value="20" step="1"></label>
 <label for="arr">Arrastre con agua (min)<input id="arr" type="number" value="3" step="0.5"></label>
 <label for="sosa">Sosa (min)<input id="sosa" type="number" value="40" step="1"></label>
 <label for="acido">Ácido (min)<input id="acido" type="number" value="30" step="1"></label>
@@ -93,7 +93,10 @@ const hs=v=>{if(!v)return null;const [h,m]=v.split(':').map(Number);return h*360
 function simula(){
  const tC=hs($('cloruro').value||'05:48'), Q=parseFloat($('caudal').value)||11400, previa=(parseFloat($('previa').value)||28)*60, sube=parseFloat($('sube').value)||0;
  const arr=(parseFloat($('arr').value)||0)*60;
- const tL=tC-60, tA=tL-previa;   // la leche entra ~1 min antes del cloruro
+ // Con SCADA real del día, el arranque (calentamiento y aclarado por las duchas de las cubas) es
+ // EL MISMO que el real: se copia tal cual y la leche entra a la misma hora. Sin SCADA, 1 min antes del cloruro.
+ const INI=(LIMP&&LIMP.inicio&&REAL)?LIMP.inicio:null;
+ const tL=INI?INI.tL:tC-60, tA=INI?INI.t0:tL-previa;
  const tramos=[];let t=tL;
  CUBAS.forEach((c,i)=>{const hc=i?hs(c.h):null;let a=t,nueva=false,arrA=null;
   // cada cuba entra 1 min antes de su cloruro, pero nunca antes de que acabe la anterior;
@@ -167,12 +170,14 @@ function simula(){
    // al acabar el lavado la línea de pasteurización cae de golpe (como en el SCADA); agua y desvío no
    if(rec&&x>lv.b&&w>0){const f=Math.min(1,(x-lv.b)/40);past=74.7-(74.7-46)*f;bacto=57.8-2*f}
   }
+  if(INI&&x<tL) continue;   // aquí va el arranque copiado del SCADA
   if(bloque&&x>=tS-60&&x<=tAE+300) continue;   // aquí va la limpieza copiada del SCADA
   if(!rec) continue;   // máquina parada: el SCADA no registra y la gráfica une con una recta
   P.push([x,past+n()*0.18,desv+n()*0.15,bacto+n()*0.25,cuba+n()*0.2,agua+n()*0.2]);
  }
+ if(INI){P.push(...REAL.filter(p=>p[0]<tL));P.sort((a,b)=>a[0]-b[0])}
  if(bloque){P.push(...bloque);P.sort((a,b)=>a[0]-b[0])}
- return {P,tA,tL,tC,tE,tF,t0,t1,tramos,Q,sIni,sFin,limp,tS,tSE,tA2,tAE,LAVS,limpReal:!!bloque,desp};
+ return {P,tA,tL,tC,tE,tF,t0,t1,tramos,Q,sIni,sFin,limp,tS,tSE,tA2,tAE,LAVS,limpReal:!!bloque,desp,iniReal:!!INI};
 }
 
 function dibuja(){
@@ -217,7 +222,7 @@ function dibuja(){
  if($('real').checked && RR) s+=`<line x1="${L+760}" x2="${L+782}" y1="${H-26}" y2="${H-26}" stroke="#444" stroke-width="6" stroke-opacity=".18"/><text x="${L+788}" y="${H-22}" font-family="Arial" font-size="12" fill="#111">SCADA real (sombreado)</text>`;
  g.innerHTML=s;
  const tot=CUBAS.reduce((a,c)=>a+(c.l||0),0);
- $('res').innerHTML=`<span>Calentamiento con agua: <b>${hm(S.tA)}–${hm(S.tL)}</b></span>`+S.tramos.map((k,i)=>(k.arrA?`<span>Arrastre con agua: <b>${hm(k.arrA)}–${hm(k.a)}</b></span>`:'')+`<span>Cuba ${i+1} (${k.c.le.toLowerCase()}): <b>${hm(k.a)}–${hm(k.b)}</b> (${Math.round((k.b-k.a)/60)} min)</span>`).join('')+`<span>Fin de leche: <b>${hm(S.tE)}</b> · ${tot.toLocaleString('es-ES')} L</span>`+(S.LAVS||[]).map(L=>`<span>Lavado cuba ${L.cuba}: <b>${hm(L.a)}–${hm(L.b)}</b> (${L.temp} °C)</span>`).join('')+(S.limp?`<span>Sosa: <b>${hm(S.tS)}–${hm(S.tSE)}</b></span><span>Ácido: <b>${hm(S.tA2)}–${hm(S.tAE)}</b></span>`+(S.limpReal?`<span>Limpieza copiada del SCADA (${S.desp>=0?'+':'−'}${Math.round(Math.abs(S.desp)/60)} min respecto a la real)</span>`:''):'')+`<span>Salto agua − leche: <b>${(S.sIni||0).toFixed(1).replace('.',',')} → ${(S.sFin||0).toFixed(1).replace('.',',')} °C</b></span>`;
+ $('res').innerHTML=`<span>Calentamiento con agua: <b>${hm(S.tA)}–${hm(S.tL)}</b>${S.iniReal?' (del SCADA)':''}</span>`+S.tramos.map((k,i)=>(k.arrA?`<span>Arrastre con agua: <b>${hm(k.arrA)}–${hm(k.a)}</b></span>`:'')+`<span>Cuba ${i+1} (${k.c.le.toLowerCase()}): <b>${hm(k.a)}–${hm(k.b)}</b> (${Math.round((k.b-k.a)/60)} min)</span>`).join('')+`<span>Fin de leche: <b>${hm(S.tE)}</b> · ${tot.toLocaleString('es-ES')} L</span>`+(S.LAVS||[]).map(L=>`<span>Lavado cuba ${L.cuba}: <b>${hm(L.a)}–${hm(L.b)}</b> (${L.temp} °C)</span>`).join('')+(S.limp?`<span>Sosa: <b>${hm(S.tS)}–${hm(S.tSE)}</b></span><span>Ácido: <b>${hm(S.tA2)}–${hm(S.tAE)}</b></span>`+(S.limpReal?`<span>Arranque y limpieza copiados del SCADA; limpieza (${S.desp>=0?'+':'−'}${Math.round(Math.abs(S.desp)/60)} min respecto a la real)</span>`:''):'')+`<span>Salto agua − leche: <b>${(S.sIni||0).toFixed(1).replace('.',',')} → ${(S.sFin||0).toFixed(1).replace('.',',')} °C</b></span>`;
 }
 // Datos que manda la app de partes (misma web): cubas de la versión Calidad y SCADA real si hay
 function cargarDeLaApp(){

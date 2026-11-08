@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.502</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.503</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -7725,7 +7725,13 @@ function abrirGraficaSimulada(fecha){
     // La limpieza real (sosa y ácido) para copiarla en la simulada con sus mismas temperaturas y tiempos
     var li=((d&&d.anotaciones)||[]).filter(function(a){ return a.tipo==='limpieza'; });
     var so=li.filter(function(a){ return /SOSA/i.test(a.nombre||''); })[0], ac=li.filter(function(a){ return /CIDO/i.test(a.nombre||''); }).pop();
-    if(window._SIM_DATOS && so && ac) window._SIM_DATOS.limpieza={sosa:{t1:so.t1,t2:so.t2}, acido:{t1:ac.t1,t2:ac.t2}};
+    var ps0=((d&&d.anotaciones)||[]).filter(function(a){ return a.tipo==='pasteurizacion'; })[0];
+    if(window._SIM_DATOS){
+      var L=window._SIM_DATOS.limpieza={};
+      if(so && ac){ L.sosa={t1:so.t1,t2:so.t2}; L.acido={t1:ac.t1,t2:ac.t2}; }
+      // Arranque del día (calentamiento + aclarado por las duchas): se copia tal cual del SCADA
+      if(ps0 && pts.length) L.inicio={t0:pts[0].t, tL:ps0.t1};
+    }
     if(window._SIM_DATOS && out.length) window._SIM_DATOS.real=out;
   };
   if(_PASTEUR_DATOS && _fechaKeyLocal(_PASTEUR_DATOS.fecha)===_fechaKeyLocal(fecha)){ pasar(_PASTEUR_DATOS); return; }
