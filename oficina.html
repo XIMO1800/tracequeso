@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v82';
+var VER = 'v83';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -3975,7 +3975,7 @@ function _htmlParteImpresion(p){
   var marcaRev = (p.version==='revisado') ? ' REVISADO CALIDAD' : '';
   var tituloDoc = 'Parte '+fecha+' '+e(p.tipo)+(p.cuba?(' Cuba'+e(p.cuba)):'')+marcaRev;
   H.push('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>'+tituloDoc+'</title><style>');
-  H.push('@page{size:A4;margin:10mm 9mm 6mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#000;margin:0}');
+  H.push('@page{size:A4;margin:0}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#000;margin:0;padding:10mm 9mm 0}');
   H.push('table,.sec{margin-top:-1px}');
   H.push('.sec.mt{margin-top:6px}');   // (08/11) hueco entre bloques, como en auxiliares y fermentos
   H.push('table{border-collapse:collapse;table-layout:fixed;width:auto}td,th{border:1px solid #000;padding:2px 4px;vertical-align:middle;width:31.96mm;text-align:center;overflow:hidden}');
