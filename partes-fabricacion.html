@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.498</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.499</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4907,7 +4907,7 @@ function _htmlParteImpresion(p){
   H.push('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>'+tituloDoc+'</title><style>');
   H.push('@page{size:A4;margin:0}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#000;margin:0;padding:10mm 9mm 0}');
   H.push('table,.sec{margin-top:-1px}');
-  H.push('.sec.mt{margin-top:10px}');   // (08/11) hueco entre bloques (más amplio: con letra mayor se notaba poco)
+  H.push('.sec.mt{margin-top:10px}td:empty:before{content:"\\a0"}');   // (08/11) casillas vacías con su altura normal (sin «doble línea»)   // (08/11) hueco entre bloques (más amplio: con letra mayor se notaba poco)
   H.push('table{border-collapse:collapse;table-layout:fixed;width:auto}td,th{border:1px solid #000;padding:2px 4px;vertical-align:middle;width:31.96mm;text-align:center;overflow:hidden}');
   H.push('.sec{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#e6e6e6;font-weight:bold;text-transform:uppercase;padding:3px 4px;border:2px solid #000;width:192mm;display:block}');
   H.push('.lbl{font-weight:bold}.t{text-align:center}.lft{text-align:left}.mt{margin-top:10px}');
