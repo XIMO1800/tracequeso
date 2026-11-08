@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.506</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.507</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -7711,7 +7711,7 @@ function _botonGraficaSimulada(fecha){
     + 'background:#fff;color:var(--brand);border:2px solid var(--brand);font-weight:800;font-size:0.88rem;'
     + 'border-radius:9px;padding:6px 12px;margin-bottom:7px">'
     + '<svg width="26" height="18" viewBox="0 0 26 18" xmlns="http://www.w3.org/2000/svg"><polyline points="2,15 8,9 13,12 24,2" fill="none" stroke="#c0392b" stroke-width="2.5" stroke-dasharray="4 3" stroke-linecap="round"/></svg>'
-    + '<span>Ver gráfica simulada con los partes</span></div>';
+    + '<span>'+(window._modoHistorial==='originales'?'Comparar SCADA con la simulada':'Ver gráfica simulada con los partes')+'</span></div>';
 }
 function abrirGraficaSimulada(fecha){
   var cubas=_cubasParaSimular(fecha);
@@ -7720,7 +7720,10 @@ function abrirGraficaSimulada(fecha){
   window._SIM_DATOS={ fecha:_fechaKeyLocal(fecha), cloruro:cubas[0].h||'05:45', cubas:cubas, real:null,
     aviso: sinHora ? (sinHora+' parte(s) sin hora de cloruro: van seguidos de la cuba anterior.') : '' };
   // ?v=… para que el navegador no use una copia vieja de la página de la simulada
-  var w=window.open('simulacion-pasteurizacion.html?limpia=1&v='+Date.now(),'_blank');
+  // ORIGINALES → comparativa completa (simulada + SCADA real sombreado + datos).
+  // CALIDAD (revisadas) → solo la gráfica limpia para imprimir.
+  var _limpia = (window._modoHistorial !== 'originales');
+  var w=window.open('simulacion-pasteurizacion.html?'+(_limpia?'limpia=1&':'')+'v='+Date.now(),'_blank');
   if(!w){ toast('Permite las ventanas emergentes para ver la gráfica','err'); return; }
   // Datos reales del SCADA para superponerlos (si el conversor los dejó en Drive)
   var pasar=function(d){
@@ -8749,6 +8752,8 @@ var _filtroFecha=new Date().toISOString().slice(0,10);
 function toggleModoHistorial(){
   window._modoHistorial = (window._modoHistorial === 'originales') ? 'revisadas' : 'originales';
   try{ renderPartes(); }catch(e){}
+  // el botón de la simulada cambia según el modo (comparativa en originales, limpia en Calidad)
+  try{ var _ca=_rolContiene(ROL_ACTUAL,'CALIDAD')||_rolContiene(ROL_ACTUAL,'ADMIN'); _botonGraficaSimulada(_ca?_filtroFecha:''); }catch(e){}
   try{
     if(window._modoHistorial === 'originales') toast('Mostrando ORIGINALES');
     else toast('Mostrando revisadas (versión oficial)');
