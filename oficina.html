@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v81';
+var VER = 'v82';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -3994,6 +3994,7 @@ function _htmlParteImpresion(p){
   // Excepción: el desmoldeo mantiene sus 7 columnas (grid7).
   H.push('td.nob{border:1px solid #000}table{width:191.76mm;margin-left:0}table.sechd{width:192mm;margin-left:0}');   // (08/11) mismo ancho exterior que la cabecera: las líneas van en línea, ni dentro ni fuera   // (08/11) huecos con borde: cada bloque queda como un cuadro cerrado
   H.push('table.sechd{width:192mm;margin-left:0;border:2px solid #000}table.sechd td{background:#e6e6e6;border:none}table.sechd td.sectd{font-weight:bold;text-transform:uppercase;text-align:left}');
+  H.push('.shd{display:flex;align-items:center}.shd .shl{flex:1}.shd .shc{width:31.96mm;text-align:center;text-transform:none;font-weight:normal;margin-right:-4px}');   // (08/11) cabeceras con hora/pH/TºC: mismo tipo de caja que las demás, para que todas tengan el mismo borde
   H.push('.pag{width:192mm;margin:0 auto;display:flex;flex-direction:column}.acc{flex:1 1 auto;border:1px solid #000;padding:2px 4px;min-height:34px;margin-top:6px}'
     +'.apr td,.apr th{padding:1px 4px}.apr .mt,.apr .sec.mt{margin-top:3px}.apr .acc{margin-top:3px;min-height:24px}.apr .firmas{margin-top:6px}.apr .firmabox{height:25mm}.apr .firmabox img{max-height:40px}');   // (08/11) versión «apretada» si no cabe: antes de encoger, se quita aire vertical
   H.push('</style></head><body><div class="pag" id="pag">');
@@ -4030,7 +4031,7 @@ function _htmlParteImpresion(p){
   var amTemp = am.temp || (co.temp_leche!=null?co.temp_leche:'');
   // Cabecera estilo papel: el título de la sección y (hora adición · pH · TºC) van en
   // la MISMA fila, como en el parte de bolígrafo. Debajo, el desglose de productos.
-  H.push('<table class="mt sechd"><colgroup><col style="width:95mm"><col style="width:32mm"><col style="width:32mm"><col style="width:32mm"></colgroup><tr><td class="sectd">AUXILIARES DE FABRICACIÓN</td><td class="t">Hora adición: '+n(am.hadicion)+'</td><td class="t">pH: '+n(amPh)+'</td><td class="t">TºC: '+n(amTemp)+'</td></tr></table>');
+  H.push('<div class="sec mt shd"><span class="shl">AUXILIARES DE FABRICACIÓN</span><span class="shc">Hora adición: '+n(am.hadicion)+'</span><span class="shc">pH: '+n(amPh)+'</span><span class="shc">TºC: '+n(amTemp)+'</span></div>');
   H.push('<table><tr><td class="lbl">Auxiliar</td><td class="lbl t">ml/1000L</td><td class="lbl t">ml utilizados</td><td class="lbl t">Proveedor</td><td class="lbl t">Lote</td><td class="lbl t">Caducidad</td></tr>');
   var auxList=(p.auxiliares||[]).concat(p.otrosAuxiliares||[]);
   if(auxList.length){ auxList.forEach(function(a){ a=a||{}; H.push('<tr><td>'+n(a.nombre)+'</td><td class="t">'+n(a.dosis_ml_1000L)+'</td><td class="t">'+n(a.consumo_total)+'</td><td class="t">'+n(a.proveedor)+'</td><td class="t">'+n(a.lote)+'</td><td class="t">'+_fechaEsp(a.caducidad)+'</td></tr>'); }); }
@@ -4041,13 +4042,13 @@ function _htmlParteImpresion(p){
   H.push('<tr><td class="t">CO2</td><td class="t">'+(co.caudal_lh?(e(co.caudal_lh)+' Nl/min'):'')+'</td><td class="t">'+(co.tiempo_seg?(e(co.tiempo_seg)+' s'):'')+'</td><td class="t">'+n(co.proveedor)+'</td><td class="t">'+n(co.lote)+'</td><td class="t">'+_fechaEsp(co.caducidad)+'</td></tr>');
   H.push('</table>');
   var fm = p.ferm_meta || {};
-  H.push('<table class="mt sechd"><colgroup><col style="width:95mm"><col style="width:32mm"><col style="width:32mm"><col style="width:32mm"></colgroup><tr><td class="sectd">FERMENTOS LÁCTICOS</td><td class="t">Hora adición: '+n(fm.hadicion)+'</td><td class="t">pH: '+n(fm.ph)+'</td><td class="t">TºC: '+n(fm.temp)+'</td></tr></table>');
+  H.push('<div class="sec mt shd"><span class="shl">FERMENTOS LÁCTICOS</span><span class="shc">Hora adición: '+n(fm.hadicion)+'</span><span class="shc">pH: '+n(fm.ph)+'</span><span class="shc">TºC: '+n(fm.temp)+'</span></div>');
   H.push('<table><tr><td class="lbl">Nombre</td><td class="lbl t">Dosis/1000l</td><td class="lbl t">Dosis utili.</td><td class="lbl t">Proveedor</td><td class="lbl t">Lote</td><td class="lbl t">Caducidad</td></tr>');
   var fer=p.fermentos||[];
   if(fer.length){ fer.forEach(function(f){ f=f||{}; H.push('<tr><td>'+n(f.nombre)+'</td><td class="t">'+n(f.dosis_ml_1000L)+'</td><td class="t">'+n(f.consumo_total)+'</td><td class="t">'+n(f.proveedor)+'</td><td class="t">'+n(f.lote)+'</td><td class="t">'+_fechaEsp(f.caducidad)+'</td></tr>'); }); }
   else { H.push('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>'); }
   H.push('</table>');
-  H.push('<table class="mt sechd"><colgroup><col style="width:95mm"><col style="width:32mm"><col style="width:32mm"><col style="width:32mm"></colgroup><tr><td class="sectd">COAGULACIÓN</td><td class="t">Hora adición: '+n(cg.hadicion)+'</td><td class="t">pH: '+n(cg.ph)+'</td><td class="t">TºC: '+n(cg.temp)+'</td></tr></table>');
+  H.push('<div class="sec mt shd"><span class="shl">COAGULACIÓN</span><span class="shc">Hora adición: '+n(cg.hadicion)+'</span><span class="shc">pH: '+n(cg.ph)+'</span><span class="shc">TºC: '+n(cg.temp)+'</span></div>');
   H.push('<table><tr><td class="nob" colspan="3"></td><td class="t">Hora de corte: '+n(cg.hc)+'</td><td class="t">Coag. Total: '+n(cg.total)+(cg.total?' min':'')+'</td><td class="nob"></td></tr>');
   H.push('<tr><td class="lbl">Nombre</td><td class="lbl t">Dosis/1000l</td><td class="lbl t">Dosis utili.</td><td class="lbl t">Proveedor</td><td class="lbl t">Lote</td><td class="lbl t">Caducidad</td></tr>');
   H.push('<tr><td>'+n(cu.nombre)+'</td><td class="t">'+n(cu.dosis_ml_1000L)+'</td><td class="t">'+n(cu.consumo_total)+'</td><td class="t">'+n(cu.proveedor)+'</td><td class="t">'+n(cu.lote)+'</td><td class="t">'+_fechaEsp(cu.caducidad)+'</td></tr></table>');
