@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 25;  // 25 (09/11): completo admite dias=N (aparatos con poca memoria bajan solo los últimos N días). 24 (07/11): TERCERA CAPA y Nº CAPA viajan a móviles y oficina (estaban fuera de COLS). 23 (07/11): _UPDATE con _SOLO_SI_CAMBIA no escribe si ya estaba igual (marca «queso sin voltear» doble). 22 (06/11): una corrección (_UPDATE) puede crear columna nueva (TERCERA CAPA). 21 (05/11): aviso de tiernos para el jefe de almacén (tipo=avisoTiernos). 20 (04/11): control de recepción (quien descarga) y REF PROVEEDOR en entradas. 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
+const API_VERSION = 26;  // 26 (09/11): la descarga normal admite formato=compacto y dias=N<90. 25 (09/11): completo admite dias=N (aparatos con poca memoria bajan solo los últimos N días). 24 (07/11): TERCERA CAPA y Nº CAPA viajan a móviles y oficina (estaban fuera de COLS). 23 (07/11): _UPDATE con _SOLO_SI_CAMBIA no escribe si ya estaba igual (marca «queso sin voltear» doble). 22 (06/11): una corrección (_UPDATE) puede crear columna nueva (TERCERA CAPA). 21 (05/11): aviso de tiernos para el jefe de almacén (tipo=avisoTiernos). 20 (04/11): control de recepción (quien descarga) y REF PROVEEDOR en entradas. 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -620,7 +620,9 @@ function doGet(e) {
   var idx = COLS.map(function(c){ return headers.indexOf(c); });
   var modoCompleto = (tipo === 'completo');
   var limite = new Date();
-  limite.setDate(limite.getDate() - 90);
+  // (2026-11-09) dias=N acorta los 90 días (aparatos con poca memoria); nunca los alarga
+  var _diasNC = parseInt((e && e.parameter && e.parameter.dias) || '0', 10);
+  limite.setDate(limite.getDate() - ((_diasNC > 0 && _diasNC < 90) ? _diasNC : 90));
   limite.setHours(0, 0, 0, 0);
   var idxFecha = headers.indexOf('FECHA');
   var limiteDias = null;
