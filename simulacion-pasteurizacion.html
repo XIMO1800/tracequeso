@@ -41,7 +41,7 @@ body.limpia .barra button{border-color:#fff;color:#fff;background:transparent}
 <div class="barra"><span id="titBarra">Gráfica simulada</span><span style="display:flex;gap:8px"><button type="button" onclick="window.print()">Imprimir</button><button type="button" onclick="LIMPIA=!LIMPIA;document.body.classList.toggle('limpia',LIMPIA);this.textContent=LIMPIA?'Ver datos':'Ocultar datos';dibuja()">Ver datos</button></span></div>
 <div class="wrap">
 <header>
-<h1>Pasteurización simulada a partir de los partes <span style="font-size:.8rem;font-weight:400;color:var(--mut)">sim 10</span></h1>
+<h1>Pasteurización simulada a partir de los partes <span style="font-size:.8rem;font-weight:400;color:var(--mut)">sim 11</span></h1>
 <p class="sub">Con los litros de cada cuba (versión Calidad) y la hora del cloruro de cada parte. Antes va el calentamiento con agua, como en las gráficas del SCADA. Las cubas que se pueden cambiar aquí no se guardan en el parte.</p>
 </header>
 
@@ -208,7 +208,7 @@ function dibuja(){
  const S=simula();const g=$('g');
  // (sim 9) Más alta en la vista limpia para que llene el A4 apaisado al imprimir; margen derecho
  // para que la última hora no se corte.
- const W=1160,H=LIMPIA?800:640,L=118,R=72,T=118,B=96;
+ const W=1160,H=LIMPIA?800:640,L=118,R=92,T=118,B=96;
  // Ventana de 8 h 30 min como la gráfica del SCADA (más si el día se alarga)
  const t0=Math.floor(S.t0/1800)*1800, t1=Math.max(Math.ceil(S.t1/1800)*1800, t0+8.5*3600);
  const X=t=>L+(t-t0)/(t1-t0)*(W-L-R), Y=v=>T+(100-v)/100*(H-T-B);
@@ -217,9 +217,10 @@ function dibuja(){
  s+=`<text x="${W/2+40}" y="62" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="22" font-style="italic" fill="#111">Control Pasteurización</text>`;
  if(!LIMPIA){s+=`<rect x="${W-292}" y="34" width="250" height="40" rx="3" fill="none" stroke="#b5651d" stroke-width="2"/><text x="${W-167}" y="52" text-anchor="middle" font-family="Arial" font-size="13" font-weight="700" fill="#b5651d">SIMULADA CON LOS PARTES</text><text x="${W-167}" y="67" text-anchor="middle" font-family="Arial" font-size="11" fill="#b5651d">no es el registro del SCADA</text>`;}
  // marco y rejilla fina como el SCADA
- s+=`<rect x="${L-36}" y="${T-6}" width="${W-L-R+36}" height="${H-T-B+58}" fill="none" stroke="#555" stroke-width="1.2"/>`;
- for(let v=0;v<=100;v+=2){s+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v%10?'#d6d6d6':'#9a9a9a'}" stroke-width="${v%10?0.6:0.9}"/>`}
- for(let t=t0;t<=t1;t+=300){s+=`<line x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${H-B}" stroke="${t%1800?'#d6d6d6':'#9a9a9a'}" stroke-width="${t%1800?0.6:0.9}"/>`}
+ // (sim 11) marco que envuelve también las horas de abajo (como el SCADA) y una línea que separa la banda de horas
+ s+=`<rect x="${L-36}" y="${T-6}" width="${W-L-R+36+40}" height="${H-T-B+50}" fill="none" stroke="#555" stroke-width="1.2"/>`;
+ for(let v=0;v<=100;v+=2){s+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v%10?'#bcbcbc':'#7d7d7d'}" stroke-width="${v%10?0.7:1.1}"/>`}
+ for(let t=t0;t<=t1;t+=300){s+=`<line x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${H-B}" stroke="${t%1800?'#bcbcbc':'#7d7d7d'}" stroke-width="${t%1800?0.7:1.1}"/>`}
  s+=`<line x1="${L}" x2="${L}" y1="${T}" y2="${H-B}" stroke="#333"/><line x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}" stroke="#333"/>`;
  for(let v=0;v<=100;v+=10)s+=`<text x="${L-6}" y="${Y(v)+4}" text-anchor="end" font-family="Arial" font-size="11" fill="#111">${v}</text>`;
  const f=$('fecha').value.split('-');const fd=f.length==3?f[2]+'/'+f[1]+'/'+f[0].slice(2):'';
