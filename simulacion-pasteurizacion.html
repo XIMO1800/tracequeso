@@ -36,12 +36,12 @@ body:not(.desdeapp) .barra{display:none}
 body.limpia .wrap>header,body.limpia .wrap>section,body.limpia .wrap>.nota{display:none}
 body.limpia .barra{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#5b1a24;color:#fff;padding:8px max(16px,env(safe-area-inset-left,0px));font-size:.9rem}
 body.limpia .barra button{border-color:#fff;color:#fff;background:transparent}
-@media print{@page{size:A4 landscape;margin:8mm}body{background:#fff}.barra,.wrap>header,.wrap>section,.wrap>.nota{display:none!important}.wrap{padding:0;max-width:none}.hoja{border:none}.hoja svg{min-width:0;width:100%}}
+@media print{@page{size:A4 landscape;margin:5mm}body{background:#fff}.barra,.wrap>header,.wrap>section,.wrap>.nota{display:none!important}.wrap{padding:0;max-width:none}.hoja{border:none;border-radius:0}.hoja svg{min-width:0;width:100%;height:auto;max-height:200mm}html,body{margin:0;padding:0}.wrap{gap:0}}
 </style></head><body>
 <div class="barra"><span id="titBarra">Gráfica simulada</span><span style="display:flex;gap:8px"><button type="button" onclick="window.print()">Imprimir</button><button type="button" onclick="LIMPIA=!LIMPIA;document.body.classList.toggle('limpia',LIMPIA);this.textContent=LIMPIA?'Ver datos':'Ocultar datos';dibuja()">Ver datos</button></span></div>
 <div class="wrap">
 <header>
-<h1>Pasteurización simulada a partir de los partes <span style="font-size:.8rem;font-weight:400;color:var(--mut)">sim 8</span></h1>
+<h1>Pasteurización simulada a partir de los partes <span style="font-size:.8rem;font-weight:400;color:var(--mut)">sim 9</span></h1>
 <p class="sub">Con los litros de cada cuba (versión Calidad) y la hora del cloruro de cada parte. Antes va el calentamiento con agua, como en las gráficas del SCADA. Las cubas que se pueden cambiar aquí no se guardan en el parte.</p>
 </header>
 
@@ -206,8 +206,11 @@ function simula(){
 
 function dibuja(){
  const S=simula();const g=$('g');
- const W=1160,H=640,L=118,R=40,T=118,B=96;
- const t0=Math.floor(S.t0/1800)*1800, t1=Math.ceil(S.t1/1800)*1800;
+ // (sim 9) Más alta en la vista limpia para que llene el A4 apaisado al imprimir; margen derecho
+ // para que la última hora no se corte.
+ const W=1160,H=LIMPIA?800:640,L=118,R=72,T=118,B=96;
+ // Ventana de 8 h 30 min como la gráfica del SCADA (más si el día se alarga)
+ const t0=Math.floor(S.t0/1800)*1800, t1=Math.max(Math.ceil(S.t1/1800)*1800, t0+8.5*3600);
  const X=t=>L+(t-t0)/(t1-t0)*(W-L-R), Y=v=>T+(100-v)/100*(H-T-B);
  let s=`<rect width="${W}" height="${H}" fill="#fff"/>`;
  s+=`<image href="${LOGO}" x="60" y="22" height="62" width="230" preserveAspectRatio="xMinYMid meet"/>`;
@@ -245,6 +248,7 @@ function dibuja(){
  if(!LIMPIA){ley.forEach(([n,c],i)=>{const x=L+i*150;s+=`<line x1="${x}" x2="${x+22}" y1="${H-26}" y2="${H-26}" stroke="${c}" stroke-width="2.5"/><text x="${x+28}" y="${H-22}" font-family="Arial" font-size="12" fill="#111">${n}</text>`});}
  if(!LIMPIA){if($('real').checked && RR) s+=`<line x1="${L+760}" x2="${L+782}" y1="${H-26}" y2="${H-26}" stroke="#444" stroke-width="6" stroke-opacity=".18"/><text x="${L+788}" y="${H-22}" font-family="Arial" font-size="12" fill="#111">SCADA real (sombreado)</text>`;}
  if(LIMPIA){s+=`<text x="${L-30}" y="${H-20}" font-family="Arial" font-size="12" fill="#111">${fd}  ·  Gráfica SIMULADA con los litros de los partes (15.000 L/h) — no es el registro del SCADA</text>`}
+ g.setAttribute('viewBox','0 0 '+W+' '+H);
  g.innerHTML=s;
  const tot=CUBAS.reduce((a,c)=>a+(c.l||0),0);
  $('res').innerHTML=`<span>Calentamiento con agua: <b>${hm(S.tA)}–${hm(S.tL)}</b>${S.iniReal?' (del SCADA)':''}</span>`+S.tramos.map((k,i)=>(k.arrA?`<span>Arrastre con agua: <b>${hm(k.arrA)}–${hm(k.a)}</b></span>`:'')+`<span>Cuba ${i+1} (${k.c.le.toLowerCase()}): <b>${hm(k.a)}–${hm(k.b)}</b> (${Math.round((k.b-k.a)/60)} min)</span>`).join('')+`<span>Fin de leche: <b>${hm(S.tE)}</b> · ${tot.toLocaleString('es-ES')} L</span>`+(S.LAVS||[]).map(L=>`<span>Lavado cuba ${L.cuba}: <b>${hm(L.a)}–${hm(L.b)}</b> (${L.temp} °C)</span>`).join('')+(S.limp?`<span>Sosa: <b>${hm(S.tS)}–${hm(S.tSE)}</b></span><span>Ácido: <b>${hm(S.tA2)}–${hm(S.tAE)}</b></span>`+(S.limpReal?`<span>Arranque y limpieza copiados del SCADA; limpieza (${S.desp>=0?'+':'−'}${Math.round(Math.abs(S.desp)/60)} min respecto a la real)</span>`:''):'')+`<span>Salto agua − leche: <b>${(S.sIni||0).toFixed(1).replace('.',',')} → ${(S.sFin||0).toFixed(1).replace('.',',')} °C</b></span>`;
