@@ -41,7 +41,7 @@ body.limpia .barra button{border-color:#fff;color:#fff;background:transparent}
 <div class="barra"><span id="titBarra">Gráfica simulada</span><span style="display:flex;gap:8px"><button type="button" onclick="window.print()">Imprimir</button><button type="button" onclick="LIMPIA=!LIMPIA;document.body.classList.toggle('limpia',LIMPIA);this.textContent=LIMPIA?'Ver datos':'Ocultar datos';dibuja()">Ver datos</button></span></div>
 <div class="wrap">
 <header>
-<h1>Pasteurización simulada a partir de los partes <span style="font-size:.8rem;font-weight:400;color:var(--mut)">sim 11</span></h1>
+<h1>Pasteurización simulada a partir de los partes <span style="font-size:.8rem;font-weight:400;color:var(--mut)">sim 12</span></h1>
 <p class="sub">Con los litros de cada cuba (versión Calidad) y la hora del cloruro de cada parte. Antes va el calentamiento con agua, como en las gráficas del SCADA. Las cubas que se pueden cambiar aquí no se guardan en el parte.</p>
 </header>
 
@@ -155,11 +155,15 @@ function simula(){
   }
   else if(x<tE && (()=>{const nx=tramos.find(k=>k.a>x);return nx&&nx.nueva})()){// entre tandas: empuje, se enfría y calienta otra vez antes de la siguiente
    const fin=Math.max(...tramos.filter(k=>k.b<=x).map(k=>k.b)),nx=tramos.find(k=>k.a>x),u=x-fin,pre2=6*60,v=x-(nx.a-pre2);
-   const fr=Math.exp(-Math.max(0,u-260)/3600);   // parado se enfría despacio (unos 30 °C en una hora, como el 03/11)
+   // (sim 12) Si hay un lavado con pasteurizador nada más acabar la leche (≤15 min), el pasteurizador
+   // NO se para: sigue con agua hasta terminar ese lavado (10/11: leche hasta 06:56, agua hasta 07:10).
+   const lvP=LAVS.find(L=>L.a>=fin-60&&L.a-fin<=15*60), PU=lvP?Math.max(240,lvP.b-fin+60):240;
+   const fr=Math.exp(-Math.max(0,u-PU-20)/3600);   // parado se enfría despacio (unos 30 °C en una hora, como el 03/11)
    // Fin de hornada como en el SCADA (02/11 07:17-07:21): 4 min empujando con agua (bacto a 58, salida
    // a cuba a 36) y al parar, último dato con la pasteurización y la bacto cayendo de golpe; luego sin datos.
-   if(u<240){past=74.7+(u>30&&u<150?1.4*Math.sin(u/20):0);desv=74.7;agua=74.7+Math.max(0.6,salto(cum/60,sube)-2*ease(u/60));bacto=50+8*ease(u/70);cuba=28.2+7.9*ease(u/50)}
-   else if(u<260){past=68.5;desv=74.8;agua=74.3;bacto=40.5;cuba=36.1}
+   if(u<PU){past=74.7+(u>30&&u<150?1.4*Math.sin(u/20):0);desv=74.7;agua=74.7+Math.max(0.6,salto(cum/60,sube)-2*ease(u/60));bacto=50+8*ease(u/70);cuba=28.2+7.9*ease(u/50);
+    if(lvP&&x>=lvP.a-30&&x<=lvP.b){cuba=cuba+(lvP.temp-cuba)*Math.min(1,(x-(lvP.a-30))/40)}}
+   else if(u<PU+20){past=68.5;desv=74.8;agua=74.3;bacto=40.5;cuba=36.1}
    else if(v<0){rec=false;past=26+(74.7-26)*fr;desv=26+(74.5-26)*fr;agua=27+(76.5-27)*fr;bacto=30+(57.4-30)*fr;cuba=25+(35.2-25)*fr}
    else{const sb=Math.min(1,v/100);past=26+(75-26)*sb;desv=26+(74.7-26)*Math.min(1,v/150);agua=27+(75.5-27)*sb+(v>40&&v<240?3*Math.sin((v-40)/200*Math.PI):0);bacto=30+3*(v/pre2);cuba=25+8*(v/pre2)}
   }
