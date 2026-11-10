@@ -41,7 +41,7 @@ body.limpia .barra button{border-color:#fff;color:#fff;background:transparent}
 <div class="barra"><span id="titBarra">Gráfica simulada</span><span style="display:flex;gap:8px"><button type="button" onclick="window.print()">Imprimir</button><button type="button" onclick="LIMPIA=!LIMPIA;document.body.classList.toggle('limpia',LIMPIA);this.textContent=LIMPIA?'Ver datos':'Ocultar datos';dibuja()">Ver datos</button></span></div>
 <div class="wrap">
 <header>
-<h1>Pasteurización simulada a partir de los partes <span style="font-size:.8rem;font-weight:400;color:var(--mut)">sim 13</span></h1>
+<h1>Pasteurización simulada a partir de los partes <span style="font-size:.8rem;font-weight:400;color:var(--mut)">sim 14</span></h1>
 <p class="sub">Con los litros de cada cuba (versión Calidad) y la hora del cloruro de cada parte. Antes va el calentamiento con agua, como en las gráficas del SCADA. Las cubas que se pueden cambiar aquí no se guardan en el parte.</p>
 </header>
 
@@ -128,7 +128,7 @@ function simula(){
  const bloque=LR?REAL.filter(p=>p[0]>=LR.sosa.t1-60&&p[0]<=LR.acido.t2+300).map(p=>[p[0]+desp,p[1],p[2],p[3],p[4],p[5]]):null;
  const tSE=LR?LR.sosa.t2+desp:tS+sosa, tA2=LR?LR.acido.t1+desp:tSE+5*60, tAE=LR?LR.acido.t2+desp:tA2+acido, t1=limp?tAE+25*60:tF+40*60;
  let ultD=-1;
- const r=rnd(Math.round(tC+Q));const P=[];let cum=0,last=null,sIni=null,sFin=null;
+ const r=rnd(Math.round(tC+Q));const P=[];let hornCum=0,_hornT=null,cum=0,last=null,sIni=null,sFin=null;
  for(let x=t0;x<=t1;x+=20){
   let past,desv,agua,bacto,cuba,rec=true;const n=()=>r()-0.5;
   const tr=tramos.find(k=>x>=k.a&&x<k.b);
@@ -140,13 +140,18 @@ function simula(){
    agua=18.4+(74.9-18.4)*sub+(u>40&&u<240?3.8*Math.sin((u-40)/200*Math.PI):0);
    bacto=16.8+(30-16.8)*(u/previa)+n()*1.2;
    cuba=18.1+(37.5-18.1)*ease(u/previa*2.2)+n()*1.0;}
-  else if(tr){cum+=20;const u=x-tr.a;const tp=tr.c.t||74.5;
+  else if(tr){cum+=20;if(tr===tramos[0]||tr.nueva){if(tr!==_hornT){_hornT=tr;hornCum=0}}hornCum+=20;const u=x-tr.a;const tp=tr.c.t||74.5;
    const ini=tr===tramos[0]||tr.nueva;
    past=tp+0.3+(ini&&u<120?-1.1*Math.sin(u/120*Math.PI):0);
    desv=tp+0.1;
    const sl=salto(cum/60,sube); agua=tp+0.3+sl; if(sIni===null&&cum>=600)sIni=sl; sFin=sl;
-   bacto=50+(ini&&u<600?16*Math.exp(-u/120):0);
-   cuba=(tr.c.c||28)+(ini&&u<300?15*Math.exp(-u/60):0);
+   // (sim 14) Sacado de los PASTO INFO del 02 al 10/11 (medianas, sin las descargas):
+   //  · leche a la bactofugadora: oveja ~49,5 °C, mezcla ~50,3 °C; BAJA ~0,3 °C por hora de leche
+   //  · leche a cuba: oveja ~28,1 °C, mezcla ~27,9 °C; SUBE ~0,45 °C por hora de leche
+   //  Las dos cuentan desde el inicio de cada hornada (tras la parada vuelven a su valor de partida).
+   const _ov=String(tr.c.le||'').toUpperCase()==='OVEJA', hH=hornCum/3600;
+   bacto=(_ov?49.5:50.3)-0.3*hH+(ini&&u<600?16*Math.exp(-u/120):0);
+   cuba=(tr.c.c||(_ov?28.1:27.9))+0.45*hH+(ini&&u<300?15*Math.exp(-u/60):0);
    if(!ini&&tr.arrA){// vuelve la leche tras el arrastre: la bacto baja de 58 a 50 y la salida a cuba de 36 a 28
     bacto+=8.3*Math.exp(-u/70);cuba+=7.5*Math.exp(-u/35);agua-=0.8*Math.exp(-u/200)}
    else if(!ini&&u<80){past+=0.9;cuba-=0.8;bacto+=0.6}
@@ -244,7 +249,7 @@ function dibuja(){
  if(!LIMPIA && $('real').checked && RR){
   [[5,'#777'],[1,'#777'],[2,'#777'],[3,'#777'],[4,'#777']].forEach(([k,c])=>s+=linea(RR,k,c,3,0.22));
  }
- [[5,col.agua],[3,col.bacto],[4,col.cuba],[2,col.desv],[1,col.past]].forEach(([k,c])=>s+=linea(S.P,k,c,1.3,1));
+ [[5,col.agua],[3,col.bacto],[4,col.cuba],[2,col.desv],[1,col.past]].forEach(([k,c])=>s+=linea(S.P,k,c,1.7,1));
  // marcas de cada cuba
  if(!LIMPIA){S.tramos.forEach((k,i)=>{s+=`<line x1="${X(k.a)}" x2="${X(k.a)}" y1="${Y(96)}" y2="${Y(84)}" stroke="#7a1f2b" stroke-width="1.2"/><text x="${X(k.a)+4}" y="${Y(i%2?89:93)}" font-family="Arial" font-size="11" fill="#7a1f2b">C${i+1} ${k.c.le} ${Math.round(k.c.l)} L</text>`;if(k.arrA)s+=`<text x="${X(k.arrA)}" y="${Y(85)}" font-family="Arial" font-size="10" fill="#4a6fa5">agua ${Math.round((k.a-k.arrA)/60)}′</text>`});}
  if(!LIMPIA){s+=`<line x1="${X(S.tC)}" x2="${X(S.tC)}" y1="${Y(12)}" y2="${Y(4)}" stroke="#b5651d" stroke-width="1.5"/><text x="${X(S.tC)+4}" y="${Y(6)}" font-family="Arial" font-size="11" fill="#b5651d">Cloruro ${hm(S.tC)}</text>`;}
