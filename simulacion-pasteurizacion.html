@@ -41,7 +41,7 @@ body.limpia .barra button{border-color:#fff;color:#fff;background:transparent}
 <div class="barra"><span id="titBarra">Gráfica simulada</span><span style="display:flex;gap:8px"><button type="button" onclick="window.print()">Imprimir</button><button type="button" onclick="LIMPIA=!LIMPIA;document.body.classList.toggle('limpia',LIMPIA);this.textContent=LIMPIA?'Ver datos':'Ocultar datos';dibuja()">Ver datos</button></span></div>
 <div class="wrap">
 <header>
-<h1>Pasteurización simulada a partir de los partes <span style="font-size:.8rem;font-weight:400;color:var(--mut)">sim 14</span></h1>
+<h1>Pasteurización simulada a partir de los partes <span style="font-size:.8rem;font-weight:400;color:var(--mut)">sim 15</span></h1>
 <p class="sub">Con los litros de cada cuba (versión Calidad) y la hora del cloruro de cada parte. Antes va el calentamiento con agua, como en las gráficas del SCADA. Las cubas que se pueden cambiar aquí no se guardan en el parte.</p>
 </header>
 
@@ -144,7 +144,10 @@ function simula(){
    const ini=tr===tramos[0]||tr.nueva;
    past=tp+0.3+(ini&&u<120?-1.1*Math.sin(u/120*Math.PI):0);
    desv=tp+0.1;
-   const sl=salto(cum/60,sube); agua=tp+0.3+sl; if(sIni===null&&cum>=600)sIni=sl; sFin=sl;
+   // (sim 15) La oveja (más densa) pide algo más de agua caliente que la mezcla (Joaquín, 10/11):
+   // ±0,15 °C sobre el salto, unos 0,3 °C de diferencia entre una y otra
+   const _ovS=String(tr.c.le||'').toUpperCase()==='OVEJA';
+   const sl=salto(cum/60,sube)+(_ovS?0.15:-0.15); agua=tp+0.3+sl; if(sIni===null&&cum>=600)sIni=sl; sFin=sl;
    // (sim 14) Sacado de los PASTO INFO del 02 al 10/11 (medianas, sin las descargas):
    //  · leche a la bactofugadora: oveja ~49,5 °C, mezcla ~50,3 °C; BAJA ~0,3 °C por hora de leche
    //  · leche a cuba: oveja ~28,1 °C, mezcla ~27,9 °C; SUBE ~0,45 °C por hora de leche
