@@ -41,7 +41,7 @@ body.limpia .barra button{border-color:#fff;color:#fff;background:transparent}
 <div class="barra"><span id="titBarra">Gráfica simulada</span><span style="display:flex;gap:8px"><button type="button" onclick="window.print()">Imprimir</button><button type="button" onclick="LIMPIA=!LIMPIA;document.body.classList.toggle('limpia',LIMPIA);this.textContent=LIMPIA?'Ver datos':'Ocultar datos';dibuja()">Ver datos</button></span></div>
 <div class="wrap">
 <header>
-<h1>Pasteurización simulada a partir de los partes <span style="font-size:.8rem;font-weight:400;color:var(--mut)">sim 12</span></h1>
+<h1>Pasteurización simulada a partir de los partes <span style="font-size:.8rem;font-weight:400;color:var(--mut)">sim 13</span></h1>
 <p class="sub">Con los litros de cada cuba (versión Calidad) y la hora del cloruro de cada parte. Antes va el calentamiento con agua, como en las gráficas del SCADA. Las cubas que se pueden cambiar aquí no se guardan en el parte.</p>
 </header>
 
@@ -212,7 +212,8 @@ function dibuja(){
  const S=simula();const g=$('g');
  // (sim 9) Más alta en la vista limpia para que llene el A4 apaisado al imprimir; margen derecho
  // para que la última hora no se corte.
- const W=1160,H=LIMPIA?800:640,L=118,R=92,T=118,B=96;
+ // (sim 13) En la limpia, franja en blanco abajo (como la de arriba): el recuadro sube
+ const W=1160,H=LIMPIA?800:640,L=118,R=92,T=118,B=LIMPIA?186:96;
  // Ventana de 8 h 30 min como la gráfica del SCADA (más si el día se alarga)
  const t0=Math.floor(S.t0/1800)*1800, t1=Math.max(Math.ceil(S.t1/1800)*1800, t0+8.5*3600);
  const X=t=>L+(t-t0)/(t1-t0)*(W-L-R), Y=v=>T+(100-v)/100*(H-T-B);
@@ -251,9 +252,9 @@ function dibuja(){
  if(!LIMPIA){(S.LAVS||[]).forEach(L=>{const y=Y(L.temp)+14;s+=`<path d="M${X(L.a)} ${y-6} L${X(L.a)} ${y} L${X(L.b)} ${y} L${X(L.b)} ${y-6}" fill="none" stroke="#1a7f8e" stroke-width="1.5"/><text x="${(X(L.a)+X(L.b))/2}" y="${y+12}" text-anchor="middle" font-family="Arial" font-size="10" fill="#1a7f8e">Lavado C${L.cuba} ${hm(L.a)}–${hm(L.b)}</text>`});}
  // leyenda y pie
  const ley=[['Tª agua caliente',col.agua],['Tª pasteurización leche',col.past],['Tª desvío',col.desv],['Tª bactofugadora',col.bacto],['Tª envío a cubas',col.cuba]];
- ley.forEach(([n,c],i)=>{const x=L-20+i*185,y=LIMPIA?H-38:H-26;s+=`<line x1="${x}" x2="${x+26}" y1="${y}" y2="${y}" stroke="${c}" stroke-width="3"/><text x="${x+32}" y="${y+4}" font-family="Arial" font-size="12.5" fill="#111">${n}</text>`});
+ ley.forEach(([n,c],i)=>{const x=L-20+i*185,y=LIMPIA?H-B+74:H-26;s+=`<line x1="${x}" x2="${x+26}" y1="${y}" y2="${y}" stroke="${c}" stroke-width="3"/><text x="${x+32}" y="${y+4}" font-family="Arial" font-size="12.5" fill="#111">${n}</text>`});
  if(!LIMPIA){if($('real').checked && RR) s+=`<line x1="${L-20}" x2="${L+6}" y1="${H-8}" y2="${H-8}" stroke="#777" stroke-width="6" stroke-opacity=".22"/><text x="${L+12}" y="${H-4}" font-family="Arial" font-size="12" fill="#111">SCADA real (gris, debajo)</text>`;}
- if(LIMPIA){s+=`<text x="${L-30}" y="${H-10}" font-family="Arial" font-size="12" fill="#111">${fd}  ·  Gráfica SIMULADA con los litros de los partes (15.000 L/h) — no es el registro del SCADA</text>`}
+ if(LIMPIA){s+=`<text x="${L-30}" y="${H-B+98}" font-family="Arial" font-size="12" fill="#111">${fd}  ·  Gráfica SIMULADA con los litros de los partes (15.000 L/h) — no es el registro del SCADA</text>`}
  g.setAttribute('viewBox','0 0 '+W+' '+H);
  g.innerHTML=s;
  const tot=CUBAS.reduce((a,c)=>a+(c.l||0),0);
