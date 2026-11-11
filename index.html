@@ -78,11 +78,11 @@
     var _lat = JSON.parse(localStorage.getItem('tq_latido')||'null');
     if(_lat && _lat.t){
       var _d = new Date(_lat.t);
-      _negra('ARRANQUE v605 · último latido previo: '+_d.getDate()+'/'+(_d.getMonth()+1)+' '
+      _negra('ARRANQUE v606 · último latido previo: '+_d.getDate()+'/'+(_d.getMonth()+1)+' '
         +('0'+_d.getHours()).slice(-2)+':'+('0'+_d.getMinutes()).slice(-2)
         +' en '+(_lat.p||'?')+(_lat.pend?(' con '+_lat.pend+' pendientes'):''));
     }else{
-      _negra('ARRANQUE v605 · sin latido previo');
+      _negra('ARRANQUE v606 · sin latido previo');
     }
   }catch(e){}
 
@@ -1305,7 +1305,7 @@ textarea.finput{resize:vertical;min-height:60px;}
   <div class="lcard">
     <div style="text-align:center;margin-bottom:6px;"><img src="data:image/jpeg;base64,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" style="height:54px;object-fit:contain;"></div>
     <div class="lsub">Trazabilidad · Lácteos Cuquerella</div>
-    <div id="ver-login" style="font-size:0.65rem;color:var(--text3);margin-top:4px;font-family:'Inconsolata',monospace;opacity:0.6;">v605</div>
+    <div id="ver-login" style="font-size:0.65rem;color:var(--text3);margin-top:4px;font-family:'Inconsolata',monospace;opacity:0.6;">v606</div>
     <select class="lsel" id="l-nombre" onchange="resetPin()">
       <option value="">— ¿Quién eres? —</option>
     </select>
@@ -1331,7 +1331,7 @@ textarea.finput{resize:vertical;min-height:60px;}
       <div class="tbuser" onclick="cerrarSesion()" id="tb-user">—</div>
     </div>
   </div>
-  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div id="ver-home" style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v605</div></div>
+  <div class="greet"><div class="greet-name">Hola, <span id="g-name">—</span> 👋</div><div class="greet-sub" id="g-sub"></div><div id="ver-home" style="font-size:0.6rem;color:var(--text3);margin-top:1px;font-family:'Inconsolata',monospace;">v606</div></div>
   <div id="aviso-tiernos"></div>
   <div class="scrl" style="padding:0;">
 
@@ -21577,21 +21577,56 @@ function _ubicDelanteColocados(){
   // pie, si el siguiente no cabe, se mira si cabe alguno de los 3 que vienen
   // detrás; el que se salta pasa al pie siguiente. Así no se pierde un hueco
   // porque toquen juntos cuatro palés grandes (120+116+114+108 = 39 alturas > 38).
-  var uso2={}, n2={}, rest=ubicS.delante.slice(), ok2=[];
+  // (v606) con el mismo empaquetado que el plan
+  var uso2={}, n2={};
   ubicS.orden.forEach(function(o){ uso2[o.pie]=(uso2[o.pie]||0)+o.u; n2[o.pie]=(n2[o.pie]||0)+1; });
   var q=ubicS.orden.length?ubicS.orden[ubicS.orden.length-1].pie:_ubicPrimerPie(z,f);
-  while(rest.length && q){
-    var cap=ubicCapPie(ubicMaxPales(z,f,q)), puesto=false;
-    for(var k=0;k<Math.min(4,rest.length);k++){
-      var d=rest[k];
-      if(!(n2[q]||0) || (uso2[q]||0)+d.u <= cap+0.001){
-        uso2[q]=(uso2[q]||0)+d.u; n2[q]=(n2[q]||0)+1; ok2.push({id:d.id, pie:q, u:d.u, delante:true}); rest.splice(k,1); puesto=true; break;
-      }
+  var pk=_ubicEmpaquetar(ubicS.delante.map(function(d){ return [d.id]; }), z, f, q, uso2, n2);
+  if(pk.resto.length) return res;          // ni así: se queda como estaba (no cabe)
+  var uD={}; ubicS.delante.forEach(function(d){ uD[d.id]=d.u; });
+  return {ok:pk.orden.map(function(id){ return {id:id, pie:pk.pie[id], u:uD[id], delante:true}; }), sobran:[], descuadre:true};
+}
+// (v606) EMPAQUETAR COMO LO HARÍA JOAQUÍN (11/11): «juego un poco: si uno es de
+// 120 y otro de 108, no junto todos los de 120 en el mismo pie». Recorre los pies
+// en orden (del fondo al pasillo) y, en cada uno, de los 5 palés que tocan
+// (grupos: un palé o una pareja de pequeños) elige los que más palés meten sin
+// pasar de sus alturas (38 en pie de 4, 30 en pie de 3), y entre iguales los que
+// van antes. Así el orden se respeta casi siempre y, cuando no, solo se adelanta
+// alguno unos puestos: «un poco descuadrado», como en la cámara.
+// grupos: [[id,...],...] en orden de carga. Devuelve {orden:[ids], pie:{id:pie}, resto:[grupos sin sitio]}.
+function _ubicEmpaquetar(grupos, z, f, pieIni, uso0, n0){
+  var uso={}, n={}, k; for(k in (uso0||{})) uso[k]=uso0[k]; for(k in (n0||{})) n[k]=n0[k];
+  var rest=grupos.slice(), orden=[], pie={}, q=pieIni, VENT=5, guarda=0;
+  function uG(g){ return g.reduce(function(a,id){ return a+ubicUnidades(id); },0); }
+  function antes(a,b){ for(var i=0;i<Math.min(a.length,b.length);i++){ if(a[i]!==b[i]) return a[i]<b[i]; } return a.length<b.length; }
+  while(rest.length && q && guarda++<400){
+    var libre=ubicCapPie(ubicMaxPales(z,f,q))-(uso[q]||0)+0.001, W=rest.slice(0,VENT), mejor=null, vacio=!(n[q]||0);
+    for(var m=1;m<(1<<W.length);m++){
+      var su=0, cnt=0, idx=[];
+      for(var j=0;j<W.length;j++) if(m&(1<<j)){ su+=uG(W[j]); cnt+=W[j].length; idx.push(j); }
+      if(su>libre && !(vacio && idx.length===1)) continue;
+      if(!mejor || cnt>mejor.cnt || (cnt===mejor.cnt && antes(idx,mejor.idx))) mejor={cnt:cnt, idx:idx, su:su};
     }
-    if(!puesto) q=_ubicSigPie(z,f,q);
+    if(!mejor){ q=_ubicSigPie(z,f,q); continue; }
+    mejor.idx.forEach(function(j){ W[j].forEach(function(id){ orden.push(id); pie[id]=q; }); });
+    uso[q]=(uso[q]||0)+mejor.su; n[q]=(n[q]||0)+mejor.cnt;
+    rest=rest.filter(function(g,i){ return i>=W.length || mejor.idx.indexOf(i)<0; });
+    q=_ubicSigPie(z,f,q);   // una elección por pie: así un pequeño no se adelanta de muy lejos
   }
-  if(rest.length) return res;          // ni así: se queda como estaba (no cabe)
-  return {ok:ok2, sobran:[], descuadre:true};
+  return {orden:orden, pie:pie, resto:rest};
+}
+// (v606) El mejor plan: cuántos de los más antiguos caben (con los de delante
+// también colocados) y en qué orden y pie. c: candidatos del más antiguo al más nuevo.
+function _ubicPlanMejor(c){
+  var it=_ubicPlanItems(c), mejor={ids:[], pie:{}, k:0}, fallos=0;
+  var uso0={}, n0={}; ubicS.orden.forEach(function(o){ uso0[o.pie]=(uso0[o.pie]||0)+o.u; n0[o.pie]=(n0[o.pie]||0)+1; });
+  for(var k=1;k<=it.length;k++){
+    var grupos=it.slice(0,k).reverse().map(function(g){ return g.slice().reverse(); });
+    var pk=_ubicEmpaquetar(grupos, ubicS.zona, ubicS.fila, ubicS.pieAct||_ubicPrimerPie(ubicS.zona,ubicS.fila), uso0, n0);
+    if(!pk.resto.length && _ubicSimular(pk.orden, pk.pie)){ mejor={ids:pk.orden, pie:pk.pie, k:k}; fallos=0; }
+    else if(++fallos>=3) break;
+  }
+  mejor.items=it; return mejor;
 }
 function _ubicPalesConAltura(){
   var pies=_ubicPiesSesion(), out=[];
@@ -21621,8 +21656,16 @@ function _ubicColocarSolo(id){
   if(!ubicS) return {ok:false, err:'No hay fila elegida'};
   if(ubicS.orden.some(function(o){return o.id===id;})) return {ok:false, err:'Este palé ya está en esta fila'};
   var z=ubicS.zona, f=ubicS.fila, p=ubicS.pieAct;
-  if(!p) return {ok:false, err:'La fila está completa'};
   var u=ubicUnidades(id);
+  // (v606) Si el plan de carga le ha dado un pie, va a ese (si cabe)
+  try{
+    var fz=(ubicS._pieForz&&ubicS._pieForz[id])||(ubicS.plan&&ubicS.plan.pie&&ubicS.plan.pie[id]);
+    if(fz && ubicMaxPales(z,f,fz)>0){
+      var uF=0, nF=0; ubicS.orden.forEach(function(o){ if(o.pie===fz){ uF+=o.u; nF++; } });
+      if(!nF || uF+u <= ubicCapPie(ubicMaxPales(z,f,fz))+0.001){ p=fz; ubicS.pieAct=fz; }
+    }
+  }catch(_){}
+  if(!p) return {ok:false, err:'La fila está completa'};
   var usado=0, nEnPie=0;
   ubicS.orden.forEach(function(o){ if(o.pie===p){ usado+=o.u; nEnPie++; } });
   // (v571) Un pie admite SIEMPRE su número de palés (3 o 4), sean de 108 o de 120
@@ -22167,8 +22210,9 @@ function ubicPintarTodo(){
 // los que caben, para que el más antiguo quede delante, junto al pasillo. Se ve
 // en la rejilla en gris dónde irá cada uno y la lista numerada, con el siguiente
 // a llevar resaltado; se va marcando al escanear.
-function _ubicSimular(ids){   // coloca ids sobre una copia de la fila abierta; devuelve la copia o null si no caben
+function _ubicSimular(ids, mapaPie){   // coloca ids sobre una copia de la fila abierta; devuelve la copia o null si no caben
   var bak=ubicS, sim=JSON.parse(JSON.stringify(ubicS)), ok=true;
+  if(mapaPie) sim._pieForz=mapaPie;
   ubicS=sim;
   try{ for(var i=0;i<ids.length;i++){ var r=_ubicColocarSolo(ids[i]); if(!r.ok){ ok=false; break; } }
        if(ok && ubicS.delante && _ubicDelanteColocados().sobran.length) ok=false; }
@@ -22209,14 +22253,10 @@ function ubicPlanCalcular(tipo, variedad, solo){
   // (v588) Solo los palés que se han marcado en la lista (Joaquín elige cuáles se lleva)
   if(solo){ var sd={}; solo.forEach(function(d){ sd[d]=1; }); c=c.filter(function(p){ return sd[_digitosPale(p.id)]; }); }
   if(solo && !c.length){ toast('Marca los palés que te llevas','err'); return; }
-  var it=_ubicPlanItems(c), n=0;
-  // cuántos «huecos» (palé o pareja de pequeños) de los más antiguos caben,
-  // metidos del más nuevo al más antiguo
-  function carga(k){ var l=[]; it.slice(0,k).forEach(function(x){ l=l.concat(x); }); return l.reverse(); }
-  for(var k=1;k<=it.length;k++){ if(_ubicSimular(carga(k))) n=k; else break; }
-  var ids=carga(n), pares={};
+  // (v606) cuántos de los más antiguos caben y en qué pie va cada uno (_ubicPlanMejor)
+  var best=_ubicPlanMejor(c), it=best.items, n=best.k, ids=best.ids, pares={};
   it.slice(0,n).forEach(function(x){ if(x.length===2){ pares[x[0]]=x[1]; pares[x[1]]=x[0]; } });
-  ubicS.plan={orig:orig, tipo:tipo||'', variedad:variedad.filter(function(v){ return v; }).join(' + '), ids:ids, pares:pares, total:c.length, marcados:!!solo, base:ubicS.orden.map(function(o){ return _digitosPale(o.id); })};
+  ubicS.plan={orig:orig, tipo:tipo||'', variedad:variedad.filter(function(v){ return v; }).join(' + '), ids:ids, pie:best.pie, pares:pares, total:c.length, marcados:!!solo, base:ubicS.orden.map(function(o){ return _digitosPale(o.id); })};
   window._ubicPlanSel=null;
   _ubicGuardarSesion(); ubicPintarTodo();
   if(!n) toast(c.length?'No cabe ningún palé más en esta fila':'No hay palés en '+sl(orig),'err');
@@ -22233,11 +22273,9 @@ function ubicPlanElegir(tipo, vars){
   // (v603) Ya salen MARCADOS los más antiguos que caben en la fila (Joaquín,
   // 11/11): lo normal es llenarla con esos; si se lleva menos, desmarca.
   try{
-    var c=_ubicCandidatosPlan(orig, tipo, vars), it=_ubicPlanItems(c), n=0;
-    function carga(k){ var l=[]; it.slice(0,k).forEach(function(x){ l=l.concat(x); }); return l.reverse(); }
-    for(var k=1;k<=it.length;k++){ if(_ubicSimular(carga(k))) n=k; else break; }
-    carga(n).forEach(function(id){ window._ubicPlanSel.marc[_digitosPale(id)]=1; });
-    window._ubicPlanSel.caben=carga(n).length;
+    var best=_ubicPlanMejor(_ubicCandidatosPlan(orig, tipo, vars));   // (v606) cuántos caben de verdad, jugando con los pies
+    best.ids.forEach(function(id){ window._ubicPlanSel.marc[_digitosPale(id)]=1; });
+    window._ubicPlanSel.caben=best.ids.length;
   }catch(_){}
   ubicPintarTodo();
 }
