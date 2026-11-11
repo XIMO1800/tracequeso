@@ -87,3 +87,5 @@ Reparto automático al escanear: pie del fondo primero, de abajo arriba; cada pa
 **Móvil sin recuadro dentro de recuadro** (v595, Joaquín 06/11): en pantallas ≤600 px, los paneles con clase `ub-ancho` (salas de Movimiento, «Ubicar en fila», picking, Ver cámara) van de borde a borde (sin margen ni borde laterales) y lo de dentro con `ub-banda` (plan de carga, detalle de la fila en Ver cámara) es una franja sin marco a los lados. En el ordenador no cambia. Si gusta, extender al resto de la app.
 
 **Variedad en cada palé de la rejilla** (v596, Joaquín 07/11): en la rejilla de la fila (móvil: Movimiento, Recolocar, Ver cámara, En grande) cada palé muestra fecha/lote, debajo la VARIEDAD (si tiene; recortada con «…» si no cabe) y las piezas más pequeñas. El color ya dice el tipo. Oficina: pendiente si lo pide.
+
+**Lista del plan ya marcada** (v603, Joaquín 11/11): al entrar en la lista, ya van marcados los más antiguos que caben en la fila (misma cuenta que el plan: `_ubicPlanItems` + `_ubicSimular`, contando lo que ya hay y «Meter al fondo»); el contador dice «N marcados · caben M». Se desmarca lo que no se lleve.
