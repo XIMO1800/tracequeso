@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 26;  // 26 (09/11): la descarga normal admite formato=compacto y dias=N<90. 25 (09/11): completo admite dias=N (aparatos con poca memoria bajan solo los últimos N días). 24 (07/11): TERCERA CAPA y Nº CAPA viajan a móviles y oficina (estaban fuera de COLS). 23 (07/11): _UPDATE con _SOLO_SI_CAMBIA no escribe si ya estaba igual (marca «queso sin voltear» doble). 22 (06/11): una corrección (_UPDATE) puede crear columna nueva (TERCERA CAPA). 21 (05/11): aviso de tiernos para el jefe de almacén (tipo=avisoTiernos). 20 (04/11): control de recepción (quien descarga) y REF PROVEEDOR en entradas. 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
+const API_VERSION = 27;  // 27 (11/11): el consumo de un parte en L o kg se trata como ml o g (cuajo NATUREN 1500 L en vez de 1,5 L) y la ficha de stock se reintenta si no se pudo leer. 26 (09/11): la descarga normal admite formato=compacto y dias=N<90. 25 (09/11): completo admite dias=N (aparatos con poca memoria bajan solo los últimos N días). 24 (07/11): TERCERA CAPA y Nº CAPA viajan a móviles y oficina (estaban fuera de COLS). 23 (07/11): _UPDATE con _SOLO_SI_CAMBIA no escribe si ya estaba igual (marca «queso sin voltear» doble). 22 (06/11): una corrección (_UPDATE) puede crear columna nueva (TERCERA CAPA). 21 (05/11): aviso de tiernos para el jefe de almacén (tipo=avisoTiernos). 20 (04/11): control de recepción (quien descarga) y REF PROVEEDOR en entradas. 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -1559,8 +1559,30 @@ function _sincronizarSalidasParte(idParte, payload) {
     // el stock estaba siempre en g/ml, lo que provocaba un error de x1000 en los artículos
     // cuyo stock está dado de alta en kg/L (ej. fermentos con dosis en kg).
     var _uniStkLote = _unidadStockDeLote(item.cat, ing.nombre, ing.lote || '');
+    // (11/11, API 27) Si la ficha no se pudo leer (fallo pasajero de la hoja), se
+    // intenta una vez más: sin la unidad de la ficha el consumo se escribe sin convertir.
+    if (!_uniStkLote && !ing._yaEnUnidadStock) {
+      Utilities.sleep(500);
+      _uniStkLote = _unidadStockDeLote(item.cat, ing.nombre, ing.lote || '');
+    }
+    // ════════════════════════════════════════════════════════════════════════
+    // (11/11, API 27) EL CONSUMO DE UN PARTE NUNCA VIENE EN LITROS NI EN KILOS.
+    // ────────────────────────────────────────────────────────────────────────
+    // EL FALLO: el 10/11 el cuajo NATUREN (lote 3843055) descontó 1500 L en vez
+    // de 1,5 L. Al cambiar de lote en el parte, la app copiaba en la línea la
+    // unidad de la FICHA (L) en lugar de la del CONSUMO (ml). Llegaba «1500 L»,
+    // la ficha está en L, «son la misma unidad», y se descontaba tal cual.
+    // Las dosis de los partes son por 1000 L de leche y SIEMPRE van en ml o g
+    // (el CO2 es aparte: lleva _yaEnUnidadStock). Así que si una línea de parte
+    // dice L o kg, es esa confusión y se trata como ml o g.
+    var _uniIng = ing.unidad;
+    if (!ing._yaEnUnidadStock) {
+      var _nuIng = _normUnidad(_uniIng);
+      if (_nuIng === 'l')  _uniIng = 'ml';
+      else if (_nuIng === 'kg') _uniIng = 'g';
+    }
     var cant = ing._yaEnUnidadStock ? (parseFloat(ing.consumo_total) || 0)
-                                    : _consumoEnUnidadStock(ing.consumo_total, ing.unidad, _uniStkLote, ing.nombre);
+                                    : _consumoEnUnidadStock(ing.consumo_total, _uniIng, _uniStkLote, ing.nombre);
     var idSalida = 'S-' + ts + '-' + k;
     var fila = [];
     for (var c = 0; c < headers.length; c++) fila.push('');

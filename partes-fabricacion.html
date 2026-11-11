@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.509</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.510</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2994,7 +2994,7 @@ function _repartoDesdeLineas(p){
       Object.keys(por).forEach(function(n){
         var ls=por[n], lotes={}; ls.forEach(function(it){ lotes[String(it.lote).trim()]=1; });
         if(ls.length<2 || Object.keys(lotes).length<2) return;
-        out[n]=ls.map(function(it){ return {lote:it.lote, cantidad:parseFloat(it.consumo_total)||0, proveedor:it.proveedor||'', caducidad:it.caducidad||'', unidad:it.unidad||'', unidad_stock:it.unidad_stock||''}; })
+        out[n]=ls.map(function(it){ return {lote:it.lote, cantidad:parseFloat(it.consumo_total)||0, proveedor:it.proveedor||'', caducidad:it.caducidad||'', unidad:(_uniConsumoDe(it.unidad)||it.unidad||''), unidad_stock:it.unidad_stock||''}; })
                  .filter(function(x){ return x.cantidad>0; });
         if(out[n].length<2) delete out[n];
       });
@@ -3185,6 +3185,7 @@ function _capturarAuxFermCuajoEnParte(p){
       linea.proveedor     = x.proveedor || '';
       linea.caducidad     = x.caducidad || '';
       linea.unidad        = x.unidad       || base.unidad || '';
+      linea.unidad        = _uniConsumoDe(linea.unidad) || linea.unidad;   // (v2.6.510) siempre ml/g, nunca L/kg
       linea.unidad_stock  = x.unidad_stock || base.unidad_stock || '';
       out.push(linea);
     });
@@ -6900,7 +6901,10 @@ function _fijarLoteEnParte(producto, datos){
           it.lote      = datos.lote;
           it.caducidad = datos.caducidad || '';
           it.proveedor = datos.proveedor || '';
-          if(datos.unidad) it.unidad = datos.unidad;
+          // (v2.6.510) datos.unidad es la de la FICHA (L, kg). En la línea del parte
+          // 'unidad' es la del CONSUMO (ml, g). Copiarla tal cual hizo que el 10/11 el
+          // cuajo descontara 1500 L en vez de 1,5 L.
+          if(datos.unidad){ it.unidad = _uniConsumoDe(datos.unidad); it.unidad_stock = datos.unidad; }
         });
       });
     });
@@ -10708,7 +10712,8 @@ function _epElegirProducto(prefix, i, nombre){
     item.proveedor = lote.proveedor || '';
     item.lote      = lote.lote || '';
     item.caducidad = lote.caducidad || '';
-    item.unidad    = lote.unidad || item.unidad || '';
+    // (v2.6.510) unidad del CONSUMO (ml/g), no la de la ficha (L/kg).
+    if(lote.unidad){ item.unidad = _uniConsumoDe(lote.unidad); item.unidad_stock = lote.unidad; }
   }
   // 3) Dosis utilizada: si una receta del mismo tipo·variedad conoce la dosis/1000L
   //    de este producto, proponer litros × dosis/1000. Si no, dejar lo que hubiera.
