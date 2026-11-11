@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v87';
+var VER = 'v88';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -1236,9 +1236,15 @@ function diaKey(v){
   return '';
 }
 function dmy(k){ var m=String(k||'').match(/^(\d{4})-(\d{2})-(\d{2})$/); return m?(m[3]+'/'+m[2]+'/'+m[1]):(k||''); }
-function fetchJSON(url){
-  return fetch(url,{method:'GET'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
-    .then(function(t){ t=t.trim(); var i=t.indexOf('('); if(t.charAt(0)!=='{' && i>0) t=t.substring(i+1,t.lastIndexOf(')')); return JSON.parse(t); });
+function fetchJSON(url, ms){
+  // (v88) Nunca se queda colgado: si el servidor no contesta en 90 s, se corta
+  // y la pantalla enseña el aviso con «Reintentar» en vez de «Cargando…» para siempre.
+  var ctl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+  var tmo = ctl ? setTimeout(function(){ try{ ctl.abort(); }catch(e){} }, ms||90000) : null;
+  return fetch(url, ctl ? {method:'GET', signal:ctl.signal} : {method:'GET'})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+    .then(function(t){ if(tmo) clearTimeout(tmo); t=t.trim(); var i=t.indexOf('('); if(t.charAt(0)!=='{' && i>0) t=t.substring(i+1,t.lastIndexOf(')')); return JSON.parse(t); },
+          function(e){ if(tmo) clearTimeout(tmo); if(e && e.name==='AbortError') throw new Error('el servidor tarda demasiado en contestar'); throw e; });
 }
 function cargarMat(forzar){
   if(MAT.cargando) return;
@@ -4127,7 +4133,7 @@ try{ var _pf=JSON.parse(sessionStorage.getItem('tqof_pf')||'null'); if(_pf) for(
 function ptGuardarF(){ try{ sessionStorage.setItem('tqof_pf', JSON.stringify(PF)); }catch(e){} }
 function ptCargar(cb){
   if(PT.cargando) return; PT.cargando=true; PT.err='';
-  fetchJSON(API_URL+'?tipo=partes&t='+Date.now()).then(function(j){
+  fetchJSON(API_URL+'?tipo=partes&t='+Date.now(), 180000).then(function(j){
     if(!j||!j.ok) throw new Error('el servidor no ha dado los partes');
     PT.rows=(j.data||[]).map(function(r){
       var p=null;
