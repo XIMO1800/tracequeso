@@ -298,7 +298,9 @@ function construir(filas){
     // estuvo parado: lo que venga después es otra cosa, no la continuación.
     if(ultFila!==null && seg(filas[k3][0])-seg(filas[ultFila][0]) > 60) cerrarEnvio();
     ultFila = k3;
-    var manda = num(filas[k3][4])>35 && num(filas[k3][1])>60;
+    // (13/11) 32 °C, no 35: el agua de lavado de cuajada llega a la cuba a ~34 °C y
+    // esos lavados no salían (13/11: cubas 2, 3 y 6 «sin rastro»). La leche va a 27–30.
+    var manda = num(filas[k3][4])>32 && num(filas[k3][1])>60;
     if(manda && ini2===null) ini2=k3;
     if(manda) prev2=k3;
     if(!manda && ini2!==null) cerrarEnvio();

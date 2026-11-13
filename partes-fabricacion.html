@@ -7847,6 +7847,35 @@ function _htmlGraficaPasteur(D){
   // lado y otro del borde se lee mucho mejor que las cuatro líneas seguidas.
   var W=1700,H=800,ML=48,MR=18,MT=150,MB=34, yMin=20,yMax=95;
   var P=D.puntos, t0=P[0].t, t1=P[P.length-1].t;
+  // (v2.6.512) ENVÍOS DE AGUA A LA CUBA, RECALCULADOS AQUÍ CON 32 °C.
+  // El conversor los daba solo si la sonda «hacia cuba» pasaba de 35 °C, pero el
+  // agua de lavado de cuajada llega a la cuba a unos 34 °C: el 13/11 los lavados
+  // de las cubas 2 (7:16–7:23), 3 (7:45–7:53) y 6 (12:44–12:53) se hicieron con
+  // el pasteurizador y salían «sin rastro». La leche va a la cuba a 27–30 °C,
+  // así que 32 separa bien. Mismo criterio que el conversor: equipo caliente
+  // (pasteurizador > 60), al menos 90 s, y un parón de más de 1 min corta.
+  try{
+    if(P.length && P[0].cuba!==undefined){
+      var _env=[], _i0=null, _pv=null, _ul=null;
+      var _cierra=function(){
+        if(_i0!==null && _pv!==null && P[_pv].t-P[_i0].t>=90){
+          var _sm=0,_n=0; for(var _q=_i0;_q<=_pv;_q++){ var _c=parseFloat(P[_q].cuba); if(_c>0){ _sm+=_c; _n++; } }
+          _env.push({t1:P[_i0].t, t2:P[_pv].t, mins:Math.round((P[_pv].t-P[_i0].t)/60*10)/10, temp:_n?Math.round(_sm/_n*10)/10:0});
+        }
+        _i0=null;
+      };
+      for(var _k=0;_k<P.length;_k++){
+        if(_ul!==null && P[_k].t-P[_ul].t>60) _cierra();
+        _ul=_k;
+        var _m=(parseFloat(P[_k].cuba)>32 && parseFloat(P[_k].past)>60);
+        if(_m && _i0===null) _i0=_k;
+        if(_m) _pv=_k;
+        if(!_m && _i0!==null) _cierra();
+      }
+      _cierra();
+      if(_env.length) D.envios=_env;
+    }
+  }catch(_){}
   function X(t){ return ML+(t-t0)/(t1-t0)*(W-ML-MR); }
   function Y(v){ return MT+(yMax-v)/(yMax-yMin)*(H-MT-MB); }
   var sv=[];
