@@ -1107,16 +1107,17 @@ function procesarEntradaSCADA(){
   var lock = LockService.getScriptLock();
   if(!lock.tryLock(1000)) return;                     // ya hay otra vuelta en marcha
   var t00 = Date.now();
-  // (2026-10-22) Aviso por correo de tierno agotado en cámara: cada 30 min, aprovechando este activador.
-  try{ if(typeof _avisoTiernosSiToca === 'function') _avisoTiernosSiToca(); }catch(eT){ Logger.log('Aviso tiernos: ' + eT); }
-  // (2026-10-30) Aviso por correo de material auxiliar bajo mínimo: cada hora (AvisoMinimos.gs).
-  try{ if(typeof _avisoMinimosSiToca === 'function') _avisoMinimosSiToca(); }catch(eM){ Logger.log('Aviso mínimos: ' + eM); }
+  // (13/11) «Exceeded maximum execution time» (Google corta a los 6 min). Los avisos
+  // de tiernos y de mínimos leen hojas grandes y se hacían ANTES de los archivos;
+  // luego un .xps empezado cerca del límite no llegaba a terminar. Ahora: primero
+  // los archivos, sin empezar uno nuevo pasados 3 min; los avisos, al final y solo
+  // si queda tiempo de sobra (si no, en la vuelta siguiente, 10 min después).
   try{
     var entrada = _scadaCarpetaEntrada();
     var proc = _scadaSub(entrada, 'PROCESADOS'), errs = _scadaSub(entrada, 'ERRORES');
     var files = entrada.getFiles();
     while(files.hasNext()){
-      if(Date.now() - t00 > 4.5*60*1000) break;       // margen: el resto, en la próxima vuelta
+      if(Date.now() - t00 > 3*60*1000) break;         // margen: el resto, en la próxima vuelta
       var f = files.next();
       var nom = f.getName();
       var partes = nom.split('__');
@@ -1130,7 +1131,9 @@ function procesarEntradaSCADA(){
           var graf = DriveApp.getFolderById(CARPETA_GRAFICAS_ID);
           var base = _limpiaNombreDescarga(original.replace(/\.pdf$/i, ''));
           var yaEsta = false;
-          _recorrerArchivos(graf, function(g){
+          // (13/11) Solo se mira la carpeta de ESE mes: recorrer todas las de
+          // Gráficas Pasteurización cada vez se hace más lento con cada mes nuevo.
+          _recorrerArchivos(_scadaSub(graf, mes), function(g){
             var n = String(g.getName());
             if(!/\.pdf$/i.test(n)) return false;
             if(_limpiaNombreDescarga(n.replace(/\.pdf$/i, '')) === base){ yaEsta = true; return true; }
@@ -1202,6 +1205,13 @@ function procesarEntradaSCADA(){
         f.moveTo(errs);
         Logger.log(nom+' → ERROR: '+e);
       }
+    }
+    // Avisos por correo (tiernos cada 30 min, mínimos cada hora), solo con tiempo de sobra.
+    if(Date.now() - t00 < 2*60*1000){
+      try{ if(typeof _avisoTiernosSiToca === 'function') _avisoTiernosSiToca(); }catch(eT){ Logger.log('Aviso tiernos: ' + eT); }
+    }
+    if(Date.now() - t00 < 3*60*1000){
+      try{ if(typeof _avisoMinimosSiToca === 'function') _avisoMinimosSiToca(); }catch(eM){ Logger.log('Aviso mínimos: ' + eM); }
     }
   }finally{
     lock.releaseLock();
