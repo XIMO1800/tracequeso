@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.510</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.511</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -7645,6 +7645,9 @@ function cargarGraficaPasteurizacion(fecha){
   try{ _botonGraficaSimulada(esCalAdm?fecha:''); }catch(_){}
   if(!esCalAdm){ cont.innerHTML=''; return; }
   if(!fecha){ cont.innerHTML=''; return; }
+  // (v2.6.511) Cada petición lleva su número: si mientras tanto se cambia de día o
+  // de originales/revisadas, la respuesta vieja ya no pinta encima de la nueva.
+  var _pet = window._grafPetId = (window._grafPetId||0) + 1;
   cont.innerHTML='<div style="font-size:0.8rem;color:var(--text3);padding:4px 2px">Buscando gráfica de pasteurización…</div>';
 
   // (v2.6.340) DOS GRÁFICAS SEGÚN EL MODO DEL HISTORIAL:
@@ -7659,16 +7662,16 @@ function cargarGraficaPasteurizacion(fecha){
     fetch(API_URL+'?tipo=pasteurizacion&fecha='+encodeURIComponent(fecha))
       .then(function(r){ return r.json(); })
       .then(function(d){
-        if(fecha!==_filtroFecha) return;
+        if(fecha!==_filtroFecha || _pet!==window._grafPetId) return;
         var datos = (d && d.data && d.data.puntos && d.data.puntos.length) ? d.data : null;
-        if(!datos){ _botonGraficaPDF(cont, fecha); return; }
+        if(!datos){ _botonGraficaPDF(cont, fecha, _pet); return; }
         _PASTEUR_DATOS = datos;
         cont.innerHTML = _botonGraficaPropia(datos);
       })
-      .catch(function(){ _botonGraficaPDF(cont, fecha); });
+      .catch(function(){ if(_pet===window._grafPetId) _botonGraficaPDF(cont, fecha, _pet); });
     return;
   }
-  _botonGraficaPDF(cont, fecha);
+  _botonGraficaPDF(cont, fecha, _pet);
 }
 
 // ── GRÁFICA SIMULADA CON LOS PARTES (08/11) ──
@@ -8418,7 +8421,7 @@ function _botonGraficaPropia(d){
     + '<span style="display:block;font-size:0.72rem;opacity:.85">'+sub+'</span></span></div>';
 }
 
-function _botonGraficaPDF(cont, fecha){
+function _botonGraficaPDF(cont, fecha, pet){
   // (v2.6.466) La verificación se pide A LA VEZ que las gráficas, no después:
   // antes eran dos esperas a Google seguidas y tardaba muchísimo (Joaquín, 17/10).
   try{ _cargarVerifGrafica(fecha); }catch(_){}
@@ -8426,7 +8429,9 @@ function _botonGraficaPDF(cont, fecha){
     .then(function(r){ return r.json(); })
     .then(function(d){
       // Evitar pintar resultados de una fecha anterior si el usuario ya cambió de día
+      // (v2.6.511) …o de originales/revisadas.
       if(fecha!==_filtroFecha) return;
+      if(pet!==undefined && pet!==window._grafPetId) return;
       var lista=(d && d.data) ? d.data : [];
       // (v2.6.460) También las gráficas .xps del SCADA (sin url: las dibuja la app).
       lista=lista.filter(function(x){ return x && (x.url || x.xps); });
@@ -8756,7 +8761,13 @@ function toggleModoHistorial(){
   window._modoHistorial = (window._modoHistorial === 'originales') ? 'revisadas' : 'originales';
   try{ renderPartes(); }catch(e){}
   // el botón de la simulada cambia según el modo (comparativa en originales, limpia en Calidad)
-  try{ var _ca=_rolContiene(ROL_ACTUAL,'CALIDAD')||_rolContiene(ROL_ACTUAL,'ADMIN'); _botonGraficaSimulada(_ca?_filtroFecha:''); }catch(e){}
+  // (v2.6.511) Y la gráfica de pasteurización también: originales → la que dibuja la
+  // app (hornadas y salto); revisadas → la del SCADA con su verificación. Antes no
+  // se recargaba al cambiar de modo y se quedaba la del modo anterior hasta cambiar de día.
+  // (cargarGraficaPasteurizacion repinta también los botones de la simulada)
+  try{ cargarGraficaPasteurizacion(_filtroFecha); }catch(e){
+    try{ var _ca=_rolContiene(ROL_ACTUAL,'CALIDAD')||_rolContiene(ROL_ACTUAL,'ADMIN'); _botonGraficaSimulada(_ca?_filtroFecha:''); }catch(_){}
+  }
   try{
     if(window._modoHistorial === 'originales') toast('Mostrando ORIGINALES');
     else toast('Mostrando revisadas (versión oficial)');
