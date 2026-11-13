@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.511</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.512</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -7806,7 +7806,11 @@ function _lavadosDelDia(fecha){
       // Hora de referencia para saber a qué hornada pertenece: la adición del
       // cuajo va justo después de llenar la cuba, así que sitúa bien el parte.
       var ref='';
-      try{ ref = String((p.coag&&p.coag.hadicion) || (p.moldeo&&p.moldeo.hi) || hi || '').trim(); }catch(e){}
+      // (v2.6.512) Primero la hora del CLORURO, que se echa al llenar la cuba (es
+      // cuando pasa su leche por el pasteurizador). La del cuajo puede ir mucho
+      // después si la cuba espera, y el 13/11 la 6ª (cabra 8.000 L) se quedó fuera
+      // de su hornada.
+      try{ ref = String((p.aux_meta&&p.aux_meta.hadicion) || (p.coag&&p.coag.hadicion) || (p.moldeo&&p.moldeo.hi) || hi || '').trim(); }catch(e){}
       res.push({cuba:orden, fisica:String(p.cuba_fisica||'').trim(), hi:hi,
                 hf:String(ds.lavado_hf||'').trim(), ref:ref,
                 litros:parseFloat(String(p.litros||'').replace(',','.'))||0,
@@ -7947,10 +7951,16 @@ function _htmlGraficaPasteur(D){
   // dan 37,2 min (bloque de 38) y la de 9.700 L da 38,8 min (bloque de 41).
   function _cuajadasDeHornada(h){
     var res=[];
+    // (v2.6.512) Cada cuajada va a la ÚLTIMA hornada que empezó antes de su hora
+    // (con 30 min de margen); si es anterior a todas, a la primera. Antes había
+    // que caer entre el inicio y el final +90 min, y una cuba que esperaba más
+    // se quedaba sin hornada y no salía en la gráfica.
     (D.partes||[]).forEach(function(pt){
       var r=aSeg(pt.ref);
       if(r===null || !pt.tipo) return;
-      if(r>=h.t1 && r<=h.t2+90*60) res.push(pt);
+      var k=0;
+      for(var hi2=0;hi2<HORNADAS.length;hi2++){ if(HORNADAS[hi2].t1 - 30*60 <= r) k=hi2; }
+      if(HORNADAS[k]===h) res.push(pt);
     });
     res.sort(function(a2,b2){ return (parseInt(a2.cuba)||0)-(parseInt(b2.cuba)||0); });
     if(!res.length) return [];
