@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.512</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.513</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -2809,6 +2809,28 @@ function _cerrarParteActivoConfirmar(id){
   // registrarse siempre. Pero hay que aceptarlo a conciencia, no por descuido.
   var avisoLote = _avisoIngredienteSinLote(p);
   if(avisoLote && !confirm(avisoLote)) return;
+  // (v2.6.513) SIN STOCK RECIÉN TRAÍDO, NO SE PUEDE AVISAR (Joaquín, 15/11).
+  // El aviso de stock insuficiente se calcula con el stock que tiene la app. Si
+  // se cierra el parte nada más entrar, antes de que llegue de Google, no hay con
+  // qué comparar y el aviso callaba: el 14/11 se cargaron 1.040 g de DELIGHT a
+  // un lote al que le quedaban 650 g sin que saltara nada. Ahora, si el stock no
+  // se ha traído en esta sesión, se pide primero y el cierre sigue al llegar.
+  if(!STOCK_FRESCO && !p._stockComprobando){
+    p._stockComprobando = true;
+    toast('Comprobando el stock antes de cerrar…');
+    var _sigue = function(){ delete p._stockComprobando; _cerrarParteTrasLote(p, id); };
+    var _hecho = false;
+    var _una = function(){ if(_hecho) return; _hecho = true; _sigue(); };
+    try{ cargarStockMaterial(_una); }catch(e){ _una(); }
+    setTimeout(_una, 20000);   // sin respuesta en 20 s, se sigue igual (avisando)
+    return;
+  }
+  _cerrarParteTrasLote(p, id);
+}
+function _cerrarParteTrasLote(p, id){
+  if(!STOCK_FRESCO){
+    if(!confirm('⚠️ NO SE HA PODIDO COMPROBAR EL STOCK\n\nNo ha llegado de Google (¿sin cobertura?), así que no se sabe si hay bastante de cada producto.\n\n¿Cerrar el parte de todos modos?')) return;
+  }
   // Aviso si algún ingrediente deja el stock en negativo (no bloquea, solo avisa)
   var avisoStock = _avisoStockInsuficiente(p);
   if(avisoStock && !confirm(avisoStock)) return;
@@ -12312,6 +12334,7 @@ function enviarParteSheets(parte){
 // (v2.6.391) Mientras el stock devuelto por una reactivación no haya vuelto de
 // Google, la copia que hay en memoria es la de ANTES de la devolución.
 var STOCK_EN_DUDA = false;
+var STOCK_FRESCO = false;   // (v2.6.513) true cuando el stock ha llegado de Google en esta sesión
 
 function enviarReactivacionSheets(parte){
   var payload=Object.assign({},parte,{_SHEET:'PARTES', _UPDATE:true, _REACTIVAR:true, ID: parte.id});
@@ -12598,6 +12621,7 @@ function cargarStockMaterial(alTerminar){
   fetch(API_URL+'?tipo=matAux').then(function(r){return r.json();}).then(function(d){
     if(d && d.ok && d.data){
       STOCK_REMOTO = d.data;
+      STOCK_FRESCO = true;   // (v2.6.513) traído de Google en esta sesión
       try{ guardarCacheStock(d.data.stock); }catch(e){}
       try{ renderStock(); }catch(e){ console.error('renderStock:',e); }
       try{ renderLotes(); }catch(e){ console.error('renderLotes:',e); }
