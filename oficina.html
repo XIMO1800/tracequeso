@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v88';
+var VER = 'v89';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -3299,7 +3299,7 @@ function ubVigente(u){
 // apunta que está en el picking (incluye la zona de la izquierda al entrar, donde
 // se deja lo que se va a envasar). Se pone desde el móvil (Movimiento / Recolocar)
 // o desde aquí (Recolocar, cuadre, historial).
-var UB_ESP={'CF-PICKING':{sala:'6.CAMARA FRIO', nom:'Picking', ico:'🧺'}, 'CM-PASO':{sala:'7.CAMARA MADURACION', nom:'Zona de tránsito', ico:'⏳'}}, UB_ESP_ALIAS={'CF-PUERTA':'CF-PICKING'};
+var UB_ESP={'CF-PICKING':{sala:'6.CAMARA FRIO', nom:'Picking', ico:'🧺', cam:'C. Frío'}, 'CF-PASO':{sala:'6.CAMARA FRIO', nom:'Zona de tránsito', ico:'⏳', cam:'C. Frío'}, 'CM-PASO':{sala:'7.CAMARA MADURACION', nom:'Zona de tránsito', ico:'⏳', cam:'C. Mad.'}}   // (v89) CF-PASO: tránsito también en Frío, UB_ESP_ALIAS={'CF-PUERTA':'CF-PICKING'};
 function ubEspVigente(u){
   if(!u || !UB_ESP[u.zona]) return false;
   if(u.fecha && Date.now()-u.fecha < 6*3600*1000) return true;
@@ -3340,6 +3340,7 @@ function vistaUbic(){
     +'<div class="kpi kc" data-k="cf"><span>Ubicados · C. Frío</span><b>'+cf.length+'</b></div>'
     +'<div class="kpi kc" data-k="cm"><span>Ubicados · C. Maduración</span><b>'+cm.length+'</b></div>'
     +'<div class="kpi kc" data-k="pk"><span>🧺 En picking · C. Frío</span><b>'+ubEnEsp('CF-PICKING').length+'</b></div>'
+    +'<div class="kpi kc" data-k="pf"><span>⏳ En tránsito · C. Frío</span><b>'+ubEnEsp('CF-PASO').length+'</b></div>'
     +'<div class="kpi kc" data-k="pa"><span>⏳ En tránsito · C. Mad.</span><b>'+ubEnEsp('CM-PASO').length+'</b></div>'
     +'<div class="kpi"><span>Piezas ubicadas</span><b>'+fmtN(pz)+'</b></div>'
     +'<div class="kpi kc'+(nSin?' aviso':'')+'" data-k="sin"><span>En cámara sin ubicar</span><b>'+nSin+'</b></div>'
@@ -3357,7 +3358,7 @@ function vistaUbic(){
   $('ub-rec').onclick=function(){ this.disabled=true; this.textContent='Cargando…'; UBE.n=-1; ubCargar(vistaUbic); };
   document.querySelectorAll('#cont .tabs button').forEach(function(b){ b.onclick=function(){ UBF.tab=b.getAttribute('data-ut'); ubGuardarF(); vistaUbic(); }; });
   document.querySelectorAll('#cont .kpi.kc').forEach(function(b){ b.onclick=function(){ var k=b.getAttribute('data-k');
-    if(k==='cf'||k==='cm'||k==='pk'||k==='pa'){ UBF.tab='plano'; UBF.sala=((k==='cm'||k==='pa')?'7.CAMARA MADURACION':'6.CAMARA FRIO'); if(k==='pk') UBF.verPick='CF-PICKING'; if(k==='pa') UBF.verPick='CM-PASO'; }
+    if(k==='cf'||k==='cm'||k==='pk'||k==='pa'||k==='pf'){ UBF.tab='plano'; UBF.sala=((k==='cm'||k==='pa')?'7.CAMARA MADURACION':'6.CAMARA FRIO'); if(k==='pk') UBF.verPick='CF-PICKING'; if(k==='pa') UBF.verPick='CM-PASO'; if(k==='pf') UBF.verPick='CF-PASO'; }
     else { UBF.tab='cuadre'; UBF.cuVer=(k==='sin'?'sin':'cad'); }
     ubGuardarF(); vistaUbic(); }; });
   if((UBF.tab==='recolocar'||UBF.tab==='mover') && !ubPermitido()) UBF.tab='buscar';
@@ -3705,7 +3706,7 @@ function ubFormPoner(dest, id, alHacer){
   function opF(z){ var h='<option value="">— fila —</option>'; for(var f=17;f>=1;f--){ if(!ubCapFila(z,f)) continue; var n=ubVigentes().filter(function(x){ return x.zona===z && x.fila===f; }).length; h+='<option value="'+f+'"'+(String(f)===String(fDef)?' selected':'')+'>F'+pad(f)+(n?' · '+n+' de '+ubCapFila(z,f):' · libre')+'</option>'; } return h; }
   dest.innerHTML='<div class="filt" style="margin:6px 0"><label>Zona<select class="up-z">'+Object.keys(UB_ZONAS).map(function(z){ return '<option'+(z===zDef?' selected':'')+'>'+z+'</option>'; }).join('')+'</select></label>'
     +'<label>Fila<select class="up-f">'+opF(zDef)+'</select></label>'
-    +Object.keys(UB_ESP).map(function(z){ return '<button class="btn up-esp" data-esp="'+z+'" style="align-self:flex-end">'+UB_ESP[z].ico+' Poner en '+UB_ESP[z].nom+'</button>'; }).join('')+'</div>'
+    +Object.keys(UB_ESP).map(function(z){ return '<button class="btn up-esp" data-esp="'+z+'" style="align-self:flex-end">'+UB_ESP[z].ico+' Poner en '+UB_ESP[z].nom+' · '+UB_ESP[z].cam+'</button>'; }).join('')+'</div>'
     +(sala && !UB_PLANOS[sala]?'<p style="color:var(--bad);font-size:14px;margin:4px 0">Según los registros este palé está en '+esc(sl(sala)||'—')+'. Si está en una cámara, falta registrar el movimiento.</p>':'')
     +'<div class="up-rej"></div><p style="font-size:13px;color:var(--muted);margin:4px 0">Pincha el hueco libre (+) donde está el palé.</p>';
   var zs=dest.querySelector('.up-z'), fs=dest.querySelector('.up-f'), rj=dest.querySelector('.up-rej');
