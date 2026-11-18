@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.513</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.514</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4213,6 +4213,8 @@ function cmpPintar(){
     return '<div class="card" id="cmp-hueco-'+i+'" style="padding:14px 16px;margin-bottom:12px;'
          + 'color:#9a7a5a;">Cuba '+(p.cuba||'?')+' · cargando…</div>';
   }).join('');
+  window._CMP_PARTES = {};
+  partesDia.forEach(function(p){ window._CMP_PARTES[String(p.id)] = p; });
   partesDia.forEach(function(p, i){
     function _poner(html){
       var hueco = document.getElementById('cmp-hueco-'+i);
@@ -4309,6 +4311,73 @@ function _cuajadaDelParte(d, p){
   return { ficha: mejor, dif: mejorDif, total: d.fichas.length };
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// (v2.6.514) ¿SE EQUIVOCÓ EL QUESERO DE CUBA FÍSICA? (Joaquín, 18/11)
+// La 4ª cuba del 18/11 decía «física 3» y en el archivo de la 3 no había nada a
+// esa hora; en el de la 2 sí. Joaquín lo vio mirando a mano los otros archivos.
+// Ahora lo hace la app: si el parte no cuadra con su cuba (o no hay archivo), se
+// miran las OTRAS cubas físicas y, si alguna tiene una cuajada a menos de 30 min
+// del cuajo del parte —y no es de otro parte del día—, se dice y se puede ver la
+// comparación con esa cuba. El parte no se toca: si es así, se corrige la cuba
+// física en el parte y se vuelve a entrar.
+// ══════════════════════════════════════════════════════════════════════════
+function _cmpHuecoOtraCuba(p){
+  var id = 'cmp-otra-' + String(p.id||'').replace(/[^A-Za-z0-9_-]/g,'');
+  setTimeout(function(){ _cmpBuscarOtraCuba(p, id); }, 50);
+  return '<div id="'+id+'" style="font-size:0.8rem;color:#7a6a5c;margin-top:4px;">Mirando si cuadra con otra cuba física…</div>';
+}
+function _cmpBuscarOtraCuba(p, id){
+  var hP = cmpMin(p.coag_hadicion || (p.coag && p.coag.hadicion));
+  var mia = String(p.cuba_fisica||'').trim();
+  function pintar(html){ var el = document.getElementById(id); if(el) el.innerHTML = html; }
+  if(hP === null){ pintar(''); return; }
+  var otras = ['1','2','3'].filter(function(c){ return c !== mia; });
+  var pend = otras.length, hallazgos = [];
+  otras.forEach(function(c){
+    cmpPedirCuba(CMP_FECHA, c, function(d){
+      try{
+        (d && d.fichas || []).forEach(function(x){
+          if(x.hora_cuajado === null || x.hora_cuajado === undefined) return;
+          var hx = Math.floor(x.hora_cuajado/60), dif = Math.abs(hx - hP);
+          if(dif > 30) return;
+          // ¿Es la cuajada de OTRO parte del día que ya dice esa cuba?
+          var deOtro = Object.keys(window._CMP_PARTES||{}).some(function(k){
+            var q = window._CMP_PARTES[k]; if(!q || q === p || String(q.cuba_fisica||'').trim() !== c) return false;
+            var hq = cmpMin(q.coag_hadicion || (q.coag && q.coag.hadicion));
+            return hq !== null && Math.abs(hq - hx) <= 30;
+          });
+          if(!deOtro) hallazgos.push({cuba:c, hora:cmpHora(x.hora_cuajado), dif:dif, receta:x.receta||x.nombre_receta||''});
+        });
+      }catch(e){}
+      if(--pend > 0) return;
+      if(!hallazgos.length){ pintar('No hay ninguna cuajada a esa hora en las otras cubas físicas.'); return; }
+      hallazgos.sort(function(a,b){ return a.dif - b.dif; });
+      var h = hallazgos[0];
+      pintar('<div style="background:#fff4e0;border:1.5px solid #c8780a;border-radius:8px;padding:8px 10px;color:#6b4300;margin-top:4px;">'
+        + '🔎 <b>En la cuba física '+h.cuba+' sí hay una cuajada a las '+h.hora+'</b>'
+        + (h.dif ? (' ('+h.dif+' min de diferencia con el parte)') : ' (a la misma hora que el parte)')
+        + (h.receta ? (' · receta '+h.receta) : '')
+        + '. Lo más probable es que en el parte se pusiera la física '+(mia||'?')+' por error.'
+        + '<br><button onclick="_cmpVerConCuba(\''+String(p.id).replace(/'/g,'')+'\',\''+h.cuba+'\',this)" style="margin-top:6px;padding:7px 12px;border:none;border-radius:8px;background:#862133;color:#fff;font-weight:700;cursor:pointer;">Comparar con la cuba física '+h.cuba+'</button>'
+        + '<div style="font-size:0.74rem;margin-top:4px;">Si es así, corrige la cuba física en el parte (Datos generales) para que quede bien guardado.</div></div>');
+    });
+  });
+}
+function _cmpVerConCuba(pid, cuba, btn){
+  var p = (window._CMP_PARTES||{})[pid]; if(!p) return;
+  var card = btn && btn.closest ? btn.closest('.card') : null;
+  if(btn){ btn.disabled = true; btn.textContent = 'Cargando…'; }
+  cmpPedirCuba(CMP_FECHA, cuba, function(d){
+    var q = {}; Object.keys(p).forEach(function(k){ q[k] = p[k]; });
+    q.cuba_fisica = cuba;
+    var html = cmpTarjeta(q, d);
+    html = html.replace('<div class="card"', '<div class="card" data-prueba="1"');
+    var nota = '<div style="background:#fff4e0;border:1.5px solid #c8780a;border-radius:8px;padding:6px 10px;color:#6b4300;font-size:0.8rem;margin-bottom:8px;">'
+      + 'Comparación de prueba con la <b>cuba física '+cuba+'</b>. El parte sigue diciendo física '+(p.cuba_fisica||'?')+'.</div>';
+    if(card) card.outerHTML = html.replace(/(<div class="card"[^>]*>)/, '$1'+nota);
+  });
+}
+
 function cmpTarjeta(p, d){
   // (v2.6.390) ¿VIENE EL PARTE COMPLETO?
   // Al bajar de Google, cada parte se reconstruye desde su columna JSON. Si esa
@@ -4330,6 +4399,7 @@ function cmpTarjeta(p, d){
     return '<div class="card" style="padding:14px 16px;margin-bottom:12px;">'+cab
       + '<div style="margin-top:8px;font-size:0.86rem;color:#b06a00;">'+msg+'</div>'
       + (d && d.buscado ? '<div style="margin-top:4px;font-size:0.78rem;color:#9a8a7a;">Buscaba: '+d.buscado+'</div>' : '')
+      + (d && !d.fallo_red ? _cmpHuecoOtraCuba(p) : '')
       + (d && d.fallo_red ? '<button onclick="cmpForzar()" style="margin-top:10px;padding:8px 14px;border:none;'
           + 'border-radius:8px;background:#862133;color:#fff;font-weight:700;cursor:pointer;">↻ Volver a intentar</button>'
           + (d.detalle ? '<div style="margin-top:4px;font-size:0.72rem;color:#b09a86;">('+d.detalle+')</div>' : '') : '')
@@ -4362,7 +4432,8 @@ function cmpTarjeta(p, d){
         + (p.coag_hadicion || (p.coag && p.coag.hadicion))
         + ' y lo más cercano en el SCADA son las '+cmpHora(_sel.ficha.hora_cuajado)+'. '
         + 'Lo normal es que el .xps se exportara antes de esta cuajada: vuelve a '
-        + 'sacarlo al final del día y conviértelo otra vez.</div>';
+        + 'sacarlo al final del día y conviértelo otra vez.</div>'
+        + _cmpHuecoOtraCuba(p);
     } else if(_sel.total > 1){
       _avisoCuajada = '<div style="font-size:0.78rem;color:#7a6a5c;margin-top:2px;">'
         + 'Esta cuba hizo '+_sel.total+' cuajadas ese día; se compara la de las '
