@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 27;  // 27 (11/11): el consumo de un parte en L o kg se trata como ml o g (cuajo NATUREN 1500 L en vez de 1,5 L) y la ficha de stock se reintenta si no se pudo leer. 26 (09/11): la descarga normal admite formato=compacto y dias=N<90. 25 (09/11): completo admite dias=N (aparatos con poca memoria bajan solo los últimos N días). 24 (07/11): TERCERA CAPA y Nº CAPA viajan a móviles y oficina (estaban fuera de COLS). 23 (07/11): _UPDATE con _SOLO_SI_CAMBIA no escribe si ya estaba igual (marca «queso sin voltear» doble). 22 (06/11): una corrección (_UPDATE) puede crear columna nueva (TERCERA CAPA). 21 (05/11): aviso de tiernos para el jefe de almacén (tipo=avisoTiernos). 20 (04/11): control de recepción (quien descarga) y REF PROVEEDOR en entradas. 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
+const API_VERSION = 28;  // 28 (18/11): la Tª del camión de una entrada se guarda como número (Sheets convertía 8,1 en fecha). 27 (11/11): el consumo de un parte en L o kg se trata como ml o g (cuajo NATUREN 1500 L en vez de 1,5 L) y la ficha de stock se reintenta si no se pudo leer. 26 (09/11): la descarga normal admite formato=compacto y dias=N<90. 25 (09/11): completo admite dias=N (aparatos con poca memoria bajan solo los últimos N días). 24 (07/11): TERCERA CAPA y Nº CAPA viajan a móviles y oficina (estaban fuera de COLS). 23 (07/11): _UPDATE con _SOLO_SI_CAMBIA no escribe si ya estaba igual (marca «queso sin voltear» doble). 22 (06/11): una corrección (_UPDATE) puede crear columna nueva (TERCERA CAPA). 21 (05/11): aviso de tiernos para el jefe de almacén (tipo=avisoTiernos). 20 (04/11): control de recepción (quien descarga) y REF PROVEEDOR en entradas. 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -2197,6 +2197,16 @@ function getMaterialAuxiliar() {
 // ENTRADAS MATERIAL AUXILIAR (+ actualización STOCK)
 // ══════════════════════════════════════════════
 
+// (18/11, API 28) La Tª del camión se guarda como NÚMERO. Escrita tal cual, Sheets
+// leía «8,1» como el 8 de enero y la guardaba como fecha (2026-01-07T23:00:00.000Z).
+function _tempNumero(v) {
+  if (v === undefined) return undefined;
+  var s = String(v == null ? '' : v).trim();
+  if (!s) return '';
+  var n = parseFloat(s.replace(',', '.'));
+  return isNaN(n) ? ("'" + s) : n;
+}
+
 function gestionarEntradas(payload) {
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var sheetEnt = ss.getSheetByName(SHEET_ENTRADAS);
@@ -2270,7 +2280,7 @@ function gestionarEntradas(payload) {
       'ESTADO':               payload.estado,
       'ETIQUETA':             payload.etiqueta,
       'CONDICIONES CAMION':   payload.camion,
-      'TEMP CAMION':          payload.temp,
+      'TEMP CAMION':          _tempNumero(payload.temp),
       'ACCIONES CORRECTORAS': payload.acciones,
       'FIRMA':                payload.firma,
       'FECHA ENTRADA':        payload.fentrada,
@@ -2383,7 +2393,7 @@ function gestionarEntradas(payload) {
     'ESTADO':               payload.estado   || '',
     'ETIQUETA':             payload.etiqueta || '',
     'CONDICIONES CAMION':   payload.camion   || '',
-    'TEMP CAMION':          payload.temp     || '',
+    'TEMP CAMION':          _tempNumero(payload.temp),
     'ACCIONES CORRECTORAS': payload.acciones || '',
     'FIRMA':                payload.firma    || '',
     'FECHA ENTRADA':        payload.fentrada || '',

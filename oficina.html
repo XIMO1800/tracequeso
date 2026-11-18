@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v89';
+var VER = 'v90';
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -1593,7 +1593,7 @@ function matRecepciones(){
     var _ci=function(v){ v=String(v||'').trim().toUpperCase(); return v==='C'?'✓ Correcto':(v==='I'?'✕ Incorrecto':v); };
     var _pend=recPend(), _ip=_pend.indexOf(r), _ents=String(r.ENTRADAS||'').split(',').filter(function(x){ return x.trim(); }).length;
     var h2=(_ip>=0 && puedeGuardar()?('<p style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px"><button class="btn pri" id="rc-ent">📥 '+(_ents?'Dar otra entrada':'Dar entrada')+'</button><button class="btn" id="rc-fin">✓ Terminada</button><button class="btn" id="rc-desc">🗑 Descartar</button></p>'):'');
-    h2+='<div class="ficha">'; [['ID','ID'],['ESTADO','Estado'],['RECIBIDO POR','Recibido por'],['CONTROL ESTADO','Estado mercancía'],['CONTROL ETIQUETA','Etiqueta'],['CONTROL CAMION','Condiciones camión'],['TEMP CAMION','Tª camión (°C)'],['ACCIONES CORRECTORAS','Observaciones de quien recibe'],['ENTRADAS','Entradas dadas'],['CERRADA POR','Cerrada por'],['FECHA CIERRE','Fecha cierre'],['OBSERVACIONES','Observaciones'],['LECTURA IA','Lectura IA']].forEach(function(k){ if(r[k[0]]) h2+='<div class="k">'+esc(k[1])+'</div><div class="v">'+esc(k[0].indexOf('CONTROL')===0?_ci(r[k[0]]):r[k[0]])+'</div>'; }); h2+='</div>';
+    h2+='<div class="ficha">'; [['ID','ID'],['ESTADO','Estado'],['RECIBIDO POR','Recibido por'],['CONTROL ESTADO','Estado mercancía'],['CONTROL ETIQUETA','Etiqueta'],['CONTROL CAMION','Condiciones camión'],['TEMP CAMION','Tª camión (°C)'],['ACCIONES CORRECTORAS','Observaciones de quien recibe'],['ENTRADAS','Entradas dadas'],['CERRADA POR','Cerrada por'],['FECHA CIERRE','Fecha cierre'],['OBSERVACIONES','Observaciones'],['LECTURA IA','Lectura IA']].forEach(function(k){ if(r[k[0]]) h2+='<div class="k">'+esc(k[1])+'</div><div class="v">'+esc(k[0].indexOf('CONTROL')===0?_ci(r[k[0]]):(k[0]==='TEMP CAMION'?tempOk(r[k[0]]):r[k[0]]))+'</div>'; }); h2+='</div>';
     fotos.forEach(function(u,i){ h2+='<div style="margin-top:12px"><b>Foto '+(i+1)+'</b><div class="fotoh"></div></div>'; });
     $('p-body').innerHTML=h2; $('panel').hidden=false; $('velo').hidden=false;
     var hs=$('p-body').querySelectorAll('.fotoh'); fotos.forEach(function(u,i){ verFoto(u, hs[i]); });
@@ -2087,7 +2087,7 @@ function fichaEntrada(e, lote){
     ['Estado', ci(gEnt(e,['ESTADO','estado']))],
     ['Etiqueta', ci(gEnt(e,['ETIQUETA','etiqueta']))],
     ['Condiciones camión', ci(gEnt(e,['CONDICIONES CAMION','camion']))],
-    ['Tª camión', (function(t){ return t!==''?esc(t)+' °C':'<span class="sinv">—</span>'; })(gEnt(e,['TEMP CAMION','temp']))],
+    ['Tª camión', (function(t){ return t!==''?esc(t)+' °C':'<span class="sinv">—</span>'; })(tempOk(gEnt(e,['TEMP CAMION','temp'])))],
     ['Acciones correctoras', val(gEnt(e,['ACCIONES CORRECTORAS','acciones']))],
     ['Firma', val(gEnt(e,['FIRMA','firma']))],
     ['Observaciones', val(gEnt(e,['OBSERVACIONES','OBSERVACION','OBS','obs']))]]);
@@ -2273,7 +2273,11 @@ function matTrazLista(){
   return lista;
 }
 function ciCorto(v){ v=String(v||'').trim().toUpperCase(); return (v==='C'||v==='I')?v:''; }
-function tempOk(v){ v=String(v==null?'':v).trim(); if(v==='') return ''; var n=parseFloat(v.replace(',','.')); return isNaN(n)?'':String(n).replace('.',','); }
+// (v90) Google Sheets convertía «8,1» en la fecha 8 de enero (2026-01-07T23:00:00.000Z
+// en la hoja). Se reconstruye: el DÍA es la parte entera y el MES los decimales.
+function tempOk(v){ v=String(v==null?'':v).trim(); if(v==='') return ''; if(v.charAt(0)==="'") v=v.slice(1);
+  if(/^\d{4}-\d{2}-\d{2}T/.test(v)){ var d=new Date(v); return isNaN(d)?'':(d.getDate()+','+(d.getMonth()+1)); }
+  var n=parseFloat(v.replace(',','.')); return isNaN(n)?'':String(n).replace('.',','); }
 function matTraz(){
   var cats=catsDe(MAT.ent,function(e){ return String(gEnt(e,['CATEGORIA','CATEGORÍA','categoria'])); });
   if(MF.cat && cats.indexOf(MF.cat)<0) MF.cat='';
