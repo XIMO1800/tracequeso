@@ -400,7 +400,14 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v91';
+var VER = 'v92';
+// (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
+// primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
+// las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
+// todas a la vez basta con poner false aquí.
+var ORDEN_ANTIGUO_PRIMERO = true;
+function ordF(a, b){ a=String(a==null?'':a); b=String(b==null?'':b); var r=a.localeCompare(b); return ORDEN_ANTIGUO_PRIMERO ? r : -r; }
+function ordN(a, b){ var r=(a||0)-(b||0); return ORDEN_ANTIGUO_PRIMERO ? r : -r; }
 // La MISMA dirección del servidor que usa index.html.
 var API_URL = 'https://script.google.com/macros/s/AKfycbyWzMyyvghmWCBYCgCcmA9q7ftFM1ZJPAbrpyQpyCsrMwvN-57yWKSyOjFUUJAOnZMV/exec';
 var PERMITIDOS = ['JOAQUIN'];   // pueden mirar y GUARDAR
@@ -724,7 +731,7 @@ function vistaInicio(){
 // Calidad (30/10): operario + sección + DESDE/HASTA (una semana, un mes, un año),
 // en tabla, con la ficha del registro al pinchar.
 // ═══════════════════════════════════════════════════════════════════════════
-var RF={desde:'', hasta:'', op:'', sec:'', q:'', ord:'fecha', dir:-1, ver:500};
+var RF={desde:'', hasta:'', op:'', sec:'', q:'', ord:'fecha', dir:(ORDEN_ANTIGUO_PRIMERO?1:-1), ver:500};   // (v92) mismo orden que el resto
 try{ var _rf=JSON.parse(sessionStorage.getItem('tqof_rf')||'null'); if(_rf) for(var k in _rf) RF[k]=_rf[k]; }catch(e){}
 if(!RF.desde){ RF.desde=isoDia(new Date()); RF.hasta=''; }
 var REG_LISTA=[];
@@ -880,7 +887,7 @@ function pintarTabla(){
   if(lista.length>n) h+='<div class="mas">Se ven '+fmtN(n)+' de '+fmtN(lista.length)+' · <button class="btn" id="r-mas">Ver 500 más</button> <button class="btn" id="r-todos">Ver todos</button></div>';
   $('r-tbl').innerHTML=h;
   $('r-tbl').querySelectorAll('th').forEach(function(th){ th.addEventListener('click', function(){
-    var k=th.getAttribute('data-o'); if(RF.ord===k) RF.dir=-RF.dir; else { RF.ord=k; RF.dir=(k==='fecha'||k==='pz')?-1:1; } guardarRF(); pintarTabla(); }); });
+    var k=th.getAttribute('data-o'); if(RF.ord===k) RF.dir=-RF.dir; else { RF.ord=k; RF.dir=(k==='fecha')?(ORDEN_ANTIGUO_PRIMERO?1:-1):(k==='pz'?-1:1); } guardarRF(); pintarTabla(); }); });
   $('r-tbl').querySelector('tbody').addEventListener('click', function(e){
     var tr=e.target.closest('tr'); if(!tr) return;
     document.querySelectorAll('tbody tr.sel').forEach(function(x){ x.classList.remove('sel'); });
@@ -1427,7 +1434,8 @@ function fichaLote(x){
   if(!x) return;
   var ents=MAT.ent.filter(function(e){ return nrm(gEnt(e,['ARTICULO','ARTÍCULO','articulo']))===nrm(x.art) && nrm(gEnt(e,['LOTE','lote']))===nrm(x.lote); });
   var sals=MAT.sal.filter(function(s){ return nrm(s.ARTICULO||s['ARTÍCULO']||s.articulo)===nrm(x.art) && nrm(s.LOTE||s.lote)===nrm(x.lote); });
-  sals.sort(function(a,b){ return diaKey(b.FECHA||b.fecha).localeCompare(diaKey(a.FECHA||a.fecha)); });
+  sals.sort(function(a,b){ return ordF(diaKey(a.FECHA||a.fecha), diaKey(b.FECHA||b.fecha)); });
+  ents.sort(function(a,b){ return ordF(diaKey(gEnt(a,['FECHA ENTRADA','fentrada','FECHA','fecha'])), diaKey(gEnt(b,['FECHA ENTRADA','fentrada','FECHA','fecha']))); });
   var tE=ents.reduce(function(t,e){ return t+num(gEnt(e,['CANTIDAD','cantidad'])); },0);
   var tS=sals.reduce(function(t,s){ return t+num(s.CANTIDAD||s.cantidad); },0);
   MAT._fichaEnts=ents; MAT._fichaSals=sals; MAT._fichaLote=x;
@@ -1501,7 +1509,7 @@ function matEntradas(soloTabla){
     if(MF.cat && x.cat!==MF.cat) return false;
     if(MF.art && x.art!==MF.art) return false;
     return filtroTexto([x.cat,x.art,x.prov,x.lote,x.alb]);
-  }).sort(function(a,b){ return b.f.localeCompare(a.f); });
+  }).sort(function(a,b){ return ordF(a.f, b.f); });
   MAT._listaEnt=lista;
   if(!soloTabla){
     $('m-hist').innerHTML='<div class="filt"><label>Desde<input type="date" id="m-desde" value="'+esc(r.ini)+'"></label><label>Hasta<input type="date" id="m-hasta" value="'+esc(MF.hasta)+'"></label>'
@@ -1542,7 +1550,7 @@ function matSalidas(soloTabla){
     if(!x.f || x.f<r.ini || x.f>r.fin) return false;
     if(MF.cat && x.cat!==MF.cat) return false;
     return filtroTexto([x.cat,x.art,x.lote,x.mot,x.parte]);
-  }).sort(function(a,b){ return b.f.localeCompare(a.f); });
+  }).sort(function(a,b){ return ordF(a.f, b.f); });
   var listaSinArt=lista;
   if(MF.art) lista=lista.filter(function(x){ return x.art===MF.art; });
   MAT._listaSal=lista;
@@ -1574,7 +1582,7 @@ function matSalidas(soloTabla){
 
 // ── RECEPCIONES ──
 function matRecepciones(){
-  var lista=MAT.rec.slice().sort(function(a,b){ var fa=parseFecha(a.FECHA), fb=parseFecha(b.FECHA); return (fb?fb.getTime():0)-(fa?fa.getTime():0); });
+  var lista=MAT.rec.slice().sort(function(a,b){ var fa=parseFecha(a.FECHA), fb=parseFecha(b.FECHA); return ordN(fa?fa.getTime():0, fb?fb.getTime():0); });
   if(!lista.length){ $('mt-body').innerHTML='<div class="vacio">No hay recepciones en los últimos 30 días.</div>'; return; }
   var h='<div class="aviso">Las recepciones las hace quien descarga: la foto del albarán y el control (estado, etiqueta, camión y temperatura). Pincha una pendiente para <b>dar la entrada</b> desde aquí o marcarla como terminada.</div>';
   h+='<div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Recibido por</th><th>Fotos</th><th>Estado</th><th>Entradas dadas</th><th>Cerrada por</th><th>Observaciones</th></tr></thead><tbody>';
@@ -2273,7 +2281,7 @@ function matTrazLista(){
     if(MF.thasta && (!x.f || x.f>MF.thasta)) return false;
     return true;
   });
-  lista.sort(function(a,b){ return b.f.localeCompare(a.f); });
+  lista.sort(function(a,b){ return ordF(a.f, b.f); });
   return lista;
 }
 function ciCorto(v){ v=String(v||'').trim().toUpperCase(); return (v==='C'||v==='I')?v:''; }
@@ -2980,7 +2988,7 @@ function tiLotes(m){
         if(f){ if(!o.prim||f<o.prim) o.prim=f; if(!o.ult||f>o.ult) o.ult=f; } });
     });
   }
-  return Object.keys(map).map(function(k){ return map[k]; }).sort(function(a,b){ return (b.ult||'').localeCompare(a.ult||''); });
+  return Object.keys(map).map(function(k){ return map[k]; }).sort(function(a,b){ return ordF(a.ult, b.ult); });
 }
 function vistaTrazInv(){
   $('t-tit').textContent='Trazabilidad inversa';
@@ -3111,13 +3119,13 @@ function loteDeId(r){
 }
 function rvListas(){
   function enFecha(r){ var f=r.__f?isoDia(r.__f):''; return !(RV.desde && f<RV.desde) && !(RV.hasta && f>RV.hasta); }
-  var env=ROWS.filter(function(r){ return secDe(r)==='ENVASADO' && enFecha(r); }).sort(function(a,b){ return b.__t-a.__t; });
+  var env=ROWS.filter(function(r){ return secDe(r)==='ENVASADO' && enFecha(r); }).sort(function(a,b){ return ordN(a.__t, b.__t); });
   // Los IDs inventados salen también en PINTURA (el registro manual se los inventaba).
-  var envPint=ROWS.filter(function(r){ var s=secDe(r); return (s==='ENVASADO'||s==='PINTURA') && enFecha(r); }).sort(function(a,b){ return b.__t-a.__t; });
+  var envPint=ROWS.filter(function(r){ var s=secDe(r); return (s==='ENVASADO'||s==='PINTURA') && enFecha(r); }).sort(function(a,b){ return ordN(a.__t, b.__t); });
   return {
     // (v37) Un ID del año 24/25 sale en CUALQUIER sección (si alguien lo movió o vendió).
     ids: ROWS.filter(function(r){ var id=pidDe(r), s=secDe(r); if(!id || !/\d{4}/.test(id) || !enFecha(r)) return false;
-      return (s==='ENVASADO'||s==='PINTURA') ? idInventado(id) : (/^\d{6}/.test(id.replace(/\s/g,'')) && anioAntesQR(id.split('*')[0])); }).sort(function(a,b){ return b.__t-a.__t; }),
+      return (s==='ENVASADO'||s==='PINTURA') ? idInventado(id) : (/^\d{6}/.test(id.replace(/\s/g,'')) && anioAntesQR(id.split('*')[0])); }).sort(function(a,b){ return ordN(a.__t, b.__t); }),
     sala: env.filter(function(r){ return esSinQR(r) && (String(r['SALA ORIGEN']||'').trim() || String(r['SALA DESTINO']||'').trim()); }),
     cond: env.filter(function(r){ return CONDS.some(function(c){ return String(r[c[0]]||'').trim(); }); })
   };
@@ -4182,7 +4190,7 @@ function ptLista(){
     }
     if(q){ var t=[p.tipo,p.variedad,p.lote_queso,ptQuesero(p),(p.fermentos||[]).map(function(f){ return f&&f.nombre; }).join(' '),(p.cuajo||{}).nombre].join(' ').toUpperCase(); if(t.indexOf(q)<0) return false; }
     return true;
-  }).sort(function(a,b){ return (b.fecha>a.fecha?1:(b.fecha<a.fecha?-1:0)) || ((parseInt(a.cuba,10)||0)-(parseInt(b.cuba,10)||0)); });
+  }).sort(function(a,b){ return ordF(a.fecha, b.fecha) || ((parseInt(a.cuba,10)||0)-(parseInt(b.cuba,10)||0)); });
 }
 function vistaPartes(){
   if(VISTA_PE && PE) return;   // editando un parte: no se repinta (se perdería lo escrito)
