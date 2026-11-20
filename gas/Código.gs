@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 31;  // 31 (20/11): también se puede eliminar una apertura de garrafa (G-) hecha por error. 30 (19/11): las salidas de un parte se rehacen siempre con candado (el 22/10 un parte dejó la misma salida dos veces). 29 (19/11): se puede eliminar una APERTURA DE CONTENEDOR (C-) hecha por error, devolviendo su cantidad al stock. 28 (18/11): la Tª del camión de una entrada se guarda como número (Sheets convertía 8,1 en fecha). 27 (11/11): el consumo de un parte en L o kg se trata como ml o g (cuajo NATUREN 1500 L en vez de 1,5 L) y la ficha de stock se reintenta si no se pudo leer. 26 (09/11): la descarga normal admite formato=compacto y dias=N<90. 25 (09/11): completo admite dias=N (aparatos con poca memoria bajan solo los últimos N días). 24 (07/11): TERCERA CAPA y Nº CAPA viajan a móviles y oficina (estaban fuera de COLS). 23 (07/11): _UPDATE con _SOLO_SI_CAMBIA no escribe si ya estaba igual (marca «queso sin voltear» doble). 22 (06/11): una corrección (_UPDATE) puede crear columna nueva (TERCERA CAPA). 21 (05/11): aviso de tiernos para el jefe de almacén (tipo=avisoTiernos). 20 (04/11): control de recepción (quien descarga) y REF PROVEEDOR en entradas. 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
+const API_VERSION = 32;  // 32 (20/11): al eliminar una salida desde la oficina se quita un momento el filtro de la hoja (con filtro puesto la fila no se borraba pero el stock sí se devolvía) y solo se devuelve al stock lo que de verdad se ha borrado. 31 (20/11): también se puede eliminar una apertura de garrafa (G-) hecha por error. 30 (19/11): las salidas de un parte se rehacen siempre con candado (el 22/10 un parte dejó la misma salida dos veces). 29 (19/11): se puede eliminar una APERTURA DE CONTENEDOR (C-) hecha por error, devolviendo su cantidad al stock. 28 (18/11): la Tª del camión de una entrada se guarda como número (Sheets convertía 8,1 en fecha). 27 (11/11): el consumo de un parte en L o kg se trata como ml o g (cuajo NATUREN 1500 L en vez de 1,5 L) y la ficha de stock se reintenta si no se pudo leer. 26 (09/11): la descarga normal admite formato=compacto y dias=N<90. 25 (09/11): completo admite dias=N (aparatos con poca memoria bajan solo los últimos N días). 24 (07/11): TERCERA CAPA y Nº CAPA viajan a móviles y oficina (estaban fuera de COLS). 23 (07/11): _UPDATE con _SOLO_SI_CAMBIA no escribe si ya estaba igual (marca «queso sin voltear» doble). 22 (06/11): una corrección (_UPDATE) puede crear columna nueva (TERCERA CAPA). 21 (05/11): aviso de tiernos para el jefe de almacén (tipo=avisoTiernos). 20 (04/11): control de recepción (quien descarga) y REF PROVEEDOR en entradas. 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -2764,24 +2764,72 @@ function _borrarSalidaManual(payload) {
     if (cParte >= 0 && String(data[i][cParte] || '').trim() === id) copia.push(data[i]);
   }
   if (!copia.length) return out({ok:false, error:'No encuentro esa salida (puede que ya esté eliminada)'});
+  // (20/11, API 32) Con un FILTRO puesto en la hoja que oculta estas filas, deleteRow
+  // no las borraba, pero se devolvía la cantidad al stock y se decía «eliminada»
+  // (G- de 601/93M31HZ: tres «eliminadas» que seguían en la hoja). Ahora se quita el
+  // filtro un momento, se borra, se COMPRUEBA que la fila ya no está y solo entonces
+  // se devuelve al stock y se copia en eliminadas. El filtro se vuelve a poner.
+  var guardado = _quitarFiltroHoja(sheetSal);
+  var cCat = _colIdx(headers, 'CATEGORIA'), cArt = _colIdx(headers, 'ARTICULO'), cLote = _colIdx(headers, 'LOTE');
+  var cCant = _colIdx(headers, 'CANTIDAD'), cUni = _colIdx(headers, 'UNIDAD'), cIdS = _colIdx(headers, 'ID SALIDA');
+  var borradas = [];
+  try {
+    // Se borra aquí mismo (no con _borrarSalidasEnvasado: aquel salta las filas
+    // cuyo motivo dice «PARTE», y una observación escrita a mano podría decirlo).
+    for (var j = data.length - 1; j >= 1; j--) {
+      if (String(data[j][cParte] || '').trim() !== id) continue;
+      sheetSal.deleteRow(j + 1);
+      SpreadsheetApp.flush();
+      // ¿De verdad se ha ido? En su sitio no puede seguir la misma salida.
+      var sigue = false;
+      if (j + 1 <= sheetSal.getLastRow()) {
+        var ahora = sheetSal.getRange(j + 1, 1, 1, headers.length).getValues()[0];
+        sigue = String(ahora[cParte] || '').trim() === id &&
+                (cIdS < 0 || String(ahora[cIdS] || '').trim() === String(data[j][cIdS] || '').trim());
+      }
+      if (!sigue) borradas.push(data[j]);
+    }
+  } finally {
+    _ponerFiltroHoja(sheetSal, guardado);
+  }
+  if (!borradas.length) return out({ok:false, error:'La hoja no ha dejado borrar la fila. No se ha tocado el stock. Avisa a Joaquín'});
+  borradas.forEach(function(f){
+    var cant = cCant >= 0 ? (parseFloat(f[cCant]) || 0) : 0;
+    if (cant) _aplicarConsumoStock(cCat >= 0 ? f[cCat] : '', cArt >= 0 ? f[cArt] : '', cLote >= 0 ? f[cLote] : '', -cant, cUni >= 0 ? f[cUni] : '');
+  });
   try {
     var shE = ss.getSheetByName('SALIDAS MATERIAL ELIMINADAS');
     if (!shE) { shE = ss.insertSheet('SALIDAS MATERIAL ELIMINADAS'); shE.appendRow(['ELIMINADA EL','ELIMINADA POR'].concat(headers)); shE.setFrozenRows(1); }
     var quien = String(payload.quien || '').trim();
-    copia.forEach(function(f){ shE.appendRow([_cuandoTxt(), quien].concat(f.map(function(v){ return (v instanceof Date) ? _cuandoDe(v) : v; }))); });
+    borradas.forEach(function(f){ shE.appendRow([_cuandoTxt(), quien].concat(f.map(function(v){ return (v instanceof Date) ? _cuandoDe(v) : v; }))); });
   } catch (e) {}
-  // Se borra aquí mismo (no con _borrarSalidasEnvasado: aquel salta las filas
-  // cuyo motivo dice «PARTE», y una observación escrita a mano podría decirlo).
-  var cCat = _colIdx(headers, 'CATEGORIA'), cArt = _colIdx(headers, 'ARTICULO'), cLote = _colIdx(headers, 'LOTE');
-  var cCant = _colIdx(headers, 'CANTIDAD'), cUni = _colIdx(headers, 'UNIDAD'), n = 0;
-  for (var j = data.length - 1; j >= 1; j--) {
-    if (String(data[j][cParte] || '').trim() !== id) continue;
-    var cant = cCant >= 0 ? (parseFloat(data[j][cCant]) || 0) : 0;
-    if (cant) _aplicarConsumoStock(cCat >= 0 ? data[j][cCat] : '', cArt >= 0 ? data[j][cArt] : '', cLote >= 0 ? data[j][cLote] : '', -cant, cUni >= 0 ? data[j][cUni] : '');
-    sheetSal.deleteRow(j + 1);
-    n++;
-  }
-  return out({ok: n > 0, borradas: n});
+  return out({ok: true, borradas: borradas.length, deTotal: copia.length});
+}
+
+// (20/11, API 32) Quita el filtro de una hoja guardando cómo estaba, para que el
+// script pueda borrar filas que el filtro oculta; _ponerFiltroHoja lo restaura.
+function _quitarFiltroHoja(sh) {
+  try {
+    var f = sh.getFilter();
+    if (!f) return null;
+    var r = f.getRange(), c0 = r.getColumn(), nc = r.getNumColumns(), crit = [];
+    for (var c = c0; c < c0 + nc; c++) {
+      var cr = f.getColumnFilterCriteria(c);
+      if (cr) crit.push([c, cr.copy().build()]);
+    }
+    f.remove();
+    SpreadsheetApp.flush();
+    return { fila: r.getRow(), col: c0, nc: nc, crit: crit };
+  } catch (e) { return null; }
+}
+function _ponerFiltroHoja(sh, g) {
+  if (!g) return;
+  try {
+    if (sh.getFilter()) return;
+    var filas = Math.max(1, sh.getLastRow() - g.fila + 1);
+    var f = sh.getRange(g.fila, g.col, filas, g.nc).createFilter();
+    g.crit.forEach(function(x){ try { f.setColumnFilterCriteria(x[0], x[1]); } catch (e) {} });
+  } catch (e) {}
 }
 
 // ══════════════════════════════════════════════════════════════════════════
