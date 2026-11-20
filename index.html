@@ -1450,10 +1450,11 @@ textarea.finput{resize:vertical;min-height:60px;}
           <button onclick="toggleNuevoLoteC1()" style="width:100%;margin-top:6px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,94,200,0.25);border-radius:8px;padding:10px 8px;font-size:0.78rem;cursor:pointer;">Cambiar lote</button>
         </div>
         <div class="fg full" id="c1-nuevo-lote-wrap" style="display:none;">
-          <div class="flabel">Nuevo lote (transición 2 palets)</div>
-          <div id="c1-nuevo-lote-sel" style="margin-bottom:8px;"></div>
-          <input class="finput" type="text" id="c1-nuevo-lote" placeholder="Escribe o escanea nuevo lote" oninput="onNuevoLoteC1(this.value)" autocomplete="off">
-          <button onclick="abrirScanner('c1-lote')" style="margin-top:6px;width:100%;padding:10px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(26,58,106,0.25);border-radius:8px;font-size:0.85rem;cursor:pointer;">📷 Escanear lote</button>
+          <div class="flabel">Lote nuevo</div>
+          <!-- (v623) Sin escribir ni escanear a mano: un lote nuevo se elige de la lista
+               (Calidad tiene que haberle dado entrada). Joaquín, 20/11. -->
+          <div id="pint-nuevo-lote-sel" style="margin-bottom:8px;"></div>
+          <input type="hidden" id="pint-nuevo-lote">
         </div>
 
         <div class="fg">
