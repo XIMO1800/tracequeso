@@ -6518,9 +6518,55 @@ function onPintProd(prod){
       if(_mejor) lotePinturaPorProducto[prod]=_loteVigente(_mejor);
     }catch(_){}
   }
-  var loteActual=_loteVigente(lotePinturaPorProducto[prod])||'—';
-  document.getElementById('pint-lote-activo').textContent=loteActual;
+  // (v623) Si en los registros de este aparato no está (los móviles con poca
+  // memoria solo bajan los últimos 60 días y una garrafa puede durar más), se
+  // mira lo último que se usó en este aparato y, si tampoco, el STOCK: el lote
+  // de este producto que ya tiene consumo y aún le queda es el que está en uso.
+  // Solo un producto que nunca se ha usado se queda sin lote.
+  if(!lotePinturaPorProducto[prod]){
+    var _m=_memLotePint(prod);
+    if(_m) lotePinturaPorProducto[prod]=_m;
+  }
+  if(!lotePinturaPorProducto[prod]){
+    var _st=_loteEnUsoStock(prod);
+    if(_st) lotePinturaPorProducto[prod]=_st;
+    else if(typeof cargarMaterialAuxiliar==='function'){
+      cargarMaterialAuxiliar(function(){
+        if(pintProdActual!==prod || lotePinturaPorProducto[prod]) return;
+        var _s2=_loteEnUsoStock(prod);
+        if(_s2){ lotePinturaPorProducto[prod]=_s2; _memLotePint(prod,_s2); }
+        _pintarLoteActivo(prod);
+      });
+    }
+  }
+  if(lotePinturaPorProducto[prod]) _memLotePint(prod, _loteVigente(lotePinturaPorProducto[prod]));
+  _pintarLoteActivo(prod);
   try{ _pintarTarjetasProd(); }catch(e){}
+}
+function _pintarLoteActivo(prod){
+  var el=document.getElementById('pint-lote-activo'); if(!el) return;
+  var l=_loteVigente(lotePinturaPorProducto[prod]||'');
+  el.textContent = l || 'Producto nuevo: elige su lote en «Cambiar lote»';
+}
+// (v623) Último lote de pintura de cada producto, recordado en el aparato.
+function _memLotePint(prod, lote){
+  try{
+    var m=JSON.parse(localStorage.getItem('tq_lote_pint')||'{}'), k=_normNombre(prod);
+    if(lote===undefined) return m[k]||'';
+    if(lote){ m[k]=String(lote).trim(); localStorage.setItem('tq_lote_pint', JSON.stringify(m)); }
+  }catch(e){}
+  return '';
+}
+// (v623) Lote EN USO según el stock: de este producto, con consumo y con stock.
+// Si hubiera varios, el que menos le queda (el más gastado).
+function _loteEnUsoStock(prod){
+  var prodN=_normNombre(prod), mejor='', resto=Infinity;
+  (matStockRemote||[]).forEach(function(r){
+    if(_normNombre(r['ARTICULO'])!==prodN) return;
+    var c=parseFloat(r['CONSUMO'])||0, st=parseFloat(r['STOCK ACTUAL'])||0;
+    if(c>0 && st>0 && st<resto){ resto=st; mejor=String(r['LOTE']||'').trim(); }
+  });
+  return mejor;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -6676,7 +6722,7 @@ function poblarSelectLotePint(){
   function _render(){
     // (v623) «CAMBIAR LOTE» ES SOLO PARA EMPEZAR UN LOTE NUEVO (Joaquín, 20/11).
     // Salen únicamente lotes de ESTE producto, con stock, que todavía NO se han
-    // usado en pintura. Nunca los de otras pinturas (antes, si el producto no
+    // usado en pintura ni tienen consumo (ya empezados). Nunca los de otras pinturas (antes, si el producto no
     // tenía lotes con stock, salían todos) y nunca el lote que ya se está
     // usando: el 07/09 la pintora no veía su lote, lo buscó aquí, lo tocó seis
     // veces y se descontaron seis garrafas de 601/93M31HZ.
@@ -6690,7 +6736,7 @@ function poblarSelectLotePint(){
       });
     }catch(_){}
     var _lista=(matStockRemote||[]).filter(function(r){
-      return (parseFloat(r['STOCK ACTUAL'])||0)>0 && _normNombre(r['ARTICULO'])===prodN && !usados[String(r['LOTE']||'').trim()];
+      return (parseFloat(r['STOCK ACTUAL'])||0)>0 && !((parseFloat(r['CONSUMO'])||0)>0) && _normNombre(r['ARTICULO'])===prodN && !usados[String(r['LOTE']||'').trim()];
     }).map(function(l){
       return {lote:String(l['LOTE']||'').trim(), stock:parseFloat(l['STOCK ACTUAL'])||0, unidad:String(l['UNIDAD']||'kg').trim()||'kg', articulo:''};
     });
@@ -6745,6 +6791,7 @@ function onSelLotePint(v){
       if(inp) inp.value=v;
       onNuevoLotePint(v);   // transición de 2 palés, como siempre
       _descontarGarrafa(prod, v, true, true);
+      _memLotePint(prod, v);
       if(ant && resto.kg>0) _cerrarLotePint(prod, ant, resto.kg, resto.u);
       var w=document.getElementById('pint-nuevo-lote-wrap'); if(w) w.style.display='none';
       var la=document.getElementById('pint-lote-activo'); if(la) la.textContent=v+' (nuevo)';
