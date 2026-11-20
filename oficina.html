@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v92';
+var VER = 'v93';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -2114,7 +2114,7 @@ function fichaSalida(s){
   var st=MAT.stock.filter(function(x){ return nrm(x.ARTICULO||x['ARTÍCULO']||x.articulo)===nrm(art) && nrm(x.LOTE||x.lote)===nrm(lote); })[0]||{};
   var u=String(gEnt(s,['UNIDAD','unidad'])||st.UNIDAD||st.unidad||'');
   function val(v){ v=String(v==null?'':v).trim(); return v?esc(v):'<span class="sinv">—</span>'; }
-  $('p-tit').textContent=(String(s['ID PARTE']||'').indexOf('C-')===0?'Apertura de contenedor · ':'Salida manual · ')+art;
+  $('p-tit').textContent=(String(s['ID PARTE']||'').indexOf('C-')===0?'Apertura de contenedor · ':(String(s['ID PARTE']||'').indexOf('G-')===0?'Apertura de garrafa · ':'Salida manual · '))+art;
   $('p-sub').textContent='Lote '+lote+' · '+dmy(diaKey(s.FECHA||s.fecha));
   var _vl=MAT._fichaLote;
   var h=(_vl?'<p style="margin:0 0 8px"><button class="btn" id="p-volver">← Volver al lote '+esc(lote)+'</button></p>':'')
@@ -2131,8 +2131,10 @@ function fichaSalida(s){
       ['Registro', '<span class="mono">'+val(s['ID PARTE'])+'</span>']].map(function(x){ return '<div class="k">'+x[0]+'</div><div class="v">'+x[1]+'</div>'; }).join('')
     +'</div><p style="font-size:13px;color:var(--muted);margin-top:10px">'+(String(s['ID PARTE']||'').indexOf('C-')===0
         ? 'Apertura de contenedor: al elegir este lote en la capa, el contenedor entero sale del stock. Si se eligió por error y el contenedor sigue cerrado, elimínala y vuelve al stock.'
+        : String(s['ID PARTE']||'').indexOf('G-')===0
+        ? 'Apertura de garrafa: al elegir el lote o pulsar «Nueva garrafa», una garrafa sale del stock. Si se repitió por error y la garrafa sigue cerrada, elimínala y vuelve al stock.'
         : 'Salida dada a mano desde Material auxiliar → Salidas y consumos. Ya está descontada del stock del lote.')+'</p>'
-    +((puedeGuardar() && (String(s['ID PARTE']||'').indexOf('SM-')===0 || String(s['ID PARTE']||'').indexOf('C-')===0))?'<p style="margin-top:14px"><button class="btn pri" id="p-elim-sal">🗑 Eliminar esta salida</button></p><div id="sal-err" style="display:none;color:#b00020;font-weight:700;margin-top:8px"></div>':'');
+    +((puedeGuardar() && /^(SM|C|G)-/.test(String(s['ID PARTE']||'')))?'<p style="margin-top:14px"><button class="btn pri" id="p-elim-sal">🗑 Eliminar esta salida</button></p><div id="sal-err" style="display:none;color:#b00020;font-weight:700;margin-top:8px"></div>':'');
   $('p-body').innerHTML=h; $('panel').hidden=false; $('velo').hidden=false;
   if(_vl && $('p-volver')) $('p-volver').onclick=function(){ fichaLote(_vl); };
   if($('p-elim-sal')) $('p-elim-sal').onclick=function(){ salidaEliminar(s, this, art, lote, u); };
@@ -2172,6 +2174,7 @@ function abrirOrigen(s){
   if(id.indexOf('SM-')===0 || m.indexOf('SALIDA MANUAL')===0){ fichaSalida(s); return; }
   // (v91) Apertura de contenedor de 1ª/2ª capa (C-…): también es la propia salida, y se puede eliminar.
   if(id.indexOf('C-')===0 || m.indexOf('APERTURA CONTENEDOR')===0){ fichaSalida(s); return; }
+  if(id.indexOf('G-')===0 || m.indexOf('APERTURA GARRAFA')===0){ fichaSalida(s); return; }   // (v93)
   var r=ROWS.filter(function(x){ return String(x['ID']||'').trim()===id; })[0];
   if(r){ abrirFicha(r); return; }
   alert('Registro '+id+'\n\nNo está entre los datos de este ordenador. Pulsa "Actualizar datos" y vuelve a intentarlo.');
