@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v94';
+var VER = 'v95';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -640,6 +640,7 @@ var MENU=[
     {id:'trazq', t:'Trazabilidad por lote'},
     {id:'trazinv', t:'Trazabilidad inversa'},
     {id:'revision', t:'Corregir registros'},
+    {id:'cerrados', t:'Palés desdoblados usados'},
     {t:'Analíticas de leche', pronto:1},
     {t:'Informes de auditoría', pronto:1}
   ]},
@@ -691,6 +692,7 @@ function refrescar(){
   else if(VISTA==='partes') vistaPartes();
   else if(VISTA==='ubic') vistaUbic();
   else if(VISTA==='revision') vistaRevision();
+  else if(VISTA==='cerrados') vistaCerrados();
   else vistaInicio();
 }
 
@@ -2934,6 +2936,56 @@ function pvUbic(pid){
     +'</div>';
   $('pv-cam').onclick=function(){ ubPanelPoner(pid); };
   if(u) $('pv-ver').onclick=function(){ UBF.tab='buscar'; UBF.q=pid; ubGuardarF(); $('panel').hidden=true; $('velo').hidden=true; ir('ubic'); };
+}
+// (v95) PALÉS DESDOBLADOS / SELECCIONADOS QUE SE SIGUIERON USANDO (Joaquín, 20/11).
+// Al desdoblar, el palé se cierra y sus quesos pasan a palés nuevos con etiqueta
+// nueva. Si se siguió escaneando la etiqueta vieja, la pintura, el envasado o el
+// movimiento quedaron en un palé que ya no existe y al venderlo no cuadra.
+// Salen: los palés con registros DESPUÉS de cerrarse, y los registros (que no
+// son el propio cierre) grabados con sala DESDOBLADO o SELECCIONADO.
+function _esCierre(r){
+  var s=secDe(r), d=nrm(r['SALA DESTINO']);
+  return ((s==='DESDOBLAMIENTO'&&d==='DESDOBLADO')||(s==='SELECCIÓN'&&d==='SELECCIONADO')) && !/Nacido de/i.test(String(r['OBSERVACIONES']||''));
+}
+function _esSalaFisica(x){ return /^[1-9]\./.test(String(x||'').trim()); }
+function cerradosLista(){
+  var por={};
+  ROWS.forEach(function(r){ var p=pidDe(r); if(p) (por[p]=por[p]||[]).push(r); });
+  var out=[];
+  Object.keys(por).forEach(function(pid){
+    var regs=por[pid].slice().sort(function(a,b){ return a.__t-b.__t; });
+    var cierre=null; regs.forEach(function(r){ if(_esCierre(r)) cierre=r; });
+    var malos=regs.filter(function(r){
+      if(_esCierre(r)) return false;
+      var o=nrm(r['SALA ORIGEN']), d=nrm(r['SALA DESTINO']);
+      if(o==='DESDOBLADO'||o==='SELECCIONADO'||d==='DESDOBLADO'||d==='SELECCIONADO') return true;
+      return cierre && r.__t>cierre.__t;
+    });
+    if(!malos.length) return;
+    var ult=null; regs.forEach(function(r){ var s=secDe(r); if((s==='MOVIMIENTO'||s==='VOLTEO'||s.indexOf('1')===0) && _esSalaFisica(r['SALA DESTINO'])) ult=r; });
+    var hijos=''; if(cierre){ var m=String(cierre['OBSERVACIONES']||'').split('|')[0].match(/en:\s*(.+)$/i); if(m) hijos=m[1].split('+').map(function(x){ return x.trim().split('*')[0]; }).join(', '); }
+    out.push({pid:pid, cierre:cierre, hijos:hijos, malos:malos, ult:ult, t:malos[malos.length-1].__t});
+  });
+  return out.sort(function(a,b){ return ordN(a.t, b.t); });
+}
+function vistaCerrados(){
+  $('t-tit').textContent='Palés desdoblados usados';
+  $('t-sub').textContent='Palés cerrados (desdoblados o seleccionados) a los que después se les siguió registrando con la etiqueta vieja';
+  var L=cerradosLista();
+  var h='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)">Al desdoblar un palé, sus quesos pasan a <b>palés nuevos</b> con etiqueta nueva y el viejo queda cerrado. '
+    +'Aquí salen los palés viejos que <b>se siguieron usando</b>: pintura, envasado o movimientos hechos con la etiqueta vieja. Pincha uno para ver su historial. '
+    +'Desde la v627 la app ya no deja escanear un palé cerrado.</div>';
+  if(!L.length){ $('cont').innerHTML=h+'<div class="vacio">No hay ninguno. 👍</div>'; return; }
+  h+='<p style="font-weight:700;color:var(--brand);margin:6px 0">'+L.length+' palés</p><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th>Palé</th><th>Cerrado</th><th>Palés nuevos</th><th>Lo que se hizo después</th><th>Último movimiento real</th></tr></thead><tbody>';
+  L.forEach(function(x,i){
+    h+='<tr data-i="'+i+'"><td class="mono">'+esc(x.pid.split('*')[0])+'<br><small>'+esc(clavePalet(x.pid))+'</small></td>'
+      +'<td>'+(x.cierre?fDia(x.cierre.__f)+'<br><small>'+esc((secDe(x.cierre)==='SELECCIÓN'?'seleccionado':'desdoblado')+' · '+(x.cierre['OPERARIO']||''))+'</small>':'<small>sin registro de desdoblamiento</small>')+'</td>'
+      +'<td class="mono" style="white-space:normal">'+esc(x.hijos||'—')+'</td>'
+      +'<td style="white-space:normal">'+x.malos.map(function(r){ return fDia(r.__f)+' · <b>'+esc((SEC_TXT[secDe(r)]||secDe(r)).replace(/^\S+\s/,''))+'</b> · '+esc(r['OPERARIO']||''); }).join('<br>')+'</td>'
+      +'<td>'+(x.ult?esc(sl(x.ult['SALA DESTINO']))+'<br><small>'+fDia(x.ult.__f)+' · '+esc(x.ult['OPERARIO']||'')+'</small>':'—')+'</td></tr>';
+  });
+  $('cont').innerHTML=h+'</tbody></table></div>';
+  $('cont').querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(tr) verPale(L[+tr.getAttribute('data-i')].pid); };
 }
 function vistaPale(){
   $('t-tit').textContent='Historial de palé';
