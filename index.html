@@ -6669,12 +6669,28 @@ function poblarSelectLotePint(){
     // (v369) Lista propia: el nombre del producto solo se repite en el caso raro
     // de que se ofrezcan lotes de OTRAS pinturas (cuando la elegida no tiene).
     var _mismos = lotes.every(function(l){ return _normNombre(l['ARTICULO'])===prodN; });
-    _pintarListaLotes(sel.id, lotes.map(function(l){
+    var _lista = lotes.map(function(l){
       return {lote:String(l['LOTE']||'').trim(),
               stock:parseFloat(l['STOCK ACTUAL'])||0,
               unidad:String(l['UNIDAD']||'kg').trim()||'kg',
               articulo:_mismos?'':String(l['ARTICULO']||'').trim()};
-    }), onSelLotePint, '⚠️ Sin lotes dados de alta para este producto');
+    });
+    // (v621) Los lotes de ESTE producto usados en pintura en los últimos 90 días
+    // salen aunque su stock esté a 0: puede quedar una garrafa a medias. Al
+    // elegirlos se pregunta si es la empezada (no descuenta) o una nueva.
+    try{
+      var _ya={}; _lista.forEach(function(x){ _ya[x.lote]=1; });
+      var _lim=Date.now()-90*86400000, _us={};
+      (rawRows||[]).forEach(function(r){
+        if(normSeccion(r['SECCIÓN']||'')!=='PINTURA' || _normNombre(r['PRODUCTO'])!==prodN) return;
+        var f=parseFecha(r['FECHA']); if(!f || f.getTime()<_lim) return;
+        String(r['LOTE PRODUCTO']||'').split(/\||\s\/\s/).forEach(function(x){ x=x.trim(); if(x && !_ya[x]) _us[x]=Math.max(_us[x]||0, f.getTime()); });
+      });
+      Object.keys(_us).sort(function(a,b){ return _us[b]-_us[a]; }).slice(0,3).forEach(function(lt){
+        _lista.unshift({lote:lt, stock:null, articulo:'ya usado en pintura · puede haber garrafa empezada'});
+      });
+    }catch(_){}
+    _pintarListaLotes(sel.id, _lista, onSelLotePint, '⚠️ Sin lotes dados de alta para este producto');
   }
   if(typeof matCargado!=='undefined' && matCargado){
     _render();
@@ -6695,7 +6711,19 @@ function onSelLotePint(v){
     toast('Elige antes el producto: la garrafa tiene que quedar asociada a él.','err');
     return;
   }
-  _descontarGarrafa(pintProdActual, v, false, true);
+  // (v621) ¿GARRAFA EMPEZADA O NUEVA? (20/11) Elegir un lote descontaba siempre
+  // una garrafa. Pero a veces se vuelve a un lote que ya tiene una garrafa a
+  // medias (601/93M31HZ: una a medias y otra entera sin abrir). Si ese lote ya
+  // se ha usado en pintura alguna vez, se pregunta; si es la primera vez, es
+  // garrafa nueva seguro y se descuenta sin preguntar, como siempre.
+  var _usado=false;
+  try{ _usado=(rawRows||[]).some(function(r){ return normSeccion(r['SECCIÓN']||'')==='PINTURA' && String(r['LOTE PRODUCTO']||'').split(/\||\s\/\s/).map(function(x){ return x.trim(); }).indexOf(String(v).trim())>=0; }); }catch(_){}
+  if(!_usado){ _descontarGarrafa(pintProdActual, v, false, true); return; }
+  var _prodSel=pintProdActual;
+  _elegirOpcion('¿Qué garrafa vas a usar?', 'Lote <b>'+v+'</b> de '+_prodSel+'.', [
+    {t:'Una garrafa ya empezada', sub:'No se descuenta nada del stock', c:'#6b5a45', f:function(){ toast('Lote '+v+' · garrafa empezada (stock sin tocar)'); }},
+    {t:'Una garrafa nueva, sin abrir', sub:'Se descuenta una garrafa del stock', c:'#862133', f:function(){ _descontarGarrafa(_prodSel, v, false, true); }}
+  ], true);
 }
 // (v413) UNA PINTURA SIN PRODUCTO NO SE GUARDA.
 // El 10/09 se guardó una pintura con el lote puesto y el nombre del producto en
