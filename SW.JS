@@ -39,7 +39,7 @@ const CACHE = 'tracequeso-app';   // FIJO. No poner la versión aquí nunca más
 //
 // Así que: index nuevo → subir TAMBIÉN este archivo con la versión cambiada.
 // ═══════════════════════════════════════════════════════════════════════════
-const VERSION = 'v651';
+const VERSION = 'v652';
 const ASSETS = ['/tracequeso/', '/tracequeso/index.html'];
 
 // INSTALACIÓN: cachear archivos esenciales
