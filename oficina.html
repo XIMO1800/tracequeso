@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v95';
+var VER = 'v96';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -963,6 +963,20 @@ function abrirFicha(r){
   $('p-tit').textContent=_bob?('🔄 '+_bob.charAt(0)+_bob.slice(1).toLowerCase()):String(r['SECCIÓN']||'Registro');
   $('p-sub').textContent=fDia(r.__f)+' · '+String(r['OPERARIO']||'');   // (v16) sin hora: lo que importa es la fecha
   var h=_bob?('<div class="aviso" style="background:#eef3fb;border-color:#a9bbd6;color:#24477a;margin-bottom:10px">Este registro es un <b>'+_bob.toLowerCase()+'</b>, no el envasado de un palé. Lo guarda el móvil de envasado para descontar la bobina del stock. «PALE: …» es el palé que se estaba envasando cuando se cambió. <b>No lo borres</b>: si lo eliminas, la bobina vuelve al stock como si no se hubiera gastado.</div>'):'';
+  // (v96) CAMBIOS DE BOBINA DE ESTE ENVASADO (Joaquín, 22/11: Calidad los revisa
+  // aquí). Ligados por «PALE: id» (o «REG: id» si el envasado no tiene palé).
+  var _cbs=[];
+  if(!_bob && secDe(r)==='ENVASADO'){
+    var _pk=String(pidDe(r)||'').replace(/^'/,'').replace(/\s/g,'').toUpperCase(), _rid=String(r['ID']||'').trim();
+    _cbs=ROWS.filter(function(x){
+      if(!tipoBobina(x)) return false;
+      var o=String(x['OBSERVACIONES']||''), mr=o.match(/REG:\s*(\S+)/i);
+      if(mr) return !!_rid && mr[1].trim()===_rid;
+      var m=o.match(/PALE:\s*(.*)$/i);
+      return !!(m && _pk && m[1].replace(/^'/,'').replace(/\s/g,'').toUpperCase()===_pk);
+    }).sort(function(a,b){ return (a.__t||0)-(b.__t||0); });
+  }
+  function _esFondoCb(x){ return /FONDO/.test(tipoBobina(x)); }
   h+='<div class="ficha">';
   Object.keys(r).forEach(function(k){
     if(k.indexOf('__')===0) return;
@@ -970,8 +984,18 @@ function abrirFicha(r){
     if(/^SALA/.test(k)) v=sl(v)+(sl(v)!==String(v)?'  ('+v+')':'');
     if(k==='FECHA') v=fDia(r.__f);
     h+='<div class="k">'+esc(k)+'</div><div class="v">'+esc(v)+'</div>';
+    if(k==='REFERENCIA BOBINA FONDO' || k==='REFERENCIA BOBINA TAPA'){
+      var _f=(k==='REFERENCIA BOBINA FONDO');
+      _cbs.forEach(function(x){ if(_esFondoCb(x)!==_f) return;
+        h+='<div class="k">CAMBIO DE BOBINA</div><div class="v">'+esc(String(x[k]||''))+'</div>'; });
+    }
   });
   h+='</div>';
+  if(_cbs.length){
+    h+='<h3 class="pbt">🔁 Cambios de bobina <small class="cnt">'+_cbs.length+'</small></h3><table class="ptab"><thead><tr><th>Cuándo</th><th>Bobina</th><th>Lote</th><th>Quién</th></tr></thead><tbody>'
+      +_cbs.map(function(x){ var f=_esFondoCb(x); return '<tr><td>'+fDia(x.__f)+' '+fHora(x.__f)+'</td><td>'+(f?'Fondo':'Tapa')+'</td><td class="mono">'+esc(String(x[f?'REFERENCIA BOBINA FONDO':'REFERENCIA BOBINA TAPA']||''))+'</td><td>'+esc(x['OPERARIO']||'')+'</td></tr>'; }).join('')
+      +'</tbody></table>';
+  }
   // (v65) QUESO SIN VOLTEAR → 3ª CAPA (Joaquín, 06/11): lo marca Calidad aquí,
   // en la 1ª capa de cada palé; el operario no marca nada. En el plan de trabajo
   // los palés salen a los 45 días con «Sin voltear · 3ª capa».
