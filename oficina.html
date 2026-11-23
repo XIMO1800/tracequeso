@@ -96,6 +96,7 @@ button,input,select{font:inherit}
 .chips button.on{border:2px solid var(--brand);color:var(--brand);background:#fff}
 
 /* Tabla */
+#etq-root thead th{top:var(--etq-top,62px);z-index:3;box-shadow:0 1px 0 var(--line)}   /* (v106) cabecera fija bajo la barra de arriba */
 .tbl-wrap{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:calc(100vh - 290px)}
 table{border-collapse:collapse;width:100%;font-size:15px;font-variant-numeric:tabular-nums}
 thead th{position:sticky;top:0;z-index:1;background:var(--surface2);text-align:left;font-size:12.5px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.04em;padding:8px 8px;border-bottom:1.5px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
@@ -400,7 +401,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v105';
+var VER = 'v106';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -3320,6 +3321,7 @@ function vistaEtiq(){
         +'<td class="num">'+fmtN(f.st)+'</td><td class="mono" style="white-space:normal;font-size:12px">'+esc(f.lotes.join(' · '))+'</td></tr>'; }).join('')
     +'</tbody></table>';
   box.innerHTML='<div id="etq-root">'+h+'</div>';
+  try{ var _tp=document.querySelector('.top'); if(_tp) document.documentElement.style.setProperty('--etq-top', _tp.offsetHeight+'px'); }catch(_){}
   var bc=$('etq-cargar'); if(bc) bc.onclick=etqCargarInventario;
   $('etq-q').oninput=function(){ ETQ.q=this.value; var p=this.selectionStart; vistaEtiq(); var e=$('etq-q'); e.focus(); try{ e.setSelectionRange(p,p); }catch(_){} };
   $('etq-env').onchange=function(){ ETQ.soloEnv=this.checked; vistaEtiq(); };
