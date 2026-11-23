@@ -46,9 +46,10 @@ function leerCatalogoEtiquetas(){
 
 function gestionarCatalogoEtiqueta(p){
   function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
-  var lock = LockService.getScriptLock();
-  try { lock.waitLock(20000); } catch(e) { return out({ok:false, error:'Ocupado, vuelve a intentarlo'}); }
-  try {
+  // (API 35) SIN candado propio: doPost ya entra con el candado del script
+  // (_conCandado). Pedirlo otra vez aquí hacía que la llamada se esperase a sí
+  // misma 20 s y acabase en «Ocupado, vuelve a intentarlo» (Joaquín, 23/11).
+  {
     var sh = _hojaEtiqCat(true);
     var d = sh.getDataRange().getValues();
     var h = d[0].map(function(x){ return String(x||'').trim().toUpperCase(); });
@@ -88,7 +89,5 @@ function gestionarCatalogoEtiqueta(p){
       sh.getRange(desde, 1, nuevas.length, h.length).setNumberFormat('@').setValues(nuevas);
     }
     return out({ok:true, guardadas:hechas});
-  } finally {
-    lock.releaseLock();
   }
 }
