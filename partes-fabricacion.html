@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.514</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.515</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4312,7 +4312,7 @@ function _cuajadaDelParte(d, p){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// (v2.6.514) ¿SE EQUIVOCÓ EL QUESERO DE CUBA FÍSICA? (Joaquín, 18/11)
+// (v2.6.515) ¿SE EQUIVOCÓ EL QUESERO DE CUBA FÍSICA? (Joaquín, 18/11)
 // La 4ª cuba del 18/11 decía «física 3» y en el archivo de la 3 no había nada a
 // esa hora; en el de la 2 sí. Joaquín lo vio mirando a mano los otros archivos.
 // Ahora lo hace la app: si el parte no cuadra con su cuba (o no hay archivo), se
@@ -5117,10 +5117,10 @@ function _htmlParteImpresion(p){
   H.push('<div class="cas"><span class="lbl">Nº CASEÍNAS:</span> '+casTxt+'</div>');   // (08/11) separado de las piezas y con letra más grande
   H.push('<div class="acc"><span class="lbl">Acciones correctoras:</span> '+n(p.observaciones)+'</div>');   // (08/11) crece para llenar la hoja hasta abajo
   var firmaImg = p.firma_quesero ? ('<img src="'+p.firma_quesero+'">') : '';
-  var firmaNom = p.firma_quesero_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_quesero_nombre)+(p.firma_quesero_ts?(' · '+e(_fFirmaDia(p.firma_quesero_ts))):'')+'</div>') : '';
+  var firmaNom = p.firma_quesero_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_quesero_nombre)+'</div>') : '';
   var salaImg = p.firma_sala ? ('<img src="'+p.firma_sala+'">') : '';
-  var salaNom = p.firma_sala_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_sala_nombre)+(p.firma_sala_ts?(' · '+e(_fFirmaDia(p.firma_sala_ts))):'')+'</div>') : '';
-  var vbCalidad = p.revisado_calidad ? ((p.firma_calidad?('<img src="'+p.firma_calidad+'">'):'')+'<div class="vb"><b>✓ Revisado por Calidad</b><br>'+e(p.revisado_calidad_por||'Calidad')+(p.revisado_calidad_ts?(' · '+e(p.revisado_calidad_ts)):'')+'</div>') : '';
+  var salaNom = p.firma_sala_nombre ? ('<div style="font-size:9px;margin-top:2px">'+e(p.firma_sala_nombre)+'</div>') : '';
+  var vbCalidad = p.revisado_calidad ? ((p.firma_calidad?('<img src="'+p.firma_calidad+'">'):'')+'<div class="vb"><b>✓ Revisado por Calidad</b><br>'+e(p.revisado_calidad_por||'Calidad')+'</div>') : '';
   H.push('<div class="firmas">');
   H.push('<div class="firmabox"><span class="lbl">FIRMA QUESERO:</span>'+firmaImg+firmaNom+'</div>');
   H.push('<div class="firmabox"><span class="lbl">FIRMA OPERARIO SALA:</span>'+salaImg+salaNom+'</div>');
