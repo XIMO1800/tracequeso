@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v97';
+var VER = 'v98';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -640,6 +640,7 @@ var MENU=[
     {id:'trazq', t:'Trazabilidad por lote'},
     {id:'trazinv', t:'Trazabilidad inversa'},
     {id:'revision', t:'Corregir registros'},
+    {id:'papel', t:'Pasar registro del papel'},
     {id:'cerrados', t:'Palés desdoblados usados'},
     {t:'Analíticas de leche', pronto:1},
     {t:'Informes de auditoría', pronto:1}
@@ -693,6 +694,7 @@ function refrescar(){
   else if(VISTA==='ubic') vistaUbic();
   else if(VISTA==='revision') vistaRevision();
   else if(VISTA==='cerrados') vistaCerrados();
+  else if(VISTA==='papel') vistaPapel();
   else vistaInicio();
 }
 
@@ -1293,7 +1295,7 @@ function cargarMat(forzar){
     MAT.rec=(r[1]&&r[1].ok&&r[1].data)||[];
     MAT.cargado=true;
   }).catch(function(e){ MAT.err=e.message||String(e); })
-  .then(function(){ MAT.cargando=false; MAT.hora=new Date(); pintarMenu(); if(VISTA==='mat') vistaMat(); else if(VISTA==='trazinv') tiLista(); });
+  .then(function(){ MAT.cargando=false; MAT.hora=new Date(); pintarMenu(); if(VISTA==='mat') vistaMat(); else if(VISTA==='trazinv') tiLista(); else if(VISTA==='papel') vistaPapel(); });
 }
 
 // Stock por LOTE, normalizado (las cabeceras de la hoja varían de acento).
@@ -3010,6 +3012,173 @@ function vistaCerrados(){
   });
   $('cont').innerHTML=h+'</tbody></table></div>';
   $('cont').querySelector('tbody').onclick=function(ev){ var tr=ev.target.closest('tr'); if(tr) verPale(L[+tr.getAttribute('data-i')].pid); };
+}
+// ═══════════════════════════════════════════════════════════════════════════
+// (v98) PASAR REGISTRO DEL PAPEL — solo Calidad / Admin (Joaquín, 23/11)
+// ───────────────────────────────────────────────────────────────────────────
+// Registros que se apuntaron en papel y no en la app (p. ej. dos palés pintados
+// el sábado). Todo se ELIGE, nada se teclea: fecha en calendario, operario de la
+// lista, producto y lote de la lista (también lotes ya terminados), palé de los
+// que existen. No descuenta stock (la garrafa ya se gastó ese día) y no toca el
+// lote activo de los móviles. Queda marcado en observaciones quién lo pasó.
+// ═══════════════════════════════════════════════════════════════════════════
+var PP={sec:'PINTURA', fecha:'', hora:'', op:'', prod:'', lote:'', obs:'', pales:[], ops:null, opsErr:'', busca:[], guardando:false, hecho:null};
+function ppEsCalidad(){ var n=CU?String(CU.n||'').toUpperCase():''; return n==='JOAQUIN' || rolTiene(CU&&CU.rol,'CALIDAD') || rolTiene(CU&&CU.rol,'ADMIN'); }
+function ppCargarOps(){
+  if(PP.ops || PP._cargandoOps) return; PP._cargandoOps=true;
+  fetchJSON(API_URL+'?tipo=operarios&t='+Date.now()).then(function(j){
+    var l=(j&&(j.data||j.operarios))||[]; PP.ops=l.filter(function(o){ return o && o.n; });
+  }).catch(function(e){ PP.opsErr=e.message||String(e); PP.ops=null; })
+  .then(function(){ PP._cargandoOps=false; if(VISTA==='papel') vistaPapel(); });
+}
+function ppProductos(){
+  var s={};
+  ROWS.forEach(function(r){ if(secDe(r)==='PINTURA'){ var p=String(r['PRODUCTO']||'').trim().toUpperCase(); if(p) s[p]=1; } });
+  (MAT.stock||[]).forEach(function(x){ var c=nrm(x.CATEGORIA||x['CATEGORÍA']||x.categoria); if(c.indexOf('RECUBRIMIENTO')>=0){ var a=nrm(x.ARTICULO||x['ARTÍCULO']||x.articulo); if(a && a.indexOf('ANTIFUNG')<0) s[a]=1; } });
+  return Object.keys(s).sort();
+}
+function ppNormNom(v){ return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+// Todos los lotes de ese producto: los del stock (con o sin existencias) y los ya
+// usados en pintura. Con el último día de uso para reconocerlos.
+function ppLotes(prod){
+  var pn=ppNormNom(prod), m={};
+  function k(l){ l=String(l||'').trim(); if(!l) return null; return m[l]||(m[l]={lote:l, ult:0, st:null, u:''}); }
+  ROWS.forEach(function(r){
+    if(secDe(r)!=='PINTURA' || ppNormNom(r['PRODUCTO'])!==pn) return;
+    String(r['LOTE PRODUCTO']||'').split(/\||\s\/\s/).forEach(function(x){ var o=k(x); if(o && r.__t>o.ult) o.ult=r.__t; });
+  });
+  (MAT.stock||[]).forEach(function(x){
+    if(ppNormNom(x.ARTICULO||x['ARTÍCULO']||x.articulo)!==pn) return;
+    var o=k(x.LOTE||x.lote); if(!o) return; o.st=(o.st||0)+(parseFloat(x['STOCK ACTUAL'])||0); o.u=String(x.UNIDAD||x.unidad||'').trim();
+  });
+  return Object.keys(m).map(function(l){ return m[l]; }).sort(function(a,b){ return (b.ult||0)-(a.ult||0) || (a.lote<b.lote?-1:1); });
+}
+// Sala en la que estaba el palé justo antes de esa fecha.
+function ppSalaEn(pid, t){
+  var u='', tu=-1, base=pid.split('*')[0].replace(/\s/g,'');
+  ROWS.forEach(function(r){ var p=pidDe(r); if(!p || p.split('*')[0].replace(/\s/g,'')!==base) return; var d=String(r['SALA DESTINO']||'').trim(); if(d && r.__t<=t && r.__t>=tu){ tu=r.__t; u=d; } });
+  return u;
+}
+function ppPintadoAntes(pid){
+  var base=pid.split('*')[0].replace(/\s/g,''), l=[];
+  ROWS.forEach(function(r){ if(secDe(r)==='PINTURA' && pidDe(r).split('*')[0].replace(/\s/g,'')===base) l.push(r); });
+  return l;
+}
+function ppTiempo(){
+  var m=String(PP.fecha||'').match(/^(\d{4})-(\d{2})-(\d{2})$/), h=String(PP.hora||'').match(/^(\d{1,2}):(\d{2})/);
+  if(!m||!h) return null;
+  return new Date(+m[1],+m[2]-1,+m[3],+h[1],+h[2],0);
+}
+function vistaPapel(){
+  $('t-tit').textContent='Pasar registro del papel';
+  $('t-sub').textContent='Registros apuntados en papel que faltan en la app';
+  if(!ppEsCalidad()){ $('cont').innerHTML='<div class="vacio">Solo para Calidad.</div>'; return; }
+  if(!MAT.cargado && !MAT.cargando) cargarMat();
+  ppCargarOps();
+  if(PP.hecho){
+    var hh='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)"><b>✓ Guardados '+PP.hecho.ok+' de '+PP.hecho.n+'</b>'
+      +(PP.hecho.err.length?'<br><span style="color:#a11">No se guardaron: '+PP.hecho.err.map(esc).join(', ')+'</span>':'')+'</div>'
+      +'<button class="btn pri" id="pp-otro">Pasar otro</button>';
+    $('cont').innerHTML=hh; $('pp-otro').onclick=function(){ PP.hecho=null; PP.pales=[]; PP.obs=''; vistaPapel(); }; return;
+  }
+  var hoy=isoDia(new Date());
+  var ops=PP.ops||[];
+  var deSec=ops.filter(function(o){ return o.p && +o.p.pintura===1; }), resto=ops.filter(function(o){ return !(o.p && +o.p.pintura===1); });
+  function optOp(o){ return '<option value="'+esc(o.n)+'"'+(PP.op===o.n?' selected':'')+'>'+esc(o.n)+'</option>'; }
+  var prods=ppProductos(), lotes=PP.prod?ppLotes(PP.prod):[];
+  var lab='style="display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em"';
+  var inp='style="font-size:16px;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;min-width:180px"';
+  var h='<div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn" style="background:var(--brand);border-color:var(--brand);color:#fff">Pintura</button></div>';
+  h+='<div class="filt">'
+    +'<label '+lab+'>Día<input type="date" id="pp-fecha" max="'+hoy+'" value="'+esc(PP.fecha)+'" '+inp+'></label>'
+    +'<label '+lab+'>Hora<input type="time" id="pp-hora" value="'+esc(PP.hora)+'" '+inp+'></label>'
+    +'<label '+lab+'>Operario<select id="pp-op" '+inp+'><option value="">'+(PP.ops?'— Elige —':(PP.opsErr?'No se pudo cargar':'Cargando…'))+'</option>'
+      +(deSec.length?'<optgroup label="Pintura">'+deSec.map(optOp).join('')+'</optgroup>':'')
+      +(resto.length?'<optgroup label="Otros">'+resto.map(optOp).join('')+'</optgroup>':'')+'</select></label>'
+    +'</div>';
+  h+='<div class="filt">'
+    +'<label '+lab+'>Producto<select id="pp-prod" '+inp.replace('min-width:180px','min-width:340px')+'><option value="">— Elige —</option>'+prods.map(function(p){ return '<option'+(PP.prod===p?' selected':'')+'>'+esc(p)+'</option>'; }).join('')+'</select></label>'
+    +'<label '+lab+'>Lote<select id="pp-lote" '+inp.replace('min-width:180px','min-width:300px')+(PP.prod?'':' disabled')+'><option value="">'+(PP.prod?(lotes.length?'— Elige —':'Sin lotes'):'Elige antes el producto')+'</option>'
+      +lotes.map(function(o){ var d=o.ult?new Date(o.ult):null; return '<option value="'+esc(o.lote)+'"'+(PP.lote===o.lote?' selected':'')+'>'+esc(o.lote)+(d?' · usado hasta '+fDia(d):'')+(o.st!==null?' · stock '+fmtN(Math.round(o.st*100)/100)+(o.u?' '+esc(o.u):''):'')+'</option>'; }).join('')+'</select></label>'
+    +(MAT.cargando?'<span style="color:var(--muted);font-size:13px">cargando stock…</span>':'')
+    +'</div>';
+  // Palés
+  h+='<div class="filt" style="align-items:flex-start;flex-direction:column">'
+    +'<label '+lab+'>Palé<span style="display:flex;gap:8px"><input type="search" id="pp-q" placeholder="Número del palé (al menos 5 cifras)" '+inp.replace('min-width:180px','min-width:320px')+'><button class="btn" id="pp-buscar">Buscar</button></span></label>'
+    +'<div id="pp-res" style="width:100%">'+PP.busca.map(function(p,i){ return '<button class="btn" data-add="'+i+'" style="margin:3px 6px 3px 0;font-family:monospace">'+esc(p)+' <small style="color:var(--muted)">'+esc(clavePalet(p))+'</small></button>'; }).join('')+'</div>';
+  if(PP.pales.length){
+    var t=ppTiempo();
+    h+='<table style="margin-top:6px"><thead><tr><th>Palé</th><th>Queso</th><th style="text-align:right">Piezas</th><th>Sala ese día</th><th>No aptas</th><th></th></tr></thead><tbody>'
+      +PP.pales.map(function(x,i){ var inf=parsearId(x.pid), sala=t?ppSalaEn(x.pid, t.getTime()):'', ya=ppPintadoAntes(x.pid);
+        return '<tr><td class="mono">'+esc(x.pid)+(ya.length?'<br><small style="color:#a11">ya tiene pintura del '+ya.map(function(r){ return fDia(r.__f); }).join(', ')+'</small>':'')+'</td><td>'+esc(clavePalet(x.pid))+'</td><td class="num">'+(inf.piezas||'')+'</td><td>'+esc(sala?sl(sala):(t?'—':'elige día y hora'))+'</td>'
+          +'<td><input type="number" min="0" data-na="'+i+'" value="'+esc(x.na||0)+'" style="width:70px;font-size:15px;padding:4px"></td><td><button class="btn" data-quita="'+i+'">Quitar</button></td></tr>'; }).join('')
+      +'</tbody></table>';
+  }
+  h+='</div>';
+  h+='<div class="filt"><label '+lab+' style="flex:1">Observaciones<input id="pp-obs" value="'+esc(PP.obs)+'" placeholder="Opcional" '+inp.replace('min-width:180px','width:100%')+'></label></div>';
+  h+='<div id="pp-err" style="color:#a11;font-weight:700;margin:6px 0"></div>'
+    +'<button class="btn pri" id="pp-guardar" style="font-size:17px;padding:10px 22px"'+(PP.guardando?' disabled':'')+'>'+(PP.guardando?'Guardando…':'Guardar '+(PP.pales.length||'')+' registro'+(PP.pales.length===1?'':'s'))+'</button>';
+  $('cont').innerHTML='<div id="pp-root">'+h+'</div>';
+  $('pp-fecha').onchange=function(){ PP.fecha=this.value; vistaPapel(); };
+  $('pp-hora').onchange=function(){ PP.hora=this.value; vistaPapel(); };
+  $('pp-op').onchange=function(){ PP.op=this.value; };
+  $('pp-prod').onchange=function(){ PP.prod=this.value; PP.lote=''; vistaPapel(); };
+  $('pp-lote').onchange=function(){ PP.lote=this.value; };
+  $('pp-obs').oninput=function(){ PP.obs=this.value; };
+  function buscar(){
+    var q=String($('pp-q').value||'').replace(/\s/g,''); if(q.length<5){ $('pp-err').textContent='Pon al menos 5 cifras del palé.'; return; }
+    var set={}; ROWS.forEach(function(r){ var p=pidDe(r); if(p && p.replace(/\s/g,'').indexOf(q)>=0) set[p]=1; });
+    var l=Object.keys(set).sort();
+    if(!l.length){ PP.busca=[]; vistaPapel(); $('pp-err').textContent='No hay ningún palé con '+q+'.'; return; }
+    if(l.length===1){ ppAdd(l[0]); return; }
+    PP.busca=l.slice(0,30); vistaPapel(); try{ $('pp-q').value=q; }catch(e){}
+  }
+  function ppAdd(p){ PP.busca=[]; if(!PP.pales.some(function(x){ return x.pid===p; })) PP.pales.push({pid:p, na:0}); vistaPapel(); try{ $('pp-q').focus(); }catch(e){} }
+  $('pp-buscar').onclick=buscar; $('pp-q').onkeydown=function(e){ if(e.key==='Enter') buscar(); };
+  $('pp-root').onclick=function(ev){
+    var a=ev.target.closest('[data-add]'); if(a){ ppAdd(PP.busca[+a.getAttribute('data-add')]); return; }
+    var q=ev.target.closest('[data-quita]'); if(q){ PP.pales.splice(+q.getAttribute('data-quita'),1); vistaPapel(); }
+  };
+  [].forEach.call($('cont').querySelectorAll('[data-na]'), function(el){ el.oninput=function(){ PP.pales[+el.getAttribute('data-na')].na=parseInt(el.value,10)||0; }; });
+  $('pp-guardar').onclick=ppGuardar;
+}
+function ppGuardar(){
+  if(PP.guardando) return;
+  var err=$('pp-err'), t=ppTiempo();
+  if(!PP.fecha){ err.textContent='Elige el día.'; return; }
+  if(!PP.hora){ err.textContent='Elige la hora.'; return; }
+  if(t.getTime()>Date.now()){ err.textContent='La fecha no puede ser futura.'; return; }
+  if(!PP.op){ err.textContent='Elige el operario.'; return; }
+  if(!PP.prod){ err.textContent='Elige el producto.'; return; }
+  if(!PP.lote){ err.textContent='Elige el lote.'; return; }
+  if(!PP.pales.length){ err.textContent='Añade al menos un palé.'; return; }
+  var fTxt=t.getDate()+'/'+(t.getMonth()+1)+'/'+t.getFullYear()+', '+t.getHours()+':'+pad(t.getMinutes())+':00';
+  var marca='[PASADO DEL PAPEL por '+String(CU.n||'')+' el '+fDia(new Date())+']';
+  var regs=PP.pales.map(function(x,i){
+    var inf=parsearId(x.pid), sala=ppSalaEn(x.pid, t.getTime());
+    return {'ID':'ID-'+(Date.now()+i)+'-'+Math.random().toString(36).substring(2,7), 'ID_DISPOSITIVO':'OFICINA',
+      'ID PALET':x.pid, 'SECCIÓN':'PINTURA', 'OPERARIO':PP.op, 'FECHA':fTxt,
+      'LOTE QUESO':inf.lote||x.pid.substring(0,7), 'TIPO DE QUESO':inf.tipo, 'VARIEDAD':inf.variedad, 'FORMATO/PESO':inf.fmt, 'Nº DE PIEZAS':inf.piezas||'',
+      'PRODUCTO':PP.prod, 'LOTE PRODUCTO':PP.lote, 'SALA ORIGEN':sala, 'SALA DESTINO':sala,
+      'Nº PIEZAS NO APTAS':String(x.na||0), 'OBSERVACIONES':(PP.obs?PP.obs+' ':'')+marca};
+  });
+  PP.guardando=true; vistaPapel();
+  var ok=0, malos=[];
+  var cadena=Promise.resolve();
+  regs.forEach(function(reg){
+    cadena=cadena.then(function(){
+      return fetch(API_URL,{method:'POST', body:JSON.stringify(reg)}).then(function(r){ return r.text(); }).then(function(tx){
+        var j=null; try{ j=JSON.parse(tx); }catch(e){}
+        if(j && j.ok===true){ ok++; try{ ROWS.push(reg); prep([reg]); }catch(e){} }
+        else malos.push(reg['ID PALET']);
+      }).catch(function(){ malos.push(reg['ID PALET']); });
+    });
+  });
+  cadena.then(function(){
+    PP.guardando=false; PP.hecho={ok:ok, n:regs.length, err:malos};
+    try{ guardarCopia(); }catch(e){}
+    if(VISTA==='papel') vistaPapel();
+  });
 }
 function vistaPale(){
   $('t-tit').textContent='Historial de palé';
