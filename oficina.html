@@ -401,7 +401,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v106';
+var VER = 'v107';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -1347,6 +1347,7 @@ function recPend(){ return MAT.rec.filter(function(r){ var e=nrm(r.ESTADO); retu
 function _etqEscribiendo(){ var ae=document.activeElement; return !!(ae && ae.closest && ae.closest('#etq-root') && ae.id!=='etq-q' && ae.tagName==='INPUT' && ae.type!=='checkbox'); }
 function vistaMat(){
   if(MF.tab==='etiq' && _etqEscribiendo()){ ETQ.pend=true; return; }   // (v105) no borrar lo que se está escribiendo
+  var _syM=window.scrollY; setTimeout(function(){ if(MF.tab==='etiq') window.scrollTo(0,_syM); },0);
   $('t-tit').textContent='Material auxiliar';
   $('t-sub').textContent='Calidad · entradas, salidas, stock, trazabilidad y recepciones';
   if(!MAT.cargado){
@@ -3274,18 +3275,28 @@ function etqFilas(){
     out.push({cod:'', art:l?l.art:k, corto:'', env:false, st:porArt[k].st, lotes:porArt[k].lotes.sort(), sinCat:true}); });
   return out.sort(function(a,b){ return (a.cod||'~'+a.art)<(b.cod||'~'+b.art)?-1:1; });
 }
+// (v107) Los guardados van EN FILA, uno detrás de otro, y la fila se actualiza en
+// el momento (no al volver el servidor). Antes, escribir el nombre y tocar la casilla
+// mandaba dos guardados a la vez y el segundo, con el nombre aún vacío, lo borraba.
+var _etqCola=Promise.resolve();
 function etqGuardar(f, cambios, el){
-  var x=Object.assign({codigo:f.cod, articulo:f.art, corto:f.corto, envasado:f.env}, cambios);
+  var antes=f.cod;
+  if(cambios.hasOwnProperty('codigo')) f.cod=String(cambios.codigo||'').toUpperCase();
+  if(cambios.hasOwnProperty('corto')) f.corto=String(cambios.corto||'').toUpperCase();
+  if(cambios.hasOwnProperty('envasado')) f.env=!!cambios.envasado;
+  var c=etqCat().filter(function(c){ return (antes && nrm(c.CODIGO)===nrm(antes)) || (!antes && nrm(c.ARTICULO)===nrm(f.art)); })[0];
+  if(!c){ c={}; (MAT.etq=MAT.etq||[]).push(c); }
+  c.CODIGO=f.cod; c.ARTICULO=f.art; c['NOMBRE CORTO']=f.corto; c.ENVASADO=f.env?'SI':'NO'; f.sinCat=false;
+  var x={codigo:f.cod, articulo:f.art, corto:f.corto, envasado:f.env}; if(cambios.codigoAntes) x.codigoAntes=cambios.codigoAntes;
   if(el) el.style.outline='2px solid #c8a14a';
-  return fetch(API_URL,{method:'POST', body:JSON.stringify(Object.assign({_SHEET:'ETIQUETA_CAT', accion:'guardar', quien:(CU&&CU.n)||''}, x))})
-    .then(function(r){ return r.json(); }).then(function(j){
-      if(!j || !j.ok) throw new Error((j&&j.error)||'no se guardó');
-      var c=etqCat().filter(function(c){ return (f.cod && nrm(c.CODIGO)===nrm(f.cod)) || (!f.cod && nrm(c.ARTICULO)===nrm(f.art)); })[0];
-      if(!c){ c={}; (MAT.etq=MAT.etq||[]).push(c); }
-      c.CODIGO=String(x.codigo||'').toUpperCase(); c.ARTICULO=x.articulo; c['NOMBRE CORTO']=String(x.corto||'').toUpperCase(); c.ENVASADO=x.envasado?'SI':'NO';
-      f.cod=c.CODIGO; f.corto=c['NOMBRE CORTO']; f.env=x.envasado; f.sinCat=false;
-      if(el){ el.style.outline='2px solid #3a6a2a'; setTimeout(function(){ el.style.outline=''; },900); }
-    }).catch(function(e){ if(el) el.style.outline='2px solid #b3261e'; alert('No se ha guardado: '+e.message); });
+  _etqCola=_etqCola.then(function(){
+    return fetch(API_URL,{method:'POST', body:JSON.stringify(Object.assign({_SHEET:'ETIQUETA_CAT', accion:'guardar', quien:(CU&&CU.n)||''}, x))})
+      .then(function(r){ return r.json(); }).then(function(j){
+        if(!j || !j.ok) throw new Error((j&&j.error)||'no se guardó');
+        if(el){ el.style.outline='2px solid #3a6a2a'; setTimeout(function(){ el.style.outline=''; },900); }
+      }).catch(function(e){ if(el) el.style.outline='2px solid #b3261e'; alert('No se ha guardado '+(f.cod||f.art)+': '+e.message+'\nVuelve a escribirlo.'); });
+  });
+  return _etqCola;
 }
 function vistaEtiq(){
   // (v103) Es una pestaña de Material auxiliar (Joaquín, 23/11), no un menú aparte.
@@ -3320,7 +3331,9 @@ function vistaEtiq(){
         +'<td style="text-align:center"><input type="checkbox" data-env="'+i+'"'+(f.env?' checked':'')+' style="width:20px;height:20px;accent-color:#3a6a2a;cursor:pointer"></td>'
         +'<td class="num">'+fmtN(f.st)+'</td><td class="mono" style="white-space:normal;font-size:12px">'+esc(f.lotes.join(' · '))+'</td></tr>'; }).join('')
     +'</tbody></table>';
+  var _sy=window.scrollY;
   box.innerHTML='<div id="etq-root">'+h+'</div>';
+  window.scrollTo(0,_sy);
   try{ var _tp=document.querySelector('.top'); if(_tp) document.documentElement.style.setProperty('--etq-top', _tp.offsetHeight+'px'); }catch(_){}
   var bc=$('etq-cargar'); if(bc) bc.onclick=etqCargarInventario;
   $('etq-q').oninput=function(){ ETQ.q=this.value; var p=this.selectionStart; vistaEtiq(); var e=$('etq-q'); e.focus(); try{ e.setSelectionRange(p,p); }catch(_){} };
@@ -3336,8 +3349,7 @@ function vistaEtiq(){
     el.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); el.blur(); } };
     el.onfocus=function(){ el.style.borderColor='var(--line)'; el.style.background='#fff'; };
     el.onchange=function(){ var f=F[+el.getAttribute('data-cod')], v=el.value.trim().toUpperCase(); if(!v || v===nrm(f.cod)) return;
-      var antes=f.cod, c=etqCat().filter(function(c){ return antes && nrm(c.CODIGO)===nrm(antes); })[0];
-      etqGuardar(f,{codigo:v, codigoAntes:antes}, el).then(function(){ if(c && antes){ var i=MAT.etq.indexOf(c); var dup=MAT.etq.filter(function(x){ return nrm(x.CODIGO)===v; }); if(dup.length>1 && i>=0) MAT.etq.splice(i,1); } vistaEtiq(); }); };
+      etqGuardar(f,{codigo:v, codigoAntes:f.cod}, el); };
   });
 }
 function etqCargarInventario(){
