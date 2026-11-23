@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v103';
+var VER = 'v104';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -3288,11 +3288,14 @@ function vistaEtiq(){
   // (v103) Es una pestaña de Material auxiliar (Joaquín, 23/11), no un menú aparte.
   var box=$('mt-body'); if(!box) return;
   if(!MAT.cargado){ box.innerHTML='<div class="vacio">'+(MAT.err?('No se pudo cargar: '+esc(MAT.err)+' <button class="btn" onclick="cargarMat(true)">Reintentar</button>'):'Cargando…')+'</div>'; if(!MAT.cargando) cargarMat(); return; }
-  var F=etqFilas(), hayCat=etqCat().length>0;
+  var F=etqFilas(), yaCod={}; etqCat().forEach(function(c){ var k=nrm(c.CODIGO); if(k) yaCod[k]=1; });
+  // (v104) El botón sale mientras falte alguna del inventario (antes, solo con el catálogo vacío:
+  // al ponerle código a una dada a mano desaparecía). Las que ya tienen código no se tocan.
+  var faltan=ETQ_INV.filter(function(r){ return !yaCod[nrm(r[0])]; });
   var h='';
-  if(!hayCat){
-    var nL=ETQ_INV.filter(function(r){ return r[3]>0 && r[2]; }).length, nE={}; ETQ_INV.forEach(function(r){ nE[r[0]]=1; });
-    h+='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)"><b>Carga inicial</b>: el listado de gestión del 23/11/2026 — <b>'+Object.keys(nE).length+' etiquetas</b>, '+nL+' lotes con stock ('+fmtN(ETQ_INV.reduce(function(t,r){ return t+(r[3]>0?r[3]:0); },0))+' etiquetas). '
+  if(faltan.length){
+    var nL=faltan.filter(function(r){ return r[3]>0 && r[2]; }).length, nE={}; faltan.forEach(function(r){ nE[r[0]]=1; });
+    h+='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)"><b>Carga inicial</b>: el listado de gestión del 23/11/2026 — <b>'+Object.keys(nE).length+' etiquetas</b>, '+nL+' lotes con stock ('+fmtN(faltan.reduce(function(t,r){ return t+(r[3]>0?r[3]:0); },0))+' etiquetas)'+(Object.keys(yaCod).length?' · las que ya tienen código aquí ('+Object.keys(yaCod).join(', ')+') no se tocan':'')+'. '
       +'Las dos en negativo (CS500, MS500) se dan de alta sin stock. Fecha de entrada = la del lote (AAMMDD).<br><br>'
       +(ETQ.cargando?('<b>'+esc(ETQ.prog)+'</b>'):'<button class="btn pri" id="etq-cargar">Cargar el inventario</button>')+'</div>';
   }
@@ -3303,7 +3306,7 @@ function vistaEtiq(){
   var L=F.filter(function(f){ return (!ETQ.soloEnv || f.env) && (!q || nrm(f.cod+' '+f.art+' '+f.corto).indexOf(q)>=0); });
   h+='<table><thead><tr><th>Código</th><th>Nombre en gestión</th><th>Nombre corto (móvil)</th><th style="text-align:center">Envasado</th><th style="text-align:right">Stock</th><th>Lotes</th></tr></thead><tbody>'
     +L.map(function(f){ var i=F.indexOf(f);
-      return '<tr><td class="mono">'+(f.cod?esc(f.cod):'<input data-cod="'+i+'" placeholder="código" style="width:110px;font-size:14px;padding:4px">')+'</td>'
+      return '<tr><td class="mono"><input data-cod="'+i+'" value="'+esc(f.cod)+'" placeholder="código" style="width:120px;font-size:14px;padding:4px;font-family:inherit;text-transform:uppercase;border:1px solid '+(f.cod?'transparent':'var(--line)')+';background:transparent"></td>'
         +'<td style="white-space:normal">'+esc(f.art)+'</td>'
         +'<td><input data-corto="'+i+'" value="'+esc(f.corto)+'" placeholder="'+(f.env?'escríbelo':'')+'" style="width:260px;font-size:14px;padding:4px 6px;text-transform:uppercase"></td>'
         +'<td style="text-align:center"><input type="checkbox" data-env="'+i+'"'+(f.env?' checked':'')+' style="width:20px;height:20px;accent-color:#3a6a2a;cursor:pointer"></td>'
@@ -3321,7 +3324,10 @@ function vistaEtiq(){
   });
   [].forEach.call(root.querySelectorAll('[data-cod]'), function(el){
     el.onkeydown=function(e){ if(e.key==='Enter') el.blur(); };
-    el.onchange=function(){ var f=F[+el.getAttribute('data-cod')], v=el.value.trim().toUpperCase(); if(v) etqGuardar(f,{codigo:v}, el).then(function(){ vistaEtiq(); }); };
+    el.onfocus=function(){ el.style.borderColor='var(--line)'; el.style.background='#fff'; };
+    el.onchange=function(){ var f=F[+el.getAttribute('data-cod')], v=el.value.trim().toUpperCase(); if(!v || v===nrm(f.cod)) return;
+      var antes=f.cod, c=etqCat().filter(function(c){ return antes && nrm(c.CODIGO)===nrm(antes); })[0];
+      etqGuardar(f,{codigo:v, codigoAntes:antes}, el).then(function(){ if(c && antes){ var i=MAT.etq.indexOf(c); var dup=MAT.etq.filter(function(x){ return nrm(x.CODIGO)===v; }); if(dup.length>1 && i>=0) MAT.etq.splice(i,1); } vistaEtiq(); }); };
   });
 }
 function etqCargarInventario(){
@@ -3329,8 +3335,9 @@ function etqCargarInventario(){
   if(!ppEsCalidad()){ alert('Solo Calidad'); return; }
   ETQ.cargando=true;
   var ya={}; matStock().forEach(function(l){ if(nrm(l.cat).indexOf('ETIQUETA')>=0) ya[nrm(l.art)+'|'+nrm(l.lote)]=1; });
-  var cat={}; ETQ_INV.forEach(function(r){ cat[r[0]]={codigo:r[0], articulo:r[1].toUpperCase(), corto:'', envasado:false}; });
-  var lineas=ETQ_INV.filter(function(r){ return r[3]>0 && r[2] && !ya[nrm(r[1])+'|'+nrm(r[2])]; });
+  var yaCod={}; etqCat().forEach(function(c){ var k=nrm(c.CODIGO); if(k) yaCod[k]=1; });
+  var cat={}; ETQ_INV.forEach(function(r){ if(!yaCod[nrm(r[0])]) cat[r[0]]={codigo:r[0], articulo:r[1].toUpperCase(), corto:'', envasado:false}; });
+  var lineas=ETQ_INV.filter(function(r){ return r[3]>0 && r[2] && !yaCod[nrm(r[0])] && !ya[nrm(r[1])+'|'+nrm(r[2])]; });
   function prog(t){ ETQ.prog=t; if(VISTA==='mat' && MF.tab==='etiq') vistaEtiq(); }
   prog('Guardando el catálogo…');
   fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'ETIQUETA_CAT', accion:'guardarVarios', lista:Object.keys(cat).map(function(k){ return cat[k]; }), quien:(CU&&CU.n)||''})})

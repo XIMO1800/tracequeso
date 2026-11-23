@@ -77,7 +77,8 @@ function gestionarCatalogoEtiqueta(p){
                  'ENVASADO':(x.envasado===true || String(x.envasado).toUpperCase()==='SI') ? 'SI' : 'NO',
                  'ACTUALIZADO POR':quien, 'ACTUALIZADO':fecha};
       var fil = h.map(function(k){ return val.hasOwnProperty(k) ? val[k] : ''; });
-      var f = filaDe[clave(cod, art)];
+      // (API 34) Cambio de código: la fila se busca por el código que tenía.
+      var f = filaDe[clave(x.codigoAntes ? x.codigoAntes : cod, art)] || filaDe[clave(cod, art)];
       if(f){ sh.getRange(f, 1, 1, fil.length).setValues([fil]); }
       else { nuevas.push(fil); filaDe[clave(cod, art)] = -1; }
       hechas++;
