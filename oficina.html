@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v101';
+var VER = 'v102';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -637,6 +637,7 @@ var MENU=[
   // fabricación, no aquí. Calidad ve los registros y los partes desde Producción.
   {g:'CALIDAD', items:[
     {id:'mat', t:'Material auxiliar'},
+    {id:'etiq', t:'Etiquetas'},
     {id:'trazq', t:'Trazabilidad por lote'},
     {id:'trazinv', t:'Trazabilidad inversa'},
     {id:'revision', t:'Corregir registros'},
@@ -695,6 +696,7 @@ function refrescar(){
   else if(VISTA==='revision') vistaRevision();
   else if(VISTA==='cerrados') vistaCerrados();
   else if(VISTA==='papel') vistaPapel();
+  else if(VISTA==='etiq') vistaEtiq();
   else vistaInicio();
 }
 
@@ -1292,10 +1294,11 @@ function cargarMat(forzar){
     var j=r[0]; if(!j||!j.ok) throw new Error('el servidor no ha dado los datos');
     MAT.stock=(j.data&&j.data.stock)||[]; MAT.ent=(j.data&&j.data.entradas)||[]; MAT.sal=(j.data&&j.data.salidas)||[];
     MAT.equiv=(j.data&&j.data.equiv)||[];   // (v36) relación unidades ↔ peso
+    MAT.etq=(j.data&&j.data.etiquetas)||[];   // (v102) catálogo de etiquetas
     MAT.rec=(r[1]&&r[1].ok&&r[1].data)||[];
     MAT.cargado=true;
   }).catch(function(e){ MAT.err=e.message||String(e); })
-  .then(function(){ MAT.cargando=false; MAT.hora=new Date(); pintarMenu(); if(VISTA==='mat') vistaMat(); else if(VISTA==='trazinv') tiLista(); else if(VISTA==='papel') vistaPapel(); });
+  .then(function(){ MAT.cargando=false; MAT.hora=new Date(); pintarMenu(); if(VISTA==='mat') vistaMat(); else if(VISTA==='trazinv') tiLista(); else if(VISTA==='papel') vistaPapel(); else if(VISTA==='etiq') vistaEtiq(); });
 }
 
 // Stock por LOTE, normalizado (las cabeceras de la hoja varían de acento).
@@ -3242,6 +3245,116 @@ function ppGuardar(){
     try{ guardarCopia(); }catch(e){}
     if(VISTA==='papel') vistaPapel();
   });
+}
+// ═══════════════════════════════════════════════════════════════════════════
+// (v102) ETIQUETAS DE MARCA (Joaquín, 23/11)
+// ───────────────────────────────────────────────────────────────────────────
+// Las etiquetas son material auxiliar de la categoría ETIQUETAS (stock por lotes).
+// Aquí, una fila por etiqueta: código del programa de gestión, nombre de gestión,
+// NOMBRE CORTO (el que ven al envasar) y la casilla ENVASADO (si sale en el móvil).
+// La carga inicial es el «Listado inventario de etiquetas de marca» del 23/11/26
+// (4 hojas, 145 líneas, 638.115 etiquetas, comprobado con los totales del papel).
+// ═══════════════════════════════════════════════════════════════════════════
+var ETQ_INV=[["CABS","Cabraliego Ost","250215",819],["CRG","Queso \"EL HIDALGO\" Cabra Romero 3kg","250215",3200],["CRG","Queso \"EL HIDALGO\" Cabra Romero 3kg","250422",1500],["CRON ALIME","Queso\"DON JUAN\" Cabra Romero 1kg","250215",1799],["CS500","Queso\"EL HIDALGO\"Cabra semi sup.mini","",-1894],["CSG","Queso \"EL HIDALGO\" Cabra Semi 3kg","250215",1258],["CSG","Queso \"EL HIDALGO\" Cabra Semi 3kg","250216",1500],["CSGBERSIL","Queso\"BERSIL\" Cabra Semicurado 3 Kg.","250509",260],["CSN","Queso \"EL HIDALGO\" Cabra Semi Mini","250215",2730],["CSÑ475SER*","Queso\"SERVIDONA\"Cabra semi 1/2 475g","260401",2177],["CSPBELL250","Goat Cheese matured BELLOTA por.250g","250215",1880],["DCG JUAN","MANCHEGO CHEESE PDO 12M 3KG.DON JUAN","260909",2550],["DCGDEMONTE","\"MONTEVEGA\" Pasteurized Milk Aged","260708",4769],["DCGDM","Queso \"CAMPOMANCHA\" D.O. Añejo 3K","250215",5936],["DCGDM GRAN","Queso Manchego GRAND'OR Añejo grande","260827",1500],["DCGDMA","Queso\"CAMPOMANCHA\" DO Añejo 3KG A","261022",14346],["DCGSEMONTE","\"MONTEVEGA\" Pasteurized Milk Cured","250722",1766],["DCGSJUAN","MANCHEGO CHEESE PDO 6M 3KG DON JUAN","260509",5013],["DCGSM","Queso \"CAMPOMANCHA\" D.O.Curado 3k","250215",2819],["DCGSM RENA","Queso\"MANCHEGO\"Do Curado Renant Gran","260217",24900],["DCGSMA","Queso \"CAMPOMANCHA\"DO Curado 3KG A","260624",14300],["DCGSMÑ CAR","Manchego\"CARPINTEROS\"DO Curado 3k1/2","250215",372],["DCGSMÑ REN","Queso\"MANCHEGO\"DO Curado Renant 1/2","251210",22200],["DCNDUQUE","F1295\"Duque Polvorosa\"DO Curado 1 kg","250215",1068],["DCNJUAN**","Queso DON JUAN DO Curado Mini 880gr.","260706",3180],["DSG JUAN","MANCHEGO CHEESE PDO 4M 3KG.DON JUAN","260612",1871],["DSGT ROBLE","DOP\"ROBLE REAL\"Past.Milk Semicured3k","250515",2840],["DSGTEMONTE","\"MONTEVEGA\" Pasteurized Milk Semicur","251223",5606],["DSGTM","Queso \"CAMPOMANCHA\" DO Semicurado 3k","260316",10707],["DSGTM CAR","Manchego\"CARPINTEROS\"D.O.Semicur.3kg","250215",2800],["DSGTM GRAN","Queso Manchego GRAND'OR Semicurado","260827",1640],["DSGTMA","Queso \"CAMPOMANCHA\" DO Semicura 3K A","250215",1152],["DSGTMM","Queso\"MERCO\"Manchego D.O Semicur.3kg","260430",5913],["DSGTMÑ CAR","Manchego\"CARPINTEROS\"DO Semic.3kg1/2","250215",8],["DSGTMROB","Manchego \"ROBLEVEGA\" Semicurado 3Kg","250215",62],["DSGTMROB","Manchego \"ROBLEVEGA\" Semicurado 3Kg","260821",500],["DSN","Queso \"CAMPOMANCHA\" Semi D.O. Mini","250215",6553],["DSN","Queso \"CAMPOMANCHA\" Semi D.O. Mini","250422",1500],["DSN ROBLE","DOP \"ROBLE REAL\" Past.Milk 3Month 1K","250215",19700],["DSN TIDB**","TIDBIT Mini Manchego Cheese Sem.930g","250215",22095],["DSNDUQUE","F1294\"Duque Polvorosa\"DO Semicur.1KG","250215",1498],["DSNJUAN**","Queso DON JUAN DO Semi Mini 930gr.","250215",2249],["DSNJUANI**","Queso DON JUAN DO semi mini 930gr.It","250215",1304],["DSPBELL250","MANCHEGO PDO Semicured BELLOTA 250gr","250215",632],["DSPGRAN200","Queso Manchego GRAND'OR Semic.cuñas","260827",8004],["IATG","Queso\"EL HIDALGO\"Iberico Añejo Tosta","250215",254],["IATG","Queso\"EL HIDALGO\"Iberico Añejo Tosta","261017",2000],["ICG","Queso \"EL HIDALGO\" Iberico Curado 3k","251007",4079],["ICP380SER*","\"SERVIDONA\"Iberico curado cuñas 380g","251118",1172],["ICP380SER*","\"SERVIDONA\"Iberico curado cuñas 380g","261117",6000],["ISG","Queso \"EL HIDALGO\" Iberico Semi 3kg","261022",14750],["ISGM","Queso \"MERCO\" Iberico Semicurado 3Kg","250215",334],["ISGM","Queso \"MERCO\" Iberico Semicurado 3Kg","261117",1000],["ISN TIDB**","TIDBIT Iberico Semicured 3 Milk 880g","250215",12420],["MAG","Queso \"EL HIDALGO\" Mezcla Aceite 3k","251128",10563],["MAG GIL","Queso\"FLORENTINO GIL\"Mez.Aceite 3kg","250215",510],["MAG MARDIS","Queso\"SELEC MARDIS\" Mez.Aceite 3kg","260624",2258],["MAM","Queso \"EL HIDALGO\" Mezcla Aceite Med","250722",4586],["MAN","Queso \"EL HIDALGO\" Aceit.Min.Mezcla","251118",5003],["MAP GIL","Queso\"FLORENTINO GIL\"Mez.Aceite cuña","250215",2190],["MAPMAR250*","Queso\"SELEC MARDIS\"Aceite Cuña 250g","250215",716],["MCC SERVID","Queso\"SERVIDONA\" Mezcla Curado 1/4","250215",1090],["MCG","Queso \"EL HIDALGO\" Mezcla Curado 3K","250215",15336],["MCG SERVID","Queso \"SERVIDONA\" Mezcla Curado 3k","250215",1623],["MCGT","Queso\"EL HIDALGO\"Mezcl.Añejo Tostado","261019",14317],["MCP380SER*","Queso\"SERVIDONA\"Mezcla Curado Po 380","250401",1244],["MCPCU","Queso\"CUATROTIERRAS\"Mez.Curado Cuñas","250215",3000],["MIP PIRINE","Mezcla Iberico Pirineus(cuña,mini 1/","260316",1894],["MS500","Queso\"EL HIDALGO\"Mezcl semi sup.mini","",-4465],["MSGG","Queso \"FLOR DE ORO\" Mezcla Semi 3K","250215",500],["MSGM","Queso \"LA MESNERA\" Mezcla Semi 3k","250215",5839],["MSGMV","Queso \"LA MESNERA\" Mezcl Semi-Vac 3k","250215",2062],["MSGV","Queso\"EL HIDALGO\"Mezcl Semi Negr Vac","250215",244],["MSGV","Queso\"EL HIDALGO\"Mezcl Semi Negr Vac","250422",917],["MSGV","Queso\"EL HIDALGO\"Mezcl Semi Negr Vac","261019",16100],["MSGV CALLE","Queso\"LACALLE\" Mez.Semi Vacio 3kg","251223",200],["MSM","Queso \"EL HIDALGO\" Mezcla Semi Medi","250215",194],["MSM","Queso \"EL HIDALGO\" Mezcla Semi Medi","260624",1500],["MSN","Queso \"EL HIDALGO\" Mezcla Semi Mini","250215",4461],["MSN ALIM**","Queso DON JUAN Iberico Cur. mini 880","260903",3190],["MSN SERVID","Queso \"SERVIDONA\" Mezcla Semi Mini","260821",24225],["MSP380SER*","Queso \"SERVIDONA\" Mezcla Semi Po 380","250215",2568],["MSPCCU","Queso\"CUATROTIERRAS\"Mezcla Semi 1/4","260821",4048],["MTB","Queso \"EL HIDALGO\" Barra","260401",7578],["MTB MARDIS","Queso\"SELEC-MARDIS\"Mez.Tierno Barra","260316",964],["MTBD","Queso \"DEBORA\" Mezcla Tierno Barra","250215",273],["MTBG","Queso \"FLOR DE ORO\" Barra Mezcla","250401",2091],["MTBSBC","Queso \"SBC\" Mezcla tierno barra","251017",524],["MTG","Queso \"EL HIDALGO\" Tierno 3 Kg","250215",1357],["MTG MARDIS","Queso\"SELEC MARDIS\"Mez.Tierno 3Kg","250215",1261],["MTG PFALVA","Queso\"PF ALVAREZ\" Mezcla Tierno 3kg","250215",412],["MTGBSBERSI","Queso\"BERSIL\" Tierno Bajo Sal 3kg","260316",723],["MTM","Queso \"EL HIDALGO\" Tierno Med.","250215",1707],["MTN","Queso \"EL HIDALGO\" Mezcla Tiern Mini","251017",1544],["MTN","Queso \"EL HIDALGO\" Mezcla Tiern Mini","251030",2000],["MTN MARDIS","Queso\"SELEC MARDIS\" Mezcla Tierno 1k","250215",2916],["MTNBS","Queso\"EL HIDALGO\"Tierno Bajo Sal 1kg","250429",1372],["MTNBS975S*","\"SERVIDONA\"Bajo Sal Mini 975g p.fijo","250215",6566],["MTNBSCU","Queso\"CUATROTIERRAS\"Tier.bajo sal 1k","250215",1970],["MTP500SER*","\"SERVIDONA\"Tierno cuña 500g p.fijo","250215",70],["MTP500SER*","\"SERVIDONA\"Tierno cuña 500g p.fijo","260821",6000],["MTPBS500S*","\"SERVIDONA\"Bajo Sal cuña 500g p.fijo","260821",20278],["MTPBSOCU","Queso\"CUATROTIERRAS\"Tier.Bajo Sal1/8","250722",1344],["MVG SERVID","Queso \"SERVIDONA\" Mezcla Viejo 3k","250820",908],["OAG","Queso \"EL HIDALGO\" Oveja Aceite 3kg","250215",4457],["OAM","Queso \"EL HIDALGO\" Oveja Aceite Medi","250215",1802],["OAM","Queso \"EL HIDALGO\" Oveja Aceite Medi","250422",1000],["OAN","Queso \"EL HIDALGO\" Oveja Aceite Mini","250527",5401],["OAPCEN200*","309789-Queso Ove.Cur.Aceite CEN.200g","260715",41232],["OAPCEN250*","222784-Ques.Ove.Cur.Aceite CENC.250g","250629",2301],["OBRG","Queso \"EL HIDALGO\" Oveja Brandy 3K","250215",1599],["OBRG","Queso \"EL HIDALGO\" Oveja Brandy 3K","250422",1000],["OCG","Queso \"EL HIDALGO\" Oveja Curado 3kg","250820",3423],["OCG CALLE","Queso\"LACALLE\" Oveja curado 3kg","250606",170],["OCG CALLE","Queso\"LACALLE\" Oveja curado 3kg","261117",500],["OCG MARDIS","Queso\"SELEC MARDIS\"Oveja Añejo 3 kgs","250215",1408],["OCG15M","Queso\"EL HIDALGO\" Oveja Añejo 3K","260110",1857],["OCG15MA","Queso\"EL HIDALGO\" Oveja Añejo 3k","260110",1892],["OCGJ","Queso \"EL HIDALGO\"Oveja Cur.Al Jerez","250215",3187],["OCGJ","Queso \"EL HIDALGO\"Oveja Cur.Al Jerez","250422",1000],["OCGM","Queso \"LA MESNERA\" Oveja Curado 3k","250215",1904],["OCGT","Queso\"EL HIDALGO\"Oveja Cur.Trufa 3k","251118",135],["OCGT","Queso\"EL HIDALGO\"Oveja Cur.Trufa 3k","261117",2000],["OCM","Queso \"EL HIDALGO\" Oveja Curad Media","260316",9373],["OCN","Queso \"EL HIDALGO\" Ovej.Cur.Mini","251017",5039],["OCN","Queso \"EL HIDALGO\" Ovej.Cur.Mini","251030",8000],["OMG","Queso \"EL HIDALGO\" Oveja Manteca 3k","250215",769],["ORN TIDB**","TIDBIT Rosemary Sheep Cheese 930 gr.","250215",2700],["OROG","Queso \"EL HIDALGO\" Ovj.Romero Grande","250215",2773],["ORON","Queso \"EL HIDALGO\" Ovj.Rome.Mi","260606",6048],["ORON ALIME","Queso\"DON JUAN\" Oveja Romero Mini","250215",6626],["ORONM","Queso\"MERCO\" Oveja Romero 1kg","250215",206],["ORONM","Queso\"MERCO\" Oveja Romero 1kg","260619",1],["ORP TIDB**","TIDBIT rosemary Sheep Cheese Por.150","250306",9680],["ORPPN150*","Queso\"PEÑA NIETO\"Oveja Romer.por.150","251202",33916],["OSGV","Queso \"EL HIDALGO\" Oveja semi vac.3K","250312",5049],["OSGV ROBLE","\"ROBLE REAL\"Past.Sheep Cheese Semi3k","260703",7953],["OSM","Queso \"EL HIDALGO\" Oveja Semi Median","250215",1892],["OSN","Queso \"EL HIDALGO\" Oveja Semi Mini","250215",6582],["OTG","Queso \"EL HIDALGO\" Oveja Tierno 3k","250215",902],["OTG MARDIS","Queso\"SELEC MARDIS\" Oveja Tierno 3k","250215",988],["OTM","Queso \"EL HIDALGO\" Ov.Tierno Mediano","250215",322],["OTM","Queso \"EL HIDALGO\" Ov.Tierno Mediano","250422",1000],["OTN","Queso \"EL HIDALGO\" Oveja Tierno Mini","251128",4726],["OTPBELL250","Sheep Cheese soft BELLOTA porc.250gr","250215",940]];
+var ETQ={q:'', soloEnv:false, cargando:false, prog:''};
+function etqCat(){ return MAT.etq||[]; }
+function etqFilas(){
+  var porArt={}, out=[], vistos={};
+  matStock().forEach(function(l){ if(nrm(l.cat).indexOf('ETIQUETA')<0) return; var o=porArt[nrm(l.art)]||(porArt[nrm(l.art)]={st:0, lotes:[]}); o.st+=l.stock; if(l.stock>0) o.lotes.push(l.lote); });
+  etqCat().forEach(function(c){
+    var art=String(c.ARTICULO||'').trim(), s=porArt[nrm(art)]||{st:0,lotes:[]};
+    vistos[nrm(art)]=1;
+    out.push({cod:String(c.CODIGO||'').trim(), art:art, corto:String(c['NOMBRE CORTO']||'').trim(), env:nrm(c.ENVASADO)==='SI', st:s.st, lotes:s.lotes.sort()});
+  });
+  Object.keys(porArt).forEach(function(k){ if(vistos[k]) return;
+    var l=matStock().filter(function(x){ return nrm(x.art)===k; })[0];
+    out.push({cod:'', art:l?l.art:k, corto:'', env:false, st:porArt[k].st, lotes:porArt[k].lotes.sort(), sinCat:true}); });
+  return out.sort(function(a,b){ return (a.cod||'~'+a.art)<(b.cod||'~'+b.art)?-1:1; });
+}
+function etqGuardar(f, cambios, el){
+  var x=Object.assign({codigo:f.cod, articulo:f.art, corto:f.corto, envasado:f.env}, cambios);
+  if(el) el.style.outline='2px solid #c8a14a';
+  return fetch(API_URL,{method:'POST', body:JSON.stringify(Object.assign({_SHEET:'ETIQUETA_CAT', accion:'guardar', quien:(CU&&CU.n)||''}, x))})
+    .then(function(r){ return r.json(); }).then(function(j){
+      if(!j || !j.ok) throw new Error((j&&j.error)||'no se guardó');
+      var c=etqCat().filter(function(c){ return (f.cod && nrm(c.CODIGO)===nrm(f.cod)) || (!f.cod && nrm(c.ARTICULO)===nrm(f.art)); })[0];
+      if(!c){ c={}; (MAT.etq=MAT.etq||[]).push(c); }
+      c.CODIGO=String(x.codigo||'').toUpperCase(); c.ARTICULO=x.articulo; c['NOMBRE CORTO']=String(x.corto||'').toUpperCase(); c.ENVASADO=x.envasado?'SI':'NO';
+      f.cod=c.CODIGO; f.corto=c['NOMBRE CORTO']; f.env=x.envasado; f.sinCat=false;
+      if(el){ el.style.outline='2px solid #3a6a2a'; setTimeout(function(){ el.style.outline=''; },900); }
+    }).catch(function(e){ if(el) el.style.outline='2px solid #b3261e'; alert('No se ha guardado: '+e.message); });
+}
+function vistaEtiq(){
+  $('t-tit').textContent='Etiquetas';
+  $('t-sub').textContent='Etiquetas de marca: código de gestión, nombre corto y las que salen en el envasado';
+  if(!MAT.cargado){ $('cont').innerHTML='<div class="vacio">'+(MAT.err?('No se pudo cargar: '+esc(MAT.err)+' <button class="btn" onclick="cargarMat(true)">Reintentar</button>'):'Cargando…')+'</div>'; if(!MAT.cargando) cargarMat(); return; }
+  var F=etqFilas(), hayCat=etqCat().length>0;
+  var h='';
+  if(!hayCat){
+    var nL=ETQ_INV.filter(function(r){ return r[3]>0 && r[2]; }).length, nE={}; ETQ_INV.forEach(function(r){ nE[r[0]]=1; });
+    h+='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)"><b>Carga inicial</b>: el listado de gestión del 23/11/2026 — <b>'+Object.keys(nE).length+' etiquetas</b>, '+nL+' lotes con stock ('+fmtN(ETQ_INV.reduce(function(t,r){ return t+(r[3]>0?r[3]:0); },0))+' etiquetas). '
+      +'Las dos en negativo (CS500, MS500) se dan de alta sin stock. Fecha de entrada = la del lote (AAMMDD).<br><br>'
+      +(ETQ.cargando?('<b>'+esc(ETQ.prog)+'</b>'):'<button class="btn pri" id="etq-cargar">Cargar el inventario</button>')+'</div>';
+  }
+  h+='<div class="filt"><label>Buscar<input type="search" id="etq-q" value="'+esc(ETQ.q)+'" placeholder="código o nombre" style="min-width:280px"></label>'
+    +'<label style="flex-direction:row;align-items:center;gap:6px;text-transform:none;font-size:14px"><input type="checkbox" id="etq-env"'+(ETQ.soloEnv?' checked':'')+'> Solo las de envasado</label>'
+    +'<span style="margin-left:auto;color:var(--muted);font-size:13px">'+F.length+' etiquetas · '+F.filter(function(f){ return f.env; }).length+' en envasado</span></div>';
+  var q=nrm(ETQ.q);
+  var L=F.filter(function(f){ return (!ETQ.soloEnv || f.env) && (!q || nrm(f.cod+' '+f.art+' '+f.corto).indexOf(q)>=0); });
+  h+='<table><thead><tr><th>Código</th><th>Nombre en gestión</th><th>Nombre corto (móvil)</th><th style="text-align:center">Envasado</th><th style="text-align:right">Stock</th><th>Lotes</th></tr></thead><tbody>'
+    +L.map(function(f){ var i=F.indexOf(f);
+      return '<tr><td class="mono">'+(f.cod?esc(f.cod):'<input data-cod="'+i+'" placeholder="código" style="width:110px;font-size:14px;padding:4px">')+'</td>'
+        +'<td style="white-space:normal">'+esc(f.art)+'</td>'
+        +'<td><input data-corto="'+i+'" value="'+esc(f.corto)+'" placeholder="'+(f.env?'escríbelo':'')+'" style="width:260px;font-size:14px;padding:4px 6px;text-transform:uppercase"></td>'
+        +'<td style="text-align:center"><input type="checkbox" data-env="'+i+'"'+(f.env?' checked':'')+' style="width:20px;height:20px;accent-color:#3a6a2a;cursor:pointer"></td>'
+        +'<td class="num">'+fmtN(f.st)+'</td><td class="mono" style="white-space:normal;font-size:12px">'+esc(f.lotes.join(' · '))+'</td></tr>'; }).join('')
+    +'</tbody></table>';
+  $('cont').innerHTML='<div id="etq-root">'+h+'</div>';
+  var bc=$('etq-cargar'); if(bc) bc.onclick=etqCargarInventario;
+  $('etq-q').oninput=function(){ ETQ.q=this.value; var p=this.selectionStart; vistaEtiq(); var e=$('etq-q'); e.focus(); try{ e.setSelectionRange(p,p); }catch(_){} };
+  $('etq-env').onchange=function(){ ETQ.soloEnv=this.checked; vistaEtiq(); };
+  var root=$('etq-root');
+  [].forEach.call(root.querySelectorAll('[data-env]'), function(el){ el.onchange=function(){ var f=F[+el.getAttribute('data-env')]; etqGuardar(f,{envasado:el.checked}, el.parentNode); }; });
+  [].forEach.call(root.querySelectorAll('[data-corto]'), function(el){
+    el.onkeydown=function(e){ if(e.key==='Enter') el.blur(); };
+    el.onchange=function(){ var f=F[+el.getAttribute('data-corto')]; etqGuardar(f,{corto:el.value.trim()}, el); };
+  });
+  [].forEach.call(root.querySelectorAll('[data-cod]'), function(el){
+    el.onkeydown=function(e){ if(e.key==='Enter') el.blur(); };
+    el.onchange=function(){ var f=F[+el.getAttribute('data-cod')], v=el.value.trim().toUpperCase(); if(v) etqGuardar(f,{codigo:v}, el).then(function(){ vistaEtiq(); }); };
+  });
+}
+function etqCargarInventario(){
+  if(ETQ.cargando) return;
+  if(!ppEsCalidad()){ alert('Solo Calidad'); return; }
+  ETQ.cargando=true;
+  var ya={}; matStock().forEach(function(l){ if(nrm(l.cat).indexOf('ETIQUETA')>=0) ya[nrm(l.art)+'|'+nrm(l.lote)]=1; });
+  var cat={}; ETQ_INV.forEach(function(r){ cat[r[0]]={codigo:r[0], articulo:r[1].toUpperCase(), corto:'', envasado:false}; });
+  var lineas=ETQ_INV.filter(function(r){ return r[3]>0 && r[2] && !ya[nrm(r[1])+'|'+nrm(r[2])]; });
+  function prog(t){ ETQ.prog=t; if(VISTA==='etiq') vistaEtiq(); }
+  prog('Guardando el catálogo…');
+  fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'ETIQUETA_CAT', accion:'guardarVarios', lista:Object.keys(cat).map(function(k){ return cat[k]; }), quien:(CU&&CU.n)||''})})
+    .then(function(r){ return r.json(); }).then(function(j){ if(!j||!j.ok) throw new Error((j&&j.error)||'catálogo no guardado'); })
+    .then(function(){
+      var i=0, malas=[];
+      return new Promise(function(fin){
+        (function sig(){
+          if(i>=lineas.length){ fin(malas); return; }
+          var r=lineas[i]; i++; prog('Dando entrada al stock: '+i+' de '+lineas.length+'…');
+          var fe='20'+r[2].substring(0,2)+'-'+r[2].substring(2,4)+'-'+r[2].substring(4,6);
+          fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'ENTRADAS', id:'E-INVETQ-'+Date.now()+'-'+i, fecha:fechaHoraEspana(), albaran:'INVENTARIO 23/11/2026', proveedor:'INVENTARIO GESTION',
+            categoria:'ETIQUETAS', articulo:r[1].toUpperCase(), lote:r[2], cantidad:r[3], unidad:'unidades', caducidad:'', obs:'Inventario inicial del programa de gestión · código '+r[0], operario:(CU&&CU.n)||'',
+            fentrada:fe, recibido:(CU&&CU.n)||'', verificado:'SI'})})
+            .then(function(x){ return x.json(); }).then(function(d){ if(!d||!d.ok) malas.push(r); }).catch(function(){ malas.push(r); }).then(sig);
+        })();
+      });
+    })
+    .then(function(malas){
+      ETQ.cargando=false; ETQ.prog='';
+      alert('Inventario cargado: '+(lineas.length-malas.length)+' de '+lineas.length+' lotes.'+(malas.length?('\n\nNo se guardaron: '+malas.map(function(r){ return r[0]+' '+r[2]; }).join(', ')+'.\nVuelve a pulsar «Cargar el inventario»: solo da los que faltan.'):''));
+      cargarMat(true);
+    })
+    .catch(function(e){ ETQ.cargando=false; ETQ.prog=''; alert('No se ha podido cargar: '+e.message); vistaEtiq(); });
 }
 function vistaPale(){
   $('t-tit').textContent='Historial de palé';
