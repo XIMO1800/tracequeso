@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v104';
+var VER = 'v105';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -1343,7 +1343,9 @@ function matStock(){
 }
 function recPend(){ return MAT.rec.filter(function(r){ var e=nrm(r.ESTADO); return e==='PENDIENTE'||e==='EN CURSO'; }); }
 
+function _etqEscribiendo(){ var ae=document.activeElement; return !!(ae && ae.closest && ae.closest('#etq-root') && ae.id!=='etq-q' && ae.tagName==='INPUT' && ae.type!=='checkbox'); }
 function vistaMat(){
+  if(MF.tab==='etiq' && _etqEscribiendo()){ ETQ.pend=true; return; }   // (v105) no borrar lo que se está escribiendo
   $('t-tit').textContent='Material auxiliar';
   $('t-sub').textContent='Calidad · entradas, salidas, stock, trazabilidad y recepciones';
   if(!MAT.cargado){
@@ -3287,6 +3289,11 @@ function etqGuardar(f, cambios, el){
 function vistaEtiq(){
   // (v103) Es una pestaña de Material auxiliar (Joaquín, 23/11), no un menú aparte.
   var box=$('mt-body'); if(!box) return;
+  // (v105) Si se está escribiendo en la tabla, no se repinta: la puesta al día
+  // automática (cada 5 min) y la recarga del stock borraban lo que se escribía y
+  // movían la página. Se repinta al salir de la casilla.
+  if(_etqEscribiendo()){ ETQ.pend=true; return; }
+  ETQ.pend=false;
   if(!MAT.cargado){ box.innerHTML='<div class="vacio">'+(MAT.err?('No se pudo cargar: '+esc(MAT.err)+' <button class="btn" onclick="cargarMat(true)">Reintentar</button>'):'Cargando…')+'</div>'; if(!MAT.cargando) cargarMat(); return; }
   var F=etqFilas(), yaCod={}; etqCat().forEach(function(c){ var k=nrm(c.CODIGO); if(k) yaCod[k]=1; });
   // (v104) El botón sale mientras falte alguna del inventario (antes, solo con el catálogo vacío:
@@ -3306,9 +3313,9 @@ function vistaEtiq(){
   var L=F.filter(function(f){ return (!ETQ.soloEnv || f.env) && (!q || nrm(f.cod+' '+f.art+' '+f.corto).indexOf(q)>=0); });
   h+='<table><thead><tr><th>Código</th><th>Nombre en gestión</th><th>Nombre corto (móvil)</th><th style="text-align:center">Envasado</th><th style="text-align:right">Stock</th><th>Lotes</th></tr></thead><tbody>'
     +L.map(function(f){ var i=F.indexOf(f);
-      return '<tr><td class="mono"><input data-cod="'+i+'" value="'+esc(f.cod)+'" placeholder="código" style="width:120px;font-size:14px;padding:4px;font-family:inherit;text-transform:uppercase;border:1px solid '+(f.cod?'transparent':'var(--line)')+';background:transparent"></td>'
+      return '<tr><td class="mono"><input data-cod="'+i+'" value="'+esc(f.cod)+'" autocomplete="off" spellcheck="false" placeholder="código" style="width:120px;font-size:14px;padding:4px;font-family:inherit;text-transform:uppercase;border:1px solid '+(f.cod?'transparent':'var(--line)')+';background:transparent"></td>'
         +'<td style="white-space:normal">'+esc(f.art)+'</td>'
-        +'<td><input data-corto="'+i+'" value="'+esc(f.corto)+'" placeholder="'+(f.env?'escríbelo':'')+'" style="width:260px;font-size:14px;padding:4px 6px;text-transform:uppercase"></td>'
+        +'<td><input data-corto="'+i+'" value="'+esc(f.corto)+'" autocomplete="off" spellcheck="false" placeholder="'+(f.env?'escríbelo':'')+'" style="width:260px;font-size:14px;padding:4px 6px;text-transform:uppercase"></td>'
         +'<td style="text-align:center"><input type="checkbox" data-env="'+i+'"'+(f.env?' checked':'')+' style="width:20px;height:20px;accent-color:#3a6a2a;cursor:pointer"></td>'
         +'<td class="num">'+fmtN(f.st)+'</td><td class="mono" style="white-space:normal;font-size:12px">'+esc(f.lotes.join(' · '))+'</td></tr>'; }).join('')
     +'</tbody></table>';
@@ -3319,11 +3326,12 @@ function vistaEtiq(){
   var root=$('etq-root');
   [].forEach.call(root.querySelectorAll('[data-env]'), function(el){ el.onchange=function(){ var f=F[+el.getAttribute('data-env')]; etqGuardar(f,{envasado:el.checked}, el.parentNode); }; });
   [].forEach.call(root.querySelectorAll('[data-corto]'), function(el){
-    el.onkeydown=function(e){ if(e.key==='Enter') el.blur(); };
+    el.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); el.blur(); } };
     el.onchange=function(){ var f=F[+el.getAttribute('data-corto')]; etqGuardar(f,{corto:el.value.trim()}, el); };
+    el.onblur=function(){ setTimeout(function(){ if(ETQ.pend && !_etqEscribiendo()) vistaMat(); }, 400); };
   });
   [].forEach.call(root.querySelectorAll('[data-cod]'), function(el){
-    el.onkeydown=function(e){ if(e.key==='Enter') el.blur(); };
+    el.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); el.blur(); } };
     el.onfocus=function(){ el.style.borderColor='var(--line)'; el.style.background='#fff'; };
     el.onchange=function(){ var f=F[+el.getAttribute('data-cod')], v=el.value.trim().toUpperCase(); if(!v || v===nrm(f.cod)) return;
       var antes=f.cod, c=etqCat().filter(function(c){ return antes && nrm(c.CODIGO)===nrm(antes); })[0];
