@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v102';
+var VER = 'v103';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -637,7 +637,6 @@ var MENU=[
   // fabricación, no aquí. Calidad ve los registros y los partes desde Producción.
   {g:'CALIDAD', items:[
     {id:'mat', t:'Material auxiliar'},
-    {id:'etiq', t:'Etiquetas'},
     {id:'trazq', t:'Trazabilidad por lote'},
     {id:'trazinv', t:'Trazabilidad inversa'},
     {id:'revision', t:'Corregir registros'},
@@ -696,7 +695,6 @@ function refrescar(){
   else if(VISTA==='revision') vistaRevision();
   else if(VISTA==='cerrados') vistaCerrados();
   else if(VISTA==='papel') vistaPapel();
-  else if(VISTA==='etiq') vistaEtiq();
   else vistaInicio();
 }
 
@@ -1298,7 +1296,7 @@ function cargarMat(forzar){
     MAT.rec=(r[1]&&r[1].ok&&r[1].data)||[];
     MAT.cargado=true;
   }).catch(function(e){ MAT.err=e.message||String(e); })
-  .then(function(){ MAT.cargando=false; MAT.hora=new Date(); pintarMenu(); if(VISTA==='mat') vistaMat(); else if(VISTA==='trazinv') tiLista(); else if(VISTA==='papel') vistaPapel(); else if(VISTA==='etiq') vistaEtiq(); });
+  .then(function(){ MAT.cargando=false; MAT.hora=new Date(); pintarMenu(); if(VISTA==='mat') vistaMat(); else if(VISTA==='trazinv') tiLista(); else if(VISTA==='papel') vistaPapel(); });
 }
 
 // Stock por LOTE, normalizado (las cabeceras de la hoja varían de acento).
@@ -1377,6 +1375,7 @@ function vistaMat(){
     +'<button data-mt="rec" class="'+(MF.tab==='rec'?'on':'')+'">📷 Recepciones'+(nRec?'<span class="n">'+nRec+'</span>':'')+'</button>'
     +'<button data-mt="min" class="'+(MF.tab==='min'?'on':'')+'">⚠️ Mínimos'+(nb?'<span class="n">'+nb+'</span>':'')+'</button>'
     +'<button data-mt="equiv" class="'+(MF.tab==='equiv'?'on':'')+'">⚖️ Equivalencias</button>'
+    +'<button data-mt="etiq" class="'+(MF.tab==='etiq'?'on':'')+'">🏷️ Etiquetas</button>'
     +'</div><div id="mt-body"></div>';
   $('cont').innerHTML=h;
   document.querySelectorAll('#cont [data-ir="min"]').forEach(function(b){ b.onclick=function(){ MF.tab='min'; guardarMF(); vistaMat(); }; });
@@ -1388,6 +1387,7 @@ function vistaMat(){
   else if(MF.tab==='rec') matRecepciones();
   else if(MF.tab==='min') matMinimos(st);
   else if(MF.tab==='equiv') matEquiv();
+  else if(MF.tab==='etiq') vistaEtiq();
   else matTablaStock(st);
 }
 function catsDe(lista, f){ var c={}; lista.forEach(function(x){ var v=f(x); if(v) c[v]=1; }); return Object.keys(c).sort(); }
@@ -3285,9 +3285,9 @@ function etqGuardar(f, cambios, el){
     }).catch(function(e){ if(el) el.style.outline='2px solid #b3261e'; alert('No se ha guardado: '+e.message); });
 }
 function vistaEtiq(){
-  $('t-tit').textContent='Etiquetas';
-  $('t-sub').textContent='Etiquetas de marca: código de gestión, nombre corto y las que salen en el envasado';
-  if(!MAT.cargado){ $('cont').innerHTML='<div class="vacio">'+(MAT.err?('No se pudo cargar: '+esc(MAT.err)+' <button class="btn" onclick="cargarMat(true)">Reintentar</button>'):'Cargando…')+'</div>'; if(!MAT.cargando) cargarMat(); return; }
+  // (v103) Es una pestaña de Material auxiliar (Joaquín, 23/11), no un menú aparte.
+  var box=$('mt-body'); if(!box) return;
+  if(!MAT.cargado){ box.innerHTML='<div class="vacio">'+(MAT.err?('No se pudo cargar: '+esc(MAT.err)+' <button class="btn" onclick="cargarMat(true)">Reintentar</button>'):'Cargando…')+'</div>'; if(!MAT.cargando) cargarMat(); return; }
   var F=etqFilas(), hayCat=etqCat().length>0;
   var h='';
   if(!hayCat){
@@ -3309,7 +3309,7 @@ function vistaEtiq(){
         +'<td style="text-align:center"><input type="checkbox" data-env="'+i+'"'+(f.env?' checked':'')+' style="width:20px;height:20px;accent-color:#3a6a2a;cursor:pointer"></td>'
         +'<td class="num">'+fmtN(f.st)+'</td><td class="mono" style="white-space:normal;font-size:12px">'+esc(f.lotes.join(' · '))+'</td></tr>'; }).join('')
     +'</tbody></table>';
-  $('cont').innerHTML='<div id="etq-root">'+h+'</div>';
+  box.innerHTML='<div id="etq-root">'+h+'</div>';
   var bc=$('etq-cargar'); if(bc) bc.onclick=etqCargarInventario;
   $('etq-q').oninput=function(){ ETQ.q=this.value; var p=this.selectionStart; vistaEtiq(); var e=$('etq-q'); e.focus(); try{ e.setSelectionRange(p,p); }catch(_){} };
   $('etq-env').onchange=function(){ ETQ.soloEnv=this.checked; vistaEtiq(); };
@@ -3331,7 +3331,7 @@ function etqCargarInventario(){
   var ya={}; matStock().forEach(function(l){ if(nrm(l.cat).indexOf('ETIQUETA')>=0) ya[nrm(l.art)+'|'+nrm(l.lote)]=1; });
   var cat={}; ETQ_INV.forEach(function(r){ cat[r[0]]={codigo:r[0], articulo:r[1].toUpperCase(), corto:'', envasado:false}; });
   var lineas=ETQ_INV.filter(function(r){ return r[3]>0 && r[2] && !ya[nrm(r[1])+'|'+nrm(r[2])]; });
-  function prog(t){ ETQ.prog=t; if(VISTA==='etiq') vistaEtiq(); }
+  function prog(t){ ETQ.prog=t; if(VISTA==='mat' && MF.tab==='etiq') vistaEtiq(); }
   prog('Guardando el catálogo…');
   fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'ETIQUETA_CAT', accion:'guardarVarios', lista:Object.keys(cat).map(function(k){ return cat[k]; }), quien:(CU&&CU.n)||''})})
     .then(function(r){ return r.json(); }).then(function(j){ if(!j||!j.ok) throw new Error((j&&j.error)||'catálogo no guardado'); })
