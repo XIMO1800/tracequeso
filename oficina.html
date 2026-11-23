@@ -400,7 +400,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v98';
+var VER = 'v99';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -2798,11 +2798,73 @@ function tzSinQR(lote){
     +'</tbody></table></div>';
 }
 function tzEnlSQ(){ $('tz-res').onclick=function(ev){ var tr=ev.target.closest('tr[data-sq]'); if(tr) abrirFicha(TZ.sq[+tr.getAttribute('data-sq')]); }; }
+// (v99) DESDOBLAMIENTOS EN LA TRAZABILIDAD, COMO EN EL MÓVIL (Joaquín, 23/11).
+// Arriba los palés que siguen tal cual. Debajo, un bloque por cada desdoblamiento
+// o selección (fecha), con sus palés ORIGINALES (morado) y los NUEVOS que salieron
+// (ámbar, DESDOBLADO). El mismo palé con y sin espacios es uno solo.
+function _pkS(x){ return String(x||'').replace(/\s/g,''); }
+function tzDesd(){
+  var padres={}, hijos={}, cierreDe={}, cierresDe={}, grupoHijo={}, origenesDeHijo={};
+  ROWS.forEach(function(r){
+    var s=secDe(r); if(s!=='DESDOBLAMIENTO' && s!=='SELECCIÓN') return;
+    var pk=_pkS(pidDe(r)), obs=String(r['OBSERVACIONES']||''), gm=obs.match(/grupo\s+([^\s|]+)/i), d=nrm(r['SALA DESTINO']);
+    var mm=obs.match(/Nacido de (?:desdoblamiento|selecci[oó]n) de\s+(.+?)\s*(?:\||$)/i);
+    if(/Nacido de/i.test(obs)){ hijos[pk]=1; if(gm) grupoHijo[pk]=gm[1]; if(mm) origenesDeHijo[pk]=mm[1].split('+').map(_pkS).filter(Boolean); return; }
+    if(d!=='DESDOBLADO' && d!=='SELECCIONADO') return;
+    padres[pk]=1;
+    var c={g:gm?gm[1]:('DIA-'+(r.__f?isoDia(r.__f):'')+'-'+s), f:r.__f, sel:s==='SELECCIÓN'};
+    (cierresDe[pk]=cierresDe[pk]||[]); if(!cierresDe[pk].some(function(x){ return x.g===c.g; })) cierresDe[pk].push(c);
+    if(!cierreDe[pk] || (c.f && cierreDe[pk].f && c.f>cierreDe[pk].f)) cierreDe[pk]=c;
+  });
+  return {padres:padres, hijos:hijos, cierreDe:cierreDe, cierresDe:cierresDe, grupoHijo:grupoHijo, origenesDeHijo:origenesDeHijo};
+}
+// Una sola forma de cada palé (la que más registros tiene).
+function tzUnicos(pales){
+  var cnt={}; ROWS.forEach(function(r){ var p=pidDe(r); if(p) cnt[p]=(cnt[p]||0)+1; });
+  var por={}; pales.forEach(function(p){ var k=_pkS(p); if(!por[k] || (cnt[p]||0)>(cnt[por[k]]||0)) por[k]=p; });
+  return pales.filter(function(p){ return por[_pkS(p)]===p; });
+}
+function tzPalesHtml(pk, D){
+  function fC(d){ return d?(pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+String(d.getFullYear()).slice(-2)):''; }
+  function MK(bg,t){ return '<span style="display:inline-block;background:'+bg+';color:#fff;font-size:11px;font-weight:800;padding:1px 7px;border-radius:5px;margin-left:6px;vertical-align:1px">'+t+'</span>'; }
+  function tarjeta(p, modo, cc){
+    var k=_pkS(p), i=parsearId(p), sub=[];
+    if(i.piezas) sub.push(i.piezas+' pzas');
+    var marca='';
+    if(D.hijos[k]) marca+=MK('#c8780a', 'DESDOBLADO');
+    if(D.padres[k]){ marca+=MK('#5a2d82','ORIGINAL'); var c=cc||D.cierreDe[k]; if(c) sub.push((c.sel?'seleccionado':'desdoblado')+' el '+fC(c.f)+(c.f?' a las '+fHora(c.f):''));
+      if(D.cierresDe[k] && D.cierresDe[k].length>1) sub.push('<b style="color:#b3261e">desdoblado '+D.cierresDe[k].length+' veces</b>'); }
+    else sub.push(esc(tzUbic(p)));
+    var st=modo==='padre'?'border-left:4px solid #5a2d82;':(modo==='hijo'?'border-left:4px solid #c8780a;background:#fdfaf4;':'');
+    return '<button class="tz-pale" data-pale="'+esc(p)+'" style="'+st+'"><span class="mono">'+esc(p)+'</span>'+marca+'<small>'+sub.join(' · ')+'</small></button>';
+  }
+  var bloques={}, orden=[], normales=[];
+  function bl(g){ if(!bloques[g]){ bloques[g]={g:g,f:null,sel:false,padres:[],hijos:[]}; orden.push(g); } return bloques[g]; }
+  pk.forEach(function(p){
+    var k=_pkS(p);
+    if(D.padres[k] && D.cierresDe[k]) D.cierresDe[k].forEach(function(c){ var b=bl(c.g); b.padres.push({p:p,c:c}); if(!b.f || (c.f && c.f<b.f)) b.f=c.f; b.sel=c.sel; });
+    if(D.hijos[k]){ var g=D.grupoHijo[k]; if(!g){ var o=(D.origenesDeHijo[k]||[])[0]; if(o && D.cierreDe[o]) g=D.cierreDe[o].g; } bl(g||'SIN-ORIGEN').hijos.push(p); }
+    if(!D.padres[k] && !D.hijos[k]) normales.push(p);
+  });
+  orden.sort(function(a,b){ var fa=bloques[a].f, fb=bloques[b].f; if(!fa) return 1; if(!fb) return -1; return fa-fb; });
+  function pzs(l){ return l.reduce(function(t,p){ return t+(parsearId(p).piezas||0); },0); }
+  var h=normales.length?'<div class="tz-pales">'+normales.map(function(p){ return tarjeta(p,''); }).join('')+'</div>':'';
+  orden.forEach(function(g){
+    var b=bloques[g], pp=b.padres.map(function(x){ return x.p; });
+    var tit=g==='SIN-ORIGEN'?'Desdoblados (su palé original no es de este lote)':((b.sel?'Selección':'Desdoblamiento')+(b.f?' del '+fC(b.f):''));
+    h+='<div style="margin:6px 0 4px;padding:7px 12px;background:#f1ebf6;border-left:4px solid #5a2d82;border-radius:6px;font-weight:800;color:#5a2d82">'+tit
+      +' <span style="font-weight:600;color:var(--muted);font-size:13px">· '+pp.length+' original'+(pp.length===1?'':'es')+' ('+fmtN(pzs(pp))+' pzas) → '+b.hijos.length+' nuevo'+(b.hijos.length===1?'':'s')+' ('+fmtN(pzs(b.hijos))+' pzas)</span></div>'
+      +'<div class="tz-pales" style="margin-bottom:4px">'+b.padres.map(function(x){ return tarjeta(x.p,'padre',x.c); }).join('')+'</div>'
+      +'<div class="tz-pales" style="margin-left:28px">'+b.hijos.map(function(p){ return tarjeta(p,'hijo'); }).join('')+'</div>';
+  });
+  return h;
+}
 function tzPintar(lote, pales){
   var setP={}; pales.forEach(function(p){ setP[p]=1; });
   var regs=ROWS.filter(function(r){ return setP[pidDe(r)]; }).sort(function(a,b){ return a.__t-b.__t; });
+  var D=tzDesd(); pales=tzUnicos(pales);   // (v99) sin repetidos
   var tipos={}, pzT=0, fabs={};
-  pales.forEach(function(p){ var k=clavePalet(p); tipos[k]=(tipos[k]||0)+1; pzT+=parsearId(p).piezas||0; var f=fechaFabKey(p); if(f) fabs[f]=1; });
+  pales.forEach(function(p){ var k=clavePalet(p); tipos[k]=(tipos[k]||0)+1; if(!D.hijos[_pkS(p)]) pzT+=parsearId(p).piezas||0; var f=fechaFabKey(p); if(f) fabs[f]=1; });
   var fk=Object.keys(fabs).sort(), fabTxt=fk.length?(fk.length===1?dmy(fk[0]):dmy(fk[0])+' — '+dmy(fk[fk.length-1])):'';
   // Resumen de lo que ha pasado con el lote
   var env=0, ven=0, noApt=0;
@@ -2825,12 +2887,12 @@ function tzPintar(lote, pales){
   var porF={}; pales.forEach(function(p){ var k=clavePalet(p); (porF[k]=porF[k]||[]).push(p); });
   TZ.filas=[];
   Object.keys(porF).sort(ordenClave).forEach(function(k){
-    var pk=porF[k], sk={}; pk.forEach(function(p){ sk[p]=1; });
-    var fil=tzFilas(regs.filter(function(r){ return sk[pidDe(r)]; }));
+    var pk=porF[k], sk={}; pk.forEach(function(p){ sk[_pkS(p)]=1; });
+    var fil=tzFilas(regs.filter(function(r){ return sk[_pkS(pidDe(r))]; }));
     var base=TZ.filas.length; TZ.filas=TZ.filas.concat(fil);
-    var pz=0; pk.forEach(function(p){ pz+=parsearId(p).piezas||0; });
+    var pz=0; pk.forEach(function(p){ if(!D.hijos[_pkS(p)]) pz+=parsearId(p).piezas||0; });
     h+='<div class="tz-blq"><h3 class="pbt">'+esc(k)+' <small class="cnt">'+pk.length+' palé'+(pk.length>1?'s':'')+(pz?' · '+fmtN(pz)+' piezas':'')+'</small></h3>'
-      +'<div class="tz-pales">'+pk.map(function(p){ var i=parsearId(p); return '<button class="tz-pale" data-pale="'+esc(p)+'"><span class="mono">'+esc(p)+'</span>'+(i.piezas?'<small>'+i.piezas+' pzas · '+esc(tzUbic(p))+'</small>':'')+'</button>'; }).join('')+'</div>'
+      +tzPalesHtml(pk, D)
       +tzTabla(fil, base)+'</div>';
   });
   $('tz-res').innerHTML=h;
@@ -2846,7 +2908,8 @@ function tzPintar(lote, pales){
 // Última ubicación conocida del palé (última sala de destino registrada).
 function tzUbic(pid){
   var u='', t=0;
-  ROWS.forEach(function(r){ if(pidDe(r)!==pid) return; var d=String(r['SALA DESTINO']||'').trim(); if(d && r.__t>=t){ t=r.__t; u=d; } });
+  var _pk=String(pid||'').replace(/\s/g,'');
+  ROWS.forEach(function(r){ if(pidDe(r).replace(/\s/g,'')!==_pk) return; var d=String(r['SALA DESTINO']||'').trim(); if(d && r.__t>=t){ t=r.__t; u=d; } });
   return u?sl(u):'—';
 }
 function tzFilas(regs){
@@ -2858,7 +2921,7 @@ function tzFilas(regs){
     else if(sec==='ENVASADO') ex=MAT_ENV.map(function(m){ var l=lotesEnv(r,m); return l.length?(m.n.toLowerCase()+' '+l.join('/')):''; }).filter(Boolean).join(' · ');
     var k=sec+'|'+fk+'|'+prod+'|'+lp+'|'+ex;
     var o=g[k]||(g[k]={sec:sec, fk:fk, prod:prod, lp:lp, ex:ex, pz:0, pales:{}, regs:[]});
-    var pid=pidDe(r); if(!o.pales[pid]){ o.pales[pid]=1; o.pz+=piezasDe(r); }
+    var pid=pidDe(r).replace(/\s/g,''); if(!o.pales[pid]){ o.pales[pid]=1; o.pz+=piezasDe(r); }
     o.regs.push(r);
   });
   var l=Object.keys(g).map(function(k){ return g[k]; }).sort(function(a,b){ return a.fk<b.fk?-1:(a.fk>b.fk?1:0); });
@@ -2935,7 +2998,7 @@ function tzParte(lote, fk){
 
 // ═══ HISTORIAL DE PALÉ ═══
 function verPale(pid){
-  var regs=ROWS.filter(function(r){ return pidDe(r)===pid; }).sort(function(a,b){ return a.__t-b.__t; });
+  var _pk=String(pid||'').replace(/\s/g,''), regs=ROWS.filter(function(r){ return pidDe(r).replace(/\s/g,'')===_pk; }).sort(function(a,b){ return a.__t-b.__t; });
   var i=parsearId(pid), fab=fechaFabKey(pid);
   $('p-tit').textContent='Palé '+pid;
   $('p-sub').textContent=[clavePalet(pid), i.piezas?i.piezas+' piezas':'', fab?'fabricado '+dmy(fab):'', 'ahora: '+tzUbic(pid)].filter(Boolean).join(' · ');
