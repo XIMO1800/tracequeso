@@ -381,6 +381,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
   </nav>
   <div id="main">
     <div class="top">
+      <button class="btn" id="t-volver" hidden style="white-space:nowrap">← Volver</button>
       <div><h1 id="t-tit">Inicio</h1><div class="sub" id="t-sub"></div></div>
       <div class="sp"></div>
       <button class="btn noprint" id="t-imp" title="Imprimir esta pantalla (sin el menú)">🖨 Imprimir</button>
@@ -401,7 +402,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v108';
+var VER = 'v109';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -684,7 +685,15 @@ document.addEventListener('click', function(e){
     var v=b.getAttribute('data-v'); if(v) ir(v);
   }
 });
-function ir(v){ if(typeof VISTA_PE!=='undefined'){ VISTA_PE=false; PE=null; } VISTA=v; try{ localStorage.setItem('tqof_vista',v); }catch(_){} pintarMenu(); refrescar(); }
+// (v109) «← Volver» (Joaquín, 25/11): al saltar de una pantalla a otra desde un
+// enlace (p. ej. de la trazabilidad inversa al lote de queso) se recuerda de dónde
+// se venía. Entrar desde el menú de la izquierda empieza de cero.
+var VOLVER=[];
+function nombreVista(v){ var t=''; MENU.forEach(function(g){ g.items.forEach(function(it){ if(it.id===v && !t) t=it.t; }); }); return t||'la pantalla anterior'; }
+function pintarVolver(){ var b=$('t-volver'); if(!b) return; var u=VOLVER[VOLVER.length-1]; b.hidden=!u; if(u){ b.textContent='← Volver a '+nombreVista(u); b.onclick=function(){ var w=VOLVER.pop(); ir(w,{volviendo:1}); }; } }
+function ir(v, op){ op=op||{};
+  if(op.desde && VISTA && VISTA!==v) VOLVER.push(VISTA); else if(!op.volviendo) VOLVER=[];
+  if(typeof VISTA_PE!=='undefined'){ VISTA_PE=false; PE=null; } VISTA=v; try{ localStorage.setItem('tqof_vista',v); }catch(_){} pintarMenu(); pintarVolver(); refrescar(); window.scrollTo(0,0); }
 function refrescar(){
   if(VISTA==='registros') vistaRegistros();
   else if(VISTA==='mat') vistaMat();
@@ -3031,7 +3040,7 @@ function pvUbic(pid){
        :'<div>📍 <b>Sin ubicación en cámara</b></div><button class="btn pri" id="pv-cam">📍 Dar ubicación</button>')
     +'</div>';
   $('pv-cam').onclick=function(){ ubPanelPoner(pid); };
-  if(u) $('pv-ver').onclick=function(){ UBF.tab='buscar'; UBF.q=pid; ubGuardarF(); $('panel').hidden=true; $('velo').hidden=true; ir('ubic'); };
+  if(u) $('pv-ver').onclick=function(){ UBF.tab='buscar'; UBF.q=pid; ubGuardarF(); $('panel').hidden=true; $('velo').hidden=true; ir('ubic',{desde:1}); };
 }
 // (v95) PALÉS DESDOBLADOS / SELECCIONADOS QUE SE SIGUIERON USANDO (Joaquín, 20/11).
 // Al desdoblar, el palé se cierra y sus quesos pasan a palés nuevos con etiqueta
@@ -3553,7 +3562,7 @@ function tiDetalle(m, o){
 }
 function tiEnlaces(){
   $('ti-det').onclick=function(ev){
-    var a=ev.target.closest('[data-lq]'); if(a){ ev.preventDefault(); TZ.q=a.getAttribute('data-lq'); try{ sessionStorage.setItem('tqof_tz',JSON.stringify({q:TZ.q})); }catch(e){} ir('traz'); return; }
+    var a=ev.target.closest('[data-lq]'); if(a){ ev.preventDefault(); TZ.q=a.getAttribute('data-lq'); try{ sessionStorage.setItem('tqof_tz',JSON.stringify({q:TZ.q})); }catch(e){} ir('traz',{desde:1}); return; }
     var p=ev.target.closest('[data-pale]'); if(p){ ev.preventDefault(); verPale(p.getAttribute('data-pale')); return; }
     var sq=ev.target.closest('[data-sqr]'); if(sq){ ev.preventDefault(); abrirFicha(TI._regs[+sq.getAttribute('data-sqr')]); return; }
     var b=ev.target.closest('[data-parte]'); if(b){ abrirParte(b.getAttribute('data-parte'), b.getAttribute('data-fecha')); }
