@@ -173,6 +173,10 @@ table.ptab th{position:static;background:var(--surface2);font-size:11.5px;paddin
 table.ptab td{padding:6px 8px;border-bottom:1px solid #eee7e8;white-space:nowrap}
 table.ptab tbody tr{cursor:pointer}
 table.ptab tbody tr.nolink{cursor:default}
+#ti-tab tr.ti-exp:hover td{background:transparent}
+#ti-tab tr.ti-exp table.ptab tbody tr td{background:transparent}
+#ti-tab tr.ti-exp table.ptab tbody tr[data-reg]{cursor:pointer}
+#ti-tab tr.ti-exp table.ptab tbody tr[data-reg]:hover td{background:var(--brand-soft)}
 table.ptab tbody tr:hover td{background:var(--brand-soft)}
 table.ptab tbody tr.nolink:hover td{background:transparent}
 table.ptab .r{text-align:right}
@@ -402,7 +406,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v109';
+var VER = 'v110';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -3511,26 +3515,26 @@ function tiPartesDe(o){ var v={}; o.sals.forEach(function(s){ v[String(s['ID PAR
 function tiDetalle(m, o){
   var h='<div class="tz-blq" style="margin:6px 0 10px;box-shadow:0 2px 8px rgba(90,40,20,.12)"><h3 class="pbt">Lote '+esc(o.lote)+(o.prod?' · '+esc(o.prod):'')+'</h3>';
   if(!m.cat){
-    // Agrupado por lote de queso. (v108) Los envasados SIN QR (cuñas, quesos
-    // antiguos) no tienen palé: el lote, tipo y formato salen del propio registro.
-    var g={}; TI._regs=[];
-    o.regs.forEach(function(r){
-      var pid=pidDe(r), sinQR=!pid || idInventado(pid), lq, tipo, fab, et;
-      if(!sinQR){ var i=parsearId(pid); lq=(i.isDO&&i.loteCorto)?i.loteCorto:i.lote; tipo=clavePalet(pid); fab=fechaFabKey(pid); }
-      else { var pr=String(r['LOTE QUESO']||'').trim().split('!'); lq=(pr[1]||pr[0]||'').trim()||'—'; fab=fechaFabKey(pr[0]);
+    // (v110) UNA FILA POR CONSUMO (cada registro de envasado/tratamiento con ese
+    // lote), Joaquín 25/11: al pasar el ratón se marca y al pincharla se abre el
+    // REGISTRO. El lote de queso y el palé siguen siendo enlaces a su trazabilidad.
+    // Los sin QR (cuñas, quesos antiguos) sacan lote, tipo y formato del registro.
+    TI._regs=o.regs.slice().sort(function(a,b){ return a.__t-b.__t; });
+    var lotesQ={}, nP={}, nS=0;
+    var filas=TI._regs.map(function(r,k){
+      var pid=pidDe(r), sinQR=!pid || idInventado(pid), lq, tipo, fab;
+      if(!sinQR){ var i=parsearId(pid); lq=(i.isDO&&i.loteCorto)?i.loteCorto:i.lote; tipo=clavePalet(pid); fab=fechaFabKey(pid); nP[pid]=1; }
+      else { var pr=String(r['LOTE QUESO']||'').trim().split('!'); lq=(pr[1]||pr[0]||'').trim(); fab=fechaFabKey(pr[0]); nS++;
         tipo=[r['TIPO DE QUESO'],r['VARIEDAD'],r['FORMATO/PESO']].map(function(x){ return String(x||'').trim(); }).filter(function(x){ return x && x!=='—'; }).join(' · ')||'Sin clasificar'; }
-      var x=g[lq]||(g[lq]={lq:lq, tipos:{}, pales:[], sq:[], pz:0, fab:fab, usos:{}});
-      x.tipos[tipo]=1; x.pz+=piezasDe(r); if(r.__f) x.usos[isoDia(r.__f)]=1;
-      if(sinQR){ TI._regs.push(r); x.sq.push(TI._regs.length-1); } else if(x.pales.indexOf(pid)<0) x.pales.push(pid);
+      if(lq) lotesQ[lq]=1;
+      return '<tr data-reg="'+k+'" title="Pincha para ver el registro"><td>'+fDia(r.__f)+'</td><td>'+esc((SEC_TXT[secDe(r)]||secDe(r)).replace(/^\S+\s/,''))+'</td>'
+        +'<td class="mono">'+(lq?'<a href="#" class="lnk" data-lq="'+esc(lq)+'">'+esc(lq)+'</a>':'—')+'</td><td>'+dmy(fab)+'</td><td style="white-space:normal">'+esc(tipo)+'</td>'
+        +'<td class="r">'+fmtN(piezasDe(r))+'</td><td class="mono">'+(sinQR?'<span class="sinv">sin QR</span>':'<a href="#" class="lnk" data-pale="'+esc(pid)+'">'+esc(pid)+'</a>')+'</td><td>'+esc(r['OPERARIO']||'')+'</td></tr>';
     });
-    var arr=Object.keys(g).map(function(k){ return g[k]; }).sort(function(a,b){ return (a.fab||'').localeCompare(b.fab||''); });
-    var nP=arr.reduce(function(t,x){ return t+x.pales.length; },0), nS=arr.reduce(function(t,x){ return t+x.sq.length; },0);
-    h+='<p style="font-size:13px;color:var(--muted);margin:0 0 6px">'+arr.length+' lote'+(arr.length>1?'s':'')+' de queso · '+nP+' palé'+(nP===1?'':'s')+(nS?' · '+nS+' envasado'+(nS>1?'s':'')+' sin QR':'')+'. Pincha un lote de queso para su trazabilidad completa, o un palé para su historial.</p>'
-      +'<table class="ptab"><thead><tr><th>Lote de queso</th><th>Fabricado</th><th>Tipo · variedad · formato</th><th>Usado el</th><th class="r">Piezas</th><th>Palés</th></tr></thead><tbody>'
-      +arr.map(function(x){ return '<tr class="nolink"><td class="mono">'+(x.lq!=='—'?'<a href="#" class="lnk" data-lq="'+esc(x.lq)+'">'+esc(x.lq)+'</a>':'—')+'</td><td>'+dmy(x.fab)+'</td><td style="white-space:normal">'+esc(Object.keys(x.tipos).sort(ordenClave).join(' / '))+'</td><td>'+Object.keys(x.usos).sort().map(dmy).join(', ')+'</td><td class="r">'+fmtN(x.pz)+'</td><td style="white-space:normal">'
-        +x.pales.sort().map(function(p){ return '<a href="#" class="lnk mono" data-pale="'+esc(p)+'">'+esc(p)+'</a>'; }).join(' ')
-        +x.sq.map(function(k){ return ' <a href="#" class="lnk" data-sqr="'+k+'">sin QR</a>'; }).join('')+'</td></tr>'; }).join('')
-      +'</tbody></table></div>';
+    var nL=Object.keys(lotesQ).length, np=Object.keys(nP).length;
+    h+='<p style="font-size:13px;color:var(--muted);margin:0 0 6px">'+TI._regs.length+' registro'+(TI._regs.length===1?'':'s')+' · '+nL+' lote'+(nL===1?'':'s')+' de queso · '+np+' palé'+(np===1?'':'s')+(nS?' · '+nS+' sin QR':'')+'. Pincha una línea para ver el registro; el lote de queso o el palé, para su trazabilidad.</p>'
+      +'<table class="ptab"><thead><tr><th>Usado el</th><th>Registro</th><th>Lote de queso</th><th>Fabricado</th><th>Tipo · variedad · formato</th><th class="r">Piezas</th><th>Palé</th><th>Operario</th></tr></thead><tbody>'
+      +filas.join('')+'</tbody></table></div>';
     $('ti-det').innerHTML=h; tiEnlaces(); return;
   }
   // Fermentos / cuajo / auxiliares: por parte de fabricación
@@ -3564,7 +3568,7 @@ function tiEnlaces(){
   $('ti-det').onclick=function(ev){
     var a=ev.target.closest('[data-lq]'); if(a){ ev.preventDefault(); TZ.q=a.getAttribute('data-lq'); try{ sessionStorage.setItem('tqof_tz',JSON.stringify({q:TZ.q})); }catch(e){} ir('traz',{desde:1}); return; }
     var p=ev.target.closest('[data-pale]'); if(p){ ev.preventDefault(); verPale(p.getAttribute('data-pale')); return; }
-    var sq=ev.target.closest('[data-sqr]'); if(sq){ ev.preventDefault(); abrirFicha(TI._regs[+sq.getAttribute('data-sqr')]); return; }
+    var rg=ev.target.closest('tr[data-reg]'); if(rg){ abrirFicha(TI._regs[+rg.getAttribute('data-reg')]); return; }
     var b=ev.target.closest('[data-parte]'); if(b){ abrirParte(b.getAttribute('data-parte'), b.getAttribute('data-fecha')); }
   };
 }
