@@ -406,7 +406,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v111';
+var VER = 'v112';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -3795,7 +3795,7 @@ function ubVigente(u){
 // apunta que está en el picking (incluye la zona de la izquierda al entrar, donde
 // se deja lo que se va a envasar). Se pone desde el móvil (Movimiento / Recolocar)
 // o desde aquí (Recolocar, cuadre, historial).
-var UB_ESP={'CF-PICKING':{sala:'6.CAMARA FRIO', nom:'Picking', ico:'🧺', cam:'C. Frío'}, 'CF-PASO':{sala:'6.CAMARA FRIO', nom:'Zona de tránsito', ico:'⏳', cam:'C. Frío'}, 'CM-PASO':{sala:'7.CAMARA MADURACION', nom:'Zona de tránsito', ico:'⏳', cam:'C. Mad.'}}   // (v89) CF-PASO: tránsito también en Frío, UB_ESP_ALIAS={'CF-PUERTA':'CF-PICKING'};
+var UB_ESP={'CF-PICKING':{sala:'6.CAMARA FRIO', nom:'Picking', ico:'🧺', cam:'C. Frío'}, 'CF-PASO':{sala:'6.CAMARA FRIO', nom:'Zona de tránsito', ico:'⏳', cam:'C. Frío'}, 'CM-PASO':{sala:'7.CAMARA MADURACION', nom:'Zona de tránsito', ico:'⏳', cam:'C. Mad.'}}, UB_ESP_ALIAS={'CF-PUERTA':'CF-PICKING'};   // (v89) CF-PASO: tránsito también en Frío. (v112) El alias se había quedado dentro del comentario: «UB_ESP_ALIAS is not defined» y no cargaban las ubicaciones
 function ubEspVigente(u){
   if(!u || !UB_ESP[u.zona]) return false;
   if(u.fecha && Date.now()-u.fecha < 6*3600*1000) return true;
