@@ -1069,7 +1069,7 @@ input[type="email"] {
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
     <div style="background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap" id="hdr-fecha">—</div>
-    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.515</div>
+    <div style="background:rgba(255,255,255,0.15);padding:2px 7px;border-radius:20px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.8)">v2.6.516</div>
   </div>
 </div>
 <div class="nav-tabs">
@@ -4312,7 +4312,7 @@ function _cuajadaDelParte(d, p){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// (v2.6.515) ¿SE EQUIVOCÓ EL QUESERO DE CUBA FÍSICA? (Joaquín, 18/11)
+// (v2.6.516) ¿SE EQUIVOCÓ EL QUESERO DE CUBA FÍSICA? (Joaquín, 18/11)
 // La 4ª cuba del 18/11 decía «física 3» y en el archivo de la 3 no había nada a
 // esa hora; en el de la 2 sí. Joaquín lo vio mirando a mano los otros archivos.
 // Ahora lo hace la app: si el parte no cuadra con su cuba (o no hay archivo), se
@@ -6261,9 +6261,12 @@ function _cerrarBotellaCO2Anterior(loteNuevo){
   if(!confirm('Has cambiado de botella de CO2.\n\nEl lote anterior ('+ant+') figura todavía con '+fmt(queda)+' L.\n\n'
       +'¿Se ha terminado? Si dices que sí, se pone a cero lo que le queda (queda anotado como ajuste).')) return;
   var llenas = 0;
-  if(queda > CO2_LITROS_BOTELLA*1.05){
-    var r = prompt('Ese lote tiene más gas del que cabe en una botella: puede que trajera varias.\n\n'
-      +'¿Cuántas botellas de ese lote quedan LLENAS, sin empezar? (0 si ninguna)', '0');
+  // (v2.6.516) Se pregunta también cuando lo que queda es UNA botella justa: el
+  // 27/11 el lote ES615192623053000 figuraba con 17.800 L (una botella entera sin
+  // empezar), no se preguntó y se puso a cero una botella que estaba llena.
+  if(queda >= CO2_LITROS_BOTELLA*0.9){
+    var r = prompt('A ese lote le quedan '+fmt(queda)+' L: es al menos una botella entera.\n\n'
+      +'Mira en la nave: ¿cuántas botellas de ese lote quedan LLENAS, sin empezar? (0 si ninguna)', '');
     if(r === null) return;
     llenas = Math.max(0, parseInt(r,10)||0);
   }

@@ -2132,7 +2132,16 @@ function fichaEntrada(e, lote){
     ['Fecha de entrada', val(dmy(diaKey(gEnt(e,['FECHA ENTRADA','fentrada','FECHA','fecha']))))],
     ['Proveedor', val(gEnt(e,['PROVEEDOR','proveedor']))],
     ['Nº albarán', val(gEnt(e,['ALBARAN','albaran']))],
-    ['Ref. del proveedor', val(gEnt(e,['REF PROVEEDOR']))]]);
+    ['Ref. del proveedor', val(gEnt(e,['REF PROVEEDOR']))],
+    // (v111) Quién y cuándo (Joaquín, 27/11): un ajuste de CO2 hecho desde el parte
+    // no decía quién lo hizo ni desde dónde.
+    ['Registrado por', (function(){ var o=String(gEnt(e,['OPERARIO','operario'])||'').trim(), r=String(gEnt(e,['RECIBIDO POR'])||'').trim();
+      return val(o||r)+(r&&o&&nrm(r)!==nrm(o)?' · recibió '+esc(r):''); })()],
+    ['Registrado el', (function(){ var d=parseFecha(gEnt(e,['FECHA','fecha'])); return d?(fDia(d)+' '+fHora(d)):'<span class="sinv">—</span>'; })()],
+    ['Hecho desde', (function(){ var o=String(gEnt(e,['OBSERVACIONES','OBSERVACION','OBS','obs'])||''), id=String(gEnt(e,['ID ENTRADA','id'])||'');
+      if(/en el parte/i.test(o)) return 'Partes de fabricación (al cambiar de botella de CO2)';
+      if(/^E-INVETQ/.test(id)) return 'Carga del inventario de etiquetas';
+      return cant<0?'Ajuste de stock':'Entrada de material'; })()]]);
   h+=bloque('📦 Material',[
     ['Categoría', val(gEnt(e,['CATEGORIA','CATEGORÍA','categoria']))],
     ['Artículo', '<b>'+val(art)+'</b>'],
