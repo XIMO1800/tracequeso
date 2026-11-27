@@ -6835,13 +6835,27 @@ function poblarSelectLotePint(){
     // tenía lotes con stock, salían todos) y nunca el lote que ya se está
     // usando: el 07/09 la pintora no veía su lote, lo buscó aquí, lo tocó seis
     // veces y se descontaron seis garrafas de 601/93M31HZ.
-    var prodN=_normNombre(pintProdActual), usados={};
+    var prodN=_normNombre(pintProdActual), usados={}, usoDe={};
     var _act=String(_loteVigente(lotePinturaPorProducto[pintProdActual]||'')||'').trim();
     if(_act) usados[_act]=1;
     try{
       (rawRows||[]).forEach(function(r){
         if(normSeccion(r['SECCIÓN']||'')!=='PINTURA' || _normNombre(r['PRODUCTO'])!==prodN) return;
-        String(r['LOTE PRODUCTO']||'').split(/\||\s\/\s/).forEach(function(x){ x=x.trim(); if(x) usados[x]=1; });
+        String(r['LOTE PRODUCTO']||'').split(/\||\s\/\s/).forEach(function(x){ x=x.trim(); if(!x) return; usados[x]=1;
+          var f=parseFecha(r['FECHA']); if(f && (!usoDe[x] || f<usoDe[x].f)) usoDe[x]={f:f, op:String(r['OPERARIO']||'')}; });
+      });
+    }catch(_){}
+    // (v677) Si no sale ningún lote, decir POR QUÉ no salen los que tienen stock
+    // (Joaquín, 27/11: un lote dado de alta el 10/11 no aparecía y no se sabía la causa).
+    var _porQue=[];
+    try{
+      (matStockRemote||[]).forEach(function(r){
+        if(_normNombre(r['ARTICULO'])!==prodN || !((parseFloat(r['STOCK ACTUAL'])||0)>0)) return;
+        var l=String(r['LOTE']||'').trim(); if(!l) return;
+        var u=usoDe[l], d=u?(('0'+u.f.getDate()).slice(-2)+'/'+('0'+(u.f.getMonth()+1)).slice(-2)):'';
+        if(l===_act) _porQue.push('<b>'+l+'</b> es el lote activo (arriba)');
+        else if(u) _porQue.push('<b>'+l+'</b> ya se usó en pintura el '+d+(u.op?' ('+u.op+')':''));
+        else if((parseFloat(r['CONSUMO'])||0)>0) _porQue.push('<b>'+l+'</b> ya tiene consumo: se empezó antes');
       });
     }catch(_){}
     var _lista=(matStockRemote||[]).filter(function(r){
@@ -6850,7 +6864,7 @@ function poblarSelectLotePint(){
       return {lote:String(l['LOTE']||'').trim(), stock:parseFloat(l['STOCK ACTUAL'])||0, unidad:String(l['UNIDAD']||'kg').trim()||'kg', articulo:''};
     });
     _pintarListaLotes(sel.id, _lista, onSelLotePint,
-      'No hay ningún lote nuevo de este producto.<br>Si ha llegado una garrafa de otro lote, avisa a Calidad para que le dé entrada.');
+      'No hay ningún lote nuevo de este producto.'+(_porQue.length?('<br><span style="font-size:0.76rem;">'+_porQue.join('<br>')+'</span>'):'<br>Si ha llegado una garrafa de otro lote, avisa a Calidad para que le dé entrada.'));
   }
   if(typeof matCargado!=='undefined' && matCargado){
     _render();
