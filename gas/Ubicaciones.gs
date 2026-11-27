@@ -193,6 +193,50 @@ function gestionarUbicacion(payload) {
   return _ubicRespuesta({ok: true, accion: accion, filasEscritas: filas.length});
 }
 
+// (27/11, API 36) CUANDO UN PALÉ SALE DE LA CÁMARA, SU HUECO QUEDA LIBRE.
+// Joaquín, 27/11: «cuando un palé sale de una cámara o sala, esa ubicación
+// tiene que quedar vacía y libre para otro». Antes la ubicación se quedaba
+// apuntada: la app la escondía (el palé ya no estaba en esa cámara), pero el
+// servidor seguía dando el hueco por ocupado (CM4-F02-P6-A4 con un palé que ya
+// había salido). Ahora, al guardar un registro con SALA DESTINO (movimiento,
+// venta…), si el palé tiene ubicación en una cámara DISTINTA del destino, se
+// apunta su BAJA (QUIEN «AUTO (salida)»). Si el registro es más viejo que la
+// ubicación (llegó tarde, sin cobertura) no se toca: puede que ya lo hayan
+// vuelto a meter. Nunca hace fallar el guardado del registro.
+function _ubicFechaReg(v) {
+  if (Object.prototype.toString.call(v) === '[object Date]') return v.getTime();
+  var m = String(v || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\D+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (m) return new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5], +(m[6] || 0)).getTime();
+  var d = new Date(v); return isNaN(d.getTime()) ? 0 : d.getTime();
+}
+function _ubicSalaDeZona(zona) {
+  if (/^CF/.test(zona)) return 'FRIO';
+  if (/^CM/.test(zona)) return 'MADURACION';
+  return '';
+}
+function _ubicBajaPorSalida(regs) {
+  try {
+    var mov = (regs || []).filter(function(r) { return r && String(r['SALA DESTINO'] || '').trim() && String(r['ID PALET'] || '').trim(); });
+    if (!mov.length) return 0;
+    var vig = _ubicacionesVigentes(), filas = [], ahora = new Date();
+    mov.forEach(function(r) {
+      var id = String(r['ID PALET']).replace(/^'/, '').trim(), k = _ubicClave(id), u = vig[k];
+      if (!u) return;
+      var sz = _ubicSalaDeZona(u.zona), dest = String(r['SALA DESTINO']).toUpperCase();
+      if (!sz || dest.indexOf(sz) >= 0) return;               // sigue en esa cámara
+      var fr = _ubicFechaReg(r['FECHA']);
+      if (fr && u.fecha && fr < u.fecha) return;               // registro más viejo que la ubicación
+      filas.push([ahora, 'AUTO (salida)', u.id, u.codigo, u.zona, u.fila, u.pie, u.altura, 'BAJA', 'SALIDA ' + String(r['ID'] || '')]);
+      delete vig[k];
+    });
+    if (filas.length) {
+      var sh = _hojaUbicaciones();
+      sh.getRange(sh.getLastRow() + 1, 1, filas.length, UBIC_COLS.length).setValues(filas);
+    }
+    return filas.length;
+  } catch (e) { return 0; }
+}
+
 function _ubicRespuesta(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }

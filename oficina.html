@@ -406,7 +406,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v110';
+var VER = 'v111';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -4165,11 +4165,23 @@ function ubTabCuadre(){
   } else {
     l=c.caducadas;
     if(!l.length) h+='<div class="vacio">Ninguna ubicación de esta cámara está desfasada. 👍</div>';
-    else h+='<div class="tbl-wrap"><table id="cu-t"><thead><tr><th>Palé</th><th>Ubicado en</th><th>Ubicado</th><th>Según los registros, ahora</th><th>Desde</th></tr></thead><tbody>'
+    // (v111) Liberar de una vez los huecos de los palés que ya salieron (Joaquín, 27/11).
+    // Desde la API 36 se liberan solos al registrar la salida; esto limpia los de antes.
+    else h+=(ubPermitido()?'<div style="margin:0 0 10px"><button class="btn" id="cu-lib">Liberar estos '+l.length+' huecos</button> <small style="color:var(--muted)">Quita la ubicación a los palés que ya no están; el hueco queda libre.</small></div>':'')
+      +'<div class="tbl-wrap"><table id="cu-t"><thead><tr><th>Palé</th><th>Ubicado en</th><th>Ubicado</th><th>Según los registros, ahora</th><th>Desde</th></tr></thead><tbody>'
       +l.map(function(x,k){ var e=x.e; return '<tr data-k="'+k+'"><td class="mono">'+esc(x.u.id)+'</td><td class="mono"><b>'+esc(x.u.codigo||ubCod(x.u.zona,x.u.fila,x.u.pie,x.u.altura))+'</b></td><td>'+(x.u.fecha?fDia(new Date(x.u.fecha)):'')+(x.u.quien?' · '+esc(x.u.quien):'')+'</td><td><b>'+(e?(e.salio?'Vendido / salido':esc(sl(e.sala)||'sin sala')):'—')+'</b></td><td>'+(e&&e.tSala>0?fDia(new Date(e.tSala)):'')+'</td></tr>'; }).join('')+'</tbody></table></div>';
   }
   $('ub-body').innerHTML=h; ubEnlSala(ubTabCuadre);
   $('cu-ch').onclick=function(ev){ var b=ev.target.closest('[data-v]'); if(!b) return; UBF.cuVer=b.getAttribute('data-v'); ubGuardarF(); ubTabCuadre(); };
+  if($('cu-lib')) $('cu-lib').onclick=function(){
+    var ids=l.map(function(x){ return x.u.id; }), bt=$('cu-lib'); bt.disabled=true; bt.textContent='Liberando…';
+    fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'UBICACION', accion:'baja', ids:ids, _QUIEN:(CU&&CU.n)||''})})
+      .then(function(r){ return r.json(); }).then(function(j){
+        if(!(j&&j.ok)){ alert('No se ha podido: '+((j&&j.error)||'inténtalo otra vez')); bt.disabled=false; bt.textContent='Liberar estos '+ids.length+' huecos'; return; }
+        var q={}; ids.forEach(function(i){ q[ubKey(i)]=1; }); UB.lista=UB.lista.filter(function(x){ return !q[ubKey(x.id)]; });
+        ubTabCuadre();
+      }).catch(function(){ alert('Sin conexión: no se ha hecho.'); bt.disabled=false; });
+  };
   if($('cu-t')) $('cu-t').querySelector('tbody').onclick=function(ev){ var b=ev.target.closest('[data-ubicar]'); if(b){ ubPanelPoner(l[+b.getAttribute('data-ubicar')].id); return; } var tr=ev.target.closest('tr'); if(!tr) return; var x=l[+tr.getAttribute('data-k')]; verPale(x.u?ubIdReg(x.u.id):x.id); };
 }
 
@@ -4185,7 +4197,11 @@ function ubPoner(id, z, f, p, a, forzar, hecho){
   var cod=esp?z:ubCod(z,f,p,a);
   fetch(API_URL,{method:'POST', body:JSON.stringify({_SHEET:'UBICACION', accion:'poner', id:id, zona:z, fila:f, pie:p, altura:a, forzar:!!forzar, _QUIEN:(CU&&CU.n)||''})})
     .then(function(r){ return r.json(); }).then(function(j){
-      if(j && j.ocupado){ if(confirm('El hueco '+cod+' lo tiene el palé '+j.ocupado+'.\n\n¿Quitarlo de ahí y poner '+id+'?')) ubPoner(id,z,f,p,a,true,hecho); return; }
+      if(j && j.ocupado){
+        // (v111) Si el que «tiene» el hueco ya no está en la cámara, se pone sin preguntar
+        var _ko=ubKey(j.ocupado), _oc=UB.lista.filter(function(x){ return ubKey(x.id)===_ko; })[0];
+        if(!(_oc && ubVigente(_oc))){ ubPoner(id,z,f,p,a,true,hecho); return; }
+        if(confirm('El hueco '+cod+' lo tiene el palé '+j.ocupado+'.\n\n¿Quitarlo de ahí y poner '+id+'?')) ubPoner(id,z,f,p,a,true,hecho); return; }
       if(!(j && j.ok)){ alert('No se ha guardado: '+((j&&j.error)||'inténtalo otra vez')); return; }
       var k=ubKey(id);
       UB.lista=UB.lista.filter(function(x){ return ubKey(x.id)!==k && (esp || (x.codigo||ubCod(x.zona,x.fila,x.pie,x.altura))!==cod); });
