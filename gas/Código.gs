@@ -183,7 +183,7 @@
 // ══════════════════════════════════════════════════════════════════════════
 const CODIGO_GS_VERSION = '2026-10-13';
 /** Versión de la API: la app la enseña junto a la suya («v448 · API 1»). Subirla en cada cambio de este proyecto. */
-const API_VERSION = 36;  // 36 (27/11): al guardar un registro con SALA DESTINO, si el palé tiene ubicación en otra cámara se le da de BAJA (su hueco queda libre). 35 (23/11): el catálogo de etiquetas ya no pide un segundo candado (se esperaba a sí mismo y daba «Ocupado»). 34 (23/11): en el catálogo de etiquetas se puede corregir el código (codigoAntes). 33 (23/11): catálogo de etiquetas de marca (Etiquetas.gs: código de gestión, nombre corto y si va a envasado), dentro de tipo=matAux (data.etiquetas). 32 (20/11): al eliminar una salida desde la oficina se quita un momento el filtro de la hoja (con filtro puesto la fila no se borraba pero el stock sí se devolvía) y solo se devuelve al stock lo que de verdad se ha borrado. 31 (20/11): también se puede eliminar una apertura de garrafa (G-) hecha por error. 30 (19/11): las salidas de un parte se rehacen siempre con candado (el 22/10 un parte dejó la misma salida dos veces). 29 (19/11): se puede eliminar una APERTURA DE CONTENEDOR (C-) hecha por error, devolviendo su cantidad al stock. 28 (18/11): la Tª del camión de una entrada se guarda como número (Sheets convertía 8,1 en fecha). 27 (11/11): el consumo de un parte en L o kg se trata como ml o g (cuajo NATUREN 1500 L en vez de 1,5 L) y la ficha de stock se reintenta si no se pudo leer. 26 (09/11): la descarga normal admite formato=compacto y dias=N<90. 25 (09/11): completo admite dias=N (aparatos con poca memoria bajan solo los últimos N días). 24 (07/11): TERCERA CAPA y Nº CAPA viajan a móviles y oficina (estaban fuera de COLS). 23 (07/11): _UPDATE con _SOLO_SI_CAMBIA no escribe si ya estaba igual (marca «queso sin voltear» doble). 22 (06/11): una corrección (_UPDATE) puede crear columna nueva (TERCERA CAPA). 21 (05/11): aviso de tiernos para el jefe de almacén (tipo=avisoTiernos). 20 (04/11): control de recepción (quien descarga) y REF PROVEEDOR en entradas. 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
+const API_VERSION = 37;  // 37 (27/11): se puede cambiar la cantidad de una salida manual (SM-); el stock se ajusta por la diferencia y queda anotado en el motivo. 36 (27/11): al guardar un registro con SALA DESTINO, si el palé tiene ubicación en otra cámara se le da de BAJA (su hueco queda libre). 35 (23/11): el catálogo de etiquetas ya no pide un segundo candado (se esperaba a sí mismo y daba «Ocupado»). 34 (23/11): en el catálogo de etiquetas se puede corregir el código (codigoAntes). 33 (23/11): catálogo de etiquetas de marca (Etiquetas.gs: código de gestión, nombre corto y si va a envasado), dentro de tipo=matAux (data.etiquetas). 32 (20/11): al eliminar una salida desde la oficina se quita un momento el filtro de la hoja (con filtro puesto la fila no se borraba pero el stock sí se devolvía) y solo se devuelve al stock lo que de verdad se ha borrado. 31 (20/11): también se puede eliminar una apertura de garrafa (G-) hecha por error. 30 (19/11): las salidas de un parte se rehacen siempre con candado (el 22/10 un parte dejó la misma salida dos veces). 29 (19/11): se puede eliminar una APERTURA DE CONTENEDOR (C-) hecha por error, devolviendo su cantidad al stock. 28 (18/11): la Tª del camión de una entrada se guarda como número (Sheets convertía 8,1 en fecha). 27 (11/11): el consumo de un parte en L o kg se trata como ml o g (cuajo NATUREN 1500 L en vez de 1,5 L) y la ficha de stock se reintenta si no se pudo leer. 26 (09/11): la descarga normal admite formato=compacto y dias=N<90. 25 (09/11): completo admite dias=N (aparatos con poca memoria bajan solo los últimos N días). 24 (07/11): TERCERA CAPA y Nº CAPA viajan a móviles y oficina (estaban fuera de COLS). 23 (07/11): _UPDATE con _SOLO_SI_CAMBIA no escribe si ya estaba igual (marca «queso sin voltear» doble). 22 (06/11): una corrección (_UPDATE) puede crear columna nueva (TERCERA CAPA). 21 (05/11): aviso de tiernos para el jefe de almacén (tipo=avisoTiernos). 20 (04/11): control de recepción (quien descarga) y REF PROVEEDOR en entradas. 19 (03/11): eliminar una salida manual SM- devolviendo el stock (copia en SALIDAS MATERIAL ELIMINADAS). 18 (02/11): equivalencias con cualquier unidad (UNIDAD ALBARAN → UNIDAD STOCK). 17 (02/11): accion 'fila' solo da de BAJA lo que puso esa sesión o viene en 'quitar'. 16 (02/11): ubicaciones en zonas sin huecos (CF-PICKING, CF-PUERTA). 15 (01/11): ubicaciones, el mismo palé escrito de distinta forma (con/sin «!lote», espacios) es uno solo. 14 (01/11): ACCESO RECEPCION y ACCESO UBICACION como casillas; columna NOMBRE inmovilizada. 13 (01/11): columna ACCESO UBICACION en operarios. 12 (01/11): ubicaciones de palés en cámaras (Ubicaciones.gs). 11 (31/10): relación unidades ↔ peso del material (Equivalencias.gs). 10: 10 (31/10): historial de cambios de un registro (tipo=historialRegistro). 9: aviso de mínimos
 
 const SHEET_ID = '1XgTnoPDrXLDmWfeQXGFD6g7uo9mdrb1rbm6aR0FoaR0';
 const SHEET_NAME = 'REGISTRO TOTAL';
@@ -2701,6 +2701,7 @@ function gestionarSalidasEnvasado(payload) {
   // SM-: los consumos de partes y envasados se quitan borrando su registro.
   // Queda copia de lo borrado en la hoja SALIDAS MATERIAL ELIMINADAS.
   if (payload.accion === 'borrar') return _borrarSalidaManual(payload);
+  if (payload.accion === 'editar') return _editarSalidaManual(payload);   // (27/11, API 37)
   var sheetSal = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_SALIDAS);
   if (!sheetSal) return ContentService.createTextOutput(JSON.stringify({ok:false,error:'No existe la hoja SALIDAS MATERIAL AUXILIAR'})).setMimeType(ContentService.MimeType.JSON);
 
@@ -2807,6 +2808,44 @@ function _borrarSalidaManual(payload) {
     borradas.forEach(function(f){ shE.appendRow([_cuandoTxt(), quien].concat(f.map(function(v){ return (v instanceof Date) ? _cuandoDe(v) : v; }))); });
   } catch (e) {}
   return out({ok: true, borradas: borradas.length, deTotal: copia.length});
+}
+
+// (27/11, API 37) CAMBIAR LA CANTIDAD DE UNA SALIDA MANUAL (SM-) mal tecleada
+// (Joaquín, regularización de CO2). Se cambia la CANTIDAD de la fila y el stock
+// del lote se ajusta SOLO por la diferencia. En el MOTIVO queda escrito el cambio
+// (de cuánto a cuánto, quién y cuándo).
+function _editarSalidaManual(payload) {
+  function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+  var id = String(payload.idEnvasado || payload.id || '').trim();
+  if (id.indexOf('SM-') !== 0) return out({ok:false, error:'Solo se puede cambiar la cantidad de las salidas manuales (SM-)'});
+  var nueva = parseFloat(String(payload.cantidad == null ? '' : payload.cantidad).replace(',', '.'));
+  if (!(nueva > 0)) return out({ok:false, error:'La cantidad tiene que ser mayor que 0'});
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ss.getSheetByName(SHEET_SALIDAS);
+  if (!sh) return out({ok:false, error:'No existe la hoja de salidas'});
+  var data = sh.getDataRange().getValues(), headers = data[0];
+  var cParte = _colIdx(headers, 'ID PARTE'), cCant = _colIdx(headers, 'CANTIDAD'), cMot = _colIdx(headers, 'MOTIVO');
+  var cCat = _colIdx(headers, 'CATEGORIA'), cArt = _colIdx(headers, 'ARTICULO'), cLote = _colIdx(headers, 'LOTE'), cUni = _colIdx(headers, 'UNIDAD');
+  if (cParte < 0 || cCant < 0) return out({ok:false, error:'Faltan columnas en la hoja de salidas'});
+  var filas = [];
+  for (var i = 1; i < data.length; i++) if (String(data[i][cParte] || '').trim() === id) filas.push(i);
+  if (!filas.length) return out({ok:false, error:'No encuentro esa salida (puede que esté eliminada)'});
+  if (filas.length > 1) return out({ok:false, error:'Esa salida tiene varias líneas: elimínala y hazla de nuevo'});
+  var f = filas[0], fila = data[f];
+  var antes = parseFloat(fila[cCant]) || 0;
+  var delta = Math.round((nueva - antes) * 1000) / 1000;
+  if (!delta) return out({ok:true, sinCambio:true});
+  sh.getRange(f + 1, cCant + 1).setValue(nueva);
+  if (cMot >= 0) {
+    var nota = ' · cantidad cambiada de ' + antes + ' a ' + nueva + ' por ' + (String(payload.quien || '').trim() || '¿?') + ' el ' + _cuandoTxt();
+    sh.getRange(f + 1, cMot + 1).setValue(String(fila[cMot] || '') + nota);
+  }
+  SpreadsheetApp.flush();
+  // Comprobar que la fila cambiada es la buena antes de tocar el stock.
+  var ahora = sh.getRange(f + 1, 1, 1, headers.length).getValues()[0];
+  if (String(ahora[cParte] || '').trim() !== id || (parseFloat(ahora[cCant]) || 0) !== nueva) return out({ok:false, error:'La hoja no ha guardado el cambio. No se ha tocado el stock'});
+  _aplicarConsumoStock(cCat >= 0 ? fila[cCat] : '', cArt >= 0 ? fila[cArt] : '', cLote >= 0 ? fila[cLote] : '', delta, cUni >= 0 ? fila[cUni] : '');
+  return out({ok:true, antes:antes, ahora:nueva, delta:delta});
 }
 
 // (20/11, API 32) Quita el filtro de una hoja guardando cómo estaba, para que el

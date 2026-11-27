@@ -406,7 +406,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v112';
+var VER = 'v113';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -2193,10 +2193,29 @@ function fichaSalida(s){
         : String(s['ID PARTE']||'').indexOf('G-')===0
         ? 'Apertura de garrafa: al elegir el lote o pulsar «Nueva garrafa», una garrafa sale del stock. Si se repitió por error y la garrafa sigue cerrada, elimínala y vuelve al stock.'
         : 'Salida dada a mano desde Material auxiliar → Salidas y consumos. Ya está descontada del stock del lote.')+'</p>'
+    // (v113) Cambiar la cantidad de una salida manual mal tecleada (Joaquín, 27/11).
+    +((puedeGuardar() && /^SM-/.test(String(s['ID PARTE']||'')))?'<div style="margin-top:14px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:#fff"><b>Cambiar la cantidad</b><div style="display:flex;gap:8px;align-items:center;margin-top:6px"><input id="sal-cant" type="number" step="any" min="0" value="'+esc(num(s.CANTIDAD||s.cantidad))+'" style="width:160px;font-size:16px;padding:6px 8px"> '+esc(u)+' <button class="btn pri" id="sal-cant-ok">Guardar cantidad</button></div><div style="font-size:12.5px;color:var(--muted);margin-top:4px">El stock del lote se corrige solo por la diferencia. Queda anotado quién la cambió y cuánto ponía antes.</div></div>':'')
     +((puedeGuardar() && /^(SM|C|G)-/.test(String(s['ID PARTE']||'')))?'<p style="margin-top:14px"><button class="btn pri" id="p-elim-sal">🗑 Eliminar esta salida</button></p><div id="sal-err" style="display:none;color:#b00020;font-weight:700;margin-top:8px"></div>':'');
   $('p-body').innerHTML=h; $('panel').hidden=false; $('velo').hidden=false;
   if(_vl && $('p-volver')) $('p-volver').onclick=function(){ fichaLote(_vl); };
   if($('p-elim-sal')) $('p-elim-sal').onclick=function(){ salidaEliminar(s, this, art, lote, u); };
+  if($('sal-cant-ok')) $('sal-cant-ok').onclick=function(){ salidaCambiarCantidad(s, this, art, lote, u); };
+}
+function salidaCambiarCantidad(s, btn, art, lote, u){
+  var id=String(s['ID PARTE']||'').trim(), antes=num(s.CANTIDAD||s.cantidad), nueva=parseFloat(String($('sal-cant').value||'').replace(',','.'));
+  var err=function(t){ var e=$('sal-err'); if(e){ e.textContent='⚠️ '+t; e.style.display='block'; } else alert(t); };
+  if(!(nueva>0)){ err('Pon una cantidad mayor que 0.'); return; }
+  if(Math.abs(nueva-antes)<0.0005){ err('Es la misma cantidad que tenía.'); return; }
+  var d=nueva-antes;
+  dosBotones('¿Cambiar la cantidad?', '<b>'+esc(art)+'</b> · lote <b>'+esc(lote)+'</b><br><br>De <b>'+fNum(antes)+'</b> a <b>'+fNum(nueva)+' '+esc(u)+'</b>.<br>Al stock del lote se le '+(d>0?'<b>quitan '+fNum(d)+'</b>':'<b>devuelven '+fNum(-d)+'</b>')+' '+esc(u)+'.', 'Sí, cambiarla', 'No', function(){
+    btn.disabled=true; btn.textContent='Guardando…';
+    fetch(API_URL,{method:'POST', body:JSON.stringify({'_SHEET':'SALIDAS_ENVASADO', accion:'editar', idEnvasado:id, cantidad:nueva, quien:(CU&&CU.n)||''})})
+      .then(function(x){ return x.json(); }).then(function(j){
+        if(!j || !j.ok) throw new Error((j&&j.error)||'el servidor no ha confirmado');
+        cerrarFicha(); MAT._fichaLote=null; MAT.cargado=false; cargarMat(true);
+        alert('✅ Cantidad cambiada: '+fNum(antes)+' → '+fNum(nueva)+' '+u+'. El stock del lote '+lote+' ya está corregido.');
+      }).catch(function(e){ btn.disabled=false; btn.textContent='Guardar cantidad'; err('No se ha cambiado: '+e.message+'.'); });
+  });
 }
 // (v60) ELIMINAR UNA SALIDA MANUAL HECHA POR ERROR (Joaquín, 03/11: regularizó
 // el lote que sí tenía en vez del que faltaba). Se borra la salida y la
