@@ -270,6 +270,7 @@ table.lin input,table.lin select{border:1.5px solid var(--line);border-radius:6p
 .side-logo .app{color:var(--brand);font-size:21px;white-space:nowrap}
 .side-logo small{color:#4a3b3d;opacity:1}
 .navgt{color:var(--brand);border-bottom:2px solid #d9c6ae;margin:6px 0 4px}
+.nav.nav-ini{margin:2px 0 8px}.nav.nav-ini button{font-size:17px}   /* (v116) pantalla principal, encima de los bloques */
 .nav button{color:#1d1618;font-weight:700}
 .nav button:hover{background:#e8d9c6;color:#1d1618}
 .nav button.on{background:#fff;color:var(--brand);font-weight:800;border:1px solid #e3d3c0;box-shadow:inset 4px 0 0 var(--brand),0 1px 3px rgba(90,40,20,.12)}
@@ -409,7 +410,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v115';
+var VER = 'v116';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -633,8 +634,7 @@ function ponerAlDia(){
 // ═══════════════════════════════════════════════════════════════════════════
 var MENU=[
   {g:'PRODUCCIÓN', items:[
-    // (v115) Orden de Joaquín (28/11)
-    {id:'inicio', t:'Pantalla principal'},
+    // (v115) Orden de Joaquín (28/11). (v116) La pantalla principal va fuera, arriba.
     {id:'papel', t:'Entrada registro'},
     {id:'registros', t:'Registros'},
     {id:'pale', t:'Historial de palé'},
@@ -670,7 +670,7 @@ var VISTA='inicio';
 var PLEG={};
 try{ PLEG=JSON.parse(localStorage.getItem('tqof_pleg')||'{}')||{}; }catch(e){}
 function pintarMenu(){
-  var h='';
+  var h='<div class="nav nav-ini"><button data-v="inicio" class="'+(VISTA==='inicio'?'on':'')+'">🏠 Pantalla principal</button></div>';
   MENU.forEach(function(g){
     var cerrado=!!PLEG[g.g];
     h+='<div class="navgt" data-g="'+esc(g.g)+'">'+esc(g.g)+'<span class="fl">'+(cerrado?'▸':'▾')+'</span></div>';
@@ -698,7 +698,7 @@ document.addEventListener('click', function(e){
 // enlace (p. ej. de la trazabilidad inversa al lote de queso) se recuerda de dónde
 // se venía. Entrar desde el menú de la izquierda empieza de cero.
 var VOLVER=[];
-function nombreVista(v){ var t=''; MENU.forEach(function(g){ g.items.forEach(function(it){ if(it.id===v && !t) t=it.t; }); }); return t||'la pantalla anterior'; }
+function nombreVista(v){ if(v==='inicio') return 'Pantalla principal'; var t=''; MENU.forEach(function(g){ g.items.forEach(function(it){ if(it.id===v && !t) t=it.t; }); }); return t||'la pantalla anterior'; }
 function pintarVolver(){ var b=$('t-volver'); if(!b) return; var u=VOLVER[VOLVER.length-1]; b.hidden=!u; if(u){ b.textContent='← Volver a '+nombreVista(u); b.onclick=function(){ var w=VOLVER.pop(); ir(w,{volviendo:1}); }; } }
 function ir(v, op){ op=op||{};
   if(op.desde && VISTA && VISTA!==v) VOLVER.push(VISTA); else if(!op.volviendo) VOLVER=[];
@@ -3141,13 +3141,14 @@ function vistaCerrados(){
 // descuenta stock y no toca el lote activo de los móviles. Queda marcado en
 // observaciones quién lo pasó.
 // ═══════════════════════════════════════════════════════════════════════════
-var PP={sec:'PINTURA', fecha:'', hora:'', op:'', prod:'', lote:'', dest:'', obs:'', pales:[], ops:null, opsErr:'', busca:[], guardando:false, hecho:null};
+var PP={sec:'1ª CAPA', fecha:'', hora:'', op:'', prod:'', lote:'', dest:null, obs:'', pales:[], ops:null, opsErr:'', busca:[], guardando:false, hecho:null};
 var PP_SECS=[
-  {id:'PINTURA', t:'Pintura', perm:'pintura', prod:'PINTURA'},
+  // (v116) Mismo orden que el móvil (Joaquín, 28/11)
   {id:'1ª CAPA', t:'1ª capa', perm:'capa1', prod:'CAPA1', dest:'2.GOLPE FRIO'},
-  {id:'2ª CAPA', t:'2ª capa', perm:'capa2', prod:'CAPA2'},
   {id:'VOLTEO', t:'Volteo', perm:'volteo'},
-  {id:'MOVIMIENTO', t:'Movimiento', perm:'movimiento', dest:''}
+  {id:'2ª CAPA', t:'2ª capa', perm:'capa2', prod:'CAPA2'},
+  {id:'MOVIMIENTO', t:'Movimiento', perm:'movimiento', dest:''},
+  {id:'PINTURA', t:'Pintura', perm:'pintura', prod:'PINTURA'}
 ];
 function ppSecDef(){ return PP_SECS.filter(function(x){ return x.id===PP.sec; })[0]||PP_SECS[0]; }
 function ppEsCalidad(){ var n=CU?String(CU.n||'').toUpperCase():''; return n==='JOAQUIN' || rolTiene(CU&&CU.rol,'CALIDAD') || rolTiene(CU&&CU.rol,'ADMIN'); }
