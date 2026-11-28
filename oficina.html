@@ -96,7 +96,10 @@ button,input,select{font:inherit}
 .chips button.on{border:2px solid var(--brand);color:var(--brand);background:#fff}
 
 /* Tabla */
-#etq-root thead th{top:var(--etq-top,62px);z-index:3;box-shadow:0 1px 0 var(--line)}   /* (v106) cabecera fija bajo la barra de arriba */
+/* (v115) plan de trabajo: las casillas de arriba son las pestañas */
+.kpis.mini.pl-ks .kpi{cursor:pointer}.kpis.mini.pl-ks .kpi:hover{background:var(--brand-soft)}.kpis.mini.pl-ks .kpi.on{background:var(--brand-soft);box-shadow:inset 0 -4px 0 var(--brand)}
+.pagina table[style*=fixed] td{overflow:hidden;text-overflow:ellipsis}
+#etq-root thead th,.pagina thead th{top:var(--etq-top,62px);z-index:3;box-shadow:0 1px 0 var(--line)}   /* (v106) cabecera fija bajo la barra de arriba */
 .tbl-wrap{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:calc(100vh - 290px)}
 table{border-collapse:collapse;width:100%;font-size:15px;font-variant-numeric:tabular-nums}
 thead th{position:sticky;top:0;z-index:1;background:var(--surface2);text-align:left;font-size:12.5px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.04em;padding:8px 8px;border-bottom:1.5px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
@@ -406,7 +409,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v114';
+var VER = 'v115';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -630,25 +633,26 @@ function ponerAlDia(){
 // ═══════════════════════════════════════════════════════════════════════════
 var MENU=[
   {g:'PRODUCCIÓN', items:[
+    // (v115) Orden de Joaquín (28/11)
     {id:'inicio', t:'Pantalla principal'},
+    {id:'papel', t:'Entrada registro'},
     {id:'registros', t:'Registros'},
-    {id:'stock', t:'Stock por salas', pronto:1},
-    {id:'plan', t:'Plan de trabajo', pronto:1},
-    {id:'traz', t:'Trazabilidad por lote'},
     {id:'pale', t:'Historial de palé'},
+    {id:'plan', t:'Plan de trabajo'},
+    {id:'stock', t:'Stock por salas'},
     {id:'ubic', t:'Ubicación de palés'},
-    {id:'partes', t:'Partes de fabricación'},
-    {id:'papel', t:'Pasar registro del papel'}
+    {id:'partes', t:'Partes de fabricación'}
   ]},
   // (v5) Joaquín 30/10: las gráficas del SCADA van con los partes de
   // fabricación, no aquí. Calidad ve los registros y los partes desde Producción.
   {g:'CALIDAD', items:[
-    {id:'mat', t:'Material auxiliar'},
+    {id:'papel', t:'Entrada registro'},
+    {id:'registros', t:'Registros'},
     {id:'trazq', t:'Trazabilidad por lote'},
     {id:'trazinv', t:'Trazabilidad inversa'},
-    {id:'revision', t:'Corregir registros'},
-    {id:'papel', t:'Pasar registro del papel'},
+    {id:'mat', t:'Material auxiliar'},
     {id:'cerrados', t:'Palés desdoblados usados'},
+    {id:'revision', t:'Limpieza de envasados antiguos'},
     {t:'Analíticas de leche', pronto:1},
     {t:'Informes de auditoría', pronto:1}
   ]},
@@ -710,6 +714,8 @@ function refrescar(){
   else if(VISTA==='revision') vistaRevision();
   else if(VISTA==='cerrados') vistaCerrados();
   else if(VISTA==='papel') vistaPapel();
+  else if(VISTA==='stock') vistaStock();
+  else if(VISTA==='plan') vistaPlan();
   else vistaInicio();
 }
 
@@ -3194,15 +3200,15 @@ function ppTiempo(){
   return new Date(+m[1],+m[2]-1,+m[3],+h[1],+h[2],0);
 }
 function vistaPapel(){
-  $('t-tit').textContent='Pasar registro del papel';
-  $('t-sub').textContent='Registros apuntados en papel que faltan en la app';
+  $('t-tit').textContent='Entrada registro';
+  $('t-sub').textContent='Meter un registro que falta en la app (apuntado en papel, olvidado…)';
   if(!ppEsCalidad()){ $('cont').innerHTML='<div class="vacio">Solo para Calidad.</div>'; return; }
   if(!MAT.cargado && !MAT.cargando) cargarMat();
   ppCargarOps();
   if(PP.hecho){
     var hh='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)"><b>✓ Guardados '+PP.hecho.ok+' de '+PP.hecho.n+'</b> ('+esc(ppSecDef().t.toLowerCase())+')'
       +(PP.hecho.err.length?'<br><span style="color:#a11">No se guardaron: '+PP.hecho.err.map(esc).join(', ')+'</span>':'')+'</div>'
-      +'<button class="btn pri" id="pp-otro">Pasar otro</button>';
+      +'<button class="btn pri" id="pp-otro">Meter otro</button>';
     $('cont').innerHTML=hh; $('pp-otro').onclick=function(){ PP.hecho=null; PP.pales=[]; PP.obs=''; vistaPapel(); }; return;
   }
   var d=ppSecDef();
@@ -3293,7 +3299,7 @@ function ppGuardar(){
     if(mal.length){ err.textContent='Ese día '+mal.map(function(x){ return x.pid.split('*')[0]; }).join(', ')+' ya estaba en '+sl(PP.dest)+'.'; return; }
   }
   var fTxt=t.getDate()+'/'+(t.getMonth()+1)+'/'+t.getFullYear()+', '+t.getHours()+':'+pad(t.getMinutes())+':00';
-  var marca='[PASADO DEL PAPEL por '+String(CU.n||'')+' el '+fDia(new Date())+']';
+  var marca='[ENTRADA REGISTRO OFICINA por '+String(CU.n||'')+' el '+fDia(new Date())+']';
   var regs=PP.pales.map(function(x,i){
     var inf=parsearId(x.pid), sala=ppSalaEn(x.pid, t.getTime());
     var r={'ID':'ID-'+(Date.now()+i)+'-'+Math.random().toString(36).substring(2,7), 'ID_DISPOSITIVO':'OFICINA',
@@ -3628,7 +3634,7 @@ function tiDetalle(m, o){
 }
 function tiEnlaces(){
   $('ti-det').onclick=function(ev){
-    var a=ev.target.closest('[data-lq]'); if(a){ ev.preventDefault(); TZ.q=a.getAttribute('data-lq'); try{ sessionStorage.setItem('tqof_tz',JSON.stringify({q:TZ.q})); }catch(e){} ir('traz',{desde:1}); return; }
+    var a=ev.target.closest('[data-lq]'); if(a){ ev.preventDefault(); TZ.q=a.getAttribute('data-lq'); try{ sessionStorage.setItem('tqof_tz',JSON.stringify({q:TZ.q})); }catch(e){} ir('trazq',{desde:1}); return; }
     var p=ev.target.closest('[data-pale]'); if(p){ ev.preventDefault(); verPale(p.getAttribute('data-pale')); return; }
     var rg=ev.target.closest('tr[data-reg]'); if(rg){ abrirFicha(TI._regs[+rg.getAttribute('data-reg')]); return; }
     var b=ev.target.closest('[data-parte]'); if(b){ abrirParte(b.getAttribute('data-parte'), b.getAttribute('data-fecha')); }
@@ -3673,7 +3679,7 @@ function rvListas(){
   };
 }
 function vistaRevision(){
-  $('t-tit').textContent='Corregir registros';
+  $('t-tit').textContent='Limpieza de envasados antiguos';
   $('t-sub').textContent='Limpieza de envasados antiguos: IDs que no son de palé, salas cogidas de otro queso y condimentos que no tocaban';
   var L=rvListas();
   var h='<div class="tabs">'
@@ -5080,6 +5086,1040 @@ function peQuitarVB(){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// (v115) STOCK POR SALAS y PLAN DE TRABAJO — versión de escritorio (Joaquín, 28/11)
+// ───────────────────────────────────────────────────────────────────────────
+// Los mismos números que el móvil: la sala, las piezas y la fecha de cada palé
+// y los criterios de qué toca hacer (golpe de frío, volteo, 2ª capa, salida…)
+// salen de PLANM, que es una COPIA LITERAL del código del móvil
+// (tools/copiar-plan-movil.py). Aquí solo se pinta, en formato informe; los
+// registros se siguen haciendo en el móvil o en «Entrada registro».
+// ═══════════════════════════════════════════════════════════════════════════
+var _PLD={k:null};
+function plPales(){
+  var k=ROWS.length+'|'+(META&&META.alDia||'')+'|'+FUENTE;
+  if(_PLD.k!==k){ try{ PLANM.cargar(ROWS); }catch(e){ console.error('PLANM', e); } _PLD.k=k; }
+  return PLANM.pales();
+}
+var SALAS_FLUJO=['1.SALADERO','2.GOLPE FRIO','3.SECADERO 1','4.SECADERO 2','5.SECADERO 3','6.CAMARA FRIO','7.CAMARA MADURACION','8.FABRICA VIEJA'];
+var SECADEROS=['3.SECADERO 1','4.SECADERO 2','5.SECADERO 3'];
+var PL_FMT={'3 KG':0,'2 KG':1,'1 KG':2,'BARRA':3,'SUPERMINIS':4};
+function plIso(f){ return f?String(f).substring(0,10):''; }
+function plFab(p){ return p.fechaFab?dmy(plIso(p.fechaFab)):'—'; }
+function plDias(p){ var d=PLANM.diasDesde(p.fechaFab); return d>=9999?'':d; }
+function plVar(p){ var v=String(p.variedad||'').trim(); return (v==='—'||v==='-')?'':v; }
+function plFmtTxt(p){ var f=String(p.formato||'').trim(); return f==='—'?'':f; }
+function plNombre(p){ return [p.tipo&&p.tipo!=='?'?p.tipo:'', plVar(p), plFmtTxt(p)].filter(Boolean).join(' · '); }
+function plLote(p){ return p.loteCorto||p.lote||''; }
+function plEsDO(p){ return p.tipo==='D.O. PAST.'||p.tipo==='D.O. CRUDA'; }
+function plPz(l){ return l.reduce(function(s,p){ return s+(parseInt(p.piezas,10)||0); },0); }
+function plOrdenGrupo(a,b){   // tipo → variedad → formato (de grande a pequeño)
+  return String(a.tipo||'').localeCompare(String(b.tipo||''),'es') || plVar(a).localeCompare(plVar(b),'es') || ((PL_FMT[plFmtTxt(a)]==null?9:PL_FMT[plFmtTxt(a)])-(PL_FMT[plFmtTxt(b)]==null?9:PL_FMT[plFmtTxt(b)]));
+}
+function plOrdenId(a,b){ return String(a.id).replace(/\D/g,'').localeCompare(String(b.id).replace(/\D/g,'')); }
+// Acabado (como el móvil v462): último producto de PINTURA o sin pintar.
+function plAcabado(p){
+  var ult=null;
+  PLANM.regs(p).forEach(function(r){ if(secDe(r)!=='PINTURA') return; if(!ult || (r.__t||0)>=(ult.__t||0)) ult=r; });
+  if(!ult) return '';
+  return 'Pintado · '+(String(ult['PRODUCTO']||'').trim()||'sin producto');
+}
+function plEnlFilas(root){ if(!root) return; root.onclick=function(ev){ var tr=ev.target.closest('tr[data-pid]'); if(tr) verPale(tr.getAttribute('data-pid')); }; }
+function plCabFija(){ try{ var _tp=document.querySelector('.top'); if(_tp) document.documentElement.style.setProperty('--etq-top', _tp.offsetHeight+'px'); }catch(_){} }
+
+// ── STOCK POR SALAS ──
+var STK={tipo:'', sala:'', q:'', abiertos:{}};
+try{ var _stk=JSON.parse(sessionStorage.getItem('tqof_stk')||'null'); if(_stk){ STK.tipo=_stk.tipo||''; STK.sala=_stk.sala||''; STK.q=_stk.q||''; } }catch(e){}
+function stkGuardar(){ try{ sessionStorage.setItem('tqof_stk', JSON.stringify({tipo:STK.tipo, sala:STK.sala, q:STK.q})); }catch(e){} }
+function vistaStock(){
+  $('t-tit').textContent='Stock por salas';
+  $('t-sub').textContent='Palés que hay ahora en cada sala, en el orden del proceso (lo mismo que el móvil)';
+  if(!ROWS.length){ $('cont').innerHTML='<div class="vacio">Cargando registros…</div>'; return; }
+  var todos=plPales().filter(function(p){ return SALAS_FLUJO.indexOf(p.sala)>=0; });
+  var tipos={}; todos.forEach(function(p){ if(p.tipo) tipos[p.tipo]=1; });
+  var q=nrm(STK.q).replace(/\s/g,'');
+  var pp=todos.filter(function(p){
+    if(STK.tipo && p.tipo!==STK.tipo) return false;
+    if(STK.sala && p.sala!==STK.sala) return false;
+    if(q && (String(p.id)+' '+plLote(p)+' '+(p.lote||'')+' '+plNombre(p)).toUpperCase().replace(/\s/g,'').indexOf(q)<0) return false;
+    return true;
+  });
+  var h='<div class="filt"><label>Sala<select id="sk-sala"><option value="">Todas</option>'+SALAS_FLUJO.map(function(s){ return '<option value="'+s+'"'+(STK.sala===s?' selected':'')+'>'+esc(sl(s))+'</option>'; }).join('')+'</select></label>'
+    +'<label>Tipo<select id="sk-tipo"><option value="">Todos</option>'+Object.keys(tipos).sort().map(function(t){ return '<option'+(STK.tipo===t?' selected':'')+'>'+esc(t)+'</option>'; }).join('')+'</select></label>'
+    +'<label>Buscar<input type="search" id="sk-q" placeholder="Lote o palé" value="'+esc(STK.q)+'"></label>'
+    +'<div style="flex:1"></div><button class="btn" id="sk-abrir">Abrir todo</button><button class="btn" id="sk-cerrar">Cerrar todo</button></div>';
+  // Resumen: una fila por sala, una columna por tipo
+  var tCols=Object.keys(tipos).sort().filter(function(t){ return !STK.tipo || t===STK.tipo; });
+  var tot={n:0,pz:0};
+  h+='<div class="card pagina"><h3>Resumen <small>palés por sala y tipo · piezas</small></h3><div class="tbl-wrap" style="max-height:none;overflow:visible"><table><thead><tr><th>Sala</th>'
+    +tCols.map(function(t){ return '<th style="text-align:right"><i class="ub-dot" style="background:'+ubCol(t)+'"></i>'+esc(t)+'</th>'; }).join('')
+    +'<th style="text-align:right">Palés</th><th style="text-align:right">Piezas</th></tr></thead><tbody>';
+  SALAS_FLUJO.forEach(function(s){
+    var ls=pp.filter(function(p){ return p.sala===s; }); if(!ls.length) return;
+    var pz=plPz(ls); tot.n+=ls.length; tot.pz+=pz;
+    h+='<tr data-ir="'+s+'"><td><b>'+esc(sl(s))+'</b></td>'+tCols.map(function(t){ var n=ls.filter(function(p){ return p.tipo===t; }).length; return '<td class="num">'+(n||'<span style="color:#ccc">·</span>')+'</td>'; }).join('')
+      +'<td class="num">'+fmtN(ls.length)+'</td><td class="num">'+fmtN(pz)+'</td></tr>';
+  });
+  h+='<tr class="nolink" style="border-top:2px solid var(--line)"><td><b>TOTAL</b></td>'+tCols.map(function(t){ return '<td class="num">'+fmtN(pp.filter(function(p){ return p.tipo===t; }).length)+'</td>'; }).join('')
+    +'<td class="num"><b>'+fmtN(tot.n)+'</b></td><td class="num"><b>'+fmtN(tot.pz)+'</b></td></tr></tbody></table></div></div>';
+  if(!pp.length) h+='<div class="vacio">No hay palés con ese filtro.</div>';
+  // Detalle por sala
+  SALAS_FLUJO.forEach(function(s){
+    var ls=pp.filter(function(p){ return p.sala===s; }); if(!ls.length) return;
+    var gr={}; ls.forEach(function(p){ var k=[p.tipo,plVar(p),plFmtTxt(p)].join('|'); (gr[k]||(gr[k]={k:k, m:p, l:[]})).l.push(p); });
+    var gk=Object.keys(gr).sort(function(a,b){ return plOrdenGrupo(gr[a].m, gr[b].m); });
+    h+='<div class="card pagina" id="sk-'+s.replace(/\W/g,'')+'"><h3>'+esc(sl(s))+' <small>'+fmtN(ls.length)+' palé'+(ls.length===1?'':'s')+' · '+fmtN(plPz(ls))+' piezas</small></h3>'
+      +'<div class="tbl-wrap" style="max-height:none;overflow:visible"><table class="sk-t" style="table-layout:fixed"><thead><tr><th style="width:28px"></th><th>Queso</th><th style="width:80px;text-align:right">Palés</th><th style="width:90px;text-align:right">Piezas</th><th style="width:240px;padding-left:24px">Lotes</th><th style="width:80px;text-align:right">Días</th></tr></thead><tbody>';
+    gk.forEach(function(k){
+      var g=gr[k], ab=!!STK.abiertos[s+'#'+k], dd=g.l.map(plDias).filter(function(d){ return d!==''; });
+      var dmin=dd.length?Math.min.apply(null,dd):'', dmax=dd.length?Math.max.apply(null,dd):'';
+      var lotes={}; g.l.forEach(function(p){ var lk=plEsDO(p)?(plLote(p)||'—'):plFab(p); (lotes[lk]||(lotes[lk]={k:lk, l:[], f:plIso(p.fechaFab)})).l.push(p); });
+      var lks=Object.keys(lotes).sort(function(a,b){ return String(lotes[a].f).localeCompare(String(lotes[b].f)) || a.localeCompare(b); });
+      h+='<tr data-g="'+esc(s+'#'+k)+'"><td>'+(ab?'▾':'▸')+'</td><td><i class="ub-dot" style="background:'+ubCol(g.m.tipo)+'"></i><b>'+esc(plNombre(g.m)||'?')+'</b></td><td class="num">'+g.l.length+'</td><td class="num">'+fmtN(plPz(g.l))+'</td>'
+        +'<td style="padding-left:24px">'+lks.length+' '+(plEsDO(g.m)?'lote':'fecha')+(lks.length===1?'':'s')+'</td><td class="num">'+(dmin===''?'—':(dmin===dmax?dmax:dmin+'–'+dmax))+'</td></tr>';
+      if(!ab) return;
+      lks.forEach(function(lk){
+        var L=lotes[lk];
+        h+='<tr class="nolink"><td></td><td colspan="5" style="background:var(--surface2);font-weight:700;padding-left:22px">'+(plEsDO(g.m)?'Lote ':'Fabricado el ')+esc(lk)+' <span style="font-weight:500;color:var(--muted)">· '+L.l.length+' palé'+(L.l.length===1?'':'s')+' · '+fmtN(plPz(L.l))+' piezas</span></td></tr>';
+        L.l.sort(plOrdenId).forEach(function(p){
+          var ac=plAcabado(p);
+          h+='<tr data-pid="'+esc(p.id)+'"><td></td><td class="mono" style="padding-left:34px;white-space:normal">'+esc(p.id)+(ac?' <span class="sec">'+esc(ac)+'</span>':'')+'</td><td></td><td class="num">'+fmtN(p.piezas)+'</td><td class="mono" style="padding-left:24px">'+(plLote(p)?esc(plLote(p))+' · ':'')+'fab. '+plFab(p)+'</td><td class="num">'+plDias(p)+'</td></tr>';
+        });
+      });
+    });
+    h+='</tbody></table></div></div>';
+  });
+  h+='<div style="color:var(--muted);font-size:13px">Pincha un queso para ver sus lotes y palés; pincha un palé para ver su historial. Días = desde la fabricación.</div>';
+  $('cont').innerHTML=h; plCabFija();
+  $('sk-sala').onchange=function(){ STK.sala=this.value; stkGuardar(); vistaStock(); };
+  $('sk-tipo').onchange=function(){ STK.tipo=this.value; stkGuardar(); vistaStock(); };
+  var _t; $('sk-q').oninput=function(){ var v=this.value; clearTimeout(_t); _t=setTimeout(function(){ STK.q=v; stkGuardar(); vistaStock(); var i=$('sk-q'); if(i){ i.focus(); i.setSelectionRange(v.length,v.length); } },300); };
+  $('sk-abrir').onclick=function(){ document.querySelectorAll('#cont tr[data-g]').forEach(function(tr){ STK.abiertos[tr.getAttribute('data-g')]=1; }); vistaStock(); };
+  $('sk-cerrar').onclick=function(){ STK.abiertos={}; vistaStock(); };
+  $('cont').onclick=function(ev){
+    var g=ev.target.closest('tr[data-g]'); if(g){ var k=g.getAttribute('data-g'); if(STK.abiertos[k]) delete STK.abiertos[k]; else STK.abiertos[k]=1; var y=window.scrollY; vistaStock(); window.scrollTo(0,y); return; }
+    var s=ev.target.closest('tr[data-ir]'); if(s){ var c=$('sk-'+s.getAttribute('data-ir').replace(/\W/g,'')); if(c) window.scrollTo(0, c.getBoundingClientRect().top+window.scrollY-80); return; }
+    var tr=ev.target.closest('tr[data-pid]'); if(tr) verPale(tr.getAttribute('data-pid'));
+  };
+}
+
+// ── PLAN DE TRABAJO ──
+var PLT={tab:''};
+try{ PLT.tab=sessionStorage.getItem('tqof_plt')||''; }catch(e){}
+function plHoy(){ var h=new Date(); return new Date(h.getFullYear(),h.getMonth(),h.getDate()); }
+function plKeyDia(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function plDatos(){
+  var P=plPales(), C=PLANM.CFG, o={};
+  var gf=P.filter(PLANM.estaEnGolfeFrio);
+  o.golpe={l:gf, n:gf.length, d:gf.reduce(function(m,p){ return Math.max(m,PLANM.diasDesdeC1(p)); },0), crit:gf.some(function(p){ return PLANM.diasDesdeC1(p)>=3; })};
+  ['volteo','anti2','salida'].forEach(function(a){
+    var it=[]; SECADEROS.forEach(function(s){ PLANM.getPlanItems(a,s).forEach(function(i){ i.sala=s; it.push(i); }); });
+    o[a]={l:it, n:it.length, d:it.reduce(function(m,i){ return Math.max(m,i.d); },0), crit:it.some(function(i){ return i.c; })};
+  });
+  var hoy=plHoy(), lim=new Date(hoy), sel=[], selHoy=0; lim.setDate(hoy.getDate()+7);
+  P.filter(PLANM.candidatoSeleccion).forEach(function(p){
+    var f=PLANM.fechaSeleccion(p); if(!f) return; var fm=new Date(f.getFullYear(),f.getMonth(),f.getDate());
+    if(fm<=hoy) selHoy++;
+    if(fm<=lim) sel.push({p:p, f:fm});
+  });
+  o.seleccion={l:sel, n:selHoy, prox:sel.length, crit:selHoy>0};
+  var ot={bajosal:P.filter(PLANM.aptoBajoSal), tiernos:P.filter(PLANM.aptoTierno), minis:P.filter(PLANM.aptoSupermini), cabra:P.filter(PLANM.aptoSelCabra)};
+  var on=0, od=0; Object.keys(ot).forEach(function(k){ ot[k].sort(function(a,b){ return PLANM.diasDesde(b.fechaFab)-PLANM.diasDesde(a.fechaFab); }); on+=ot[k].length; ot[k].forEach(function(p){ od=Math.max(od, Math.max(0,PLANM.diasDesde(p.fechaFab)-1)); }); });
+  o.otras={g:ot, n:on, d:od, crit:on>0};
+  return o;
+}
+var PL_TABS=[['golpe','❄️ Salida Golpe de Frío'],['volteo','🔄 Volteo'],['seleccion','⚖️ Pesaje de Minis'],['anti2','🫧 2ª capa'],['salida','🚪 Salida Secaderos'],['otras','⚠️ Otras salidas']];
+var PL_ANCHO={'Palé':'210px','Queso':'280px','Sala':'130px','Lote':'110px','Piezas':'80px','Fabricado':'110px','Días':'70px','Peso medio':'130px'};
+function plTabla(cab, filas){
+  return '<div class="tbl-wrap" style="max-height:none;overflow:visible"><table style="table-layout:fixed"><thead><tr>'+cab.map(function(c){ var n=c.replace(/^>/,''), w=PL_ANCHO[n]; return '<th style="'+(w?'width:'+w+';':'')+(c.charAt(0)==='>'?'text-align:right':'')+'">'+esc(c.replace(/^>/,''))+'</th>'; }).join('')+'</tr></thead><tbody>'+filas+'</tbody></table></div>';
+}
+function plFilaPale(p, dias, crit, nota, sala){
+  return '<tr data-pid="'+esc(p.id)+'"><td class="mono">'+esc(p.id)+'</td><td><i class="ub-dot" style="background:'+ubCol(p.tipo)+'"></i>'+esc(plNombre(p))+'</td>'
+    +(sala?'<td>'+esc(sl(p.sala))+'</td>':'')+'<td class="mono">'+esc(plLote(p))+'</td><td class="num">'+fmtN(p.piezas)+'</td><td>'+plFab(p)+'</td>'
+    +'<td class="num" style="'+(crit?'color:var(--bad);font-weight:800':'')+'">'+dias+' d</td><td>'+(nota?esc(nota):'')+'</td></tr>';
+}
+function vistaPlan(){
+  $('t-tit').textContent='Plan de trabajo';
+  $('t-sub').textContent='Lo que toca hacer hoy, con los mismos criterios que el plan del móvil';
+  if(!ROWS.length){ $('cont').innerHTML='<div class="vacio">Cargando registros…</div>'; return; }
+  var D=plDatos();
+  if(!PLT.tab || !D[PLT.tab]){ PLT.tab=(PL_TABS.filter(function(t){ return D[t[0]].n; })[0]||PL_TABS[0])[0]; }
+  var C=PLANM.CFG;
+  // Resumen arriba, como los botones del móvil
+  var h='<div class="kpis mini pl-ks">'+PL_TABS.map(function(t){ var x=D[t[0]];
+      var v=t[0]==='seleccion'?(x.n?x.n+' hoy':'✓'):(x.n?(x.d+' d'):'✓');
+      var s=t[0]==='seleccion'?(x.prox+' en 7 días'):(x.n+' palé'+(x.n===1?'':'s'));
+      return '<div class="kpi pl-k'+(x.n&&x.crit?' alerta':'')+(PLT.tab===t[0]?' on':'')+'" data-pt="'+t[0]+'"><span>'+esc(t[1])+'</span><b>'+v+'</b><span style="text-transform:none;letter-spacing:0;font-weight:500">'+s+'</span></div>'; }).join('')+'</div>';
+  var x=D[PLT.tab], b='';
+  if(PLT.tab==='golpe'){
+    if(!x.l.length) b='<div class="vacio">✅ Ningún palé pendiente de salir del golpe de frío.</div>';
+    var pf={}; x.l.forEach(function(p){ var k=plIso(p.fechaFab)||'0000-00-00'; (pf[k]||(pf[k]=[])).push(p); });
+    Object.keys(pf).sort().forEach(function(k){
+      var l=pf[k].sort(plOrdenGrupo), md=l.reduce(function(m,p){ return Math.max(m,PLANM.diasDesdeC1(p)); },0);
+      b+='<div class="card pagina"><h3'+(md>=3?' style="color:var(--bad)"':'')+'>Fabricados el '+(k==='0000-00-00'?'—':dmy(k))+' <small>'+l.length+' palé'+(l.length===1?'':'s')+' · '+fmtN(plPz(l))+' piezas · '+md+' d desde la 1ª capa</small></h3>'
+        +plTabla(['Palé','Queso','Lote','>Piezas','Fabricado','>Días',''], l.map(function(p){ var d=PLANM.diasDesdeC1(p); return plFilaPale(p, d, d>=3, ''); }).join(''))+'</div>';
+    });
+    b+='<div style="color:var(--muted);font-size:13px">Sale aquí el palé que lleva 2 días o más en el Golpe de Frío desde la 1ª capa. En rojo, 3 días o más.</div>';
+  } else if(PLT.tab==='volteo'||PLT.tab==='anti2'||PLT.tab==='salida'){
+    SECADEROS.forEach(function(s){
+      var it=x.l.filter(function(i){ return i.sala===s; });
+      var md=it.reduce(function(m,i){ return Math.max(m,i.d); },0);
+      b+='<div class="card pagina"><h3'+(it.some(function(i){ return i.c; })?' style="color:var(--bad)"':'')+'>'+esc(sl(s))+' <small>'+(it.length?(it.length+' palé'+(it.length===1?'':'s')+' · '+fmtN(plPz(it.map(function(i){ return i.p; })))+' piezas · máx. '+md+' d'):'✅ sin pendientes')+'</small></h3>';
+      if(it.length){
+        it.sort(function(a,b){ return (b.prio?1:0)-(a.prio?1:0) || ((b.sinVolt||b.tercera)?1:0)-((a.sinVolt||a.tercera)?1:0) || b.d-a.d || plOrdenId(a.p,b.p); });
+        b+=plTabla(['Palé','Queso','Lote','>Piezas','Fabricado','>Días','Nota'], it.map(function(i){ return plFilaPale(i.p, i.d, i.c, i.tercera?'Sin voltear en prensa · 3ª capa':(i.sinVolt?'Sin voltear en prensa':'')); }).join(''));
+      }
+      b+='</div>';
+    });
+    b+='<div style="color:var(--muted);font-size:13px">'+({volteo:'Días enteros desde el último registro o la 2ª capa (sin contar ese día ni hoy). Sale a partir de '+C.volteoW+'; en rojo desde '+C.volteoU+'.',
+       anti2:'Palés de 2 y 3 kg con 17 días o más desde la fabricación, sin 2ª capa ni pintura. En rojo desde '+C.anti2C+' días, o si no se volteó en prensa.',
+       salida:'Palés con '+C.secW+' días o más desde la fabricación que siguen en el secadero. En rojo desde '+C.secC+'.'})[PLT.tab]+'</div>';
+  } else if(PLT.tab==='seleccion'){
+    var hoy=plHoy();
+    if(!x.l.length) b='<div class="vacio">✅ Sin palés de minis D.O. para pesar esta semana.</div>';
+    var pf2={}; x.l.forEach(function(i){ var k=plKeyDia(i.f); (pf2[k]||(pf2[k]={f:i.f, l:[]})).l.push(i.p); });
+    Object.keys(pf2).sort().forEach(function(k){
+      var g=pf2[k], venc=g.f<hoy, esHoy=+g.f===+hoy;
+      var tit=g.f.toLocaleDateString('es-ES',{weekday:'long', day:'2-digit', month:'2-digit', year:'numeric'});
+      b+='<div class="card pagina"><h3'+(venc||esHoy?' style="color:var(--bad)"':'')+'>'+(venc?'⚠️ ':'')+esc(tit)+(esHoy?' · hoy':'')+' <small>'+g.l.length+' palé'+(g.l.length===1?'':'s')+' · '+fmtN(plPz(g.l))+' piezas</small></h3>'
+        +plTabla(['Palé','Queso','Sala','Lote','>Piezas','Fabricado','>Días','Peso medio'], g.l.sort(function(a,b){ return plLote(a).localeCompare(plLote(b)) || plOrdenId(a,b); }).map(function(p){
+          return plFilaPale(p, plDias(p), venc, p.pesoMedio?(Number(p.pesoMedio).toFixed(3).replace('.',',')+' kg/pieza'):'', true); }).join(''))+'</div>';
+    });
+    b+='<div style="color:var(--muted);font-size:13px">D.O. pasteurizado de 1 kg en secadero: el día de pesar sale del peso medio de la 1ª capa. Se ven los atrasados y los de los próximos 7 días.</div>';
+  } else {
+    var G=x.g, blq=[['bajosal','Bajo en sal (más de '+(C.bajoSalD-1)+' días)'],['tiernos','Tiernos (más de '+(C.tiernoD-1)+' días)'],['minis','Superminis (más de '+(C.superminiD-1)+' días)'],['cabra','Minis de cabra para selección ('+PLANM.SEL_CABRA_DIAS_MIN+'-'+PLANM.SEL_CABRA_DIAS_MAX+' días)']];
+    blq.forEach(function(q){
+      var l=G[q[0]];
+      b+='<div class="card pagina"><h3'+(l.length?' style="color:var(--bad)"':'')+'>'+esc(q[1])+' <small>'+(l.length?(l.length+' palé'+(l.length===1?'':'s')+' · '+fmtN(plPz(l))+' piezas'):'✅ ninguno pendiente')+'</small></h3>';
+      if(l.length) b+=plTabla(['Palé','Queso','Sala','Lote','>Piezas','Fabricado','>Días','Nota'], l.map(function(p){
+        var d=q[0]==='cabra'?PLANM.diasDesde(p.fechaFab):Math.max(0,PLANM.diasDesde(p.fechaFab)-1), nota='';
+        if(q[0]==='cabra'){ var u=PLANM.ultimaSeleccion(p.id); if(u) nota='Marcado el '+dmy(u)+', pero la selección no se ha hecho'; }
+        return plFilaPale(p, d, true, nota, true); }).join(''));
+      b+='</div>';
+    });
+    b+='<div style="color:var(--muted);font-size:13px">Quesos que ya deberían haber salido del golpe de frío o de los secaderos. La selección de minis de cabra se hace desde el móvil (Desdoblar → Selección).</div>';
+  }
+  $('cont').innerHTML=h+b; plCabFija();
+  $('cont').onclick=function(ev){
+    var t=ev.target.closest('[data-pt]'); if(t){ PLT.tab=t.getAttribute('data-pt'); try{ sessionStorage.setItem('tqof_plt',PLT.tab); }catch(_){} vistaPlan(); return; }
+    var tr=ev.target.closest('tr[data-pid]'); if(tr) verPale(tr.getAttribute('data-pid'));
+  };
+}
+// ==PLANM-INICIO== (copiado del móvil con tools/copiar-plan-movil.py; no tocar a mano)
+var PLANM=(function(){
+var rawRows=[], pales=[], _regsPorPale=null, loteC1='', loteC2='', lotePinturaPorProducto={};
+var CFG={golpeH:24,volteoW:4,volteoU:6,volteoC:7,anti2W:18,anti2C:25,secW:50,secC:60,tiernoD:6,superminiD:12,bajoSalD:3};
+var TQMAP={'1':'MEZCLA','2':'OVEJA','3':'D.O. PAST.','4':'D.O. CRUDA','5':'CABRA','6':'OVEJA CRUDA','7':'FINOS','8':'MESNERA'};
+var FMAP={'1':'1 KG','2':'2 KG','3':'3 KG','4':'BARRA','5':'SUPERMINIS'};
+var CAPA3_DIAS = 45;
+var SEL_CABRA_DIAS_MIN = 12;
+var SEL_CABRA_DIAS_MAX = 20;
+function _anioAntesQR(dig){ var aa=parseInt(String(dig||'').replace(/\D/g,'').substring(1,3),10); return !isNaN(aa) && aa<26; }
+function _capasDos(regsP){ return (regsP||[]).filter(function(r){ return normSeccion(r['SECCIÓN']||'')==='2ª CAPA'; }); }
+function _fechaFabIsoDesdeId(id){
+  var dig=String(id||'').split('*')[0].replace(/\D/g,'');
+  if(dig.length<6) return '';
+  var a=2000+parseInt(dig.substring(1,3),10), se=parseInt(dig.substring(3,5),10), di=parseInt(dig.charAt(5),10);
+  if(!a||!(se>=1&&se<=53)||!(di>=1&&di<=7)) return '';
+  var e1=new Date(a,0,1,12), dow=e1.getDay()||7, f=new Date(a,0,1-(dow-1)+(se-1)*7+(di-1),12);
+  return f.getFullYear()+'-'+('0'+(f.getMonth()+1)).slice(-2)+'-'+('0'+f.getDate()).slice(-2);
+}
+function _getRegsPale(p){
+  if(_regsPorPale){
+    var k=normPaleKey(p.id);
+    // Copia (.slice): varias funciones del plan hacen .sort() sobre el resultado;
+    // sin la copia, ese sort mutaría el array del índice y corrompería cálculos.
+    return (_regsPorPale[k]||[]).slice();
+  }
+  return rawRows.filter(function(r){return matchPaleId(r['ID PALET'],p.id);});
+}
+function _loteVigente(v){
+  return String(v||'').split('|').pop().split(' / ').pop().trim();
+}
+function _palLleva3Capa(regsP){
+  return (regsP||[]).some(function(r){ return String(r['TERCERA CAPA']||'').trim().toUpperCase()==='SI' || /SIN VOLTEO EN PRENSA/i.test(String(r['OBSERVACIONES']||'')); });
+}
+function _pale00(id){
+  var base=String(id||'').split('*')[0].split('!')[0], d=base.replace(/\s/g,'');
+  if(base.charAt(6)===' ') return base.length>=13 && base.charAt(7)==='0' && base.charAt(8)==='0';
+  return (d.charAt(0)==='3'||d.charAt(0)==='4') && d.length>=8 && d.substring(6,8)==='00';
+}
+function _reglaSalaNueva(){
+  return true;
+}
+function _salaEsFuerte(sec, sala){
+  var S=String(sec||'').trim().toUpperCase(), c=S.replace(/[^A-Z0-9]/g,'');
+  if(S==='MOVIMIENTO'||S==='VOLTEO'||S==='1ª CAPA'||c==='1CAPA'||c.indexOf('1ACAPA')===0) return true;
+  return !!sala && !/^[1-8]\./.test(sala);
+}
+function _tiene3Capa(regsP){
+  var c=_capasDos(regsP);
+  return c.length>=2 || c.some(function(r){ return String(r['Nº CAPA']||'').trim()==='3'; });
+}
+function apto3CapaAppSite(p){
+  if(String(p.formato||'').replace(/\s/g,'').toUpperCase()!=='3KG') return false;   // (v-3capa) solo 3 kg se voltea en prensa
+  if(!enSec(p)) return false;
+  if(diasDesde(p.fechaFab)<CAPA3_DIAS) return false;
+  var regsP=_getRegsPale(p);
+  if(!_palLleva3Capa(regsP) || _tiene3Capa(regsP)) return false;
+  if(regsP.some(function(r){ return normSala(r['SALA DESTINO']||'')==='9.VENTA'; })) return false;
+  return true;
+}
+function aptoC2AppSite(p){
+  // Condición exacta de AppSite para 2ª Capa:
+  // 1. Formato 3 KG o 2 KG
+  // 2. >= 17 días desde fabricación
+  // 3. No tiene registro de 2ª CAPA
+  // 4. No tiene registro de PINTURA
+  // 5. No tiene registro de VENTA (sala destino)
+  // 6. Sala actual es un secadero
+  // 7. Es el último registro del palet (ya garantizado por p.sala)
+  if(p.formato==='1 KG'||p.formato==='BARRA'||p.formato==='SUPERMINIS')return false;
+  if(diasDesde(p.fechaFab)<17)return false;
+  if(!enSec(p))return false;
+  // Buscar en rawRows si tiene 2ª CAPA, PINTURA o sala VENTA
+  var regsP=_getRegsPale(p);
+  var tiene2C=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='2ª CAPA';});
+  if(tiene2C)return false;
+  var tienePint=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='PINTURA';});
+  if(tienePint)return false;
+  var tieneVenta=regsP.some(function(r){return normSala(r['SALA DESTINO']||'')==='9.VENTA';});
+  if(tieneVenta)return false;
+  return true;
+}
+function aptoOtraSalidaBajoSal(p){
+  if(!esBajoSal(p))return false;
+  if(!enGolpeOSecadero(p))return false;
+  if(paleYaSalio(p))return false;
+  return diasDesde(p.fechaFab)>=CFG.bajoSalD;
+}
+function aptoOtraSalidaSupermini(p){
+  if(p.formato!=='SUPERMINIS')return false;
+  if(!enGolpeOSecadero(p))return false;
+  if(paleYaSalio(p))return false;
+  return diasDesde(p.fechaFab)>=CFG.superminiD;
+}
+function aptoOtraSalidaTierno(p){
+  if(!esTierno(p))return false;
+  if(!enGolpeOSecadero(p))return false;
+  if(paleYaSalio(p))return false;
+  return diasDesde(p.fechaFab)>=CFG.tiernoD;
+}
+function aptoSalidaAppSite(p){
+  // Condición exacta AppSite Salida Secaderos:
+  // 1. Último registro con SALA DESTINO no vacía está en un secadero
+  // 2. Sin ningún registro de VENTA ni SELECCION en sala destino
+  // 3. >= 50 días desde fabricación
+  if(!enSec(p))return false;
+  if(diasDesde(p.fechaFab)<CFG.secW)return false;
+  var regsP=_getRegsPale(p);
+  var tieneVenta=regsP.some(function(r){
+    var sd=normSala(r['SALA DESTINO']||'');
+    return sd==='9.VENTA'||sd==='SELECCION'||(r['SALA DESTINO']||'').toUpperCase().includes('VENTA')||(r['SALA DESTINO']||'').toUpperCase().includes('SELECCION');
+  });
+  if(tieneVenta)return false;
+  return true;
+}
+function aptoSeleccionAppSite(p){
+  // Condición AppSite D.O. PAST. 1 KG para selección:
+  // 1. Tipo D.O. PAST. y formato 1 KG
+  // 2. Último registro con SALA DESTINO no vacía
+  // 3. Sin VENTA, SELECCION, 2ª CAPA ni PINTURA
+  // 4. Hoy >= Fecha Fabricación + días según peso medio
+  if(p.tipo!=='D.O. PAST.'||p.formato!=='1 KG')return false;
+  if(!p.sala||p.sala==='')return false;
+  var regsP=_getRegsPale(p);
+  if(!regsP.length)return false;
+  var tieneVenta=regsP.some(function(r){
+    var sd=(r['SALA DESTINO']||'').toUpperCase();
+    return sd.includes('VENTA')||sd.includes('SELECCION');
+  });
+  if(tieneVenta)return false;
+  var tiene2C=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='2ª CAPA';});
+  if(tiene2C)return false;
+  var tienePint=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='PINTURA';});
+  if(tienePint)return false;
+  // Comprobar días según peso medio
+  var diasMin=diasSeleccionSegunPeso(p.pesoMedio);
+  if(diasDesde(p.fechaFab)<diasMin)return false;
+  return true;
+}
+function aptoSeleccionCabra(p){
+  if(!esMiniCabra(p))return false;
+  if(!enSecadero(p))return false;
+  // (v471) Ya no cuenta el «marcar como seleccionado» suelto. Joaquín (24/10):
+  // seleccionar de verdad es hacer la SELECCIÓN en Desdoblar, que cierra el palé
+  // y crea los nuevos; mientras no se haga, el aviso tiene que seguir saliendo.
+  // Un palé seleccionado así deja de estar en el secadero y sale solo del aviso.
+  if(descartadoSeleccion(p.id))return false;
+  var d=diasDesde(p.fechaFab);
+  return d>=SEL_CABRA_DIAS_MIN && d<=SEL_CABRA_DIAS_MAX;
+}
+function aptoVolteoAppSite(p){
+  // Condición AppSite Volteo:
+  // 1. Último registro del palet tiene sala destino = secadero
+  // 2. >= 4 días desde el más reciente entre: fecha último registro y fecha 2ª CAPA
+  if(!enSec(p))return false;
+  return diasVolteoAppSite(p)>=CFG.volteoW;
+}
+function calcPesoMedio(pesoBruto,piezas,fmtD){
+  // fmtD: '1'=1KG, '2'=2KG, '3'=3KG, '4'=BARRA, '5'=SUPERMINIS
+  if(!pesoBruto||!piezas)return null;
+  var pb=parseFloat(pesoBruto);if(isNaN(pb))return null;
+  var piezasPorBandeja, taraBandeja;
+  if(fmtD==='1'||fmtD==='5'){
+    piezasPorBandeja=12; taraBandeja=3.18; // 1KG y SUPERMINIS
+  } else if(fmtD==='4'){
+    piezasPorBandeja=4; taraBandeja=3.12;  // BARRA
+  } else {
+    piezasPorBandeja=6; taraBandeja=3.12;  // 2KG y 3KG
+  }
+  var bandejas=Math.ceil(piezas/piezasPorBandeja);
+  if(bandejas%2!==0)bandejas++;
+  var tara=11.25+(bandejas*taraBandeja);
+  var neto=pb-tara;
+  if(neto<=0)return null;
+  return Math.round((neto/piezas)*1000)/1000;
+}
+function candidatoSeleccion(p){
+  // Candidato válido para selección: D.O.PAST. 1KG, en secadero, sin venta/pintura/2ªcapa, con peso medio y fecha selección
+  if(p.tipo!=='D.O. PAST.'||p.formato!=='1 KG')return false;
+  if(!enSec(p))return false;
+  if(!p.pesoMedio)return false;
+  if(!fechaSeleccionPale(p))return false;
+  var regsP=_getRegsPale(p);
+  if(!regsP.length)return false;
+  var tieneVenta=regsP.some(function(r){
+    var sd=(r['SALA DESTINO']||'').toUpperCase();
+    return sd.includes('VENTA')||sd.includes('SELECCION');
+  });
+  if(tieneVenta)return false;
+  var tienePint=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='PINTURA';});
+  if(tienePint)return false;
+  var tiene2C=regsP.some(function(r){return (r['SECCIÓN']||'').toUpperCase()==='2ª CAPA';});
+  if(tiene2C)return false;
+  return true;
+}
+function descartadoSeleccion(paleId){
+  return rawRows.some(function(r){
+    if(!matchPaleId(r['ID PALET'], paleId)) return false;
+    if((r['SECCIÓN']||r['SECCION'])!=='SELECCIÓN') return false;
+    return String(r['OBSERVACIONES']||'').toUpperCase().indexOf('SIN SELECCIONAR')>=0;
+  });
+}
+function diasCalendario(f){
+  // Cuenta días de calendario ignorando la hora
+  // Si f fue el día 19 y hoy es el 21, devuelve 2 independientemente de la hora
+  if(!f)return 9999;
+  var hoy=new Date();
+  var hoyMed=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
+  var fDate=new Date(f);
+  var fMed=new Date(fDate.getFullYear(),fDate.getMonth(),fDate.getDate());
+  return Math.floor((hoyMed-fMed)/86400000);
+}
+function diasDesde(f){if(!f)return 9999;return Math.floor((new Date()-new Date(f))/86400000);}
+function diasDesdeC1(p){
+  // Días desde el registro de 1ª CAPA (cuando entró en Golpe de Frío)
+  var regsC1=_getRegsPale(p).filter(function(r){
+    var s=(r['SECCIÓN']||'').toString().trim().toUpperCase();var sc=s.replace(/[^A-Z0-9]/g,'');return (s==='1ª CAPA'||s==='1A CAPA'||sc==='1ACAPA'||sc.startsWith('1ACAPA'));
+  });
+  if(!regsC1.length)return diasDesde(p.fechaFab);
+  regsC1.sort(function(a,b){var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);if(!fa)return 1;if(!fb)return -1;return fa-fb;});
+  var f=parseFecha(regsC1[0]['FECHA']);
+  return f?diasCalendario(f.toISOString()):diasCalendario(p.fechaFab);
+}
+function diasSeleccionSegunPeso(pesoMedio){
+  // Tabla de días desde fabricación según peso medio pieza (D.O. PAST. 1 KG)
+  // (v461, 17/10/2026) TODO UN DÍA ANTES. Joaquín: «se me están quedando
+  // pequeños, los estoy seleccionando más tarde de la cuenta; de momento
+  // quítales un día a todos». Tabla anterior: 22,23,24,26,28,30,32,34,35.
+  var pm=parseFloat(pesoMedio)||0;
+  if(pm<=0)return 9999; // Sin peso medio, no mostrar
+  if(pm<1.02)return 21;
+  if(pm<1.03)return 22;
+  if(pm<1.04)return 23;
+  if(pm<1.05)return 25;
+  if(pm<1.06)return 27;
+  if(pm<1.07)return 29;
+  if(pm<1.08)return 31;
+  if(pm<1.09)return 33;
+  return 34;
+}
+function diasVolteoAppSite(p){
+  // (v447) POR DÍAS DE CALENDARIO, NO POR HORAS.
+  // Antes contaba horas exactas: un palé volteado el día 1 a las 10:00 salía en
+  // el plan el día 5 a las 10:00. A las 6 de la mañana el secadero estaba con el
+  // check verde y a mediodía aparecían palés: el plan de primera hora no era el
+  // plan del día (Joaquín, 10/10). Ahora es el día de hoy menos el día del
+  // último registro, sin mirar la hora. Volteado el día 1 → sale el día 6 desde
+  // primera hora, con «5 d» (CFG.volteoW=5). Urgente a partir de 7 (volteoC).
+  // (v451) DÍAS ENTEROS, COMO SE CUENTAN EN FÁBRICA.
+  // El día del volteo no cuenta, ni hoy tampoco: volteado el 6, se cuentan
+  // el 7, 8, 9 y 10, y el día 11 lleva 4 (Joaquín, 11/10). Con la v447 salía
+  // «5 d». Es el mismo momento de aviso que antes —el palé sigue saliendo el
+  // día 11 a primera hora—, solo cambia el número: umbral 4 (volteoW) y
+  // urgente a partir de 6 enteros (volteoU), que es el antiguo 7 de calendario.
+  // Fecha de referencia = la más reciente entre el último registro y la 2ª CAPA
+  var _ent=function(d){ return d>=9999 ? d : Math.max(0, d-1); };
+  var regsP=_getRegsPale(p);
+  if(!regsP.length)return _ent(diasCalendario(p.fechaFab));
+  regsP.sort(function(a,b){
+    var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);
+    if(!fa&&!fb)return 0;if(!fa)return 1;if(!fb)return -1;
+    return fb-fa;
+  });
+  // Fecha del último registro
+  var fechaUltimo=parseFecha(regsP[0]['FECHA']);
+  // Fecha de 2ª CAPA si existe
+  var regC2=regsP.find(function(r){return (r['SECCIÓN']||'').toUpperCase()==='2ª CAPA';});
+  var fechaC2=regC2?parseFecha(regC2['FECHA']):null;
+  // Usar la más reciente
+  var refDate=fechaUltimo;
+  if(fechaC2&&fechaC2>fechaUltimo)refDate=fechaC2;
+  return _ent(refDate?diasCalendario(refDate.toISOString()):diasCalendario(p.fechaFab));
+}
+function enGolpeOSecadero(p){
+  return ['2.GOLPE FRIO','3.SECADERO 1','4.SECADERO 2','5.SECADERO 3'].indexOf(p.sala)>=0;
+}
+function enSec(p){return['3.SECADERO 1','4.SECADERO 2','5.SECADERO 3'].indexOf(p.sala)>=0;}
+function enSecadero(p){
+  var sala = getSalaActualPale(p.id) || p.sala || '';
+  return ['3.SECADERO 1','4.SECADERO 2','5.SECADERO 3'].indexOf(sala)>=0;
+}
+function esBajoSal(p){
+  var v=(p.variedad||'').toUpperCase();
+  return v.includes('BAJO')&&v.includes('SAL');
+}
+function esMiniCabra(p){
+  return (p.tipo||'').toUpperCase()==='CABRA' && (p.formato||'').toUpperCase()==='1 KG';
+}
+function esTierno(p){return (p.variedad||'').toUpperCase().includes('TIERNO');}
+function estaEnGolfeFrio(p){
+  // Un palet aparece en Golpe de Frío si:
+  // 1. Su último registro en Sheets tiene SALA DESTINO = "2.GOLPE FRIO"
+  // 2. Han pasado >= 2 días desde el registro de 1ª CAPA (cuando entró en Golpe de Frío)
+  var regsP=_getRegsPale(p);
+  if(!regsP.length)return false;
+  // Ordenar cronológicamente
+  regsP.sort(function(a,b){
+    var fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);
+    if(!fa&&!fb)return 0;if(!fa)return 1;if(!fb)return -1;
+    return fa-fb;
+  });
+  // Buscar registro de 1ª CAPA para calcular días en Golpe de Frío
+  var regC1=regsP.find(function(r){var s=(r['SECCIÓN']||'').toString().trim().toUpperCase();var sc=s.replace(/[^A-Z0-9]/g,'');return s==='1ª CAPA'||s==='1A CAPA'||sc==='1ACAPA'||sc.startsWith('1ACAPA');});
+  if(!regC1)return false;
+  var fechaC1=parseFecha(regC1['FECHA']);
+  if(!fechaC1)return false;
+  // Condición: >= 2 días desde la 1ª CAPA
+  if(diasCalendario(fechaC1.toISOString())<2)return false;
+  // Último registro debe tener SALA DESTINO = "2.GOLPE FRIO"
+  var ultimoReg=regsP[regsP.length-1];
+  var sd=(ultimoReg['SALA DESTINO']||'').toString().trim();
+  return normSala(sd)==='2.GOLPE FRIO';
+}
+function fechaSeleccionPale(p){
+  if(!p.fechaFab||!p.pesoMedio)return null;
+  var dias=diasSeleccionSegunPeso(p.pesoMedio);
+  if(dias===9999)return null;
+  var d=new Date(p.fechaFab);
+  d.setDate(d.getDate()+dias);
+  return d;
+}
+function getPlanItems(accion,sala){
+  var items=[];
+  if(accion==='volteo'){
+    pales.filter(function(p){return p.sala===sala&&aptoVolteoAppSite(p);}).forEach(function(p){
+      var d=diasVolteoAppSite(p);
+      items.push({p:p,d:d,c:d>=CFG.volteoU});
+    });
+  } else if(accion==='anti2'){
+    pales.filter(function(p){return p.sala===sala&&aptoC2AppSite(p);}).forEach(function(p){
+      var d=diasDesde(p.fechaFab);
+      // (v598) Sin volteo en prensa (marcado por Calidad): PRIORIDAD desde el día 17 → rojo y arriba
+      var sv=false; try{ sv=_palLleva3Capa(_getRegsPale(p)); }catch(_){}
+      items.push({p:p,d:d,c:sv||d>=CFG.anti2C,sinVolt:sv});
+    });
+    // (v582) 3ª capa de los palés sin volteo en prensa, a partir de los 45 días
+    pales.filter(function(p){return p.sala===sala&&!aptoC2AppSite(p)&&apto3CapaAppSite(p);}).forEach(function(p){
+      var d=diasDesde(p.fechaFab);
+      items.push({p:p,d:d,c:true,tercera:true});
+    });
+  } else if(accion==='salida'){
+    pales.filter(function(p){return p.sala===sala&&aptoSalidaAppSite(p);}).forEach(function(p){
+      var d=diasDesde(p.fechaFab);
+      items.push({p:p,d:d,c:d>=CFG.secC});
+    });
+  }
+  items.sort(function(a,b){return b.d-a.d;});
+  return items;
+}
+function getSalaActualPale(paleId){
+  // Buscar la sala del último registro por fecha/hora REAL del palet en rawRows
+  var regsP=rawRows.filter(function(r){return matchPaleId(r['ID PALET'],paleId);});
+  if(!regsP.length){
+    // Si no está en rawRows, buscar en pales cacheados
+    var p=pales.find(function(x){return matchPaleId(x.id,paleId);});
+    return p?p.sala:'';
+  }
+  // Ordenar por fecha/hora real (columna FECHA, parseada)
+  regsP.sort(function(a,b){
+    var fa=parseFecha(a['FECHA']);var fb=parseFecha(b['FECHA']);
+    if(!fa&&!fb)return 0;if(!fa)return -1;if(!fb)return 1;
+    return fa-fb;
+  });
+  // (v341) SI EL ÚLTIMO REGISTRO NO DICE SALA, MIRAR HACIA ATRÁS.
+  // El fallo corregido en la v340 dejó registros ya escritos en Google con SALA
+  // ORIGEN y SALA DESTINO en blanco (los diez de 2ª capa del 21/08, entre otros).
+  // Para esos palés el registro más reciente no dice dónde están, y devolver
+  // vacío los descolgaba del plan de trabajo y hacía que la siguiente operación
+  // volviera a guardarse manca: un registro malo contagiaba a los siguientes.
+  // Un registro sin sala no significa que el palé se haya movido a ninguna parte,
+  // solo que no se apuntó. Así que se recorre hacia atrás hasta el último que sí
+  // lo diga. Si ninguno lo dice, se devuelve vacío como antes.
+  // (v444) Con la regla nueva, primero la última sala de un registro que mueve
+  // el palé; si no hay ninguno, se sigue como siempre.
+  if(_reglaSalaNueva()){
+    for(var j=regsP.length-1;j>=0;j--){
+      var _sec=String(regsP[j]['SECCIÓN']||'').trim().toUpperCase();
+      var _sd=normSala(regsP[j]['SALA DESTINO']||'');
+      var _sx=_sd||(_sec==='VOLTEO'?normSala(regsP[j]['SALA VOLTEO']||''):'');
+      if(_sx && _salaEsFuerte(_sec,_sx)) return _sx;
+    }
+  }
+  for(var i=regsP.length-1;i>=0;i--){
+    var sd=normSala(regsP[i]['SALA DESTINO']||'');
+    var sv=normSala(regsP[i]['SALA VOLTEO']||'');
+    var so=normSala(regsP[i]['SALA ORIGEN']||'');
+    var sala=sd||sv||so||'';
+    if(sala) return sala;
+  }
+  // (v358) ÚLTIMO SALVAVIDAS: LA FICHA DEL PALÉ EN MEMORIA.
+  // Puede pasar que el palé tenga registros a la vista pero TODOS con la sala
+  // en blanco (datos parciales o atrasados en este aparato). Hasta ahora, en
+  // ese caso la función se rendía y devolvía vacío sin probar la ficha del
+  // palé, que sí guarda su última sala conocida. Pintura y 2ª capa llevaban
+  // este salvavidas añadido por fuera (||p.sala) y por eso acertaban; el
+  // envasado no lo llevaba y por eso dejó salas en blanco con los mismos
+  // palés (los envasados del 27/08 que descubrió Joaquín en la hoja). Ahora
+  // el salvavidas vive aquí dentro y protege a los tres caminos por igual.
+  var pFin=pales.find(function(x){return matchPaleId(x.id,paleId);});
+  return (pFin&&pFin.sala)?pFin.sala:'';
+}
+function getVariedad(id){
+  if(!id)return'—';
+  var m=id.toString().match(/\*([^!\s]+)/);
+  return m?m[1].trim():'—';
+}
+function matchPaleId(rowId, paleId){
+  // Comparar IDs: los dígitos deben coincidir Y la variedad debe coincidir
+  // Si uno tiene variedad y el otro no → NO son el mismo palet
+  var k1=normPaleKey(rowId);
+  var k2=normPaleKey(paleId);
+  // (v494) UN ID VACÍO (o «SIN QR») NO ES UN PALÉ. Los envasados de quesos
+  // antiguos sin QR se guardan con el ID vacío, y antes "vacío = vacío" casaba
+  // con TODOS los registros sin ID: el envasado cogía la sala de otro queso
+  // (5.SECADERO 3) y el historial mezclaba registros ajenos (Joaquín, 31/10).
+  if(!/\d{6}/.test(k1.split('*')[0]) || !/\d{6}/.test(k2.split('*')[0])) return false;
+  // Comparación exacta (dígitos + variedad)
+  if(k1===k2)return true;
+  // Compatibilidad: si ninguno tiene variedad, comparar solo dígitos
+  var d1=k1.split('*')[0];
+  var d2=k2.split('*')[0];
+  var v1=k1.indexOf('*')>=0?k1.substring(k1.indexOf('*')+1):'';
+  var v2=k2.indexOf('*')>=0?k2.substring(k2.indexOf('*')+1):'';
+  if(d1!==d2)return false;
+  // Si ambos tienen variedad y son distintas → NO son el mismo
+  if(v1&&v2&&v1!==v2)return false;
+  // Si uno tiene variedad y el otro no → NO son el mismo
+  if((v1&&!v2)||(v2&&!v1))return false;
+  return true;
+}
+function normPaleKey(id){
+  // Normalizar un ID de palet para comparación:
+  // - quitar espacios del bloque de dígitos
+  // - conservar variedad (entre * y !) si existe
+  // - descartar loteCorto (tras !)
+  var s=(id||'').toString().trim();
+  var base=s.split('!')[0]; // quitar loteCorto
+  var digits=base.split('*')[0].replace(/\s/g,'');
+  var varPart=base.indexOf('*')>=0?base.substring(base.indexOf('*')+1).trim():'';
+  return digits+(varPart?'*'+varPart:'');
+}
+function normSala(s){
+  if(!s)return'';s=s.toString().trim().toUpperCase();
+  if(s.includes('SALADERO'))return'1.SALADERO';
+  if(s.includes('GOLPE'))return'2.GOLPE FRIO';
+  if(s.includes('SECADERO 1'))return'3.SECADERO 1';
+  if(s.includes('SECADERO 2'))return'4.SECADERO 2';
+  if(s.includes('SECADERO 3'))return'5.SECADERO 3';
+  if(s.includes('MADURACION')||s.includes('MADURACIÓN'))return'7.CAMARA MADURACION';
+  // Importante: comprobar FABRICA antes que CAMARA, por si llegara como "CAMARA FABRICA VIEJA".
+  if(s.includes('FABRICA')||s.includes('FÁBRICA'))return'8.FABRICA VIEJA';
+  if(s.includes('CAMARA')||s.includes('CÁMARA')||s.includes('FRIO')||s.includes('FRÍO'))return'6.CAMARA FRIO';
+  if(s.includes('VENTA'))return'9.VENTA';
+  return s;
+}
+function normSeccion(s){
+  var x=(s||'').toString().trim().toUpperCase();
+  x=x.replace(/\s+/g,' ');
+  if(/^1[ªA]?\s*CAPA/.test(x))return '1ª CAPA';
+  if(/^2[ªA]?\s*CAPA/.test(x))return '2ª CAPA';
+  if(/^VOLTEO/.test(x))return 'VOLTEO';
+  if(/^MOVIMIENTO/.test(x))return 'MOVIMIENTO';
+  if(/^PINTURA/.test(x))return 'PINTURA';
+  if(/^ENVASADO/.test(x))return 'ENVASADO';
+  return x;
+}
+function normTipo(t){
+  if(!t)return'';
+  t=t.toString().trim().toUpperCase();
+  var clean=t.replace(/[\.\s\-]/g,'');
+  if(clean==='DOPAST'||clean==='DOPASTEURIZADO')return'D.O. PAST.';
+  if(clean==='DOCRUDA')return'D.O. CRUDA';
+  return t;
+}
+function paleYaSalio(p){
+  var regsP=_getRegsPale(p);
+  return regsP.some(function(r){
+    var sd=(r['SALA DESTINO']||'').toUpperCase();
+    return sd.includes('VENTA')||sd.includes('SELECCION');
+  });
+}
+function parseFecha(f){
+  if(f===null||f===undefined||f==='')return null;
+  // Número serial de fecha de Google Sheets / Excel (p.ej. 46193.333). Aparece
+  // cuando Sheets reinterpreta la celda FECHA de texto a número (suele pasar al
+  // editar manualmente otra columna de esa fila). 25569 = días entre la época de
+  // Sheets (30/12/1899) y la época Unix (1/1/1970).
+  if(typeof f==='number' || (/^\d+(\.\d+)?$/.test(String(f).trim()) && parseFloat(f)>25569 && parseFloat(f)<60000)){
+    var serial=parseFloat(f);
+    var dS=new Date(Math.round((serial-25569)*86400*1000));
+    return isNaN(dS)?null:dS;
+  }
+  f=f.toString().trim();
+  // Formato DÍA/MES/AÑO con hora OPCIONAL. Cubre TODAS las variantes que conviven
+  // en la columna FECHA de la hoja, da igual el separador o si falta la hora:
+  //   "19/4/2026, 8:26:54"  "26/01/2026 7:59:00"  "20/06/2026 8:00:43"
+  //   "19/04/2026 08:26"    "20/06/2026"          "20/6/2026"
+  // Se capturan día, mes y año (obligatorios) y hora:minuto (opcionales).
+  var m=f.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[,\s]+(\d{1,2}):(\d{2}))?/);
+  if(m){
+    var hh=m[4]!==undefined?parseInt(m[4]):0;
+    var mm=m[5]!==undefined?parseInt(m[5]):0;
+    return new Date(parseInt(m[3]),parseInt(m[2])-1,parseInt(m[1]),hh,mm);
+  }
+  // Formato ISO: "2026-04-19T14:39:23.000Z"
+  // (v254) Si la cadena trae Z o un desfase explícito (+02:00), la hora está en UTC
+  // y hay que dejar que el navegador la pase a hora de Madrid. Antes se recortaba la
+  // Z y se montaba la fecha con los números en crudo, así que todo se leía dos horas
+  // antes: un envasado de las 23:11 salía como 21:11, y lo peor, cualquier registro
+  // de después de medianoche se iba al día anterior.
+  // Si viene SIN zona, es hora local ya buena y se construye tal cual (no tocar:
+  // así llegan las fechas guardadas como texto).
+  var mISO=f.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+  if(mISO){
+    if(/(Z|[+\-]\d{2}:?\d{2})$/.test(f)){
+      var dZ=new Date(f);
+      if(!isNaN(dZ))return dZ;
+    }
+    return new Date(parseInt(mISO[1]),parseInt(mISO[2])-1,parseInt(mISO[3]),parseInt(mISO[4]),parseInt(mISO[5]),parseInt(mISO[6]));
+  }
+  var d=new Date(f);return isNaN(d)?null:d;
+}
+function parsearId(id){
+  // (v481) Un ID PALET puede llegar como NÚMERO si en la hoja quedó guardado así
+  // (al corregir un registro, 29/10). Sin esto: "id.split is not a function" y el
+  // registro desaparecía de la lista de su sección.
+  id=String(id==null?'':id);
+  var base=id.split('*')[0];
+  // Eliminar espacios para procesar los dígitos
+  // Detectar manchego 3KG por espacio en pos 6 del ID original
+  var tieneEspacio=(base.charAt(6)===' ');
+  // nPale:
+  // - manchego 3KG con espacio (pos6=' '): pos6+7 del original (espacio='0') → 2 dígitos → palet 1-12+
+  // - D.O. sin espacio (tipo 3 o 4): pos 7 solo → 1 dígito → palet 1-9
+  // - resto: pos 7 solo → 1 dígito
+  var c6orig=base.charAt(6);var c7orig=base.charAt(7);
+  var nPale;
+  var isDOcheck=(base.replace(/\s/g,'').charAt(0)==='3'||base.replace(/\s/g,'').charAt(0)==='4');
+  if(c6orig===' '){
+    // Con espacio: len=12 → palet 1 dígito, len=13 → palet 2 dígitos
+    var baseLen=(id.split('*')[0]).length;
+    if(baseLen>=13){
+      nPale=parseInt(c7orig+(base.charAt(8)||''))||0;
+    } else {
+      nPale=parseInt(c7orig)||0;
+    }
+  } else if(isDOcheck){
+    // D.O. sin espacio: pos6+pos7 = nPale (D.O. no tiene cuba)
+    nPale=parseInt(c6orig+(c7orig||''))||0;
+  } else {
+    // No-DO sin espacio: pos7 = nPale (pos6 = cuba)
+    nPale=parseInt(c7orig)||0;
+  }
+  var dig=base.replace(/\s/g,'').replace(/\D/g,'');
+  var tipo=TQMAP[dig.charAt(0)]||'?';
+  // Lote: DO=6 dígitos, resto=7 dígitos
+  var isDO=(dig.charAt(0)==='3'||dig.charAt(0)==='4');
+  var lote=isDO?dig.substring(0,6):dig.substring(0,7);
+  // Formato y piezas: depende de si tiene espacio y longitud del ID
+  var fmtD,piezas;
+  if(tieneEspacio){
+    var basePart=id.split('*')[0];
+    var baseLen2=basePart.length;
+    if(baseLen2>=13){
+      // palet 2 dígitos (10+): formato en pos9, piezas en pos10-12
+      fmtD=basePart.charAt(9);
+      piezas=parseInt(basePart.substring(10,13))||0;
+    } else {
+      // palet 1 dígito: formato en pos8, piezas en pos9-11
+      fmtD=basePart.charAt(8);
+      piezas=parseInt(basePart.substring(9,12))||0;
+    }
+  } else {
+    fmtD=dig.charAt(8);
+    piezas=parseInt(dig.substring(9,12))||0;
+  }
+  var fmt=FMAP[fmtD]||'—';
+  // Variedad: entre * y !
+  var variedad='—';
+  var mV=id.match(/\*([^!]+)/);
+  if(mV)variedad=mV[1].trim();
+  // Lote corto: tras !
+  var loteCorto='';
+  var mL=id.match(/!(.+)/);
+  if(mL)loteCorto=mL[1].trim();
+  return{tipo:tipo,lote:lote,nPale:nPale,fmt:fmt,fmtD:fmtD,piezas:piezas,variedad:variedad,loteCorto:loteCorto};
+}
+function procesarDatos(rows){
+  var map={};
+  rows.forEach(function(row){
+    var pid=(row['ID PALET']||'').toString().trim();if(!pid)return;
+    // Ignorar palets sin los 12 caracteres iniciales
+    if(!/^\d{6}[\d ]/.test(pid))return;
+    // (v512) IDs INVENTADOS FUERA DEL STOCK. Uno del año 24/25 no es un palé
+    // (antes de 2026 no había QR): sus registros son de un lote «sin QR» y no
+    // pueden salir como palé en stock, plan ni salas (Joaquín, 01/11).
+    if(_anioAntesQR(pid)) return;
+    // (v514) Joaquín, 01/11: el programa de gestión NUNCA da el palé 00 (empieza
+    // en 1: 1, 2… 10, 15). Un ID con «00» en el nº de palé es inventado (lote +
+    // 00 + formato + piezas) y no es un palé. Se mira solo donde el nº de palé
+    // va en DOS cifras (D.O. y los IDs con espacio); en los de una cifra no se
+    // toca, por no esconder ningún palé real.
+    if(_pale00(pid)) return;
+    // Clave normalizada para el map (sin espacios, sin sufijos)
+    // Clave normalizada: dígitos base (sin espacios) + variedad si existe
+    // Así 126175111264*BAJO EN SAL y 126175111264*PRUEBA son palets DISTINTOS
+    var pidBase=pid.replace(/\s/g,'').split('!')[0]; // quita loteCorto tras !
+    var pidDigits=pidBase.split('*')[0];              // dígitos puros
+    var pidVar=pidBase.indexOf('*')>=0?pidBase.substring(pidBase.indexOf('*')+1).trim():'';
+    var pidKey=pidDigits+(pidVar?'*'+pidVar:'');
+    var sec=(row['SECCIÓN']||'').toString().trim().toUpperCase();
+    var fecha=parseFecha(row['FECHA']);
+    var op=(row['OPERARIO']||'').toString().trim().toUpperCase();
+    var sd=normSala(row['SALA DESTINO']),so=normSala(row['SALA ORIGEN']),sv=normSala(row['SALA VOLTEO']);
+    var lp=(row['LOTE PRODUCTO']||'').toString().trim();
+    var tq=(row['TIPO DE QUESO']||'').toString().trim().toUpperCase();
+    var fmt=(row['FORMATO/PESO']||'').toString().trim().toUpperCase();
+    var pz=parseInt(row['Nº DE PIEZAS'])||0;
+    var lq=(row['LOTE QUESO']||'').toString().trim();
+    var pidInfo=parsearId(pid);
+    var fmtFinal=fmt||pidInfo.fmt||'—';
+    if(!map[pidKey])map[pidKey]={id:pid,tipo:normTipo(tq)||'?',variedad:getVariedad(pid),formato:fmtFinal,piezas:pz,lote:lq,loteCorto:pidInfo.loteCorto||'',sala:sd||sv||so||'2.GOLPE FRIO',fechaFab:null,pesoFijo:fmtFinal==='1 KG',ops:[]};
+    var p=map[pidKey];
+    if(tq)p.tipo=normTipo(tq);
+    // Formato: parsearId del ID tiene prioridad absoluta (evita que filas de VOLTEO con dato incorrecto sobreescriban)
+    var fmtFromId=pidInfo.fmt&&pidInfo.fmt!=='—'?pidInfo.fmt:null;
+    if(fmtFromId){p.formato=fmtFromId;}else if(fmt&&fmt!=='—'){p.formato=fmt;}
+    // (v362) Una fila de VENTA PARCIAL trae en Nº DE PIEZAS las piezas VENDIDAS:
+    // se restan del palé en vez de machacarle el total. Cualquier otra fila
+    // sigue como siempre (el último dato de piezas manda).
+    if(sec==='VENTA PARCIAL'){ if(pz) p.piezas=Math.max(0,(parseInt(p.piezas,10)||0)-(parseInt(pz,10)||0)); }
+    else if(pz)p.piezas=pz;
+    if(lq)p.lote=lq;
+    if(sec==='1ª CAPA'||sec.replace(/[^A-Z0-9]/g,'').startsWith('1ACAPA')){
+      var pm=parseFloat((row['PESO MEDIO']||'').toString().replace(',','.'));
+      if(pm>0){
+        p.pesoMedio=pm; // usar el valor guardado en Sheets si existe
+      } else {
+        // Calcular en tiempo real desde PESO PALET y Nº DE PIEZAS (columna virtual)
+        var pesoBrutoRow=(row['PESO PALET']||'').toString().replace(',','.');
+        var pzRow=parseInt(row['Nº DE PIEZAS'])||pz;
+        var infoRow=parsearId(pid);
+        var pmCalc=calcPesoMedio(pesoBrutoRow,pzRow,infoRow.fmtD);
+        if(pmCalc)p.pesoMedio=pmCalc;
+      }
+    }
+    var sec1c=sec.replace(/[^A-Z0-9]/g,'');
+    // Registrar la SALA DESTINO del último registro (por fecha) para determinar
+    // la ubicación real del palet SIN tener que volver a recorrer todas las filas después.
+    var fechaActual=fecha?fecha.getTime():0;
+    if(!p._ultFecha||fechaActual>=p._ultFecha){
+      p._ultFecha=fechaActual;
+      // sala destino "cruda" de este registro (puede estar vacía)
+      p._ultSalaDest=sd||'';
+    }
+    // (v417) LA ÚLTIMA SALA APUNTADA, AUNQUE NO SEA LA DEL ÚLTIMO REGISTRO.
+    // Ver el bloque de abajo donde se decide p.sala.
+    var _sx = sd || (sec==='VOLTEO' ? sv : '');
+    if(_sx && (!p._ultSalaFecha || fechaActual>=p._ultSalaFecha)){
+      p._ultSalaFecha=fechaActual;
+      p._ultSalaNoVacia=_sx;
+    }
+    // (v444) Además, separadas: la sala de los registros que MUEVEN el palé y la
+    // de los que solo la COPIAN. Ver _salaEsFuerte y el bloque de abajo.
+    if(_sx){
+      if(_salaEsFuerte(sec,_sx)){
+        if(!p._fuerteFecha || fechaActual>=p._fuerteFecha){ p._fuerteFecha=fechaActual; p._salaFuerte=_sx; }
+      } else if(!p._debilFecha || fechaActual>=p._debilFecha){
+        p._debilFecha=fechaActual; p._salaDebil=_sx;
+        p._debilReg={sec:sec, op:op, fecha:fechaActual};
+      }
+    }
+    // Actualizar sala solo si este registro es más reciente que el último que la actualizó
+    if(sd&&sec!=='2ª CAPA'&&sec!=='PINTURA'){
+      if(!p.salaFecha||fechaActual>=p.salaFecha){p.sala=sd;p.salaFecha=fechaActual;}
+    } else if(sv&&sec==='VOLTEO'){
+      if(!p.salaFecha||fechaActual>=p.salaFecha){p.sala=sv;p.salaFecha=fechaActual;}
+    }
+    var o={sec:sec,fecha:fecha?fecha.toISOString():null,op:op};
+    if(sec==='1ª CAPA'||sec==='2ª CAPA')o.loteAnti=lp;
+    if(sec==='PINTURA')o.lotePintura=lp;
+    if(sec==='MOVIMIENTO'){o.origen=so;o.destino=sd;}
+    if(sd&&sec!=='2ª CAPA'&&sec!=='PINTURA')o.destino=sd;
+    if(sv)o.salaVolteo=sv;
+    p.ops.push(o);
+    // Recuperar último lote de pintura por producto
+    if(sec==='PINTURA'&&row['PRODUCTO']&&lp){
+      var prod=row['PRODUCTO'].toString().trim();
+      lotePinturaPorProducto[prod]=_loteVigente(lp); // el último registro gana, SANEADO (v363)
+    }
+  });
+  Object.values(map).forEach(function(p){
+    p.ops.sort(function(a,b){return new Date(a.fecha)-new Date(b.fecha);});
+    // ══════════════════════════════════════════════════════════════════════
+    // SALA ACTUAL DEL PALET  (v417)
+    // ──────────────────────────────────────────────────────────────────────
+    // Antes: la SALA DESTINO del ÚLTIMO registro, fuera la que fuera. Si ese
+    // registro venía SIN sala, el palet se quedaba sin ubicación y desaparecía
+    // de la nave: ni en cámara, ni en secadero, ni en ningún sitio. Y en el
+    // control de existencias salía como que faltaba género.
+    //
+    // EL CASO REAL (24/09, palé 226386142090*TIERNO): movimiento a Cámara Frío
+    // por la mañana y envasado por la tarde. El envasado se guardó con la sala
+    // en blanco —la tablet no tenía los registros del palé cuando se escaneó,
+    // por falta de cobertura—, y ese blanco borró la Cámara Frío.
+    //
+    // UN REGISTRO SIN SALA NO MUEVE EL PALET A NINGUNA PARTE: solo es un dato
+    // que no se apuntó. Así que ahora la ubicación es la ÚLTIMA SALA APUNTADA,
+    // aunque después haya registros en blanco. Es el mismo criterio que ya usa
+    // getSalaActualPale() desde la v341 para el palé suelto; aquí faltaba.
+    // Esto arregla también los palés ya guardados así, sin tocar Google.
+    //
+    // Lo que NO cambia: un palé cuya última sala apuntada es 9.VENTA sigue
+    // saliendo del flujo (sala en blanco), igual que antes.
+    // ══════════════════════════════════════════════════════════════════════
+    // (v444) LA SALA LA DECIDEN LOS REGISTROS QUE MUEVEN EL PALÉ.
+    // Envasado, selección, 2ª capa, pintura y venta parcial no lo mueven: copian
+    // la sala donde el aparato CREE que está. Si la tablet no tenía cobertura y
+    // no le había llegado el movimiento de Paco (Secadero → Cámara Frío), apunta
+    // la sala vieja, y con la regla de la v417 ese registro devolvía el palé al
+    // secadero en todas las pantallas (Joaquín, 08/10). Con la regla nueva la
+    // ubicación es la del último MOVIMIENTO / 1ª CAPA / VOLTEO, o la de un cierre
+    // (DESDOBLADO, SELECCIONADO, VENTA); solo si el palé no tiene ninguno de esos
+    // —los hijos de un desdoblamiento, por ejemplo— vale la sala copiada.
+    // De momento SOLO con el modo PRUEBAS, para comparar con datos reales; los
+    // dos resultados se guardan para la lista «Ubicaciones que cambian».
+    var EXCLUIDAS=['9.VENTA',''];
+    var _vieja=p._ultSalaNoVacia||'', _nueva=p._salaFuerte||p._salaDebil||'';
+    p._salaVieja = EXCLUIDAS.indexOf(_vieja)<0 ? _vieja : '';
+    p._salaNueva = EXCLUIDAS.indexOf(_nueva)<0 ? _nueva : '';
+    var sdRaw = _reglaSalaNueva() ? _nueva : _vieja;
+    if(sdRaw&&EXCLUIDAS.indexOf(sdRaw)<0){
+      p.sala=sdRaw;
+    } else {
+      // Último registro sin sala válida — palet fuera de flujo
+      p.sala='';
+    }
+    // FechaFab: fecha del primer registro relevante - 1 día
+    // (v513) EL QUESO NACE con la 1ª CAPA de antifúngico o con la SALIDA DEL
+    // SALADERO: se fabricó el día anterior. NINGÚN otro registro (pintura,
+    // volteo, envasado…) es su fecha de fabricación (Joaquín, 01/11: un palé con
+    // solo una pintura salía «fabricado» el día de la pintura y aparecía en la
+    // disponibilidad de agosto-septiembre siendo del año 24).
+    var primeraOp=p.ops.find(function(o){
+      var s1=String(o.sec||'').replace(/[^A-Z0-9]/g,'');
+      return o.sec==='1ª CAPA'||s1.indexOf('1ACAPA')===0||(o.sec==='MOVIMIENTO'&&o.origen==='1.SALADERO');
+    });
+    if(primeraOp&&primeraOp.fecha){
+      var d=new Date(primeraOp.fecha);
+      d.setDate(d.getDate()-1);
+      p.fechaFab=d.toISOString().split('T')[0];
+    } else {
+      // Sin 1ª capa ni salida de saladero: la fecha que lleva el propio ID
+      // (año · semana · día), que es la de fabricación. Nunca la de otro registro.
+      p.fechaFab=_fechaFabIsoDesdeId(p.id);
+    }
+  });
+  pales=Object.values(map);
+  // ═══ Construir ÍNDICE registros-por-palet (Plan de Trabajo 2 rápido) ═══
+  // Misma clave (normPaleKey) que usa matchPaleId, verificada equivalente por test.
+  try{
+    _regsPorPale={};
+    rawRows.forEach(function(r){
+      var rid=(r['ID PALET']||'').toString().trim();
+      if(!rid)return;
+      var k=normPaleKey(rid);
+      if(!k)return;
+      if(!_regsPorPale[k])_regsPorPale[k]=[];
+      _regsPorPale[k].push(r);
+    });
+  }catch(e){ _regsPorPale=null; }
+  // Recuperar el ÚLTIMO lote de inmersión usado, buscando el registro MÁS RECIENTE
+  // POR FECHA (no por orden de inserción en la hoja, que puede estar desordenado).
+  function ultimoLotePorFecha(seccion){
+    var candidatos=rows.filter(function(r){
+      return(r['SECCIÓN']||'').toUpperCase()===seccion && r['LOTE PRODUCTO'] && r['LOTE PRODUCTO'].toString().trim();
+    });
+    if(!candidatos.length)return '';
+    var mejor=null,mejorF=null;
+    candidatos.forEach(function(r){
+      var f=parseFecha(r['FECHA']);
+      var ft=f?f.getTime():0;
+      if(mejorF===null||ft>=mejorF){mejorF=ft;mejor=r;}
+    });
+    return mejor?mejor['LOTE PRODUCTO'].toString().trim().split('|').pop().trim():'';
+  }
+  var lc1=ultimoLotePorFecha('1ª CAPA');
+  if(lc1)loteC1=lc1;
+  var lc2=ultimoLotePorFecha('2ª CAPA');
+  if(lc2)loteC2=lc2;
+}
+function ultimaSeleccionPale(paleId){
+  var regs=rawRows.filter(function(r){
+    if(!matchPaleId(r['ID PALET'],paleId)) return false;
+    if((r['SECCIÓN']||r['SECCION'])!=='SELECCIÓN') return false;
+    // (v349) Un "pasa sin seleccionar" no es una selección: si contara, el palé
+    // saldría con el sello verde de seleccionado, que es justo lo contrario.
+    return String(r['OBSERVACIONES']||'').toUpperCase().indexOf('SIN SELECCIONAR')<0;
+  });
+  if(!regs.length)return '';
+  regs.sort(function(a,b){var fa=parseFecha(a['FECHA']);var fb=parseFecha(b['FECHA']);return (fa||0)-(fb||0);});
+  var f=parseFecha(regs[regs.length-1]['FECHA']);
+  if(!f)return '';
+  return f.getFullYear()+'-'+String(f.getMonth()+1).padStart(2,'0')+'-'+String(f.getDate()).padStart(2,'0');
+}
+function cargar(rows){ rawRows=rows||[]; procesarDatos(rawRows); return pales; }
+return {cargar:cargar, pales:function(){ return pales; }, CFG:CFG, SEL_CABRA_DIAS_MIN:SEL_CABRA_DIAS_MIN, SEL_CABRA_DIAS_MAX:SEL_CABRA_DIAS_MAX,
+  regs:_getRegsPale, diasDesde:diasDesde, diasDesdeC1:diasDesdeC1, diasVolteo:diasVolteoAppSite, estaEnGolfeFrio:estaEnGolfeFrio,
+  aptoVolteo:aptoVolteoAppSite, aptoC2:aptoC2AppSite, apto3Capa:apto3CapaAppSite, aptoSalida:aptoSalidaAppSite,
+  candidatoSeleccion:candidatoSeleccion, fechaSeleccion:fechaSeleccionPale, aptoTierno:aptoOtraSalidaTierno,
+  aptoSupermini:aptoOtraSalidaSupermini, aptoBajoSal:aptoOtraSalidaBajoSal, aptoSelCabra:aptoSeleccionCabra,
+  ultimaSeleccion:ultimaSeleccionPale, getPlanItems:getPlanItems, parsearId:parsearId};
+})();
+// ==PLANM-FIN==
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ARRANQUE
 // ═══════════════════════════════════════════════════════════════════════════
 (function(){
@@ -5096,7 +6136,7 @@ function peQuitarVB(){
   $('app').hidden=false;
   $('t-who').textContent=nombre;
   $('s-ver').textContent=VER+(puedeGuardar()?' · en pruebas':' · en pruebas · solo mirar');
-  try{ var v=localStorage.getItem('tqof_vista'); if(['registros','mat','traz','trazq','trazinv','pale','revision','ubic','partes'].indexOf(v)>=0) VISTA=v; }catch(e){}
+  try{ var v=localStorage.getItem('tqof_vista'); if(v==='traz') v='trazq'; if(['registros','mat','traz','trazq','trazinv','pale','revision','ubic','partes','papel','stock','plan','cerrados'].indexOf(v)>=0) VISTA=v; }catch(e){}
   pintarMenu();
   cargarMat();   // (v17) para el aviso de mínimos en el menú, se esté donde se esté
   $('b-act').onclick=function(){ ponerAlDia(); };
