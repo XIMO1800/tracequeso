@@ -410,7 +410,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v116';
+var VER = 'v117';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -3148,7 +3148,11 @@ var PP_SECS=[
   {id:'VOLTEO', t:'Volteo', perm:'volteo'},
   {id:'2ª CAPA', t:'2ª capa', perm:'capa2', prod:'CAPA2'},
   {id:'MOVIMIENTO', t:'Movimiento', perm:'movimiento', dest:''},
-  {id:'PINTURA', t:'Pintura', perm:'pintura', prod:'PINTURA'}
+  {id:'PINTURA', t:'Pintura', perm:'pintura', prod:'PINTURA'},
+  // (v117) Envasado: la MISMA pantalla del móvil (preguntas, cambio de bobina,
+  // descuento de stock…), abierta aquí dentro con el día, la hora y el operario
+  // elegidos. Ver «MODO ENTRADA DESDE OFICINA» en index.html.
+  {id:'ENVASADO', t:'Envasado', perm:'envasado', movil:true}
 ];
 function ppSecDef(){ return PP_SECS.filter(function(x){ return x.id===PP.sec; })[0]||PP_SECS[0]; }
 function ppEsCalidad(){ var n=CU?String(CU.n||'').toUpperCase():''; return n==='JOAQUIN' || rolTiene(CU&&CU.rol,'CALIDAD') || rolTiene(CU&&CU.rol,'ADMIN'); }
@@ -3230,6 +3234,39 @@ function vistaPapel(){
       +(deSec.length?'<optgroup label="'+esc(d.t)+'">'+deSec.map(optOp).join('')+'</optgroup>':'')
       +(resto.length?'<optgroup label="Otros">'+resto.map(optOp).join('')+'</optgroup>':'')+'</select></label>'
     +'</div>';
+  if(d.movil){
+    if(PP.envAbierto){
+      h+='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink);display:flex;gap:12px;align-items:center;flex-wrap:wrap">'
+        +'<span>Envasando como <b>'+esc(PP.envAbierto.op)+'</b> el <b>'+esc(PP.envAbierto.txt)+'</b>. Es la pantalla del móvil: funciona igual (cambio de bobina, stock…).</span>'
+        +'<button class="btn" id="pp-env-cerrar">Cerrar y cambiar día u operario</button></div>'
+        +'<div style="display:flex;gap:16px;align-items:flex-start"><iframe id="pp-env-fr" src="'+esc(PP.envAbierto.url)+'" style="width:440px;height:calc(100vh - 230px);min-height:620px;border:1px solid var(--line);border-radius:6px;background:#fff;flex:0 0 auto"></iframe>'
+        +'<div style="color:var(--muted);font-size:14px;max-width:420px;line-height:1.5">Cada envasado que guardes queda con ese día, esa hora y ese operario, y en observaciones «ENTRADA REGISTRO OFICINA por '+esc(CU&&CU.n||'')+'».<br><br>Puedes meter varios seguidos. Si cambia el día o el operario, pulsa «Cerrar y cambiar».<br><br>Si te pide el PIN, pon el tuyo.</div></div>';
+      $('cont').innerHTML='<div id="pp-root">'+h+'</div>';
+      $('pp-env-cerrar').onclick=function(){ PP.envAbierto=null; vistaPapel(); try{ ponerAlDia(); }catch(_){} };
+      $('pp-root').onclick=function(ev){ var sb=ev.target.closest('[data-sec]'); if(sb){ PP.envAbierto=null; PP.sec=sb.getAttribute('data-sec'); PP.prod=''; PP.lote=''; PP.dest=null; PP.op=''; vistaPapel(); } };
+      return;
+    }
+    h+='<div id="pp-err" style="color:#a11;font-weight:700;margin:6px 0"></div>'
+      +'<button class="btn pri" id="pp-env-abrir" style="font-size:17px;padding:10px 22px">Abrir envasado</button>'
+      +'<div style="color:var(--muted);font-size:14px;margin-top:8px">Se abre la pantalla de envasado del móvil, con las mismas preguntas, y se guarda con el día, la hora y el operario de arriba.</div>';
+    $('cont').innerHTML='<div id="pp-root">'+h+'</div>';
+    $('pp-fecha').onchange=function(){ PP.fecha=this.value; };
+    $('pp-hora').onchange=function(){ PP.hora=this.value; };
+    $('pp-op').onchange=function(){ PP.op=this.value; };
+    $('pp-root').onclick=function(ev){ var sb=ev.target.closest('[data-sec]'); if(sb){ var ns=sb.getAttribute('data-sec'); if(ns!==PP.sec){ PP.sec=ns; PP.prod=''; PP.lote=''; PP.dest=null; PP.op=''; } vistaPapel(); } };
+    $('pp-env-abrir').onclick=function(){
+      var err=$('pp-err'), t=ppTiempo();
+      if(!PP.fecha){ err.textContent='Elige el día.'; return; }
+      if(!PP.hora){ err.textContent='Elige la hora.'; return; }
+      if(t.getTime()>Date.now()){ err.textContent='La fecha no puede ser futura.'; return; }
+      if(!PP.op){ err.textContent='Elige el operario.'; return; }
+      var o={sec:'ENVASADO', t:t.getTime(), op:PP.op, quien:String(CU&&CU.n||''), hoy:fDia(new Date()), ts:Date.now()};
+      try{ sessionStorage.setItem('tq_ofi_entrada', JSON.stringify(o)); localStorage.setItem('tq_ofi_entrada', JSON.stringify(o)); }catch(_){}
+      var dk=new Date(); PP.envAbierto={op:PP.op, txt:fDia(t)+' a las '+fHora(t), url:'index.html?oficina=1&d='+dk.getFullYear()+pad(dk.getMonth()+1)+pad(dk.getDate())};
+      vistaPapel();
+    };
+    return;
+  }
   if(d.prod){
     h+='<div class="filt">'
       +'<label '+lab+'>Producto<select id="pp-prod" '+inp.replace('min-width:180px','min-width:340px')+'><option value="">— Elige —</option>'+prods.map(function(p){ return '<option'+(PP.prod===p?' selected':'')+'>'+esc(p)+'</option>'; }).join('')+'</select></label>'
