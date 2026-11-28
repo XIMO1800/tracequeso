@@ -410,7 +410,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v119';
+var VER = 'v120';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -3703,6 +3703,21 @@ function loteDeId(r){
   if(corto && nrm(base).split(/[!\s]+/).indexOf(nrm(corto))<0) base=base+'!'+corto;
   return base;
 }
+// (v120) Un envasado con los MISMOS condimentos que el envasado anterior de la
+// misma persona ese mismo día es sospechoso: hasta la v684 del móvil se
+// quedaban puestos del palé de antes (Joaquín, 28/11: dos palés de oveja de 3 kg
+// sin nada salieron con manteca y finas hierbas del pedido anterior).
+function rvCondTxt(r){ return CONDS.map(function(c){ return String(r[c[0]]||'').trim(); }).join('|'); }
+function rvArrastre(r){
+  var op=String(r['OPERARIO']||'').trim().toUpperCase(), dia=r.__f?isoDia(r.__f):'', ant=null;
+  if(!op || !dia) return null;
+  ROWS.forEach(function(x){
+    if(x===r || secDe(x)!=='ENVASADO' || String(x['TIPO REGISTRO']||'').trim()) return;
+    if(String(x['OPERARIO']||'').trim().toUpperCase()!==op || !x.__f || isoDia(x.__f)!==dia || !(x.__t<r.__t)) return;
+    if(!ant || x.__t>ant.__t) ant=x;
+  });
+  return (ant && rvCondTxt(ant)===rvCondTxt(r)) ? ant : null;
+}
 function rvListas(){
   function enFecha(r){ var f=r.__f?isoDia(r.__f):''; return !(RV.desde && f<RV.desde) && !(RV.hasta && f>RV.hasta); }
   var env=ROWS.filter(function(r){ return secDe(r)==='ENVASADO' && enFecha(r); }).sort(function(a,b){ return ordN(a.__t, b.__t); });
@@ -3729,6 +3744,7 @@ function vistaRevision(){
            cond:'Envasados con lote de <b>manteca, romero, finas hierbas o pimienta</b>. Hasta la v495 se ponían solos, y hasta la v684 del móvil se quedaban puestos del palé anterior, aunque el queso no los llevara. <b>Marca solo los que NO llevaba</b> ese queso: se borrará ese lote.'}[RV.tab];
   h+='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)">'+txt+'</div>'
     +'<div class="filt"><label>Desde<input type="date" id="rv-desde" value="'+esc(RV.desde)+'"></label><label>Hasta<input type="date" id="rv-hasta" value="'+esc(RV.hasta)+'"></label>'
+    +(RV.tab==='cond'?'<button class="btn" id="rv-repite">Marcar los que repiten el anterior</button>':'')
     +'<button class="btn" id="rv-todos">Marcar todos</button><button class="btn" id="rv-ninguno">Desmarcar</button><div style="flex:1"></div>'
     +'<span id="rv-cnt" style="font-weight:700;color:var(--brand)"></span><button class="btn pri" id="rv-ok">Corregir lo marcado</button></div><div class="tbl-wrap" id="rv-tbl" style="max-height:none"></div>';
   $('cont').innerHTML=h;
@@ -3740,7 +3756,7 @@ function vistaRevision(){
   var t='<table><thead><tr><th></th><th>Fecha</th>'+(RV.tab==='ids'?'<th>Sección</th>':'')+'<th>Operario</th><th>ID guardado</th><th>Lote queso</th><th>Tipo · formato</th><th style="text-align:right">Pzas</th>';
   if(RV.tab==='ids') t+='<th>Quedará como</th>';
   if(RV.tab==='sala') t+='<th>Sala puesta</th>';
-  if(RV.tab==='cond') t+='<th>Lotes de condimento (marca los que NO llevaba)</th>';
+  if(RV.tab==='cond') t+='<th>Lotes de condimento (marca los que NO llevaba)</th><th>Aviso</th>';
   t+='</tr></thead><tbody>';
   lista.forEach(function(r,i){
     var k=String(r['ID']||i);
@@ -3748,16 +3764,18 @@ function vistaRevision(){
     if(RV.tab==='cond'){
       t+='<td></td>';
     } else t+='<td><input type="checkbox" class="rv-ck" data-k="'+esc(k)+'"'+(RV.sel[k]?' checked':'')+'></td>';
-    t+='<td>'+fDia(r.__f)+'</td>'+(RV.tab==='ids'?'<td>'+esc(secDe(r))+'</td>':'')+'<td>'+esc(r['OPERARIO'])+'</td><td class="mono">'+esc(pidDe(r)||'—')+'</td><td class="mono">'+esc(r['LOTE QUESO'])+'</td>'
+    t+='<td>'+fDia(r.__f)+(RV.tab==='cond'?' '+fHora(r.__f):'')+'</td>'+(RV.tab==='ids'?'<td>'+esc(secDe(r))+'</td>':'')+'<td>'+esc(r['OPERARIO'])+'</td><td class="mono">'+esc(pidDe(r)||'—')+'</td><td class="mono">'+esc(r['LOTE QUESO'])+'</td>'
       +'<td>'+esc([r['TIPO DE QUESO'],r['VARIEDAD'],r['FORMATO/PESO']].filter(Boolean).join(' · '))+'</td><td class="num">'+esc(r['Nº DE PIEZAS'])+'</td>';
     if(RV.tab==='ids') t+='<td>sin QR · lote <b class="mono">'+esc(loteDeId(r))+'</b></td>';
     if(RV.tab==='sala') t+='<td>'+esc(sl(r['SALA ORIGEN']))+(String(r['SALA DESTINO']||'')!==String(r['SALA ORIGEN']||'')?' → '+esc(sl(r['SALA DESTINO'])):'')+'</td>';
     if(RV.tab==='cond') t+='<td style="white-space:normal">'+CONDS.filter(function(c){ return String(r[c[0]]||'').trim(); }).map(function(c){ var kk=k+'|'+c[0];
         return '<label class="rv-cd"><input type="checkbox" class="rv-ck" data-k="'+esc(kk)+'"'+(RV.sel[kk]?' checked':'')+'> '+esc(c[1])+' <span class="mono">'+esc(r[c[0]])+'</span></label>'; }).join(' ')+'</td>';
+    if(RV.tab==='cond'){ var _an=rvArrastre(r); t+='<td'+(_an?' class="rv-rep" data-k="'+esc(k)+'" style="color:var(--bad);font-weight:700"':'')+'>'+(_an?('⚠ como el de las '+fHora(_an.__f)):'')+'</td>'; }
     t+='</tr>';
   });
   $('rv-tbl').innerHTML=t+'</tbody></table>';
   $('rv-tbl').onchange=function(ev){ var c=ev.target.closest('.rv-ck'); if(!c) return; if(c.checked) RV.sel[c.getAttribute('data-k')]=1; else delete RV.sel[c.getAttribute('data-k')]; rvCnt(); };
+  if($('rv-repite')) $('rv-repite').onclick=function(){ document.querySelectorAll('#rv-tbl td.rv-rep').forEach(function(td){ var k=td.getAttribute('data-k'); td.parentNode.querySelectorAll('.rv-ck').forEach(function(c){ c.checked=true; RV.sel[c.getAttribute('data-k')]=1; }); }); rvCnt(); };
   $('rv-todos').onclick=function(){ document.querySelectorAll('#rv-tbl .rv-ck').forEach(function(c){ c.checked=true; RV.sel[c.getAttribute('data-k')]=1; }); rvCnt(); };
   $('rv-ninguno').onclick=function(){ RV.sel={}; document.querySelectorAll('#rv-tbl .rv-ck').forEach(function(c){ c.checked=false; }); rvCnt(); };
   $('rv-ok').onclick=rvAplicar;
