@@ -410,7 +410,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v117';
+var VER = 'v118';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -3837,22 +3837,23 @@ function ubMax(z,f,p){
 }
 function ubCapFila(z,f){ var t=0; for(var p=1;p<=UB_ZONAS[z].pies;p++) t+=ubMax(z,f,p); return t; }
 function ubCod(z,f,p,a){ return z+'-F'+pad(f)+(p?'-P'+p:'')+(a?'-A'+a:''); }
-function ubVar(id){ var v=(parsearId(id).variedad||'').trim(); v=(v&&v!=='—')?v.toUpperCase():''; return (v==='ACEITE' && ubSinAceite(id))?'':v; }
+function ubVar(id){ var v=(parsearId(id).variedad||'').trim(); v=(v&&v!=='—')?v.toUpperCase():''; if(v==='ACEITE') return ubSinAceite(id)?'':v; if(!v && ubConAceite(id)) return 'ACEITE'; return v; }
 // (v114) Palé «*ACEITE» que se PINTÓ o se ENVASÓ sin aceite: en la ubicación sale sin
 // la «A» ni «ACEITE» (Joaquín, 28/11), igual que en el móvil (v680). El ID no cambia.
-var _UB_SINACE={n:-1, m:{}};
+var _UB_SINACE={n:-1, m:{}, con:{}};
+function ubConAceite(id){ ubSinAceite(id); return !!_UB_SINACE.con[ubDigPale(id)]; }   // sin variedad pero envasado en aceite → «A»
 function ubDigPale(id){ return String(id||'').split('*')[0].split('!')[0].replace(/\D/g,''); }
 function ubSinAceite(id){
   if(_UB_SINACE.n!==(ROWS||[]).length){
-    var m={};
+    var m={}, con={};
     (ROWS||[]).forEach(function(r){
       var sec=secDe(r); if(sec!=='PINTURA' && sec!=='ENVASADO') return;
       var d=ubDigPale(pidDe(r)); if(!d) return;
       if(sec==='PINTURA'){ m[d]=true; return; }
       var conAce=String(r['LOTE ACEITE']||'').trim() || (parseFloat(String(r['CANTIDAD ACEITE (g)']||'').replace(',','.'))||0)>0;
-      if(!conAce) m[d]=true;
+      if(!conAce) m[d]=true; else con[d]=true;
     });
-    _UB_SINACE={n:(ROWS||[]).length, m:m};
+    _UB_SINACE={n:(ROWS||[]).length, m:m, con:con};
   }
   return !!_UB_SINACE.m[ubDigPale(id)];
 }
