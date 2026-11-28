@@ -18807,10 +18807,14 @@ function nuevoRegistroEnvasado(){
   ['env-lote-etiquetas','env-lote-bolsa','env-acciones-correctoras','env-curacion','env-cliente'].forEach(function(id){
     var el=document.getElementById(id); if(el) el.value='';
   });
-  // Repoblar lotes con los últimos valores usados. Cantidades=true para
-  // mantener los valores que acaba de meter el operario (envasados
-  // consecutivos del mismo ingrediente no obligan a reintroducir cantidad).
-  try{ initEnvAux(true); }catch(_){}
+  // (v683) CADA PALÉ EMPIEZA CON LOS CONDIMENTOS EN «NO LLEVA» (Joaquín, 28/11).
+  // Antes, al guardar, el palé siguiente se quedaba con la manteca, las finas
+  // hierbas o el aceite (lote y cantidad) del anterior: un oveja de 3 kg sin
+  // nada apareció con «lote manteca» y «lote finas hierbas» porque el palé de
+  // antes sí los llevaba, y con el aceite se habría descontado stock sin
+  // gastarlo. Ahora no se arrastra nada; el último lote usado sigue saliendo
+  // el primero de la lista (★), así que elegirlo es un toque.
+  try{ initEnvAux(false); }catch(_){}
 }
 
 function resetEnvasado(){ENV.cnt=0;nuevoRegistroEnvasado();}
@@ -22087,7 +22091,13 @@ function initEnvAux(mantenerCantidades){
     //   · al desplegar, el último lote usado sale el primero, marcado ★.
     var sel=document.getElementById(id);
     var elegido = (mantenerCantidades && sel) ? String(sel.value||'') : '';
-    if(sel && sel.tagName==='SELECT'){ sel.setAttribute('data-ultimo', ultimo); poblarSelectLoteAux(id, elegido); }
+    if(sel && sel.tagName==='SELECT'){
+      sel.setAttribute('data-ultimo', ultimo); sel.removeAttribute('data-toque');
+      // (v683) Lo que elija la persona manda: si el stock llega más tarde y la
+      // lista se vuelve a pintar, no se le cambia la elección por la de antes.
+      if(!sel._toqueOn){ sel._toqueOn=true; sel.addEventListener('change', function(){ this.setAttribute('data-toque','1'); }); }
+      poblarSelectLoteAux(id, elegido);
+    }
   });
 
   // CANTIDADES: si mantenerCantidades=true, NO tocamos los inputs (mantienen
@@ -22156,10 +22166,12 @@ function poblarSelectLoteAux(idCampo, loteActualSeleccionado){
         html+='<option value="'+lote+'">'+(_ult&&lote===_ult?'★ ':'')+aviso+lote+_apell+' — '+stk+' '+u+(_ult&&lote===_ult?' (el último usado)':'')+'</option>';
       });
     }
+    var _elige = (sel.getAttribute('data-toque')==='1') ? String(sel.value||'') : loteActualSeleccionado;   // (v683)
     sel.innerHTML=html;
-    if(loteActualSeleccionado){
+    sel.value='';
+    if(_elige){
       for(var i=0;i<sel.options.length;i++){
-        if(sel.options[i].value===loteActualSeleccionado){ sel.value=loteActualSeleccionado; break; }
+        if(sel.options[i].value===_elige){ sel.value=_elige; break; }
       }
     }
   }

@@ -410,7 +410,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v118';
+var VER = 'v119';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -3726,7 +3726,7 @@ function vistaRevision(){
     +'<button data-rt="cond" class="'+(RV.tab==='cond'?'on':'')+'">Condimentos'+(L.cond.length?'<span class="n">'+L.cond.length+'</span>':'')+'</button></div>';
   var txt={ids:'Registros guardados con un número que <b>no es un palé</b>: el lote tecleado como ID, lote + 00 + formato + piezas, o <b>cualquier ID del año 24 o 25</b> (entonces no había QR). Al corregir pasan a <b>sin QR</b>: se quita el ID y se deja el lote (largo y corto) en «Lote queso».',
            sala:'Envasados de quesos <b>sin QR</b> que tienen sala puesta. Hasta la v494 esa sala se cogía de <b>otro queso</b>, así que no vale. Al corregir, la sala se queda en blanco.',
-           cond:'Envasados con lote de <b>manteca, romero, finas hierbas o pimienta</b>. Hasta la v495 se ponían solos aunque el queso no los llevara. <b>Marca solo los que NO llevaba</b> ese queso: se borrará ese lote.'}[RV.tab];
+           cond:'Envasados con lote de <b>manteca, romero, finas hierbas o pimienta</b>. Hasta la v495 se ponían solos, y hasta la v683 del móvil se quedaban puestos del palé anterior, aunque el queso no los llevara. <b>Marca solo los que NO llevaba</b> ese queso: se borrará ese lote.'}[RV.tab];
   h+='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink)">'+txt+'</div>'
     +'<div class="filt"><label>Desde<input type="date" id="rv-desde" value="'+esc(RV.desde)+'"></label><label>Hasta<input type="date" id="rv-hasta" value="'+esc(RV.hasta)+'"></label>'
     +'<button class="btn" id="rv-todos">Marcar todos</button><button class="btn" id="rv-ninguno">Desmarcar</button><div style="flex:1"></div>'
