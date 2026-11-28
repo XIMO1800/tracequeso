@@ -406,7 +406,7 @@ a.lnk{color:var(--brand);font-weight:700;text-decoration:underline}
 // ═══════════════════════════════════════════════════════════════════════════
 // AJUSTES
 // ═══════════════════════════════════════════════════════════════════════════
-var VER = 'v113';
+var VER = 'v114';
 // (v92) UN SOLO ORDEN EN TODO EL ESCRITORIO (Joaquín, 19/11): en unas listas iba
 // primero lo más antiguo y en otras lo más nuevo («esto es un lío»). Ahora todas
 // las listas por fecha van con LO MÁS ANTIGUO PRIMERO. Para darle la vuelta en
@@ -3759,7 +3759,25 @@ function ubMax(z,f,p){
 }
 function ubCapFila(z,f){ var t=0; for(var p=1;p<=UB_ZONAS[z].pies;p++) t+=ubMax(z,f,p); return t; }
 function ubCod(z,f,p,a){ return z+'-F'+pad(f)+(p?'-P'+p:'')+(a?'-A'+a:''); }
-function ubVar(id){ var v=(parsearId(id).variedad||'').trim(); return (v&&v!=='—')?v.toUpperCase():''; }
+function ubVar(id){ var v=(parsearId(id).variedad||'').trim(); v=(v&&v!=='—')?v.toUpperCase():''; return (v==='ACEITE' && ubSinAceite(id))?'':v; }
+// (v114) Palé «*ACEITE» que se PINTÓ o se ENVASÓ sin aceite: en la ubicación sale sin
+// la «A» ni «ACEITE» (Joaquín, 28/11), igual que en el móvil (v680). El ID no cambia.
+var _UB_SINACE={n:-1, m:{}};
+function ubDigPale(id){ return String(id||'').split('*')[0].split('!')[0].replace(/\D/g,''); }
+function ubSinAceite(id){
+  if(_UB_SINACE.n!==(ROWS||[]).length){
+    var m={};
+    (ROWS||[]).forEach(function(r){
+      var sec=secDe(r); if(sec!=='PINTURA' && sec!=='ENVASADO') return;
+      var d=ubDigPale(pidDe(r)); if(!d) return;
+      if(sec==='PINTURA'){ m[d]=true; return; }
+      var conAce=String(r['LOTE ACEITE']||'').trim() || (parseFloat(String(r['CANTIDAD ACEITE (g)']||'').replace(',','.'))||0)>0;
+      if(!conAce) m[d]=true;
+    });
+    _UB_SINACE={n:(ROWS||[]).length, m:m};
+  }
+  return !!_UB_SINACE.m[ubDigPale(id)];
+}
 // Misma clave de palé que el móvil (matchPaleId): cifras sin espacios + variedad.
 function ubKey(id){ var b=String(id||'').split('!')[0], p=b.split('*'); return p[0].replace(/\s/g,'')+(p[1]&&p[1].trim()?'*'+p[1].trim().toUpperCase():''); }
 function ubNormSala(s){
