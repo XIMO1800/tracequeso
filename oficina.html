@@ -3237,10 +3237,10 @@ function vistaPapel(){
   if(d.movil){
     if(PP.envAbierto){
       h+='<div class="aviso" style="background:#fff;border-color:var(--line);color:var(--ink);display:flex;gap:12px;align-items:center;flex-wrap:wrap">'
-        +'<span>Envasando como <b>'+esc(PP.envAbierto.op)+'</b> el <b>'+esc(PP.envAbierto.txt)+'</b>. Es la pantalla del móvil: funciona igual (cambio de bobina, stock…).</span>'
+        +'<span>Envasando como <b>'+esc(PP.envAbierto.op)+'</b> el <b>'+esc(PP.envAbierto.txt)+'</b>.</span>'
         +'<button class="btn" id="pp-env-cerrar">Cerrar y cambiar día u operario</button></div>'
         +'<div style="display:flex;gap:16px;align-items:flex-start"><iframe id="pp-env-fr" src="'+esc(PP.envAbierto.url)+'" style="width:440px;height:calc(100vh - 230px);min-height:620px;border:1px solid var(--line);border-radius:6px;background:#fff;flex:0 0 auto"></iframe>'
-        +'<div style="color:var(--muted);font-size:14px;max-width:420px;line-height:1.5">Cada envasado que guardes queda con ese día, esa hora y ese operario, y en observaciones «ENTRADA REGISTRO OFICINA por '+esc(CU&&CU.n||'')+'».<br><br>Puedes meter varios seguidos. Si cambia el día o el operario, pulsa «Cerrar y cambiar».<br><br>Si te pide el PIN, pon el tuyo.</div></div>';
+        +'<div style="color:var(--muted);font-size:14px;max-width:420px;line-height:1.5">Es la pantalla del móvil: pregunta lo mismo y descuenta el stock igual. Se guarda con ese día, hora y operario, y en observaciones «ENTRADA REGISTRO OFICINA por '+esc(CU&&CU.n||'')+'».<br><br>Puedes meter varios seguidos. Si te pide el PIN, pon el tuyo.</div></div>';
       $('cont').innerHTML='<div id="pp-root">'+h+'</div>';
       $('pp-env-cerrar').onclick=function(){ PP.envAbierto=null; vistaPapel(); try{ ponerAlDia(); }catch(_){} };
       $('pp-root').onclick=function(ev){ var sb=ev.target.closest('[data-sec]'); if(sb){ PP.envAbierto=null; PP.sec=sb.getAttribute('data-sec'); PP.prod=''; PP.lote=''; PP.dest=null; PP.op=''; vistaPapel(); } };
